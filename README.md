@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
+</p>
+
 # strategic-partner
 
 > Every other tool executes. This one decides what to execute.
