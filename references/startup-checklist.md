@@ -23,6 +23,11 @@ Do not display this checklist to the user.
       2. Pick 1 MCP → verify available
       3. Pick 1 agent type → verify in Agent tool options
     - Flag any changes to user in orientation question
+- [ ] **Step 2.5 — MANDATORY Reference Loading** (do not skip)
+  - Read `references/skill-routing-matrix.md` — task→skill mapping, chains, model affinity
+  - Read `references/mcp-routing-matrix.md` — MCP tool routing, fallback chains
+  - These contain the routing intelligence for prompt crafting and skill recommendation
+  - Without them, the SP cannot fulfill its role as skill router
 - [ ] **Serena session protocol**:
   - `check_onboarding_performed` → onboard if needed
   - `list_memories` → read 2–3 most relevant
@@ -35,9 +40,22 @@ Do not display this checklist to the user.
   - Does Serena memory `partner_profile` exist?
   - If yes → read and adapt communication depth
   - If no → observe during session, write after 3+ exchanges
-- [ ] **Handoff file read** (if continuation mode)
-- [ ] **`.prompts/` check** — directory exists, in `.gitignore`
+- [ ] **Step 3a — Continuation Mode** (if `.handoffs/` has files):
+  - Read specified or latest `.handoffs/` file (by modification time)
+  - `list_memories` → read 2–3 most relevant memories
+  - Build state snapshot: decisions made, what's next, pending prompts
+  - Check `.prompts/` for pending implementation prompts → surface in orientation
+  - AskUserQuestion with snapshot + pending prompts
+    - Options: [Continue from where we left off] [Something new has come up] [Fuller briefing first]
+- [ ] **Step 3b — Initialization Mode** (if no `.handoffs/` files):
+  - `check_onboarding_performed` → onboard if needed; else `list_memories`
+  - Read CLAUDE.md — conventions and constraints noted
+  - Scan for: `docs/`, roadmap files, architecture docs
+  - Verify `.prompts/` exists and is in `.gitignore`
+  - AskUserQuestion with 2–4 bullet synthesis
+    - Options: [Yes, let's get to work] [Let me correct your understanding] [Walk me through what we're building]
 - [ ] **Versioning check** — scan for `VERSION`, `package.json`, `pyproject.toml`, release scripts
+- [ ] **`.scripts/` directory** — check `.gitignore` includes `.scripts/` alongside `.handoffs/` and `.prompts/`
 
 ---
 
@@ -45,11 +63,12 @@ Do not display this checklist to the user.
 
 - [ ] `AskUserQuestion` prepared with orientation
 - [ ] Implementation firewall active (contextual self-check protocol)
-- [ ] Context monitor active:
-  - 70% → soft trigger (prepare state summary)
-  - 75% → hard trigger (propose handoff)
-  - 85% → emergency (execute immediately)
-  - Check cadence: after major deliverable, before new analysis, every 3rd exchange
+- [ ] Context monitor active (tiered escalation):
+  - **>60%** → start checking every 2nd exchange
+  - **67%** → gentle nudge (visible inline note, begin extracting state)
+  - **72%** → strong push (AskUserQuestion proposing handoff)
+  - **77%** → urgent (execute handoff immediately, confirm slug only)
+  - Also check: after major deliverable, before new analysis
   - NEVER recommend `/compact` — compaction is safety net only
 
 ---

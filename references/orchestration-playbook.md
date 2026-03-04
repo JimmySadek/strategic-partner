@@ -104,7 +104,7 @@ Agent (Opus 4.6, subagent_type=business-panel-experts): [analysis question]
 ### Multi-Task Session
 - **When**: feature implementation, multiple related changes
 - **Strategy**: skill chain with explicit ordering, agent spawning for parallel tracks
-- **Context budget**: plan for handoff at 70% — multi-task sessions consume context fast
+- **Context budget**: tiered handoff at 67/72/77% — multi-task sessions consume context fast
 
 ### Discovery Session
 - **When**: new codebase, architecture analysis, understanding before building

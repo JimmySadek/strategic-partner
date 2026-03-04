@@ -213,6 +213,103 @@ Prompt chain (run in order):
 
 ---
 
+## Deliverable Type Routing
+
+Before deciding format, determine what kind of deliverable this is:
+
+```
+Is this task deterministic terminal/filesystem operations
+(config edits, package installs, file moves, directory setup,
+ JSON/YAML editing, git operations, environment setup)?
+  YES → Generate operational script (.scripts/)
+  NO  → Generate implementation prompt (.prompts/ or inline)
+  MIXED → Both: .scripts/ for mechanical part, .prompts/ for judgment part
+```
+
+**Signals that point to a script:**
+- The task is a sequence of shell commands with predictable outcomes
+- No AI judgment needed — a human could follow the steps mechanically
+- File edits are data-driven (JSON config, YAML, env vars), not logic-driven
+- The task involves installing, configuring, or setting up tooling
+- The deliverable is "run these commands" not "write this code"
+
+**Signals that point to a prompt:**
+- The task requires understanding existing code and making design decisions
+- Bug fixing, feature implementation, refactoring — anything needing code reasoning
+- The output depends on reading and interpreting codebase patterns
+- Creative problem-solving, architecture, testing strategies
+
+---
+
+## Script Format (for `.scripts/` deliverables)
+
+When the deliverable is an operational script:
+
+```bash
+#!/bin/bash
+# ============================================================
+# [Project Name] — [Script Purpose]
+# [Brief description of what this script does]
+#
+# Prerequisites: [what must exist/run before this]
+# IMPORTANT: [critical warnings, e.g., "Close Obsidian first!"]
+# ============================================================
+set -euo pipefail
+
+# --------------------------------------------------
+# Pre-flight checks
+# --------------------------------------------------
+# Verify directories, tools, processes as needed
+
+# --------------------------------------------------
+# 1/N  [Step description]
+# --------------------------------------------------
+echo "1/N  [Step description]..."
+# ... commands ...
+echo "  ✅ [What was done]"
+
+# ... repeat for each step ...
+
+# --------------------------------------------------
+# Done
+# --------------------------------------------------
+echo ""
+echo "============================================================"
+echo "✅  [Summary of what was accomplished]"
+echo "============================================================"
+echo ""
+echo "Next steps:"
+echo "  1. [What to do after running this script]"
+```
+
+**Script quality standards:**
+- `set -euo pipefail` — fail fast on errors
+- Pre-flight checks: verify directories exist, required tools installed, conflicting
+  processes not running (e.g., `pgrep -x "Obsidian"`)
+- Numbered progress: `echo "1/N Description..."` for each major step
+- Idempotent where possible: merge into existing config, check before creating
+- Inline Python/jq for JSON manipulation (don't overwrite entire files)
+- Summary at end with next steps
+- Descriptive filename: `03-configure-plugins.sh`, `setup-git-remote.sh`
+
+**Script display format (parallel to the prompt launcher):**
+
+```
+─────────────────────────────────────────────────
+🔧 RUN THIS IN TERMINAL:
+─────────────────────────────────────────────────
+
+chmod +x .scripts/[descriptor].sh && .scripts/[descriptor].sh
+
+─────────────────────────────────────────────────
+```
+
+**Script save decision:**
+Always save scripts to `.scripts/[descriptor].sh`. Scripts are never presented inline
+(unlike short prompts) — they are always files because they need to be executable.
+
+---
+
 ## Prompt Save Decision
 
 ```
@@ -265,3 +362,7 @@ Requirements:
 - **XML for Gemini**: Using `<context>` tags in prompts meant for Gemini sessions
 - **Over-prompting**: "Always use Serena for every search" → use conditional triggers
 - **Claude 3.x workarounds**: Excessive repetition, sycophancy-bait phrasing
+- **Prompt for config edits**: Writing a Claude prompt to edit JSON configs → generate a `.scripts/` bash script instead
+- **Manual steps in markdown**: "Run these commands: 1. cd ... 2. npm install ..." → wrap in an executable script
+- **Script without pre-flight**: Missing directory/tool checks → always validate prerequisites
+- **Destructive scripts**: Overwriting entire config files → merge into existing (use Python/jq for JSON)

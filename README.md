@@ -4,9 +4,11 @@
 
 # strategic-partner
 
-> Every other tool executes. This one decides what to execute.
+> Every other tool executes. This one decides **what** to execute.
 
-A Chief of Staff skill for Claude Code. It owns your CLAUDE.md, crafts implementation prompts, routes tasks to the right skill or agent, manages cross-session memory, and handles context handoffs before you lose state. It never writes a line of source code.
+Think of it as your **Chief of Staff** — a strategic partner, literally. It helps you **plan**, **structure your thoughts**, and **keep track of your project**. It even recommends the **next best action**. It owns your **CLAUDE.md**, crafts **implementation prompts**, routes tasks to the **right skill or agent**, manages **cross-session memory**, and handles **context handoffs** before you lose state. On startup, it scans everything you have installed — **skills**, **MCP servers**, **agent types**, **hooks** — so when it routes a task, it already knows what's available on your machine.
+
+It speaks to **engineers** in their language, and to **PMs** in theirs. It lives in the middle — the **planning layer** — which is where most things go wrong anyway. The ecosystem has plenty of tools for doing. Nothing for **deciding**.
 
 ---
 
@@ -24,62 +26,7 @@ Run:
 /strategic-partner
 ```
 
-The skill loads an advisory persona, scans your project, reads Serena memories, and asks what you're working on. From there, it thinks with you and writes prompts for you to run in separate implementation sessions.
-
----
-
-## Why this exists
-
-There are thousands of Claude Code skills. They write code, run tests, review PRs, orchestrate agents. strategic-partner does none of that. It figures out what your next session should do: which skill to use, what files to read first, what the prompt should say. It owns your CLAUDE.md, manages Serena memories, and doesn't touch source code. Closest thing I can compare it to is a Chief of Staff. It doesn't do the work. It makes sure the work gets done right.
-
-On startup, it scans everything you have installed: skills, MCP servers, agent types, hooks. Builds a registry, checks it against the routing matrices, flags anything that doesn't line up. So when it tells you to use a specific skill, it already knows that skill is on your machine.
-
-The ecosystem has plenty of tools for doing. Nothing for deciding.
-
----
-
-## What you get
-
-Here's what a typical advisory session looks like:
-
-```
-You:  "I need to add WebSocket support to the API"
-
-SP:   Reads your codebase structure from Serena memory.
-      Checks the routing matrix — this is a multi-file feature.
-      Asks: "This touches 4 files. Want a single /feature-dev session
-      or a phased /gsd approach?"
-
-You:  "Phased"
-
-SP:   Crafts 3 implementation prompts:
-      1. /gsd:research-phase — explore existing transport layer
-      2. /gsd:plan-phase — design WebSocket integration
-      3. /gsd:execute-phase — build it
-
-      Each prompt is self-contained with:
-      - Exact files to read first
-      - Project constraints from CLAUDE.md
-      - Verification checklist
-      - Expected commit message
-
-      Saves them to .prompts/v2.0/ and gives you a
-      copy-pasteable launcher for each.
-```
-
-You paste each prompt into a fresh session. The advisor stays in the current session for follow-up, course corrections, and the next round of prompts.
-
----
-
-## Features
-
-- 📝 **Writes prompts, not code.** Every implementation task gets a self-contained prompt for a separate session.
-- 📋 **Owns your CLAUDE.md** and updates it as the project evolves.
-- 🧭 **Picks the right skill, agent, or MCP** for each task, with reasoning.
-- 🔍 **Auto-scans your environment on startup.** Finds what's installed, checks it against the routing matrices, and flags mismatches. Routing decisions come from your actual setup.
-- 🔄 **Graduated context handoff protocol** — soft at 70%, hard at 75%, emergency at 85%.
-- 🎯 **Formats prompts for the target model** — XML for Claude, Markdown for Gemini.
-- 🚧 **Strict firewall between thinking and building.** No exceptions for "small fixes."
+The skill loads an **advisory persona**, scans your project, and asks what you're working on. From there, it thinks with you and writes prompts for you to run in **separate implementation sessions**.
 
 ---
 
@@ -93,36 +40,91 @@ Advisor crafts prompt → You open new session → You run prompt
 Advisor crafts next  ← Advisor reviews results ← You report back
 ```
 
-The advisor doesn't cross into implementation. You say "just fix it," it writes a prompt for fixing it. Advisory sessions think, implementation sessions build.
+The advisor doesn't cross into implementation. You say "just fix it," it writes a **prompt** for fixing it. Advisory sessions **think**, implementation sessions **build**.
+
+### Deliverable routing
+
+Not everything needs a Claude session. The SP decides what format fits:
+
+| Task type | Output | Where it goes |
+|-----------|--------|---------------|
+| Needs **AI judgment** (code, debugging, architecture) | Implementation prompt | `.prompts/` |
+| **Deterministic** commands (config, installs, setup) | Runnable shell script | `.scripts/` |
+| **Mixed** | Both — script for mechanical part, prompt for judgment part | Both directories |
 
 ### Implementation firewall
 
 Two checkpoints, both mandatory:
 
-1. **Request checkpoint** — When you ask to "fix", "change", or "build" something targeting source code, the advisor stops and crafts a prompt instead of reaching for the Edit tool.
-2. **Tool checkpoint** — Before any file write, the advisor checks: is this `.prompts/`, `.handoffs/`, or CLAUDE.md? If it's source code, it stops and crafts a prompt.
-
-### Startup sequence
-
-On every invocation, the advisor:
-
-1. Checks for existing handoff files (continuation vs fresh start)
-2. **Scans your environment** for installed skills, MCPs, agent types, and hooks. First run writes a persistent registry to Serena memory. Later runs spot-check what's changed since last time.
-3. Loads routing matrices and checks them against the registry, so it knows which mapped skills are actually installed
-4. Reads Serena memories for project context
-5. Presents a situation summary and asks what to work on
-
-Add a new skill between sessions, it picks that up. Remove one, it stops routing there.
+1. **Request checkpoint** — When you ask to "fix", "change", or "build" something targeting **source code**, the advisor stops and crafts a prompt instead of reaching for the Edit tool.
+2. **Tool checkpoint** — Before any file write, the advisor checks: is this `.prompts/`, `.handoffs/`, `.scripts/`, or CLAUDE.md? If it's source code, it **stops** and crafts a prompt.
 
 ### Context handoffs
 
-When context fills up, the advisor writes a handoff file to `.handoffs/` with:
-- What was accomplished
-- Key decisions and their reasoning
-- Pending implementation prompts
-- A continuation prompt you paste into a fresh session
+The SP monitors context usage and escalates through **three tiers**:
 
-The continuation prompt's first line is `/strategic-partner .handoffs/[filename]` so the advisor persona restores immediately.
+| Context Level | What happens |
+|---|---|
+| **67%** | Gentle nudge — you see an inline note, SP starts preparing state |
+| **72%** | Strong push — SP proposes handoff via a direct question |
+| **77%** | Auto-execute — SP writes the handoff immediately |
+
+The handoff file goes to `.handoffs/` with everything needed to continue: **decisions made**, **pending prompts**, **pending scripts**, and a **continuation prompt** that restores the advisor persona in a fresh session.
+
+---
+
+## What you get
+
+Your team needs to build a **user onboarding flow** for a SaaS product. Here's what happens:
+
+You open Claude Code and type:
+
+```
+/strategic-partner
+```
+
+Then say: *"We need to build an onboarding flow"*
+
+**Strategic Partner responds:**
+
+> Before we build — a few things:
+> - This touches **auth**, **UI**, **backend state**, and **email triggers**. That's 4 concern areas.
+> - Your **CLAUDE.md** says you're using React + Tailwind. No component library for modals yet.
+> - Is this for **new signups only**, or also re-onboarding existing users?
+>
+> Options: **Single big session** / **Break into 3 phases** / **Start with just the UI skeleton first**
+
+You say: *"3 phases, new signups only"*
+
+**SP delivers 3 ready-to-paste prompts:**
+
+| Phase | Prompt | What it does |
+|-------|--------|-------------|
+| **1 — Research** | `/gsd:research-phase` | Read these 5 files. Map existing **auth flow**. Identify where **onboarding state** should live. |
+| **2 — Build UI** | `/feature-dev` | Build **WelcomeScreen** + 3-step wizard components. Use mock data only. **No backend calls yet.** |
+| **3 — Wire It Up** | `/gsd:execute-phase` | Connect wizard to **user state**. Trigger **welcome email** on step 3 completion. |
+
+Each prompt has: **files to read first**, **constraints from CLAUDE.md**, **verification checklist**, **expected commit message**.
+
+You paste each prompt into a fresh session. The advisor stays in the current session for **follow-up**, **course corrections**, and the next round of prompts.
+
+---
+
+## The key difference
+
+| Aspect | Normal session | `/strategic-partner` session |
+|--------|---------------|------------------------------|
+| **How it works** | You ask → Claude builds | You ask → SP **plans** → writes the brief → the right tool executes |
+| **Role** | Claude is a builder | SP is your **planning layer** — it decides, delegates, and tracks |
+| **Big tasks** | One session does everything → falls apart at scale | Work is **broken into focused phases** — each one scoped and self-contained |
+| **Decisions** | Discovered mid-build, often too late to change | **Surfaced before any work starts** — so you choose, not guess |
+| **Knowledge** | Dies when the session ends | **Carries forward** — decisions, patterns, and context survive across sessions |
+| **Tool selection** | You have to know which tool to use | SP **picks the right tool** based on what the task actually needs |
+| **Manual steps** | Terminal commands or manual steps? Claude gives you a **list to follow yourself** | SP generates a **runnable script** — one command replaces a page of manual steps |
+| **Context** | **Context** fills up silently — your progress and decisions are lost | SP **monitors your context** and preserves your state before it degrades |
+| **Releases** | You track versions and milestones manually | SP **proposes version bumps** at the right moment and keeps commit history clean |
+
+SP is a **senior tech lead** who asks the right questions before your team starts building — so you don't discover the problem halfway through.
 
 ---
 
@@ -130,20 +132,20 @@ The continuation prompt's first line is `/strategic-partner .handoffs/[filename]
 
 ```
 strategic-partner/
-  SKILL.md                              # Skill definition (600 lines)
+  SKILL.md                              # Skill definition (640+ lines)
   references/
     skill-routing-matrix.md             # Task → skill mapping with model affinity
     mcp-routing-matrix.md               # MCP tool routing with fallback chains
-    prompt-crafting-guide.md            # Prompt format standards and examples
+    prompt-crafting-guide.md            # Prompt + script format standards
     orchestration-playbook.md           # Model selection and parallelization rules
-    context-handoff.md                  # Full handoff procedure and templates
+    context-handoff.md                  # Tiered handoff procedure and templates
     startup-checklist.md                # Internal startup verification
   assets/templates/
     prompt-template.md                  # Implementation prompt skeleton
     handoff-template.md                 # Session handoff skeleton
 ```
 
-These aren't filler. The advisor loads them at startup and actually uses them for routing and prompt formatting.
+These aren't filler. The advisor **loads them at startup** and uses them for routing, prompt formatting, and script generation.
 
 ---
 
@@ -179,23 +181,23 @@ git clone https://github.com/JimmySadek/strategic-partner.git ~/.config/skillsha
 /strategic-partner
 ```
 
-Loads the full advisor persona with startup sequence.
+Loads the full **advisory persona** with startup sequence.
 
 ### With a handoff file
 
 ```
-/strategic-partner .handoffs/websocket-api-0304-1430.md
+/strategic-partner .handoffs/onboarding-flow-0304-1430.md
 ```
 
-Resumes from a previous session's handoff.
+Resumes from a **previous session's handoff**.
 
 ### Subcommands
 
 | Command | What it does |
 |---------|-------------|
 | `/strategic-partner:help` | List all subcommands |
-| `/strategic-partner:sync-skills` | Compare installed skills against routing matrix, flag gaps |
-| `/strategic-partner:handoff` | Trigger a context handoff with split writes |
+| `/strategic-partner:sync-skills` | Compare installed skills against **routing matrix**, flag gaps |
+| `/strategic-partner:handoff` | Trigger a **context handoff** with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 
 ### Aliases
@@ -207,28 +209,19 @@ Resumes from a previous session's handoff.
 ## Requirements
 
 - **Claude Code** — the skill runs inside Claude Code sessions
-- **Serena MCP** (recommended) — for cross-session memory and semantic code navigation
+- **Serena MCP** (recommended) — for **cross-session memory** and semantic code navigation
 - **Context7 MCP** (optional) — for library documentation lookup
 
-The skill works without Serena, but loses cross-session memory and semantic code navigation. CLAUDE.md ownership and prompt crafting work regardless.
+The skill works without Serena, but loses **cross-session memory** and semantic code navigation. **CLAUDE.md ownership** and **prompt crafting** work regardless.
 
 ---
 
 ## What this is not
 
-- Not an orchestrator. It doesn't spawn agents. It tells you which orchestrator to reach for.
-- Not a skill catalogue. It knows when to use the skills you already have.
-- Not a memory system. It uses Serena for storage, but the point is knowing what to remember and when to bring it back.
-- Doesn't replace your implementation skills. Just gives them better prompts.
-
----
-
-## Limitations
-
-- Advisory sessions use up context without producing code. For a quick bug fix, skip this and use `/gsd:quick`.
-- The routing matrix (which task maps to which skill) is manually curated. The scan sees what's installed, but a new skill won't get task routing until it's added to the matrix.
-- Prompt quality depends on how well the advisor knows your project. First sessions go better after Serena onboarding.
-- The firewall feels rigid when you just want to change one line. That's intentional, but it takes some getting used to.
+- Not an **orchestrator**. It doesn't spawn agents. It tells you which orchestrator to reach for.
+- Not a **skill catalogue**. It knows when to use the skills you already have.
+- Not a **memory system**. It uses Serena for storage, but the point is knowing what to remember and when to bring it back.
+- Doesn't **replace** your implementation skills. Just gives them better prompts.
 
 ---
 
