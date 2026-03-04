@@ -32,6 +32,8 @@ The skill loads an advisory persona, scans your project, reads Serena memories, 
 
 There are thousands of Claude Code skills. They write code, run tests, review PRs, orchestrate agents. strategic-partner does none of that. It figures out what your next session should do: which skill to use, what files to read first, what the prompt should say. It owns your CLAUDE.md, manages Serena memories, and doesn't touch source code. Closest thing I can compare it to is a Chief of Staff. It doesn't do the work. It makes sure the work gets done right.
 
+On startup, it scans everything you have installed: skills, MCP servers, agent types, hooks. Builds a registry, checks it against the routing matrices, flags anything that doesn't line up. So when it tells you to use a specific skill, it already knows that skill is on your machine.
+
 The ecosystem has plenty of tools for doing. Nothing for deciding.
 
 ---
@@ -71,13 +73,13 @@ You paste each prompt into a fresh session. The advisor stays in the current ses
 
 ## Features
 
-- **Writes prompts, not code.** Every implementation task gets a self-contained prompt for a separate session.
-- **Owns your CLAUDE.md** and updates it as the project evolves.
-- **Picks the right skill, agent, or MCP** for each task, with reasoning.
-- **Graduated context handoff protocol** — soft at 70%, hard at 75%, emergency at 85%.
-- **Maintains a live registry** of your installed skills, MCPs, and agent types.
-- **Formats prompts for the target model** — XML for Claude, Markdown for Gemini.
-- **Strict firewall between thinking and building.** No exceptions for "small fixes."
+- 📝 **Writes prompts, not code.** Every implementation task gets a self-contained prompt for a separate session.
+- 📋 **Owns your CLAUDE.md** and updates it as the project evolves.
+- 🧭 **Picks the right skill, agent, or MCP** for each task, with reasoning.
+- 🔍 **Auto-scans your environment on startup.** Finds what's installed, checks it against the routing matrices, and flags mismatches. Routing decisions come from your actual setup.
+- 🔄 **Graduated context handoff protocol** — soft at 70%, hard at 75%, emergency at 85%.
+- 🎯 **Formats prompts for the target model** — XML for Claude, Markdown for Gemini.
+- 🚧 **Strict firewall between thinking and building.** No exceptions for "small fixes."
 
 ---
 
@@ -105,10 +107,12 @@ Two checkpoints, both mandatory:
 On every invocation, the advisor:
 
 1. Checks for existing handoff files (continuation vs fresh start)
-2. Scans your ecosystem — installed skills, MCPs, agent types, hooks
-3. Loads routing matrices (which skill for which task)
+2. **Scans your environment** for installed skills, MCPs, agent types, and hooks. First run writes a persistent registry to Serena memory. Later runs spot-check what's changed since last time.
+3. Loads routing matrices and checks them against the registry, so it knows which mapped skills are actually installed
 4. Reads Serena memories for project context
 5. Presents a situation summary and asks what to work on
+
+Add a new skill between sessions, it picks that up. Remove one, it stops routing there.
 
 ### Context handoffs
 
@@ -222,7 +226,7 @@ The skill works without Serena, but loses cross-session memory and semantic code
 ## Limitations
 
 - Advisory sessions use up context without producing code. For a quick bug fix, skip this and use `/gsd:quick`.
-- The routing matrix is manually maintained. Install a new skill and it won't show up in routing until the matrix gets updated.
+- The routing matrix (which task maps to which skill) is manually curated. The scan sees what's installed, but a new skill won't get task routing until it's added to the matrix.
 - Prompt quality depends on how well the advisor knows your project. First sessions go better after Serena onboarding.
 - The firewall feels rigid when you just want to change one line. That's intentional, but it takes some getting used to.
 
