@@ -18,6 +18,7 @@ Every implementation prompt must:
 7. **Leave no ambiguity** — nothing that would require follow-up questions
 8. **Specify model for agent-spawning prompts** — every prompt involving the Agent tool must specify model (sonnet or opus)
 9. **Use XML structure for Claude targets** — `<context>`, `<instructions>`, `<orchestration>`, `<verification>` tags
+10. **Specify the target branch** — if the project uses feature branches, name the branch in the prompt's `<context>` section so the implementer works in the right place
 
 ---
 

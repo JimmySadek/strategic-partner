@@ -95,6 +95,8 @@ We're working on [project name and one-line description].
 **Files Modified**:
 - `path/to/file`: [what changed]
 
+**Git State**: Branch `[name]`, [clean/dirty], [ahead/behind], last commit: `[hash] [message]`
+
 **Pending Prompts** (in `.prompts/`):
 - `.prompts/[milestone]/[name].md` — [description, status: ready/draft]
 

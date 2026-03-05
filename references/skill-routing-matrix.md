@@ -51,6 +51,15 @@ Reference file for the strategic-partner advisor. Consult when routing work to i
 | Build, compile, or package a project | `/sc:build` | Sonnet | `/sc:troubleshoot` for build failures |
 | Git commit, branch, or workflow operations | `/sc:git` | Sonnet | — |
 | Execute complex multi-step task with workflow | `/sc:task` | Sonnet | `/sc:spawn` for parallel tracks |
+| Explain code, concepts, or system behavior | `/sc:explain` | Sonnet | `Agent:learning-guide` for teaching |
+| Implement a feature (simpler scope) | `/sc:implement` | Sonnet | `/feature-dev:feature-dev` for guided flow |
+| Initialize a new project from scratch | `/gsd:new-project` | Sonnet | — |
+| Start a new milestone cycle | `/gsd:new-milestone` | Sonnet | `/gsd:new-project` for first-time setup |
+| Gather phase context before planning | `/gsd:discuss-phase` | Sonnet | `/gsd:research-phase` for web research |
+| Check project progress + route to next action | `/gsd:progress` | Sonnet | — |
+| Audit milestone completion before archiving | `/gsd:audit-milestone` | Sonnet | `/gsd:verify-work` for feature-level UAT |
+| Archive completed milestone | `/gsd:complete-milestone` | Sonnet | — |
+| Fetch YouTube transcripts to Markdown | `/youtube-fetcher` | Haiku | — |
 
 ---
 
@@ -165,4 +174,48 @@ the live skill inventory (from system context) and flags:
 - **Uncatalogued**: skills in environment not in this matrix
 - **Unavailable**: skills in this matrix not in environment
 
-Last synced: 2026-03-03 (rev 2)
+Last synced: 2026-03-05 (rev 5) — merged MCP routing, added 9 previously uncatalogued skills, context optimization
+
+---
+
+## MCP & Plugin Routing
+
+| When the task involves… | Instruct use of… | Instead of… |
+|---|---|---|
+| Navigate to a function, class, or symbol | `serena find_symbol` | Grep/Glob search |
+| Understand a file's structure without reading all | `serena get_symbols_overview` | Reading the full file |
+| Refactor with impact analysis | `serena find_referencing_symbols` first | Blind search-and-replace |
+| Edit a function or method body | `serena replace_symbol_body` | File-based Edit tool |
+| Search for patterns across the codebase | `serena search_for_pattern` | `grep` or Grep tool |
+| Read or write cross-session memory | `serena read_memory` / `write_memory` | CLAUDE.md annotations |
+| Look up library or framework documentation | `context7 resolve-library-id` + `query-docs` | Web search |
+| API reference (React, Next.js, FastAPI, etc.) | `context7` | Hallucinating from training data |
+| Browser automation or E2E testing | `playwright browser_*` tools | Unit tests alone |
+| Visual UI validation (does it look right?) | `playwright browser_snapshot` / `take_screenshot` | — |
+
+### Native-vs-MCP Decision Rule
+
+```
+Can a simple Glob or Grep answer it in one shot?  → use native
+Is this about a named symbol in a code file?       → use Serena
+Is this about documented library behaviour?        → use Context7
+Does this require a browser or visual check?       → use Playwright
+```
+
+### Fallback Chains
+
+| MCP | Primary Tool | Fallback |
+|---|---|---|
+| Serena | `find_symbol` | Grep + Glob for symbol search |
+| Serena | `replace_symbol_body` | Edit tool for code changes |
+| Serena | `read_memory` / `write_memory` | Auto-memory files |
+| Context7 | `resolve-library-id` + `query-docs` | WebSearch + WebFetch |
+| Playwright | `browser_navigate` + `browser_snapshot` | Manual testing instructions in prompt |
+
+### Embedding MCP in Prompts
+
+When crafting an implementation prompt, specify:
+1. Which MCPs the session should use (by tool name, not category)
+2. The specific tool calls most relevant
+3. When to fall back to native tools if an MCP fails
+4. Use conditional triggers: "IF looking up a named symbol → use Serena" (not "always use Serena")

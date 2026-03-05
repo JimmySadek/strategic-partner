@@ -20,6 +20,12 @@ what's broken or blocked]
 - `path/to/file`: [what changed and why]
 - [...]
 
+## Git State
+- **Branch**: [current branch name]
+- **Status**: [clean / N uncommitted changes — list key files]
+- **Ahead/behind**: [e.g., "2 ahead, 0 behind" or "not tracking remote"]
+- **Last commit**: [short hash + message of most recent commit]
+
 ## Ecosystem Changes
 - [Any skills/MCPs that appeared or disappeared during session]
 - [Registry updates needed]

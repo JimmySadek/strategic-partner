@@ -1,75 +1,7 @@
 # Startup Checklist (Internal)
 
-Reference file for the strategic-partner advisor. Complete before declaring ready.
-Do not display this checklist to the user.
-
----
-
-## Pre-Orientation Checks
-
-- [ ] **Step 0 — Upgrade detection** (skip if `advisor_project_setup` memory exists)
-  - `.handoffs/` exists → check for `.prompts/`
-  - Mixed content in `.handoffs/` → offer categorization
-  - `.prompts/` missing from `.gitignore` → flag
-- [ ] **Step 1 — Mode detected** (initialization vs. continuation)
-- [ ] **Step 2 — Ecosystem Registry Bootstrap**
-  - Scan system context for: skills, MCPs, agent types, hooks
-  - Read `references/skill-routing-matrix.md` + `references/mcp-routing-matrix.md`
-  - Compare live inventory vs. matrices → flag uncatalogued/unavailable
-  - Read or create Serena memory `ecosystem_registry`:
-    - First time → create full registry (models, skills, MCPs, agent types, hooks)
-    - Existing → validate 3 key entries:
-      1. Pick 1 random skill from registry → verify in system context
-      2. Pick 1 MCP → verify available
-      3. Pick 1 agent type → verify in Agent tool options
-    - Flag any changes to user in orientation question
-- [ ] **Step 2.5 — MANDATORY Reference Loading** (do not skip)
-  - Read `references/skill-routing-matrix.md` — task→skill mapping, chains, model affinity
-  - Read `references/mcp-routing-matrix.md` — MCP tool routing, fallback chains
-  - These contain the routing intelligence for prompt crafting and skill recommendation
-  - Without them, the SP cannot fulfill its role as skill router
-- [ ] **Serena session protocol**:
-  - `check_onboarding_performed` → onboard if needed
-  - `list_memories` → read 2–3 most relevant
-  - Staleness validation (concrete):
-    1. Pick 2 file paths from `codebase_structure` memory → verify with `find_file`
-    2. Pick 1 convention from `code_style_and_conventions` memory → verify with `search_for_pattern`
-    3. If any fail → flag immediately, propose targeted memory update
-- [ ] **CLAUDE.md read** — conventions and constraints noted
-- [ ] **Partner profile check**:
-  - Does Serena memory `partner_profile` exist?
-  - If yes → read and adapt communication depth
-  - If no → observe during session, write after 3+ exchanges
-- [ ] **Step 3a — Continuation Mode** (if `.handoffs/` has files):
-  - Read specified or latest `.handoffs/` file (by modification time)
-  - `list_memories` → read 2–3 most relevant memories
-  - Build state snapshot: decisions made, what's next, pending prompts
-  - Check `.prompts/` for pending implementation prompts → surface in orientation
-  - AskUserQuestion with snapshot + pending prompts
-    - Options: [Continue from where we left off] [Something new has come up] [Fuller briefing first]
-- [ ] **Step 3b — Initialization Mode** (if no `.handoffs/` files):
-  - `check_onboarding_performed` → onboard if needed; else `list_memories`
-  - Read CLAUDE.md — conventions and constraints noted
-  - Scan for: `docs/`, roadmap files, architecture docs
-  - Verify `.prompts/` exists and is in `.gitignore`
-  - AskUserQuestion with 2–4 bullet synthesis
-    - Options: [Yes, let's get to work] [Let me correct your understanding] [Walk me through what we're building]
-- [ ] **Versioning check** — scan for `VERSION`, `package.json`, `pyproject.toml`, release scripts
-- [ ] **`.scripts/` directory** — check `.gitignore` includes `.scripts/` alongside `.handoffs/` and `.prompts/`
-
----
-
-## Post-Orientation Checks
-
-- [ ] `AskUserQuestion` prepared with orientation
-- [ ] Implementation firewall active (contextual self-check protocol)
-- [ ] Context monitor active (tiered escalation):
-  - **>60%** → start checking every 2nd exchange
-  - **67%** → gentle nudge (visible inline note, begin extracting state)
-  - **72%** → strong push (AskUserQuestion proposing handoff)
-  - **77%** → urgent (execute handoff immediately, confirm slug only)
-  - Also check: after major deliverable, before new analysis
-  - NEVER recommend `/compact` — compaction is safety net only
+Reference file for the strategic-partner advisor. Supplementary detail for
+the inline startup checklist in SKILL.md. Do not display to user.
 
 ---
 
@@ -80,14 +12,12 @@ Do not display this checklist to the user.
 - Architectural decision made with rationale
 - Significant gotcha or lesson learned discovered
 - Threshold values calibrated and confirmed
-- Ecosystem change detected (new skill, MCP, or hook)
 
 ### When to Propose Re-Onboarding
 - Memory references files/directories that no longer exist
 - Memory describes module structure contradicting actual codebase
 - Major architectural reorganization since last onboarding
 - Memory content is internally inconsistent
-- Ecosystem registry severely stale (>50% entries outdated)
 - User explicitly says "memories are wrong" or "re-onboard"
 
 ### Re-Onboarding Protocol
@@ -95,6 +25,22 @@ Do not display this checklist to the user.
 2. AskUserQuestion: describe inconsistency + propose re-onboarding with rationale
 3. Options: [Yes, re-onboard now] [Let me fix specific memories instead] [Keep going]
 4. If confirmed: `onboarding` call refreshes codebase analysis and memories
+
+---
+
+## Staleness Validation (Concrete Steps)
+
+1. Pick 2 file paths from `codebase_structure` memory → verify with `find_file`
+2. Pick 1 convention from `code_style_and_conventions` memory → verify with `search_for_pattern`
+3. If any fail → flag immediately, propose targeted memory update
+
+---
+
+## Partner Profile
+
+- Does Serena memory `partner_profile` exist?
+- If yes → read and adapt communication depth
+- If no → observe during session, write after 3+ exchanges
 
 ---
 
@@ -107,13 +53,9 @@ Propose an update when:
 - A rule is being violated repeatedly (suggests missing guardrail)
 - Version bump process is established or changed
 
-Protocol:
-- AskUserQuestion with: what to add, which section, exact proposed text, rationale
-- Wait for confirmation before editing
-
 ---
 
-## Memory vs. CLAUDE.md vs. Registry Decision
+## Memory Placement Guide
 
 ```
 Serena memories     → architectural decisions, codebase structure, code conventions,
@@ -121,7 +63,32 @@ Serena memories     → architectural decisions, codebase structure, code conven
 CLAUDE.md           → process rules, enforcement conventions, project-wide guardrails
 .claude/rules/      → path-specific rules (e.g., "all files in src/api/ must...")
 Auto-memory         → session learnings, user preferences (auto-managed)
-ecosystem_registry  → skills, MCPs, agent types, hooks (SP-managed)
 .handoffs/          → current session state, continuation prompts
 .prompts/           → implementation prompts organized by milestone
+.scripts/           → runnable operational scripts
 ```
+
+---
+
+## Ask-Before-Act Examples
+
+**Serena memory write:**
+> "I want to record our decision to use cosine distance thresholds (T_ACCEPT=0.25,
+> T_REJECT=0.55) in Serena as 'identity_threshold_decisions'. Rationale: this was a
+> corrected value from Round 1's wrong calibration and should survive session resets.
+> Shall I write this memory?"
+
+**CLAUDE.md update:**
+> "I want to add a Dev Visibility Rule to CLAUDE.md requiring a CHANGELOG.json entry
+> with every pipeline change. Rationale: we keep forgetting this across sessions.
+> Proposed text: [exact text]. Shall I add it?"
+
+**Git commit:**
+> "Good checkpoint for a commit — the roadmap review is complete. Proposed message:
+> `docs: player identity roadmap reviewed, regression gate baseline corrected`.
+> Shall I commit?"
+
+**Context handoff:**
+> "We're approaching context limits and I want to preserve what we've built today
+> before quality degrades. I'll write a handoff to `.handoffs/` — the continuation
+> prompt will restore the advisor persona in the fresh session. Shall I do it?"

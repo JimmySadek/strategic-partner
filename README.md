@@ -6,9 +6,9 @@
 
 > Every other tool executes. This one decides **what** to execute.
 
-Think of it as your **Chief of Staff** — a strategic partner, literally. It helps you **plan**, **structure your thoughts**, and **keep track of your project**. It even recommends the **next best action**. It owns your **CLAUDE.md**, crafts **implementation prompts**, routes tasks to the **right skill or agent**, manages **cross-session memory**, and handles **context handoffs** before you lose state. On startup, it scans everything you have installed — **skills**, **MCP servers**, **agent types**, **hooks** — so when it routes a task, it already knows what's available on your machine.
+Think of it as your **Chief of Staff** — a strategic partner, literally. It helps you **plan**, **structure your thoughts**, and **keep track of your project**. It even recommends the **next best action**. It owns your **CLAUDE.md**, crafts **implementation prompts**, routes tasks to the **right skill or agent**, manages **cross-session memory**, and handles **context handoffs** before you lose state. It reads your installed **skills**, **MCP servers**, **agent types**, and **hooks** from the system context — so when it routes a task, it already knows what's available on your machine.
 
-It speaks to **engineers** in their language, and to **PMs** in theirs. It lives in the middle — the **planning layer** — which is where most things go wrong anyway. The ecosystem has plenty of tools for doing. Nothing for **deciding**.
+It speaks to **engineers** in their language, to **PMs** in theirs, and to **founders** in theirs. It captures your **git state** on startup, verifies commits landed after implementation sessions, and structures every response around **diagrams first, tables second, prose last**. The ecosystem has plenty of tools for doing. Nothing for **deciding**.
 
 ---
 
@@ -132,10 +132,9 @@ SP is a **senior tech lead** who asks the right questions before your team start
 
 ```
 strategic-partner/
-  SKILL.md                              # Skill definition (640+ lines)
+  SKILL.md                              # Skill definition (500+ lines)
   references/
-    skill-routing-matrix.md             # Task → skill mapping with model affinity
-    mcp-routing-matrix.md               # MCP tool routing with fallback chains
+    skill-routing-matrix.md             # Task → skill + MCP routing with fallback chains
     prompt-crafting-guide.md            # Prompt + script format standards
     orchestration-playbook.md           # Model selection and parallelization rules
     context-handoff.md                  # Tiered handoff procedure and templates
@@ -145,7 +144,7 @@ strategic-partner/
     handoff-template.md                 # Session handoff skeleton
 ```
 
-These aren't filler. The advisor **loads them at startup** and uses them for routing, prompt formatting, and script generation.
+These aren't filler. The advisor **loads them on-demand** — keeping the core skill lean while pulling in deep reference material only when crafting prompts, routing edge cases, or preparing handoffs.
 
 ---
 
