@@ -262,14 +262,14 @@ Are there 3+ files to read before crafting a prompt?
 
 ## Anti-Patterns
 
-- ❌ Spawning Opus agents for implementation tasks (waste of capability)
-- ❌ Sequential agents when they could be parallel (waste of time)
-- ❌ Parallel agents with dependencies (race conditions, inconsistency)
-- ❌ Skipping the Explore step before complex implementation
-- ❌ Not specifying model in agent spawn instructions
-- ❌ Spawning agents for tasks that a single skill invocation handles
-- ❌ Using Agent tool when a direct skill command exists (unnecessary overhead)
-- ❌ Delegating CLAUDE.md or handoff file reading (SP must internalize, not summarize)
-- ❌ Delegating memory content reading (SP reasons from full content)
-- ❌ Having an agent build the routing matrix (costs as much to review as to build)
-- ❌ Waiting for fire-and-forget agents (dashboard fix, gitignore — spawn and move on)
+- ❌ **Opus for implementation**: Spawning Opus agents for implementation tasks (waste of capability)
+- ❌ **Unnecessary sequential**: Sequential agents when they could be parallel (waste of time)
+- ❌ **Dependent parallels**: Parallel agents with dependencies (race conditions, inconsistency)
+- ❌ **Skipping Explore**: Jumping to implementation before understanding existing code
+- ❌ **Missing model spec**: Not specifying model in agent spawn instructions
+- ❌ **Agent overkill**: Spawning agents for tasks that a single skill invocation handles
+- ❌ **Agent vs skill**: Using Agent tool when a direct skill command exists (unnecessary overhead)
+- ❌ **Delegating strategy reads**: Delegating CLAUDE.md or handoff file reading (SP must internalize)
+- ❌ **Delegating memory reads**: Delegating memory content reading (SP reasons from full content)
+- ❌ **Delegating matrix build**: Having an agent build the routing matrix (costs as much to review)
+- ❌ **Waiting on fire-and-forget**: Waiting for dashboard fix or gitignore agents (spawn and move on)

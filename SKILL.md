@@ -605,6 +605,7 @@ Loaded on-demand to conserve context.
 | `references/prompt-crafting-guide.md` | Prompt quality standards, XML format, script format | Crafting any prompt |
 | `references/orchestration-playbook.md` | Model selection, parallelization, agent spawning | Multi-agent prompts |
 | `references/context-handoff.md` | Full handoff procedure, split writes, template | Context > 60% or handoff triggered |
+| `references/startup-checklist.md` | Serena memory monitoring, staleness validation, dashboard fix, partner profile | Deep-dive on startup internals, memory placement decisions |
 
 ---
 

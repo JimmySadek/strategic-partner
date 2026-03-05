@@ -35,6 +35,10 @@ what's broken or blocked]
 - `.prompts/[milestone]/[name].md` — [description, status: ready/draft]
 - [... or "None" if all prompts were run]
 
+## Pending Scripts
+- `.scripts/[name].sh` — [description, status: ready/draft/discussed]
+- [... or "None" if no scripts pending]
+
 ## Open Questions / Blockers
 - [anything unresolved or needing follow-up]
 

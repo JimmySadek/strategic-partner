@@ -13,14 +13,14 @@ Quality Check → Format (XML/MD/Hybrid) → Deliverable Type (Prompt vs Script)
 
 Every implementation prompt must:
 
-1. **Skill command resolved from the routing matrix** — look up the best skill for this specific task in the routing matrix before writing line 1. Never default to a remembered skill name or copy one from an example. The first line must be the bare skill command — no backticks, no headers above it, no "Run:" prefix
+1. **Skill resolved from the routing matrix** — look up the best skill for this specific task before writing line 1. Never default to a remembered skill name or copy one from an example. The first line must be the bare skill command — no backticks, no headers above it, no "Run:" prefix
 2. **Be fully self-contained** — the implementer has no access to the advisor conversation
-3. **Specify files to read first** — before touching anything
+3. **Specify exactly which files to read** — before touching anything
 4. **List deliverables precisely** — files, functions, tests, CHANGELOG entries
 5. **Include project constraints** — pre-existing failures, feature flags, naming conventions
-6. **End with the expected commit message** — conventional-commit format
-7. **Leave no ambiguity** — nothing that would require follow-up questions
-8. **Specify model for agent-spawning prompts** — every prompt involving the Agent tool must specify model (sonnet or opus)
+6. **Specify the model** — every prompt involving agents must name Opus or Sonnet explicitly
+7. **End with the expected commit message** — conventional-commit format
+8. **Leave no ambiguity** — nothing that would require follow-up questions
 9. **Use XML structure for Claude targets** — `<context>`, `<instructions>`, `<orchestration>`, `<verification>` tags
 10. **Specify the target branch** — if the project uses feature branches, name the branch in the prompt's `<context>` section so the implementer works in the right place
 
