@@ -9,7 +9,7 @@ description: >
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Handles skill routing, context handoff, and Serena memory management.
   Triggers on: /strategic-partner, /advisor, /sp
-version: 3.5.0
+version: 3.5.2
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -101,6 +101,10 @@ PARALLEL:
     - Staleness spot-check: verify 2 file paths + 1 convention from Serena memories
     - Summarize recent git history (git log --oneline -15)
     - Return: staleness pass/fail + recent work summary (~150 tokens)
+
+FIRE-AND-FORGET (spawn immediately, no return needed):
+  - Serena dashboard: read ~/.serena/serena_config.yml, set web_dashboard_open_on_launch to false
+  - .gitignore: ensure .handoffs/, .prompts/, .scripts/ are listed
 ```
 
 3. Review agent summary (staleness pass/fail, recent commits)
@@ -128,10 +132,15 @@ PARALLEL:
     - Scan docs/, architecture docs, roadmap files
     - Return: 3-5 bullet structured summary (tech stack, architecture, current milestone)
     - Limit: ~300 tokens max
+
+FIRE-AND-FORGET (spawn immediately, no return needed):
+  - Serena dashboard: read ~/.serena/serena_config.yml, set web_dashboard_open_on_launch to false
+  - .gitignore: ensure .handoffs/, .prompts/, .scripts/ are listed
 ```
 
 **Sequencing note**: Agent 1 needs the result of `check_onboarding_performed` to branch.
 Call `check_onboarding_performed` first, then spawn both agents with the result.
+Fire-and-forget operations have no dependencies — spawn them immediately in Step 1.
 
 3. Review Agent 1 summary (onboarding/staleness status)
 4. Review Agent 2 summary (project architecture bullets)
@@ -352,6 +361,8 @@ user a clear copy boundary. The format is identical regardless of where the prom
 
 **Inline format** (prompt ≤250 lines AND ≤5 deliverables):
 
+> **🎯 Routing**: `[skill-from-routing-matrix]` — [why this skill fits: task scope, complexity, what it handles that alternatives don't].
+
 **COPY THIS INTO NEW SESSION:**
 
 ══════════════════ START 🟢 COPY ══════════════════
@@ -364,6 +375,8 @@ Expected commit: "type(scope): description"
 
 **Launcher format** (prompt saved to `.prompts/`):
 
+> **🎯 Routing**: `[skill-from-routing-matrix]` — [why this skill fits: task scope, complexity, what it handles that alternatives don't].
+
 **COPY THIS INTO NEW SESSION:**
 
 ══════════════════ START 🟢 COPY ══════════════════
@@ -373,6 +386,8 @@ Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execu
 ══════════════════= END 🛑 COPY ═══════════════════
 
 **Script launcher format** (for .scripts/):
+
+> **🎯 Routing**: No skill needed — [why: deterministic operations, no AI judgment, pure shell commands, etc.].
 
 **RUN THIS IN TERMINAL:**
 
@@ -386,6 +401,43 @@ Rules:
 - Skill command on first line inside the fence — resolved from routing matrix, never hardcoded
 - For inline prompts: the full prompt goes INSIDE the fences — this is a one-shot presentation, no follow-up question
 - 250 lines is generous because implementation sessions have a full context window and leverage subagent orchestration
+- **Routing rationale is mandatory BEFORE the fences** — a `> 🎯 Routing:` line explaining why this skill was chosen (or why no skill was needed). Always resolve the skill from the routing matrix — never hardcode a skill name from memory or examples. This educates the user on routing decisions so they learn to anticipate which tools fit which tasks
+
+### Post-Prompt Protocol: Wait for Report Back
+
+After delivering a prompt or script launcher, the implementation loop enters **the user's turn**.
+
+**Mandatory behavior after every prompt delivery:**
+
+```
+SP delivers prompt (fenced)
+  ↓
+State: "Run this in a new session and come back with the results.
+        I'll review what landed and we'll plan next steps together."
+  ↓
+STOP. ← You are here. Do NOT continue.
+  ↓
+User runs prompt in separate session...
+  ↓
+User returns and reports what happened
+  ↓
+SP resumes: verify → review → assess → plan next
+```
+
+1. After the fenced prompt, state that you're waiting for the report back
+2. **STOP.** Do not offer follow-up options, suggest next tasks, analyze future work, or present a "what's next?" menu
+3. The user will return and tell you what happened — that is when you resume
+
+**When the user reports back:**
+1. Verify: "Did it commit?" → check `git log --oneline -3` if available
+2. Review: Ask about any issues, unexpected behavior, or deviations
+3. Assess: Is the task complete? Follow-up fixes needed?
+4. Extract: Any lessons learned for CLAUDE.md or Serena memory?
+5. Then — and only then — propose the next task or prompt
+
+This is the cornerstone of the partnership model: **the SP structures, reviews, documents, and orchestrates. The user executes and reports. Neither side skips their turn.**
+
+**Anti-pattern:** Presenting a prompt and immediately offering "What's next?" options or follow-up suggestions. The user hasn't executed anything yet — there's nothing to assess, review, or build upon.
 
 `.handoffs/`, `.prompts/`, and `.scripts/` must all be in `.gitignore`.
 

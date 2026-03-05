@@ -358,6 +358,8 @@ the user a clear, unambiguous copy boundary.
 Present the full prompt inside the fences. This is a one-shot output — no follow-up
 question needed.
 
+> **🎯 Routing**: `[skill-from-routing-matrix]` — [why this skill fits: task scope, complexity, what it handles that alternatives don't].
+
 **COPY THIS INTO NEW SESSION:**
 
 ══════════════════ START 🟢 COPY ══════════════════
@@ -373,6 +375,8 @@ Expected commit: "type(scope): description"
 When a prompt is saved to `.prompts/`, display a short launcher the user can
 copy-paste into a new Claude Code session:
 
+> **🎯 Routing**: `[skill-from-routing-matrix]` — [why this skill fits: task scope, complexity, what it handles that alternatives don't].
+
 **COPY THIS INTO NEW SESSION:**
 
 ══════════════════ START 🟢 COPY ══════════════════
@@ -386,6 +390,17 @@ Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execu
 - First line inside fence: bare skill command (no backticks) — dynamic per task
 - Nothing else outside the fences — no headers, no summaries, no backticks around commands
 - When multiple prompts exist, each gets its own START/END block
+- **Routing rationale is mandatory BEFORE the fences** — a `> 🎯 Routing:` blockquote explaining why this skill was chosen (or why no skill was needed). This educates the user on SP routing decisions
+
+### Post-Prompt Protocol: Wait for Report Back
+
+After delivering a fenced prompt or script launcher, **STOP and wait for the user to
+report back**. Do not offer follow-up options, suggest next tasks, or present "what's
+next?" menus. The user will execute the prompt in a separate session and return with
+results. Resume only when they report back: verify → review → assess → plan next.
+
+This is the cornerstone of the partnership: SP structures and reviews, user executes
+and reports. Neither side skips their turn.
 
 ---
 
@@ -408,3 +423,5 @@ Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execu
 - ❌ **Manual steps in markdown**: "Run these commands: 1. cd ... 2. npm install ..." → wrap in an executable script
 - ❌ **Script without pre-flight**: Missing directory/tool checks → always validate prerequisites
 - ❌ **Destructive scripts**: Overwriting entire config files → merge into existing (use Python/jq for JSON)
+- ❌ **Missing routing rationale**: Presenting fenced prompt without the `> 🎯 Routing:` line → always explain the skill choice (or no-skill choice) before the fences
+- ❌ **Premature "what's next?"**: Offering follow-up options immediately after a prompt → STOP and wait for user to report back from execution

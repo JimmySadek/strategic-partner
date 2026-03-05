@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.5.2] - 2026-03-05
+
+### Added
+- **Post-Prompt Protocol: Wait for Report Back** — mandatory behavioral section in SKILL.md enforcing the partnership loop. After delivering a fenced prompt, the SP must STOP and wait for the user to report back before offering next steps. Includes ASCII flow diagram, report-back review checklist, and explicit anti-pattern callout
+- **Routing rationale line (`> 🎯 Routing:`)** — mandatory one-liner BEFORE every fenced prompt explaining why the chosen skill was selected (or why no skill was needed). Educates the user on SP routing decisions so they learn to anticipate which tools fit which tasks
+- Routing rationale added to all 3 prompt format templates (inline, launcher, script) in both SKILL.md and prompt-crafting-guide.md — using generic placeholders, not hardcoded skill names
+- New rule in fence format rules: routing rationale is mandatory before fences
+- Two new anti-patterns in prompt-crafting-guide.md: "Missing routing rationale" and "Premature what's next?"
+- **Fire-and-forget block in BOTH Step 2a and Step 2b** — Serena dashboard fix and .gitignore auto-add now explicitly listed in both continuation AND initialization PARALLEL blocks. Previously only referenced in the internal checklist, causing the dashboard fix to be missed in continuation mode
+
+### Fixed
+- **Partnership loop broken** — SP was presenting prompts then immediately offering "What's next?" menus instead of waiting for user to execute and report back. Root cause: no explicit stop instruction after prompt delivery. The Post-Prompt Protocol now enforces the wait
+- **Dashboard fix skipped in continuation mode** — `web_dashboard_open_on_launch` auto-fix was only implicitly referenced via the internal startup checklist, not woven into the Step 2a/2b PARALLEL blocks. Now explicit in both modes
+- **Hardcoded skill names in routing rationale examples** — removed `/sc:implement`, `/feature-dev`, `/gsd:quick` from template examples to prevent anchoring bias. Rationale examples now use `[skill-from-routing-matrix]` placeholder, forcing the model to consult the actual routing matrix every time
+
 ## [3.5.1] - 2026-03-05
 
 ### Added
