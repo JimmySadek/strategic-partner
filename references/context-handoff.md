@@ -112,11 +112,18 @@ We're working on [project name and one-line description].
 **Important Context**: [critical gotchas, constraints, conventions]
 ```
 
-### Step 5: Ensure Gitignore Coverage
+### Step 5: Ensure Gitignore Coverage (Auto-Add)
 
-Check `.gitignore` for both directories:
-- `.handoffs/` — add if missing
-- `.prompts/` — add if missing
+`.gitignore` coverage for `.handoffs/`, `.prompts/`, and `.scripts/` is handled
+automatically as a fire-and-forget operation during startup (see SKILL.md § Self-Delegation
+Principle). By the time a handoff occurs, coverage should already be in place.
+
+If for any reason it wasn't done at startup, add all three entries without asking:
+- `.handoffs/`
+- `.prompts/`
+- `.scripts/`
+
+This is an enforced guardrail, not a discretionary decision — never ask before adding.
 
 ### Step 6: Display Results
 

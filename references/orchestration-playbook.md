@@ -118,6 +118,138 @@ Agent (Opus 4.6, subagent_type=business-panel-experts): [analysis question]
 
 ---
 
+## Advisor Self-Delegation
+
+The SP delegates mechanical work to Explore agents to preserve its own context window
+for strategic reasoning. These patterns are used by the SP itself during startup and
+prompt crafting — not in implementation prompts.
+
+### Pattern A: Initialization Scan (2 parallel agents)
+
+Spawn after `check_onboarding_performed` completes:
+
+**Agent 1 — Onboarding/Staleness Check:**
+```
+You are checking codebase freshness for an advisor session.
+
+IF the project has NOT been onboarded to Serena:
+  - Run `onboarding` to analyze the project and create memories
+  - Return: list of memory names created, 1-line summary of each
+
+IF the project HAS been onboarded:
+  - Read the `codebase_structure` Serena memory
+  - Pick 2 file paths mentioned → verify each exists with `find_file`
+  - Read the `code_style_and_conventions` memory
+  - Pick 1 convention → verify with `search_for_pattern`
+  - Return ONLY:
+    STALENESS: PASS or FAIL
+    Failed checks: [list any failures, or "none"]
+    Summary: [1 sentence on codebase health]
+```
+
+**Agent 2 — Architecture Scan:**
+```
+You are scanning project documentation for an advisor session.
+
+1. Check for these paths (use find_file or list_dir):
+   - docs/, doc/, documentation/
+   - README.md, ARCHITECTURE.md, DESIGN.md
+   - roadmap files, TODO.md, CHANGELOG.md
+   - .planning/, .gsd/ (project management)
+
+2. For each file found, read it and extract:
+   - Tech stack and frameworks
+   - Architecture pattern (monolith, microservices, etc.)
+   - Current milestone or version
+   - Key conventions or constraints
+
+3. Return ONLY a structured summary (5 bullets max, ~300 tokens):
+   - Tech stack: [...]
+   - Architecture: [...]
+   - Current state: [...]
+   - Key constraints: [...]
+   - Active milestone: [...]
+```
+
+### Pattern B: Continuation Staleness Check (1 agent)
+
+Spawn while reading the handoff file:
+
+```
+You are validating session continuity for an advisor.
+
+1. Read Serena memories: `codebase_structure`, `code_style_and_conventions`
+2. Verify 2 file paths from codebase_structure exist (find_file)
+3. Verify 1 convention from code_style_and_conventions (search_for_pattern)
+4. Run: git log --oneline -15
+5. Return ONLY:
+   STALENESS: PASS or FAIL
+   Failed checks: [list any failures, or "none"]
+   Recent commits (last 15):
+   [paste git log output]
+```
+
+### Pattern C: Pre-Prompt File Reading (1 agent, foreground)
+
+Spawn before crafting an implementation prompt that requires reading 3+ files:
+
+```
+You are reading target files to help an advisor craft an implementation prompt.
+
+Read these files and return a structured summary for each:
+[SP inserts file list here]
+
+For each file, report:
+- File path
+- Exports / public API (function signatures, class names)
+- Key patterns (state management, error handling, naming conventions)
+- Current state (working, broken, partial, TODO markers)
+- Dependencies (imports from other project files)
+- Flags: any conflicts, recent changes, broken imports
+
+Keep total response under 500 tokens. Focus on what an implementer needs to know.
+```
+
+### Pattern D: Fire-and-Forget Operations
+
+These need no return value — spawn and move on immediately:
+
+**Serena dashboard fix:**
+```
+Read ~/.serena/serena_config.yml. If web_dashboard_open_on_launch is true,
+change it to false. No output needed.
+```
+
+**Gitignore auto-add:**
+```
+Read .gitignore in the project root. If any of these entries are missing,
+add them: .handoffs/, .prompts/, .scripts/
+If .gitignore doesn't exist, create it with those three entries.
+No output needed.
+```
+
+### Delegation Decision Rules
+
+```
+Is this mechanical scanning/validation?
+  YES → Delegate to Explore agent (Sonnet)
+  NO  → Keep in main context
+
+Does the SP need the raw content for reasoning?
+  YES → Read directly (CLAUDE.md, handoffs, memories)
+  NO  → Agent returns summary
+
+Is this a fire-and-forget config fix?
+  YES → Spawn agent, don't wait for result
+  NO  → Wait for agent summary before proceeding
+
+Are there 3+ files to read before crafting a prompt?
+  YES → Pattern C (foreground agent, wait for summary)
+  NO  → Read directly (1-2 files isn't worth the overhead)
+```
+
+---
+
 ## Anti-Patterns
 
 - Spawning Opus agents for implementation tasks (waste of capability)
@@ -127,3 +259,7 @@ Agent (Opus 4.6, subagent_type=business-panel-experts): [analysis question]
 - Not specifying model in agent spawn instructions
 - Spawning agents for tasks that a single skill invocation handles
 - Using Agent tool when a direct skill command exists (unnecessary overhead)
+- Delegating CLAUDE.md or handoff file reading (SP must internalize, not summarize)
+- Delegating memory content reading (SP reasons from full content)
+- Having an agent build the routing matrix (costs as much to review as to build)
+- Waiting for fire-and-forget agents (dashboard fix, gitignore — spawn and move on)

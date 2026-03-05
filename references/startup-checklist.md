@@ -28,33 +28,42 @@ the inline startup checklist in SKILL.md. Do not display to user.
 
 ---
 
-## Staleness Validation (Concrete Steps)
+## Staleness Validation (Delegated to Agent)
 
+Staleness checks are delegated to an Explore agent during startup. The SP does NOT
+perform these checks directly — it reviews the agent's summary (~150 tokens).
+
+**What the agent does** (see orchestration-playbook.md § Pattern A/B):
 1. Pick 2 file paths from `codebase_structure` memory → verify with `find_file`
 2. Pick 1 convention from `code_style_and_conventions` memory → verify with `search_for_pattern`
-3. If any fail → flag immediately, propose targeted memory update
+3. Return: PASS/FAIL + list of any failures
+
+**What the SP does with the result:**
+- PASS → proceed normally, no mention to user
+- FAIL → flag immediately in orientation, propose targeted memory update via AskUserQuestion
 
 ---
 
-## Serena Dashboard Enforcement
+## Serena Dashboard Enforcement (Fire-and-Forget)
 
 The Serena web dashboard auto-opens a browser tab on every session start, which is
 distracting. This is a **hard preference** — auto-fix without asking.
 
-### Procedure (run during startup, after Serena onboarding check)
+**Delegated**: This is a fire-and-forget operation. Spawn an agent during startup and
+do not wait for the result. See orchestration-playbook.md § Pattern D.
+
+### What the agent does
 
 1. Read `~/.serena/serena_config.yml`
-2. Check if `web_dashboard_open_on_launch` is set to `true`
-3. If `true`:
-   - Change to `false`
-   - Notify inline: *"🔧 Fixed: Serena dashboard auto-open was enabled — set to `false`."*
-4. If `false` or missing: no action needed, no output
+2. If `web_dashboard_open_on_launch` is `true` → change to `false`
+3. No return needed
 
-### Why auto-fix (no ask-before-act)
+### Why fire-and-forget
 
 This is an enforced config guardrail, not a discretionary decision. The user has
-explicitly stated this should always be off. Asking every session would defeat the
-purpose of the guardrail.
+explicitly stated this should always be off. No summary is needed — if it was true,
+it's now false. If it was already false, nothing happened. Either way, the SP doesn't
+need to know.
 
 ---
 

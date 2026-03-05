@@ -9,7 +9,7 @@ description: >
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Handles skill routing, context handoff, and Serena memory management.
   Triggers on: /strategic-partner, /advisor, /sp
-version: 3.4.0
+version: 3.5.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -89,33 +89,71 @@ If on detached HEAD, unexpected branch, or dirty state → surface in orientatio
 
 ### Step 2a — Continuation Mode
 
-1. Read the specified or latest `.handoffs/` file (by modification time)
-2. `list_memories` → read the 2–3 most relevant memories
-3. Build a state snapshot (decisions made, what's next, any ready-to-run prompts)
-4. Check `.prompts/` for pending implementation prompts
-5. `AskUserQuestion`: show snapshot + pending prompts
+**Parallel startup** — delegate mechanical checks while you do strategic work:
+
+```
+PARALLEL:
+  SP (main):
+    1. Read the specified or latest `.handoffs/` file (by modification time)
+    2. Check `.prompts/` for pending implementation prompts
+
+  Agent (Explore, background):
+    - Staleness spot-check: verify 2 file paths + 1 convention from Serena memories
+    - Summarize recent git history (git log --oneline -15)
+    - Return: staleness pass/fail + recent work summary (~150 tokens)
+```
+
+3. Review agent summary (staleness pass/fail, recent commits)
+4. `list_memories` → read the 2–3 most relevant memories
+5. Build a state snapshot (decisions made, what's next, any ready-to-run prompts)
+6. `AskUserQuestion`: show snapshot + pending prompts
    - Options: [Continue from where we left off] [Something new has come up] [Give me a fuller briefing first]
 
 ### Step 2b — Initialization Mode
 
-1. `check_onboarding_performed` → if not, call `onboarding`; if yes, `list_memories`
-2. Read `CLAUDE.md` — extract: project purpose, tech stack, active rules, conventions
-3. Scan for: `docs/`, roadmap files, architecture docs — read selectively
-4. Synthesize your understanding (2–4 bullet points max)
-5. `AskUserQuestion`:
+**Parallel startup** — delegate scanning while you do strategic work:
+
+```
+PARALLEL:
+  SP (main):
+    1. check_onboarding_performed
+    2. Read CLAUDE.md — extract: project purpose, tech stack, active rules, conventions
+
+  Agent 1 (Explore, background):
+    - IF not onboarded: run Serena onboarding, return summary of memories created
+    - IF onboarded: read 2-3 staleness spot-checks, return pass/fail
+    - Return: onboarding status + staleness summary (~200 tokens)
+
+  Agent 2 (Explore, background):
+    - Scan docs/, architecture docs, roadmap files
+    - Return: 3-5 bullet structured summary (tech stack, architecture, current milestone)
+    - Limit: ~300 tokens max
+```
+
+**Sequencing note**: Agent 1 needs the result of `check_onboarding_performed` to branch.
+Call `check_onboarding_performed` first, then spawn both agents with the result.
+
+3. Review Agent 1 summary (onboarding/staleness status)
+4. Review Agent 2 summary (project architecture bullets)
+5. `list_memories` → read 2–3 most relevant for active reasoning
+6. Synthesize your understanding (2–4 bullet points max)
+7. `AskUserQuestion`:
    - Options: [Yes, let's get to work] [Let me correct your understanding] [Walk me through what we're building]
 
 ### Startup Checklist (internal — do not display)
 
 - [ ] Mode detected (init vs. continuation)
 - [ ] Git state captured (branch, clean/dirty, ahead/behind)
+- [ ] Background agents spawned for mechanical checks (staleness, docs scan)
+- [ ] CLAUDE.md read directly (never delegated — shapes every decision)
+- [ ] Handoff file read directly (if continuation — IS the session state)
+- [ ] Agent summaries reviewed (~150-300 tokens each, not raw output)
 - [ ] Skill + MCP inventory → routing matrix built → stored in Serena `skill_routing_matrix`
-- [ ] Serena: `check_onboarding_performed` → `list_memories` → staleness spot-check
-- [ ] CLAUDE.md read and conventions noted
-- [ ] Handoff file read (if continuation mode)
+- [ ] `list_memories` → 2-3 relevant memories read for active reasoning
 - [ ] `AskUserQuestion` prepared with orientation
 - [ ] Implementation firewall + context monitor (67/72/77%) active
-- [ ] Serena config: `web_dashboard_open_on_launch` is `false` in `~/.serena/serena_config.yml` — auto-fix if `true`
+- [ ] Serena dashboard auto-fix: fire-and-forget (no return needed)
+- [ ] .gitignore: auto-add `.handoffs/`, `.prompts/`, `.scripts/` (fire-and-forget)
 - [ ] Versioning check: `package.json`, `pyproject.toml`, `VERSION`, release scripts
 
 ---
@@ -135,6 +173,37 @@ a hard requirement.
 
 **Minimal skill inventory**: Route using universal layer (Agent subtypes + MCP rules).
 Substitute Agent subtypes where no skill equivalent exists.
+
+---
+
+## Self-Delegation Principle
+
+The SP operates at the **decision layer**. Mechanical operations (scanning, validating,
+summarizing) are delegated to Explore agents. Strategic operations (understanding,
+deciding, routing, prompt crafting) stay in main context.
+
+**Always delegate** (returns summary, not raw content):
+- Staleness spot-checks (file path verification, convention checks)
+- docs/ and architecture file scanning
+- Serena onboarding (when needed)
+- Serena dashboard config fix (fire-and-forget, no return needed)
+- .gitignore auto-add for `.handoffs/`, `.prompts/`, `.scripts/` (fire-and-forget)
+- Pre-prompt file reading (3+ files → agent summary → craft from summary)
+
+**Never delegate** (must be in main context for reasoning):
+- CLAUDE.md reading — foundational, shapes every decision
+- Handoff file reading — IS the session state
+- Memory content reading (after list) — SP reasons directly from these
+- Routing matrix building — SP reviewing agent-drafted matrix costs as much as building it
+- Risk/trade-off identification — core SP responsibility
+- Prompt crafting — primary deliverable
+
+> See `references/orchestration-playbook.md` § Advisor Self-Delegation for agent
+> prompt templates and decision rules.
+
+**If delegation fails** (agent spawn denied, timeout, or garbled output):
+fall back to doing the work directly — the old sequential approach. Delegation
+is an optimization, not a dependency. Never block startup on a failed agent.
 
 ---
 
@@ -228,6 +297,26 @@ The primary deliverable of this session type. A good implementation prompt must:
 9. **Use XML structure for Claude targets** — `<context>`, `<instructions>`,
    `<orchestration>`, `<verification>` tags
 10. **Specify the target branch** — if the project uses feature branches
+
+**Pre-prompt file delegation**: Before crafting a prompt, you often need to read 3-5
+target files to understand current state. Delegate this to preserve context:
+
+```
+SP identifies files needed for the prompt
+  |
+  v
+Agent (Explore, foreground):
+  - Read these specific files: [list]
+  - Return: function signatures, key patterns, current state
+  - Flag: conflicts, recent changes, broken imports
+  - Limit: ~500 tokens structured summary
+  |
+  v
+SP crafts prompt from summary (not raw file content)
+```
+
+**When to skip delegation**: If you already read the files earlier this session (no
+re-read needed), or if only 1 file is involved (overhead not worth it).
 
 → See `references/prompt-crafting-guide.md` for full format standards, script generation,
   and real examples. Load it before crafting any prompt.
