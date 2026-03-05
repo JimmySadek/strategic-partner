@@ -2,6 +2,8 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
+[![Version](https://img.shields.io/badge/version-3.5.3-blue)](CHANGELOG.md)
+
 # strategic-partner
 
 > Every other tool executes. This one decides **what** to execute.

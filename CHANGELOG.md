@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.5.3] - 2026-03-05
+
+### Added
+- **Version badge in README.md** — shields.io badge linking to CHANGELOG for instant version visibility on GitHub
+- **Git tags for release history** — first tagged release (`v3.5.3`); prior versions remain file-based only
+
+### Fixed
+- **Split-brain in post-prompt protocol** — `prompt-crafting-guide.md` had a condensed "verify > review > assess > plan next" summary that omitted the full 5-step report-back checklist from SKILL.md. Expanded to include all 5 steps (Verify, Review, Assess, Extract, Then propose next) so both files carry identical protocol detail
+
 ## [3.5.2] - 2026-03-05
 
 ### Added

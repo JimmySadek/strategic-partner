@@ -400,8 +400,14 @@ options, suggest next tasks, or present "what's next?" menus. The wait message i
 prose to the user, not part of the copyable prompt — it must come after the closed fence.
 
 The user will execute the prompt in a separate session and return with results.
-Resume only when they report back: verify → review → assess → plan next.
-Neither side skips their turn.
+Resume only when they report back. Neither side skips their turn.
+
+**When the user reports back:**
+1. Verify: "Did it commit?" → check `git log --oneline -3` if available
+2. Review: Ask about any issues, unexpected behavior, or deviations
+3. Assess: Is the task complete? Follow-up fixes needed?
+4. Extract: Any lessons learned for CLAUDE.md or Serena memory?
+5. Then — and only then — propose the next task or prompt
 
 ---
 

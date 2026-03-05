@@ -9,7 +9,7 @@ description: >
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Handles skill routing, context handoff, and Serena memory management.
   Triggers on: /strategic-partner, /advisor, /sp
-version: 3.5.2
+version: 3.5.3
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
