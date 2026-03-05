@@ -1,5 +1,37 @@
 # Changelog
 
+## [3.5.1] - 2026-03-05
+
+### Added
+- **Summary flows at top of all 6 reference files** — single-line ASCII arrow chains for instant orientation before diving into detail
+- **❌ anti-pattern prefixes** in prompt-crafting-guide (17 items) and orchestration-playbook (11 items) for instant visual "don't do this" signal
+- **`---` dividers between spawn patterns** in orchestration-playbook for cleaner visual separation
+- **Git custody verification flow** — replaced prose list with branching ASCII diagram in SKILL.md
+- **Version bump decision tree** in partner-protocols using `├─ Yes / └─ No` pattern
+- **`startup-checklist.md`** added to SKILL.md Reference Files table (was orphaned)
+- **Pending Scripts section** added to handoff-template.md (was missing, causing script references to be lost during handoffs)
+
+### Fixed
+- **`.gitignore` handling contradiction** — handoff subcommand said "ask before modifying" while context-handoff.md and SKILL.md said "auto-add silently". Aligned all files to auto-add (enforced guardrail, not discretionary)
+- **Stale "Step 0" and "Step 1.5" references** in status.md and sync-skills.md — these steps were removed in v3.3.0 but references survived. Now removed
+- **Prompt quality requirements numbering** — reference guide order now matches SKILL.md canonical order (model spec is #6 in both)
+- **Anti-pattern format divergence** — orchestration-playbook now uses bold labels matching prompt-crafting-guide style
+
+## [3.5.0] - 2026-03-05
+
+### Added
+- **Subagent delegation for context preservation** — SP delegates mechanical scanning to Explore agents during startup, keeping main context free for strategic reasoning
+- **Parallel startup patterns** — initialization and continuation modes both spawn background agents for staleness checks and docs scanning
+- **Fire-and-forget operations** — Serena dashboard fix and .gitignore auto-add run without waiting for results
+- **Pre-prompt file delegation** — agent reads 3+ files and returns structured summary before SP crafts prompt
+- **Self-Delegation Principle section** — explicit rules for what to delegate vs keep in main context
+- **Delegation Decision Rules** — 4-question decision tree for routing work to agents vs doing it directly
+- **Agent prompt templates** in orchestration-playbook (Patterns A/B/C/D) for consistent agent spawning
+
+### Changed
+- Startup sequence now spawns parallel agents alongside main SP work
+- Orchestration playbook expanded with advisor-specific delegation patterns (distinct from implementation patterns)
+
 ## [3.4.0] - 2026-03-05
 
 ### Added
