@@ -410,7 +410,9 @@ After delivering a prompt or script launcher, the implementation loop enters **t
 **Mandatory behavior after every prompt delivery:**
 
 ```
-SP delivers prompt (fenced)
+══════════════════ START 🟢 COPY ══════════════════
+[prompt content]
+══════════════════= END 🛑 COPY ═══════════════════  ← CLOSE THE FENCE FIRST
   ↓
 State: "Run this in a new session and come back with the results.
         I'll review what landed and we'll plan next steps together."
@@ -424,9 +426,10 @@ User returns and reports what happened
 SP resumes: verify → review → assess → plan next
 ```
 
-1. After the fenced prompt, state that you're waiting for the report back
-2. **STOP.** Do not offer follow-up options, suggest next tasks, analyze future work, or present a "what's next?" menu
-3. The user will return and tell you what happened — that is when you resume
+1. **Close the END 🛑 fence first** — the fence MUST be closed before anything else. The wait message goes OUTSIDE and AFTER the closed fence, never inside it
+2. State that you're waiting for the report back (this text is your prose, not part of the copyable prompt)
+3. **STOP.** Do not offer follow-up options, suggest next tasks, analyze future work, or present a "what's next?" menu
+4. The user will return and tell you what happened — that is when you resume
 
 **When the user reports back:**
 1. Verify: "Did it commit?" → check `git log --oneline -3` if available

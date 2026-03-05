@@ -394,13 +394,14 @@ Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execu
 
 ### Post-Prompt Protocol: Wait for Report Back
 
-After delivering a fenced prompt or script launcher, **STOP and wait for the user to
-report back**. Do not offer follow-up options, suggest next tasks, or present "what's
-next?" menus. The user will execute the prompt in a separate session and return with
-results. Resume only when they report back: verify → review → assess → plan next.
+After delivering a fenced prompt or script launcher: **close the END 🛑 fence first**,
+then state you're waiting for the report back OUTSIDE the fence. Do not offer follow-up
+options, suggest next tasks, or present "what's next?" menus. The wait message is your
+prose to the user, not part of the copyable prompt — it must come after the closed fence.
 
-This is the cornerstone of the partnership: SP structures and reviews, user executes
-and reports. Neither side skips their turn.
+The user will execute the prompt in a separate session and return with results.
+Resume only when they report back: verify → review → assess → plan next.
+Neither side skips their turn.
 
 ---
 
