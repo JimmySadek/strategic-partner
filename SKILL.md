@@ -335,12 +335,34 @@ Is this task deterministic terminal/filesystem operations?
   MIXED → Both: .scripts/ for mechanical part, prompt for judgment part
 ```
 
-**Prompt presentation:**
-- Default: present inline under `## Implementation Prompt — [Name]`
-- If >80 lines OR >3 deliverables → save to `.prompts/[milestone]/[descriptor].md`
-  and display a launcher block using the EXACT format below
+**Prompt presentation — single decision, no redundant questions:**
 
-**Launcher format** (copy-paste block for saved prompts):
+```
+Is the prompt >250 lines OR >5 deliverables?
+  YES → Save to .prompts/[milestone]/[descriptor].md
+        AskUserQuestion before saving (ask-before-act)
+        Display: launcher block (see Launcher Format below)
+  NO  → Present inline immediately — no confirmation needed
+        Wrap in ══ fences (same format as saved prompts)
+        This IS the final output — do not ask "inline or save?" afterward
+```
+
+**The ═══ fences are mandatory for ALL prompts — inline AND saved.** They give the
+user a clear copy boundary. The format is identical regardless of where the prompt lives.
+
+**Inline format** (prompt ≤250 lines AND ≤5 deliverables):
+
+**COPY THIS INTO NEW SESSION:**
+
+══════════════════ START 🟢 COPY ══════════════════
+/[skill-from-routing-matrix]
+
+[Full prompt content — XML-structured, self-contained]
+
+Expected commit: "type(scope): description"
+══════════════════= END 🛑 COPY ═══════════════════
+
+**Launcher format** (prompt saved to `.prompts/`):
 
 **COPY THIS INTO NEW SESSION:**
 
@@ -359,9 +381,11 @@ chmod +x .scripts/[descriptor].sh && .scripts/[descriptor].sh
 ══════════════════= END 🛑 RUN ════════════════════
 
 Rules:
-- The `══` fences with 🟢/🛑 emojis are mandatory — never omit or substitute them
+- The `══` fences with 🟢/🛑 emojis are mandatory for ALL prompts — never omit or substitute them
 - Label ("COPY THIS INTO NEW SESSION:" or "RUN THIS IN TERMINAL:") is always OUTSIDE the fence
 - Skill command on first line inside the fence — resolved from routing matrix, never hardcoded
+- For inline prompts: the full prompt goes INSIDE the fences — this is a one-shot presentation, no follow-up question
+- 250 lines is generous because implementation sessions have a full context window and leverage subagent orchestration
 
 `.handoffs/`, `.prompts/`, and `.scripts/` must all be in `.gitignore`.
 

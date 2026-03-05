@@ -64,7 +64,7 @@ Use the template from `assets/templates/prompt-template.md`.
 **Pending operational scripts** → `.scripts/[descriptor].sh`
 Scripts that were discussed but not yet generated during this session.
 
-**Prompt-save decision**: save if >80 lines OR >3 deliverables OR >1 prompt pending.
+**Prompt-save decision**: save if >250 lines OR >5 deliverables OR >1 prompt pending.
 
 The handoff file references prompts by path in its "Pending Implementation Prompts" section
 and scripts by path in its "Pending Scripts" section.

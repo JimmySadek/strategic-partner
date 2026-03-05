@@ -319,14 +319,27 @@ Always save scripts to `.scripts/[descriptor].sh`. Scripts are never presented i
 
 ---
 
-## Prompt Save Decision
+## Prompt Presentation Decision (Single Evaluation — No Redundant Questions)
+
+This is the **only** decision point for how a prompt is presented. Evaluate once,
+act immediately. Do NOT present the prompt and then ask about presentation format —
+that wastes tokens and looks redundant to the user.
 
 ```
-Is the prompt >80 lines OR >3 deliverables OR >1 prompt pending in session?
+Is the prompt >250 lines OR >5 deliverables?
   YES → Save to .prompts/[milestone]/[descriptor].md
+        AskUserQuestion before saving (ask-before-act applies)
         Display: COPY-PASTEABLE LAUNCHER (see Launcher Format below)
-  NO  → Present inline — skill command as first line, no backtick wrapping
+  NO  → Present inline WITH ═══ fences — immediately, no confirmation needed
+        The ═══ fences ARE the presentation. Do not show the prompt first
+        and then ask "inline or save?" — that is the exact anti-pattern this
+        rule prevents.
 ```
+
+**Why 250 lines?** Implementation prompts run in fresh sessions with a full context
+window. They also leverage `<orchestration>` sections that fan out to subagents —
+the prompt is a compact orchestration plan, not a monolithic task consuming the
+entire context.
 
 When saving to `.prompts/`:
 - Use descriptive filenames: `phase1-auth-middleware.md`, `bugfix-token-expiry.md`
@@ -335,10 +348,30 @@ When saving to `.prompts/`:
 
 ---
 
-## Launcher Format
+## ═══ Fence Format (Mandatory for ALL Prompts)
 
-When a prompt is saved to `.prompts/`, display a launcher the user can copy-paste
-into a new Claude Code session:
+The ═══ fences are mandatory for **every** prompt — inline AND saved. They give
+the user a clear, unambiguous copy boundary.
+
+### Inline Prompt (≤250 lines AND ≤5 deliverables)
+
+Present the full prompt inside the fences. This is a one-shot output — no follow-up
+question needed.
+
+**COPY THIS INTO NEW SESSION:**
+
+══════════════════ START 🟢 COPY ══════════════════
+/[skill-name]
+
+[Full prompt content — XML-structured, self-contained]
+
+Expected commit: "type(scope): description"
+══════════════════= END 🛑 COPY ═══════════════════
+
+### Saved Prompt Launcher (>250 lines OR >5 deliverables)
+
+When a prompt is saved to `.prompts/`, display a short launcher the user can
+copy-paste into a new Claude Code session:
 
 **COPY THIS INTO NEW SESSION:**
 
@@ -348,11 +381,10 @@ into a new Claude Code session:
 Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execute all deliverables.
 ══════════════════= END 🛑 COPY ═══════════════════
 
-Requirements:
+### Requirements (both formats)
 - Label ("COPY THIS INTO NEW SESSION") is always outside the ═══ fence
 - First line inside fence: bare skill command (no backticks) — dynamic per task
-- Second line: Read instruction pointing to the saved file
-- Nothing else — no headers, no summaries, no backticks around commands
+- Nothing else outside the fences — no headers, no summaries, no backticks around commands
 - When multiple prompts exist, each gets its own START/END block
 
 ---
