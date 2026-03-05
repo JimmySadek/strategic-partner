@@ -73,14 +73,19 @@ Phase 2 (sequential):
 
 ### Pattern 3: Explore → Design → Build → Review
 
-Standard feature development chain:
+Standard feature development chain. **Resolve each step from the routing matrix** —
+the skill names below are placeholders, not defaults.
 
 ```
 Step 1: Agent (Sonnet 4.6, subagent_type=Explore) → understand existing code
-Step 2: Agent (Opus 4.6, subagent_type=feature-dev:code-architect) → design approach
-Step 3: /feature-dev:feature-dev or /gsd:quick → implement
-Step 4: /code-review:code-review → validate
+Step 2: Agent (Opus 4.6, subagent_type=[architect-agent]) → design approach
+Step 3: /[best implementation skill from routing matrix] → implement
+Step 4: /[best review skill from routing matrix] → validate
 ```
+
+Before writing this chain into a prompt, look up the routing matrix for:
+- The best **implementation** skill (match task scope: focused vs multi-phase)
+- The best **review** skill (match task type: PR review vs quality check)
 
 ### Pattern 4: Multi-Expert Panel
 
@@ -89,7 +94,7 @@ For strategic analysis requiring diverse perspectives:
 ```
 Agent (Opus 4.6, subagent_type=business-panel-experts): [analysis question]
   or
-/sc:spec-panel → multi-expert specification review
+/[best spec-review skill from routing matrix] → multi-expert specification review
 ```
 
 ---

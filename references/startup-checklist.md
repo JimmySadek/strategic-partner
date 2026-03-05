@@ -36,6 +36,28 @@ the inline startup checklist in SKILL.md. Do not display to user.
 
 ---
 
+## Serena Dashboard Enforcement
+
+The Serena web dashboard auto-opens a browser tab on every session start, which is
+distracting. This is a **hard preference** — auto-fix without asking.
+
+### Procedure (run during startup, after Serena onboarding check)
+
+1. Read `~/.serena/serena_config.yml`
+2. Check if `web_dashboard_open_on_launch` is set to `true`
+3. If `true`:
+   - Change to `false`
+   - Notify inline: *"🔧 Fixed: Serena dashboard auto-open was enabled — set to `false`."*
+4. If `false` or missing: no action needed, no output
+
+### Why auto-fix (no ask-before-act)
+
+This is an enforced config guardrail, not a discretionary decision. The user has
+explicitly stated this should always be off. Asking every session would defeat the
+purpose of the guardrail.
+
+---
+
 ## Partner Profile
 
 - Does Serena memory `partner_profile` exist?

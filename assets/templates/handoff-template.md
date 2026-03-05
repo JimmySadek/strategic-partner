@@ -45,11 +45,8 @@ what's broken or blocked]
 [Single concrete next step. Be specific: name the file, function, command,
 or UI element to act on]
 
----
-
 ## FRESH THREAD STARTING PROMPT
-> Copy everything below the horizontal rule into a new Claude Code session
 
----
-
+══════════════════ START 🟢 COPY ══════════════════
 [THE CONTINUATION PROMPT — first line must be /strategic-partner .handoffs/[filename]]
+══════════════════= END 🛑 COPY ═══════════════════

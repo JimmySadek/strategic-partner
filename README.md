@@ -104,6 +104,8 @@ You say: *"3 phases, new signups only"*
 | **2 — Build UI** | `/feature-dev` | Build **WelcomeScreen** + 3-step wizard components. Use mock data only. **No backend calls yet.** |
 | **3 — Wire It Up** | `/gsd:execute-phase` | Connect wizard to **user state**. Trigger **welcome email** on step 3 completion. |
 
+*Skill names are selected dynamically — the SP picks the best match from whatever skills you have installed.*
+
 Each prompt has: **files to read first**, **constraints from CLAUDE.md**, **verification checklist**, **expected commit message**.
 
 You paste each prompt into a fresh session. The advisor stays in the current session for **follow-up**, **course corrections**, and the next round of prompts.
@@ -139,6 +141,7 @@ strategic-partner/
     orchestration-playbook.md           # Model selection and parallelization rules
     context-handoff.md                  # Tiered handoff procedure and templates
     startup-checklist.md                # Internal startup verification
+    partner-protocols.md                # Version bump protocol and partner adaptation
   assets/templates/
     prompt-template.md                  # Implementation prompt skeleton
     handoff-template.md                 # Session handoff skeleton
@@ -195,7 +198,7 @@ Resumes from a **previous session's handoff**.
 | Command | What it does |
 |---------|-------------|
 | `/strategic-partner:help` | List all subcommands |
-| `/strategic-partner:sync-skills` | Compare installed skills against **routing matrix**, flag gaps |
+| `/strategic-partner:sync-skills` | Rebuild **routing matrix** from system context, show diff against previous |
 | `/strategic-partner:handoff` | Trigger a **context handoff** with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 

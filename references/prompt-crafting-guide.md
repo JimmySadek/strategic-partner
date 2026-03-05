@@ -9,7 +9,7 @@ prompts across target models.
 
 Every implementation prompt must:
 
-1. **First line must be the bare skill command** — no backticks, no headers above it, no "Run:" prefix
+1. **Skill command resolved from the routing matrix** — look up the best skill for this specific task in the routing matrix before writing line 1. Never default to a remembered skill name or copy one from an example. The first line must be the bare skill command — no backticks, no headers above it, no "Run:" prefix
 2. **Be fully self-contained** — the implementer has no access to the advisor conversation
 3. **Specify files to read first** — before touching anything
 4. **List deliverables precisely** — files, functions, tests, CHANGELOG entries
@@ -106,10 +106,14 @@ When a Claude session writes content consumed by Gemini:
 
 ## Real Examples
 
+> **Note**: These examples use specific skill names from one environment for
+> concreteness. When crafting actual prompts, **always resolve the skill command
+> from the routing matrix** — never copy a skill name from these examples directly.
+
 ### Example 1: Simple Bug Fix
 
 ```
-/gsd:quick
+/[quick-task skill from routing matrix]
 
 <context>
   Read first:
@@ -148,7 +152,7 @@ Expected commit: "fix(auth): retry token validation on HTTP 500 with backoff"
 ### Example 2: Multi-Agent Feature
 
 ```
-/feature-dev:feature-dev
+/[feature implementation skill from routing matrix]
 
 <context>
   Read first:
@@ -203,13 +207,13 @@ When a task requires multiple implementation sessions (a skill chain):
 4. **Be explicit about ordering** — "Run this AFTER prompt A has been committed"
 5. **Specify model per step** — each agent spawn in the chain gets an explicit model
 
-Example:
+Example (resolve each skill from the routing matrix):
 ```
 Prompt chain (run in order):
-  1. Explore — Agent(Sonnet 4.6, feature-dev:code-explorer) → produces architecture notes
-  2. Design — Agent(Opus 4.6, feature-dev:code-architect) → produces component spec
-  3. Build — /feature-dev:feature-dev → implements from spec
-  4. Review — /code-review:code-review → validates before merge
+  1. Explore — Agent(Sonnet 4.6, [explorer-agent]) → produces architecture notes
+  2. Design — Agent(Opus 4.6, [architect-agent]) → produces component spec
+  3. Build — /[implementation skill] → implements from spec
+  4. Review — /[review skill] → validates before merge
 ```
 
 ---
@@ -295,15 +299,15 @@ echo "  1. [What to do after running this script]"
 
 **Script display format (parallel to the prompt launcher):**
 
-```
-─────────────────────────────────────────────────
-🔧 RUN THIS IN TERMINAL:
-─────────────────────────────────────────────────
+**RUN THIS IN TERMINAL:**
 
+```
+══════════════════ START 🟢 RUN ═══════════════════
 chmod +x .scripts/[descriptor].sh && .scripts/[descriptor].sh
-
-─────────────────────────────────────────────────
+══════════════════= END 🛑 RUN ════════════════════
 ```
+
+Label is always **outside** the `══` fence, matching the prompt launcher convention.
 
 **Script save decision:**
 Always save scripts to `.scripts/[descriptor].sh`. Scripts are never presented inline
@@ -332,20 +336,20 @@ When saving to `.prompts/`:
 When a prompt is saved to `.prompts/`, display a launcher the user can copy-paste
 into a new Claude Code session:
 
----
 **COPY THIS INTO NEW SESSION:**
 
-/gsd:quick
+══════════════════ START 🟢 COPY ══════════════════
+/[skill-name]
 
-Read the implementation prompt at .prompts/v1.5/phase1-guardrails-foundation.md and execute all deliverables.
-
----
+Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execute all deliverables.
+══════════════════= END 🛑 COPY ═══════════════════
 
 Requirements:
-- Inside a "COPY THIS INTO NEW SESSION" labeled block
-- First line: bare skill command (no backticks)
+- Label ("COPY THIS INTO NEW SESSION") is always outside the ═══ fence
+- First line inside fence: bare skill command (no backticks) — dynamic per task
 - Second line: Read instruction pointing to the saved file
 - Nothing else — no headers, no summaries, no backticks around commands
+- When multiple prompts exist, each gets its own START/END block
 
 ---
 
@@ -355,6 +359,7 @@ Requirements:
 - **Missing context**: "fix the auth bug" → specify the symptom, file, line range
 - **Assumed knowledge**: "use the same pattern as before" → spell it out
 - **Skill omission**: starting with implementation details → start with skill invocation
+- **Hardcoded skill names**: copying `/gsd:quick` or `/feature-dev` from examples or memory → always look up the routing matrix for the best match
 - **Ambiguous ordering**: "also do X" → explicitly state if X is sequential or parallel
 - **Backtick-wrapped commands**: `` `/gsd:quick` `` renders as code, not executable → bare command
 - **Headers before skill command**: `# Implementation Prompt` above the command → skill command must be line 1

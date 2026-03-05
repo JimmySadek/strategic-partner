@@ -1,71 +1,40 @@
-# Skill Routing Matrix
+# Skill Routing Matrix — Template & Procedure
 
-Reference file for the strategic-partner advisor. Consult when routing work to implementation sessions.
+Reference file for the strategic-partner advisor. Defines the format, auto-generation
+procedure, and universal routing rules for skill selection.
 
----
-
-## Task → Skill Mapping
-
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Explore existing code before building | `Agent:feature-dev:code-explorer` | Sonnet | `/sc:explain` for quick explanation |
-| Architect a new feature | `Agent:feature-dev:code-architect` | Opus | `/sc:design` for API/system-level design |
-| Implement a focused feature | `/feature-dev:feature-dev` | Sonnet | `/sc:implement` for simpler scope |
-| Complex multi-agent task (>3 parallel tracks) | `/sc:spawn` | Opus | `/gsd:execute-phase` for phased delivery |
-| Structured phase delivery (PLAN.md → execute) | `/gsd:plan-phase` + `/gsd:execute-phase` | Sonnet | `/gsd:quick` for lightweight tasks |
-| Quick task with quality guarantees | `/gsd:quick` | Sonnet | — |
-| Deep code audit (quality/security/architecture) | `/sc:analyze` | Sonnet | `Agent:feature-dev:code-reviewer` for PR review |
-| Review PR or changeset | `/code-review:code-review` | Sonnet | — |
-| Validate built feature (UAT) | `/gsd:verify-work` | Sonnet | `/sc:reflect` for lighter validation |
-| Debug a complex bug | `/gsd:debug` | Opus | `/jimmy:systematic-debugging` for autonomous multi-lens |
-| Design new system/API spec | `/sc:design` | Opus | — |
-| Multi-expert spec review before building | `/sc:spec-panel` | Opus | — |
-| Research technical approach (web) | `/sc:research` | Sonnet | `/gsd:research-phase` before planning |
-| Systematic code improvements | `/sc:improve` | Sonnet | `/sc:cleanup` for dead code specifically |
-| Run tests + coverage report | `/sc:test` | Sonnet | — |
-| Fix build or deployment issues | `/sc:troubleshoot` | Sonnet | — |
-| Generate workflow from PRD | `/sc:workflow` | Sonnet | — |
-| Document a component or API | `/sc:document` | Sonnet | `/sc:index` for full project docs |
-| Build UI components, pages, layouts | `/frontend-design:frontend-design` | Sonnet | — |
-| Design system decisions, UX review, palette/style | `/ui-ux-pro-max` | Sonnet | — |
-| Complex UI (design + build in one pass) | `/ui-ux-pro-max` then `/frontend-design` | Sonnet | — |
-| Explore codebase architecture | `/gsd:map-codebase` | Sonnet | `/sc:analyze --scope project` |
-| Update CLAUDE.md with session learnings | `/claude-md-management:revise-claude-md` | Sonnet | — |
-| Audit and improve CLAUDE.md files | `/claude-md-management:claude-md-improver` | Sonnet | — |
-| Estimate effort | `/sc:estimate` | Sonnet | — |
-| Preserve session context | (handled internally by advisor) | — | — |
-| GitHub PR/issue/workflow operations | `/github-ops` | Sonnet | — |
-| React composition, compound components | `/composition-patterns` | Sonnet | — |
-| React/Next.js performance optimization | `/react-best-practices` | Sonnet | — |
-| Business strategy analysis (multi-expert) | `/sc:business-panel` | Opus | — |
-| Requirements discovery (Socratic) | `/sc:brainstorm` | Sonnet | `/strategic-partner` for advisory mode |
-| Simplify and refine recently changed code | `/simplify` | Sonnet | `/sc:improve` for broader scope |
-| Review UI against Web Interface Guidelines | `/web-design-guidelines` | Sonnet | `/ui-ux-pro-max` for full design audit |
-| PDF extraction, creation, merging, forms | `/pdf` | Sonnet | — |
-| Task queue — add or process pending work | `/do-work` | Sonnet | — |
-| Build with Claude API / Anthropic SDK | `/claude-developer-platform` | Sonnet | — |
-| Sync skills across AI tools | `/skillshare` | Sonnet | — |
-| Find or discover installable skills | `/find-skills` | Sonnet | — |
-| Customize keyboard shortcuts / keybindings | `/keybindings-help` | Sonnet | — |
-| Select optimal MCP tool for a task | `/sc:select-tool` | Sonnet | — |
-| Build, compile, or package a project | `/sc:build` | Sonnet | `/sc:troubleshoot` for build failures |
-| Git commit, branch, or workflow operations | `/sc:git` | Sonnet | — |
-| Execute complex multi-step task with workflow | `/sc:task` | Sonnet | `/sc:spawn` for parallel tracks |
-| Explain code, concepts, or system behavior | `/sc:explain` | Sonnet | `Agent:learning-guide` for teaching |
-| Implement a feature (simpler scope) | `/sc:implement` | Sonnet | `/feature-dev:feature-dev` for guided flow |
-| Initialize a new project from scratch | `/gsd:new-project` | Sonnet | — |
-| Start a new milestone cycle | `/gsd:new-milestone` | Sonnet | `/gsd:new-project` for first-time setup |
-| Gather phase context before planning | `/gsd:discuss-phase` | Sonnet | `/gsd:research-phase` for web research |
-| Check project progress + route to next action | `/gsd:progress` | Sonnet | — |
-| Audit milestone completion before archiving | `/gsd:audit-milestone` | Sonnet | `/gsd:verify-work` for feature-level UAT |
-| Archive completed milestone | `/gsd:complete-milestone` | Sonnet | — |
-| Fetch YouTube transcripts to Markdown | `/youtube-fetcher` | Haiku | — |
+The routing matrix is **built at runtime** from the system context's available skills,
+not shipped as a static table. This file provides the template and procedure.
 
 ---
 
-## Agent Type Routing
+## Matrix Format Specification
 
-When spawning agents via the Agent tool, select the right subagent_type and model:
+Each entry in the routing matrix follows this schema:
+
+| Field | Description | Example |
+|---|---|---|
+| Task | Natural-language description of what the user wants | "Implement a focused feature" |
+| Primary Skill | Exact invocation (slash command or Agent type) | `/feature-dev:feature-dev` or `Agent:code-explorer` |
+| Model | Recommended model for the task | Opus, Sonnet, or Haiku |
+| When to Use Instead | Alternative skill for edge cases | "/sc:implement for simpler scope" |
+
+**Example entries** (illustrative — concrete entries are generated at runtime):
+
+```
+| Explore existing code before building | Agent:feature-dev:code-explorer | Sonnet | Quick Grep/Glob for single-file lookups |
+| Architect a new feature               | Agent:feature-dev:code-architect | Opus  | /sc:design for API-level specs |
+| Implement a focused feature           | /feature-dev:feature-dev         | Sonnet | /sc:implement for simpler scope |
+| Debug a complex bug                   | /gsd:debug                       | Opus  | — |
+| Review PR or changeset                | /code-review:code-review         | Sonnet | — |
+```
+
+---
+
+## Agent Type Routing (Always Available)
+
+These are built-in Agent subtypes — available in every environment regardless of
+installed skills. Always include these in the routing matrix.
 
 | Agent Type | Model | Use For |
 |---|---|---|
@@ -95,92 +64,107 @@ When spawning agents via the Agent tool, select the right subagent_type and mode
 
 ---
 
-## Project-Local Skills
+## Auto-Generation Procedure
 
-These skills are specific to projects and may not be available in all contexts:
+### At Startup (Initialization Mode)
 
-### Alfred Distribution
-- `jimmy:systematic-debugging` — Autonomous debugging with multi-lens analysis
-- `jimmy:alfred-buildx` — Build and distribute Alfred Docker images
-- `jimmy:sync-api-spec` — Synchronize API spec corrections across OpenAPI specs, Neo4j, Aura
-- `jimmy:manage-protected-repos` — Manage protected repository list across 3 protection layers
+1. Read the system context's available skills list (provided automatically in the
+   session's system prompt)
+2. For each skill, create a routing entry:
+   - **Task**: derive from the skill's description and trigger phrases
+   - **Primary Skill**: the exact invocation command
+   - **Model**: apply model selection heuristics (see below)
+   - **When to Use Instead**: identify overlapping skills and note when each is preferred
+3. Merge with the always-available Agent Type table above
+4. Store the complete matrix in Serena memory as `skill_routing_matrix`
+
+### On Subsequent Sessions (Continuation Mode)
+
+1. Read `skill_routing_matrix` from Serena memory
+2. Compare against the current session's available skills list
+3. If new skills found or skills removed → rebuild and update Serena memory
+4. If unchanged → use cached matrix
+
+### If Serena Unavailable
+
+- Use the Agent Type table above (always available) as the base
+- Match tasks to skills in real-time from the system context's skill descriptions
+- No persistent caching — rebuild each session
 
 ---
 
-## Power Combinations (Skill Chains)
+## Model Selection Heuristics
 
-Common scenarios require skill chains, not single skills. Recommend the full chain:
+Apply these rules when assigning a model to a routing entry:
 
-### New Feature (Standard)
+| Task Characteristic | Model | Rationale |
+|---|---|---|
+| Architectural decisions, system design | **Opus** | Requires deep reasoning about trade-offs |
+| Complex debugging, root cause analysis | **Opus** | Needs hypothesis testing and broad context |
+| Deep research, multi-source synthesis | **Opus** | Quality of reasoning matters more than speed |
+| Multi-expert panels, spec review | **Opus** | Multiple perspectives need careful balancing |
+| Security analysis, vulnerability assessment | **Opus** | Must not miss subtle issues |
+| Standard implementation, feature building | **Sonnet** | Well-scoped tasks with clear requirements |
+| Code review, quality checks | **Sonnet** | Pattern matching over deep reasoning |
+| Testing, coverage analysis | **Sonnet** | Systematic but not architecturally complex |
+| Documentation, explanation | **Sonnet** | Clear communication, less novel reasoning |
+| Quick lookups, transcript fetching | **Haiku** | Speed matters, depth doesn't |
+
+**Default**: Sonnet unless the task clearly matches an Opus or Haiku pattern.
+
+---
+
+## Composition Patterns
+
+Common scenarios require multi-step workflows, not single skills. The SP fills in
+concrete skills from the routing matrix at runtime.
+
+### Standard Feature
+
 ```
-/feature-dev:code-explorer   → understand what exists
-/feature-dev:code-architect  → design the approach
-/feature-dev:feature-dev     → implement
-/code-review:code-review     → validate before commit
+Explore existing code   → understand what exists
+Design the approach     → architecture decisions
+Implement               → build it
+Review                  → validate before commit
 ```
 
-### New Feature (Complex / Multi-Phase)
+### Complex / Multi-Phase Feature
+
 ```
-/gsd:research-phase          → research first
-/gsd:plan-phase              → create PLAN.md with verification loop
-/gsd:execute-phase           → execute with wave parallelization
-/gsd:verify-work             → UAT
+Research                → gather context and options
+Plan                    → create structured plan with verification
+Execute                 → implement with parallelization
+Verify                  → UAT and quality check
 ```
 
 ### Large Architectural Change
+
 ```
-/gsd:map-codebase            → parallel codebase analysis
-/sc:design                   → spec the change
-/sc:spec-panel               → multi-expert review of spec
-/gsd:plan-phase → /gsd:execute-phase
+Map codebase            → parallel analysis of current state
+Design                  → spec the change
+Expert review           → multi-expert validation of spec
+Plan + Execute          → phased implementation
 ```
 
 ### Code Quality Pass
+
 ```
-/sc:analyze                  → identify issues
-/sc:improve                  → fix systematically
-/sc:test                     → verify nothing broke
+Analyze                 → identify issues
+Improve                 → fix systematically
+Test                    → verify nothing broke
 ```
 
 ### Bug Investigation
+
 ```
-/gsd:debug                   → systematic, persistent state
+Debug                   → systematic, persistent state
 ```
-
----
-
-## Routing Principles
-
-1. **Embed routing in every prompt** — specify the exact skill command, not the category
-2. **Specify the model** — Opus or Sonnet, based on task complexity
-3. **Explain why** that skill and not an alternative
-4. **Specify pre-reading** — "read X file first, then run `/feature-dev:code-explorer`"
-5. **List the full chain** when a multi-step workflow applies
-6. **Proactively recommend** — don't wait for the user to ask which skill to use
-7. **Flag cost mismatches** — warn when a task looks simple but needs a heavier skill
-
----
-
-## Invocation Convention
-
-- `/skill-name` → invoke via **Skill tool** (slash commands)
-- `Agent:subagent-type` → invoke via **Agent tool** with `subagent_type` parameter
-- The `feature-dev:code-explorer`, `feature-dev:code-architect`, and `feature-dev:code-reviewer` entries are **Agent subagent_types**, not slash commands — route accordingly
-
-## Catalog Freshness
-
-This matrix is a curated reference. At session start, the advisor compares this against
-the live skill inventory (from system context) and flags:
-- **Uncatalogued**: skills in environment not in this matrix
-- **Unavailable**: skills in this matrix not in environment
-
-Last synced: 2026-03-05 (rev 5) — merged MCP routing, added 9 previously uncatalogued skills, context optimization
 
 ---
 
 ## MCP & Plugin Routing
 
-| When the task involves… | Instruct use of… | Instead of… |
+| When the task involves... | Instruct use of... | Instead of... |
 |---|---|---|
 | Navigate to a function, class, or symbol | `serena find_symbol` | Grep/Glob search |
 | Understand a file's structure without reading all | `serena get_symbols_overview` | Reading the full file |
@@ -219,3 +203,12 @@ When crafting an implementation prompt, specify:
 2. The specific tool calls most relevant
 3. When to fall back to native tools if an MCP fails
 4. Use conditional triggers: "IF looking up a named symbol → use Serena" (not "always use Serena")
+
+---
+
+## Invocation Convention
+
+- `/skill-name` → invoke via **Skill tool** (slash commands)
+- `Agent:subagent-type` → invoke via **Agent tool** with `subagent_type` parameter
+- The `feature-dev:code-explorer`, `feature-dev:code-architect`, and `feature-dev:code-reviewer`
+  entries are **Agent subagent_types**, not slash commands — route accordingly

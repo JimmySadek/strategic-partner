@@ -14,6 +14,10 @@ thresholds, split writes, and continuation prompt format.
 | **72%** | Strong push | `AskUserQuestion` proposing handoff NOW. Options: [Hand off now] [One more thing first] [Keep going, I'll call it] |
 | **77%** | Urgent | Execute handoff immediately. `AskUserQuestion` only to confirm the topic slug, then write immediately. Do not wait for permission to hand off. |
 
+**Context measurement caveat**: Context percentage is self-assessed and can be off
+by 5–10%. Err on the side of early handoff — handing off at 65% real when you
+estimated 72% is far better than discovering you're at 82% when you estimated 77%.
+
 **Check cadence**: once context exceeds 60%, check on every 2nd exchange. Also check
 after every major deliverable and before starting new analysis, regardless of level.
 
@@ -118,9 +122,21 @@ Check `.gitignore` for both directories:
 
 1. Confirmation: `Handoff written to .handoffs/[filename]`
 2. If prompts saved: `Implementation prompts saved to .prompts/[milestone]/`
-3. Separator line
-4. Block labeled **"COPY THIS INTO NEW SESSION"** with the full continuation prompt
+3. Label: **COPY THIS INTO NEW SESSION:**
+4. Fenced continuation prompt:
+
+```
+══════════════════ START 🟢 COPY ══════════════════
+/strategic-partner .handoffs/[topic-slug]-[MMDD-HHMM].md
+
+[Full continuation prompt from Step 4]
+══════════════════= END 🛑 COPY ═══════════════════
+```
+
 5. Reminder: `Open a new Claude Code session and paste the above prompt to continue.`
+
+The label is always **outside** the `══` fence. Nothing else surrounds the fence — no
+backtick wrappers, no markdown headers between the label and the fence.
 
 ---
 

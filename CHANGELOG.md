@@ -1,5 +1,31 @@
 # Changelog
 
+## [3.4.0] - 2026-03-05
+
+### Added
+- **Graceful degradation section** — explicit fallback behavior for Serena unavailable, user declining separate sessions, and minimal skill inventory
+- **Runtime routing matrix** — matrix is now built at startup from system context, stored in Serena memory, and diffed on subsequent sessions
+- **Context measurement caveat** — documented that self-assessed context % can be off by 5–10%, recommending early handoff bias
+- **Skill validation instruction** — prompt crafting now requires verifying skills exist in system context before recommending them
+- **`references/partner-protocols.md`** — new reference file for version bump ownership and partner adaptation protocols
+- **Expanded description triggers** — frontmatter now includes natural-language phrases ("plan my project", "advise on architecture", etc.)
+
+### Changed
+- **Routing matrix portability overhaul** — replaced 26-entry hardcoded inline matrix with universal layer (Agent subtypes + model heuristics + MCP rules + composition patterns)
+- **`references/skill-routing-matrix.md`** rewritten as template/example format with auto-generation procedure; removed all hardcoded skill entries and project-local (`jimmy:*`) entries
+- **Power Combinations** rewritten as abstract composition patterns ("Explore → Design → Build → Review") instead of hardcoded skill chains; SP fills in concrete skills at runtime
+- **`/strategic-partner:sync-skills`** now rebuilds Serena routing matrix from system context and shows diff against previous matrix (was: scan-and-flag)
+- **Version Bump Ownership** (Responsibility §7) compressed to 3-line summary + pointer to reference file (was: 15 lines inline)
+- **Partner Adaptation** compressed to 3-line summary + pointer to reference file (was: 10 lines + table inline)
+- **Reference Files table** updated with new `partner-protocols.md` entry and revised `skill-routing-matrix.md` description
+- **Startup checklist** updated with routing matrix build step
+
+### Removed
+- 60+ hardcoded skill entries from `skill-routing-matrix.md`
+- Project-local skill section (`jimmy:*` entries)
+- "Last synced" tracking in routing matrix (no longer relevant — matrix is auto-built)
+- Hardcoded skill names in Power Combinations section
+
 ## [3.3.0] - 2026-03-05
 
 ### Added
