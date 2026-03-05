@@ -3,6 +3,10 @@
 Reference file for the strategic-partner advisor. Standards for crafting implementation
 prompts across target models.
 
+```
+Quality Check → Format (XML/MD/Hybrid) → Deliverable Type (Prompt vs Script) → Save Decision → Launcher
+```
+
 ---
 
 ## Prompt Quality Requirements
@@ -355,20 +359,20 @@ Requirements:
 
 ## Anti-Patterns
 
-- **Vague deliverables**: "update the tests" → specify which test file, which cases
-- **Missing context**: "fix the auth bug" → specify the symptom, file, line range
-- **Assumed knowledge**: "use the same pattern as before" → spell it out
-- **Skill omission**: starting with implementation details → start with skill invocation
-- **Hardcoded skill names**: copying `/gsd:quick` or `/feature-dev` from examples or memory → always look up the routing matrix for the best match
-- **Ambiguous ordering**: "also do X" → explicitly state if X is sequential or parallel
-- **Backtick-wrapped commands**: `` `/gsd:quick` `` renders as code, not executable → bare command
-- **Headers before skill command**: `# Implementation Prompt` above the command → skill command must be line 1
-- **No launcher for saved prompts**: "go read .prompts/v1.5/phase1.md" → provide COPY-PASTEABLE LAUNCHER block
-- **Missing model specification**: "Spawn an agent" without specifying sonnet/opus
-- **XML for Gemini**: Using `<context>` tags in prompts meant for Gemini sessions
-- **Over-prompting**: "Always use Serena for every search" → use conditional triggers
-- **Claude 3.x workarounds**: Excessive repetition, sycophancy-bait phrasing
-- **Prompt for config edits**: Writing a Claude prompt to edit JSON configs → generate a `.scripts/` bash script instead
-- **Manual steps in markdown**: "Run these commands: 1. cd ... 2. npm install ..." → wrap in an executable script
-- **Script without pre-flight**: Missing directory/tool checks → always validate prerequisites
-- **Destructive scripts**: Overwriting entire config files → merge into existing (use Python/jq for JSON)
+- ❌ **Vague deliverables**: "update the tests" → specify which test file, which cases
+- ❌ **Missing context**: "fix the auth bug" → specify the symptom, file, line range
+- ❌ **Assumed knowledge**: "use the same pattern as before" → spell it out
+- ❌ **Skill omission**: starting with implementation details → start with skill invocation
+- ❌ **Hardcoded skill names**: copying `/gsd:quick` or `/feature-dev` from examples or memory → always look up the routing matrix for the best match
+- ❌ **Ambiguous ordering**: "also do X" → explicitly state if X is sequential or parallel
+- ❌ **Backtick-wrapped commands**: `` `/gsd:quick` `` renders as code, not executable → bare command
+- ❌ **Headers before skill command**: `# Implementation Prompt` above the command → skill command must be line 1
+- ❌ **No launcher for saved prompts**: "go read .prompts/v1.5/phase1.md" → provide COPY-PASTEABLE LAUNCHER block
+- ❌ **Missing model specification**: "Spawn an agent" without specifying sonnet/opus
+- ❌ **XML for Gemini**: Using `<context>` tags in prompts meant for Gemini sessions
+- ❌ **Over-prompting**: "Always use Serena for every search" → use conditional triggers
+- ❌ **Claude 3.x workarounds**: Excessive repetition, sycophancy-bait phrasing
+- ❌ **Prompt for config edits**: Writing a Claude prompt to edit JSON configs → generate a `.scripts/` bash script instead
+- ❌ **Manual steps in markdown**: "Run these commands: 1. cd ... 2. npm install ..." → wrap in an executable script
+- ❌ **Script without pre-flight**: Missing directory/tool checks → always validate prerequisites
+- ❌ **Destructive scripts**: Overwriting entire config files → merge into existing (use Python/jq for JSON)

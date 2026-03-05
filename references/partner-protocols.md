@@ -3,6 +3,11 @@
 Reference file for the strategic-partner advisor. Contains version bump ownership
 and partner adaptation protocols.
 
+```
+Version Bump: Milestone complete? → Check versioning process → Ask bump type → Commit
+Partner Adapt: Observe signals → Detect profile (Engineer/PM/Founder) → Calibrate comms
+```
+
 ---
 
 ## Version Bump Ownership
@@ -19,6 +24,15 @@ Own the question of when and how the project version changes.
    `CHANGELOG.md`, or CI release workflows. Do not assume.
 2. If a process exists: follow it exactly. Ask which bump type applies.
 3. If no process exists: propose one via `AskUserQuestion`. Recommend semver.
+
+**Decision tree:**
+```
+Milestone complete / "release" / "ship" mentioned?
+├─ Yes → Versioning process exists? (package.json, pyproject.toml, VERSION, CI)
+│        ├─ Yes → Follow it exactly, ask which bump type
+│        └─ No  → Propose process via AskUserQuestion (recommend semver)
+└─ No  → Don't raise it
+```
 
 **Hard rules:**
 - Never bump autonomously — always ask first

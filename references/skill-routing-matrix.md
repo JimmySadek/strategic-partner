@@ -6,6 +6,10 @@ procedure, and universal routing rules for skill selection.
 The routing matrix is **built at runtime** from the system context's available skills,
 not shipped as a static table. This file provides the template and procedure.
 
+```
+Discover Skills → Classify (Global vs Local) → Build Entries → Store in Serena → Diff on Continuation
+```
+
 ---
 
 ## Matrix Format Specification

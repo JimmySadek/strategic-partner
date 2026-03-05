@@ -3,6 +3,10 @@
 Reference file for the strategic-partner advisor. Model selection, parallelization
 rules, and agent orchestration patterns.
 
+```
+Model Selection → Parallelization Decision → Spawn Pattern (A/B/C/D) → Session Planning
+```
+
 ---
 
 ## Model Selection
@@ -58,6 +62,8 @@ Spawn N agents in parallel:
   Agent 3 (Sonnet 4.6): [file C — task + expected output]
 ```
 
+---
+
 ### Pattern 2: Research → Synthesis
 
 When gathering information from multiple sources before deciding:
@@ -70,6 +76,8 @@ Phase 1 (parallel):
 Phase 2 (sequential):
   Agent 3 (Opus 4.6): Synthesize Agent 1+2 outputs → produce recommendation
 ```
+
+---
 
 ### Pattern 3: Explore → Design → Build → Review
 
@@ -86,6 +94,8 @@ Step 4: /[best review skill from routing matrix] → validate
 Before writing this chain into a prompt, look up the routing matrix for:
 - The best **implementation** skill (match task scope: focused vs multi-phase)
 - The best **review** skill (match task type: PR review vs quality check)
+
+---
 
 ### Pattern 4: Multi-Expert Panel
 
@@ -252,14 +262,14 @@ Are there 3+ files to read before crafting a prompt?
 
 ## Anti-Patterns
 
-- Spawning Opus agents for implementation tasks (waste of capability)
-- Sequential agents when they could be parallel (waste of time)
-- Parallel agents with dependencies (race conditions, inconsistency)
-- Skipping the Explore step before complex implementation
-- Not specifying model in agent spawn instructions
-- Spawning agents for tasks that a single skill invocation handles
-- Using Agent tool when a direct skill command exists (unnecessary overhead)
-- Delegating CLAUDE.md or handoff file reading (SP must internalize, not summarize)
-- Delegating memory content reading (SP reasons from full content)
-- Having an agent build the routing matrix (costs as much to review as to build)
-- Waiting for fire-and-forget agents (dashboard fix, gitignore — spawn and move on)
+- ❌ Spawning Opus agents for implementation tasks (waste of capability)
+- ❌ Sequential agents when they could be parallel (waste of time)
+- ❌ Parallel agents with dependencies (race conditions, inconsistency)
+- ❌ Skipping the Explore step before complex implementation
+- ❌ Not specifying model in agent spawn instructions
+- ❌ Spawning agents for tasks that a single skill invocation handles
+- ❌ Using Agent tool when a direct skill command exists (unnecessary overhead)
+- ❌ Delegating CLAUDE.md or handoff file reading (SP must internalize, not summarize)
+- ❌ Delegating memory content reading (SP reasons from full content)
+- ❌ Having an agent build the routing matrix (costs as much to review as to build)
+- ❌ Waiting for fire-and-forget agents (dashboard fix, gitignore — spawn and move on)

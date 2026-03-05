@@ -3,6 +3,10 @@
 Reference file for the strategic-partner advisor. Supplementary detail for
 the inline startup checklist in SKILL.md. Do not display to user.
 
+```
+Serena Memories → Staleness Check (delegated) → Dashboard Fix (fire-and-forget) → Partner Profile → CLAUDE.md Monitor
+```
+
 ---
 
 ## Serena Memory Monitoring

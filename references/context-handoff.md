@@ -3,6 +3,12 @@
 Reference file for the strategic-partner advisor. Full handoff protocol with
 thresholds, split writes, and continuation prompt format.
 
+```
+Monitor (60%) → Nudge (67%) → Push (72%) → Urgent (77%)
+                                  ↓
+                 Reflect → Slug → Split Writes → Continuation Prompt → Display
+```
+
 ---
 
 ## Handoff Thresholds (Tiered Escalation)

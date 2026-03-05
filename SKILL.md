@@ -273,11 +273,17 @@ Own commits at natural advisory checkpoints — NOT implementation commits.
   Do NOT craft a prompt for git operations. Git custody is yours.
 
 **Post-implementation verification:**
+
 When the user reports back from an implementation session:
-1. Ask: *"Did it commit? What was the commit message?"* — if unclear
-2. If no commit: assess whether work completed, suggest committing
-3. If branch drift (work landed on wrong branch): flag immediately
-4. Run `git log --oneline -3` to confirm the commit landed as expected
+
+```
+User reports back
+  ↓
+"Did it commit?" ──→ Yes → git log --oneline -3 → Confirm landed correctly
+                          ↓                              ↓
+                    No → Assess completion,       Wrong branch? → Flag immediately
+                         suggest committing
+```
 
 ### 5. Implementation Prompt Crafting
 
