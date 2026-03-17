@@ -39,6 +39,18 @@ what's broken or blocked]
 - `.scripts/[name].sh` — [description, status: ready/draft/discussed]
 - [... or "None" if no scripts pending]
 
+## 🔍 /insights Analysis
+
+Run `/insights` before writing this file, then extract relevant items below.
+
+- **Project areas touched**: [areas Claude Code identified as significant]
+- **Patterns observed**: [recurring patterns or approaches flagged]
+- **Friction points**: [anything /insights flagged as slow, costly, or problematic]
+
+*If /insights produced nothing relevant, write "None significant."*
+
+---
+
 ## Open Questions / Blockers
 - [anything unresolved or needing follow-up]
 

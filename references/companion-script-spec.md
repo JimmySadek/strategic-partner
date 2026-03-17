@@ -1,0 +1,295 @@
+# 📡 Companion Script Specification
+
+Reference file for the strategic-partner advisor. Architecture specification
+for an optional external Python script that monitors context consumption.
+This is the "advanced" recommendation from audit finding F1.
+
+```
+┌──────────────────────────────────────────────────────┐
+│  ⚠️  Status: SPECIFICATION ONLY — not implemented    │
+│  👤 Audience: Power users wanting external monitoring │
+│  📎 Prerequisite: hooks-integration.md               │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Claude Code Session                                         │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  🎯 Strategic Partner Skill                           │  │
+│  │  • Reads .context-state file                          │  │
+│  │  • Reacts to alert_level changes                      │  │
+│  │  • Triggers handoff at thresholds                     │  │
+│  └───────────────────────────────────────────────────────┘  │
+│           ▲                                                  │
+│           │ reads .context-state                             │
+└───────────┼──────────────────────────────────────────────────┘
+            │
+            │ file write (atomic: tmp → rename)
+┌───────────┴──────────────────────────────────────────────────┐
+│  📡 sp-monitor.py (Companion Script)                         │
+│                                                              │
+│  Inputs:                                                     │
+│  ├─ 📝 /tmp/sp-file-tracking.log    (PostToolUse hook)      │
+│  ├─ 🔢 /tmp/sp-turn-count.txt       (UserPromptSubmit hook) │
+│  ├─ 🤖 /tmp/sp-agent-tracking.log   (Subagent hooks)       │
+│  └─ ❌ /tmp/sp-error-tracking.log   (PostToolUseFailure)    │
+│                                                              │
+│  Output:                                                     │
+│  └─ 📊 .context-state (JSON status file)                    │
+│                                                              │
+│  Startup:                                                    │
+│  ├─ 🚀 SessionStart hook (recommended), or                  │
+│  └─ 🖥️  Manual: python sp-monitor.py                       │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔄 Monitor Loop
+
+The script runs a continuous loop that aggregates hook data into a context
+consumption estimate.
+
+### Loop Steps
+
+```
+┌─ Monitor Cycle (every 10s) ──────────────────────────────────┐
+│                                                               │
+│  1. 📖 Read hook data files                                  │
+│     ├─ sp-file-tracking.log   → count edits, estimate sizes  │
+│     ├─ sp-turn-count.txt      → read exchange count          │
+│     ├─ sp-agent-tracking.log  → count active/completed       │
+│     └─ sp-error-tracking.log  → count tool failures          │
+│                                                               │
+│  2. 🧮 Estimate context consumption                          │
+│     ├─ Base: ~2KB per exchange (prompt + response)           │
+│     ├─ Tool results: parse file tracking for sizes           │
+│     ├─ Agent overhead: ~5KB per spawn                        │
+│     ├─ Skill loading: ~6KB (one-time at startup)             │
+│     └─ Accumulated: sum of all contributions                 │
+│                                                               │
+│  3. 📊 Calculate estimated percentage                        │
+│     ├─ 200K context: estimated_kb / 200 * 100                │
+│     └─ 1M context:   estimated_kb / 1000 * 100              │
+│                                                               │
+│  4. 🚦 Determine alert level                                │
+│     ├─ 🟢 green:           < 50%                             │
+│     ├─ 🟡 monitoring:      50-59%                            │
+│     ├─ 🟠 prepare_handoff: 60-69%                            │
+│     └─ 🔴 urgent_handoff:  ≥ 70%                            │
+│                                                               │
+│  5. 💾 Write .context-state file (atomic)                    │
+│  6. 😴 Sleep 10 seconds                                     │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### 📏 Estimation Heuristics
+
+These are **rough estimates** — the script cannot measure actual token consumption.
+The goal is directional accuracy, not precision.
+
+| Source | Estimated Size | Notes |
+|---|---|---|
+| 💬 User message | ~0.5KB | Varies heavily |
+| 🤖 Assistant response | ~1.5KB | Advisory responses tend to be longer |
+| 📖 File read (tool) | Actual file size | Logged by PostToolUse hook |
+| ✏️ File edit (tool) | ~0.5KB per edit | Old + new content |
+| 🤖 Agent spawn | ~5KB | Instructions + system prompt + results |
+| 📦 Skill loading | ~6KB | SP skill body, one-time |
+| 🧠 Serena memory read | ~1KB per memory | Varies by memory size |
+
+---
+
+## 📊 `.context-state` File Format
+
+Written to the project root (or a configured path).
+
+```json
+{
+  "estimated_pct": 62,
+  "estimated_kb": 124,
+  "context_size_kb": 200,
+  "tool_results_kb": 45,
+  "messages_count": 34,
+  "agents_spawned": 3,
+  "agents_active": 1,
+  "tool_failures": 0,
+  "files_modified": 7,
+  "alert_level": "prepare_handoff",
+  "last_updated": "2026-03-16T14:32:05Z",
+  "thresholds": {
+    "monitoring": 50,
+    "prepare_handoff": 60,
+    "urgent_handoff": 70
+  }
+}
+```
+
+### Field Descriptions
+
+| Field | Type | Description |
+|---|---|---|
+| `estimated_pct` | `int` | 📊 Estimated context usage as percentage |
+| `estimated_kb` | `int` | 📦 Estimated total context in KB |
+| `context_size_kb` | `int` | 🔧 Configured context window size in KB |
+| `tool_results_kb` | `int` | 🔧 Cumulative tool result sizes in KB |
+| `messages_count` | `int` | 💬 Number of user-assistant exchanges |
+| `agents_spawned` | `int` | 🤖 Total agents spawned this session |
+| `agents_active` | `int` | 🤖 Currently running agents |
+| `tool_failures` | `int` | ❌ Count of tool failures this session |
+| `files_modified` | `int` | 📝 Count of unique files modified |
+| `alert_level` | `string` | 🚦 Current threshold level |
+| `last_updated` | `string` | 🕐 ISO 8601 timestamp of last update |
+| `thresholds` | `object` | 🔧 Configured threshold percentages |
+
+---
+
+## 🚦 Threshold Markers
+
+The script uses threshold markers to signal the SP when action is needed.
+The `.context-state` file's `alert_level` field is the primary signal.
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│  Alert Levels                                                     │
+│                                                                   │
+│  🟢 green            < 50%     No action. Normal operation.      │
+│  ├──────────────────────────────────────────────────────────────┤ │
+│  🟡 monitoring       50-59%    Check every 2nd exchange.         │
+│  │                             Begin background state extraction.│
+│  ├──────────────────────────────────────────────────────────────┤ │
+│  🟠 prepare_handoff  60-69%    Suggest /compact with focus.      │
+│  │                             Begin assembling handoff materials.│
+│  ├──────────────────────────────────────────────────────────────┤ │
+│  🔴 urgent_handoff   ≥ 70%     Execute handoff immediately.      │
+│  │                             Aligns with PreCompact threshold. │
+│  └──────────────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+**📌 Note**: These thresholds are intentionally **lower** than the `context-handoff.md`
+thresholds because the companion script's estimates have higher variance than
+in-session self-assessment. The script errs toward early warnings.
+
+---
+
+## 🔗 Integration Points
+
+### 📝 PostToolUse Hook → Log Result Sizes
+
+The PostToolUse hook (Phase 2, see `hooks-integration.md`) writes file modification
+data to `/tmp/sp-file-tracking.log`. The companion script reads this log to
+estimate how much context tool results consume.
+
+**Log format** (one line per event):
+```
+FILE_MODIFIED: path/to/file.ts 14:32:05
+```
+
+The script checks file sizes on disk to estimate how much of the file was
+likely read into context during the tool operation.
+
+### 💬 UserPromptSubmit → Count Turns
+
+The UserPromptSubmit hook (Phase 2) increments a counter in `/tmp/sp-turn-count.txt`.
+The script reads this to track exchange count and estimate base context consumption
+from conversation alone.
+
+### 🚨 PreCompact → Emergency Trigger
+
+When the PreCompact hook fires (at `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70%`), it
+writes to `/tmp/sp-context-alerts.log`. The companion script detects this as
+an **authoritative signal** that overrides its own estimate:
+
+```python
+if precompact_fired:
+    alert_level = "urgent_handoff"
+    estimated_pct = max(estimated_pct, 70)
+```
+
+This ensures the `.context-state` file reflects reality even if the script's
+estimate was optimistic.
+
+---
+
+## 🚀 Startup
+
+### Via SessionStart Hook (Recommended)
+
+The SessionStart hook can launch the companion script automatically:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python3 ~/.config/skillshare/scripts/sp-monitor.py --context-size 200 &",
+        "description": "Launch SP companion context monitor"
+      }
+    ]
+  }
+}
+```
+
+### 🖥️ Manual Launch
+
+```bash
+python3 sp-monitor.py --context-size 200            # 200K context
+python3 sp-monitor.py --context-size 1000           # 1M context window
+```
+
+### ⚙️ CLI Arguments
+
+| Argument | Default | Description |
+|---|---|---|
+| `--context-size` | `200` | Context window size in KB |
+| `--interval` | `10` | Polling interval in seconds |
+| `--state-file` | `.context-state` | Path to output state file |
+| `--log-dir` | `/tmp` | Directory for hook log files |
+| `--quiet` | `false` | Suppress stdout output |
+
+---
+
+## 🧹 Cleanup
+
+The companion script should clean up on exit:
+
+```
+┌─ Exit Cleanup ───────────────────────────────────────────────┐
+│  1. 🗑️  Remove /tmp/sp-*.log and /tmp/sp-turn-count.txt     │
+│  2. 📊 Write final .context-state: alert_level=session_ended │
+│  3. 🛑 Stop hook (Phase 1) terminates script if still running│
+└───────────────────────────────────────────────────────────────┘
+```
+
+🛡️ Add `.context-state` to `.gitignore` — it is session-ephemeral and should
+never be committed.
+
+---
+
+## ⚠️ Limitations
+
+| # | Limitation | Impact |
+|---|---|---|
+| 1 | **Estimates are rough** — cannot measure actual token consumption | Treat thresholds as directional guides, not precise measurements |
+| 2 | **File size ≠ token count** — tokenization varies by content type | Code tokenizes differently than prose |
+| 3 | **No streaming access** — cannot read Claude Code's internal context state | Infers from external signals only |
+| 4 | **Hook dependency** — without Phase 2 hooks, limited data (turn count only) | Estimates degrade significantly without hooks |
+| 5 | **Race conditions** — script and Claude Code both read/write `.context-state` | Use atomic writes (write to tmp, rename) to avoid partial reads |
+
+---
+
+## 📎 Cross-Reference
+
+| Reference | Relationship |
+|---|---|
+| `hooks-integration.md` | Hooks that feed data to this script |
+| `context-handoff.md` | Threshold strategy this script supports |
+| `startup-checklist.md` | Step 3 env var that sets the PreCompact trigger |

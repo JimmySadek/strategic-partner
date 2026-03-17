@@ -1,5 +1,70 @@
 # Changelog
 
+## [4.0.0] - 2026-03-16
+
+### Post-Release Fixes (same day)
+
+- **Routing matrix build step restored to startup** — v3.5.3 had an explicit startup checklist item ("Skill + MCP inventory → routing matrix built → stored in Serena") that was lost during the v4.0 restructure. Added Step 5.5 to `startup-checklist.md` with full delta-update procedure: load base matrix → scan system context skills → build delta entries for new skills → merge with custom agents → store in Serena
+- **Hardcoded skill names removed from routing instructions** — `(e.g., /gsd:quick)` and `(e.g., /gsd:debug)` replaced with `(from routing matrix)` / `(look up in routing matrix)` placeholders in SKILL.md heuristics table and prompt-crafting-guide.md decision tree. Restores the v3.5.2 fix that prevented anchoring bias. Concrete skill names remain only in the curated base matrix (their correct location)
+- **Anti-pattern warnings rewritten** — removed specific skill names from "don't do this" warnings in prompt-crafting-guide.md to avoid negation-by-example reinforcement
+- **Core SP behaviors restored after over-trimming** — Self-Delegation Principle, 10-point prompt quality list, ══ fence format, Ask-Before-Act examples, Communication Style details, and Post-Prompt report-back steps restored to SKILL.md core after gap analysis showed they were removed during initial lean hub restructure
+
+### Critical Fixes
+
+- **F1: Context monitoring env var baseline** — set `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70` at startup to lower auto-compaction trigger from ~95% to 70%, giving the PreCompact hook a reliable system signal instead of unreliable self-assessment
+- **F4: Mandatory parallelization check** — 4-question checklist required before writing any prompt; if Q1-3 answer YES and prompt lacks `<orchestration>`, the prompt fails the quality gate
+- **F4: Routing decision tree** — replaced flat matrix lookup with structured scope + complexity tree that must be walked before selecting a skill
+- **F4: Post-craft self-verification** — 8-item mandatory checklist after writing any prompt; all items must pass before presenting
+- **F9: Fire-and-verify pattern** — replaced silent fire-and-forget agents with fire-and-verify; Agent C (dashboard fix + gitignore check) verified before orientation; gitignore failure triggers immediate user warning (security concern)
+
+### High Improvements
+
+- **F2: Progressive session naming** — lifecycle from `sp-init-MMDD` to `sp-[topic]-MMDD` to `sp-[refined]-MMDD`; treated as identity management (no ask-before-act)
+- **F3: Hooks integration** — new `references/hooks-integration.md` with phased rollout: Phase 1 (SessionStart, PreCompact, Stop), Phase 2 (SubagentStart/Stop, PostToolUse, UserPromptSubmit), Phase 3 (ConfigChange, PostToolUseFailure, custom hooks)
+- **F5: Effort/color identity** — `/effort high` + `/color red` set unconditionally at startup Step 1 for full reasoning power and visual advisory identity
+- **F6: /compact guardrailed protocol** — replaced absolute `/compact` ban with guardrailed protocol; bare `/compact` still prohibited; strategic compaction with mandatory focus instructions allowed at 65-72% context via AskUserQuestion
+
+### Medium Enhancements
+
+- **F7: Custom agent discovery** — startup scans `.claude/agents/` and `~/.claude/agents/` for user-defined agents to include in routing matrix
+- **F7: Worktree isolation** — new section in orchestration-playbook.md for recommending `isolation: worktree` on risky implementations
+- **F8: /insights integration** — run `/insights` before every handoff; dedicated section added to handoff template capturing project areas, patterns, friction points
+- **F10: Curated base matrix** — skill-routing-matrix.md ships ~30 pre-mapped skills across 7 categories; delta-update procedure builds entries only for NEW/unknown skills (~80% startup cost reduction)
+- **F11: Lean hub architecture** — SKILL.md restructured from ~700 lines to ~440 lines (41% reduction); procedural content moved to lazy-loaded reference files while retaining all core behaviors (Serena edge cases, Git Custody, Self-Delegation, prompt quality list) inline
+
+### Low Additions
+
+- **F12: /fork and /btw awareness** — documented as available native features in partner-protocols.md (mention only, no formal protocols)
+- **F1: Companion script spec** — new `references/companion-script-spec.md` with full Python monitor architecture for power users wanting external context tracking
+
+### Added
+
+- `references/hooks-integration.md` — comprehensive hooks strategy with JSON configs and phased rollout
+- `references/companion-script-spec.md` — Python context monitor architecture specification
+- `docs/v4.0-implementation-decisions.md` — full decision log for all 12 audit findings
+- Curated base routing matrix with ~30 pre-mapped skills in `skill-routing-matrix.md`
+- Parallelization heuristics with concrete examples (when to parallelize vs when not) in `orchestration-playbook.md`
+- Model selection cost-effectiveness guidance (Opus for coordinators/synthesis, Sonnet for parallel workers)
+
+### Changed
+
+- SKILL.md restructured as lean hub (~440 lines) with core behaviors inline and reference dispatch table
+- Version bumped from 3.5.3 to 4.0.0
+- Context handoff thresholds updated: 50-65% no action, 65-72% strategic compact, 72%+ full handoff
+- Fire-and-forget agents replaced with fire-and-verify pattern throughout
+- `/compact` ban replaced with guardrailed protocol (focus instructions mandatory)
+- Startup sequence expanded: identity commands (Step 1), progressive naming (Step 2), env var (Step 3), fire-and-verify agents (Step 4), state reading (Step 5), verification gate (Step 6), orientation (Step 7)
+- Reference files table expanded from 6 to 8 entries (hooks-integration.md, companion-script-spec.md)
+- Handoff template updated with `/insights Analysis` section
+- Prompt crafting guide: routing decision tree, parallelization check, and post-craft verification are now mandatory gates (not optional guidance)
+- Orchestration playbook: added worktree isolation, concrete parallelization examples, anti-examples
+
+### Removed
+
+- Absolute `/compact` ban (replaced with guardrailed protocol)
+- Fire-and-forget agent pattern (replaced with fire-and-verify)
+- Context self-assessment as sole monitoring mechanism (supplemented with env var + hooks)
+
 ## [3.5.3] - 2026-03-05
 
 ### Added

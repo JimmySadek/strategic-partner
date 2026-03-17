@@ -13,8 +13,8 @@ Model Selection → Parallelization Decision → Spawn Pattern (A/B/C/D) → Ses
 
 | Model | Use For | Avoid For |
 |-------|---------|-----------|
-| Opus 4.6 | Architecture, complex debugging, research, coordination, multi-expert analysis | Simple implementation, routine tasks |
-| Sonnet 4.6 | Implementation, code review, testing, exploration, standard work, parallel agents | Critical architecture decisions, complex reasoning chains |
+| Opus 4.6 | Architecture, complex debugging, research, coordination, multi-expert analysis, synthesis of parallel results | Simple implementation, routine tasks, parallel worker agents |
+| Sonnet 4.6 | Implementation, code review, testing, exploration, standard work, parallel worker agents | Critical architecture decisions, complex reasoning chains |
 
 ### Decision Rule
 
@@ -22,30 +22,116 @@ Model Selection → Parallelization Decision → Spawn Pattern (A/B/C/D) → Ses
 Is this task architectural, complex debugging, deep research, or coordination?
 ├─ Yes → Opus 4.6
 └─ No  → Sonnet 4.6
+
+Is this a parallel worker agent (one of N doing independent work)?
+├─ Yes → Sonnet 4.6 (always — Opus is wasted on constrained subtasks)
+└─ No  → Apply the rule above
+
+Is this a synthesis step (combining outputs from parallel agents)?
+├─ Yes → Opus 4.6 (needs to reason across multiple inputs)
+└─ No  → Apply the rule above
 ```
 
-When in doubt, default to Sonnet. Opus is for tasks where getting it wrong is expensive.
+**Cost-effectiveness principle**: Parallel worker agents should almost always be
+Sonnet. The task has already been decomposed and scoped — the hard reasoning
+happened during decomposition (which the SP or an Opus coordinator did). Workers
+execute a well-defined subtask where Sonnet excels.
+
+Reserve Opus for:
+- The coordinator/synthesizer that combines parallel outputs
+- Single-agent tasks requiring deep reasoning (root cause analysis, architecture)
+- Multi-expert panels where perspective diversity matters
+- Research agents where missing a subtle detail is costly
 
 ---
 
-## Parallelization Decision Tree
+## ⚡ Parallelization Heuristics
+
+These heuristics align with the **🔴 mandatory parallelization check** in
+`prompt-crafting-guide.md`. When that check triggers YES on questions 1-3,
+use these patterns to design the `<orchestration>` section.
+
+### Decision Tree
 
 ```
-3+ independent files to modify?
-├─ Yes → Parallel Sonnet agents (one per file or logical group)
-└─ No  → Single agent
+1. Can this task be split into 2+ independent file changes?
+   ├─ YES → Parallel Sonnet agents (one per file or logical group)
+   └─ NO  → Single agent
 
-Research + implementation in same task?
-├─ Different concerns → Parallel (research agent + impl agent)
-└─ Implementation depends on research findings → Sequential
+2. Does this task have a research phase and a build phase?
+   ├─ YES, different concerns → Parallel (research agent + impl agent)
+   └─ YES, build depends on research → Sequential phases, parallel WITHIN each
 
-Multiple questions to answer?
-├─ Independent → Parallel research agents
-└─ Each builds on prior answer → Sequential
+3. Are there 3+ deliverables that don't depend on each other?
+   ├─ YES → Parallel agent per deliverable group
+   └─ NO  → Single agent or sequential chain
 
-Architecture → implementation → review?
-└─ Always sequential chain (each depends on prior output)
+4. Is this a single-file, single-concern change?
+   └─ YES → No orchestration needed
 ```
+
+### ✅ Concrete Examples: WHEN to Parallelize
+
+**Example A: 3 independent file changes**
+Task: "Add logging to auth, payments, and notifications modules"
+```
+<orchestration>
+  Spawn 3 agents in parallel:
+    Agent 1 (Sonnet 4.6): Add structured logging to auth/middleware.py
+    Agent 2 (Sonnet 4.6): Add structured logging to payments/processor.py
+    Agent 3 (Sonnet 4.6): Add structured logging to notifications/sender.py
+</orchestration>
+```
+Why: Each module is independent. No shared state. Changes don't conflict.
+
+**Example B: Research + build with independent research targets**
+Task: "Evaluate 3 auth libraries and implement the best one"
+```
+<orchestration>
+  Phase 1 (parallel research):
+    Agent 1 (Sonnet 4.6): Evaluate passport.js — API, maintenance, bundle size
+    Agent 2 (Sonnet 4.6): Evaluate lucia-auth — API, maintenance, bundle size
+    Agent 3 (Sonnet 4.6): Evaluate next-auth — API, maintenance, bundle size
+  Phase 2 (sequential):
+    Agent 4 (Opus 4.6): Compare findings, select library, implement
+</orchestration>
+```
+Why: Research targets are independent. Synthesis requires all research complete.
+
+**Example C: Multiple independent deliverables**
+Task: "Add CLI wizard, MCP tool, and API endpoint for team listing"
+```
+<orchestration>
+  Spawn 3 agents in parallel:
+    Agent 1 (Sonnet 4.6): CLI wizard (cli/teams.py + cli/__init__.py)
+    Agent 2 (Sonnet 4.6): MCP tool (mcp/cmrad_mcp.py)
+    Agent 3 (Sonnet 4.6): API endpoint (api/routes/teams.py + api/routes/__init__.py)
+</orchestration>
+```
+Why: Three distinct interfaces to the same data. No code-level dependencies between them.
+
+### ❌ Concrete Examples: When NOT to Parallelize
+
+**Anti-example A: Tight dependencies (shared types)**
+Task: "Define TypeScript interfaces, then implement components using them"
+Why NOT: Components import the interfaces. If Agent 2 starts before Agent 1 defines
+the types, it will either guess wrong or fail.
+Correct: Sequential — define types first, then parallel implementation.
+
+**Anti-example B: Shared state / same file**
+Task: "Add 3 new methods to the UserService class"
+Why NOT: All three agents would edit the same file. Merge conflicts are guaranteed.
+Correct: Single agent handles all three methods in sequence.
+
+**Anti-example C: Cascading data flow**
+Task: "Parse input → validate → transform → persist"
+Why NOT: Each step consumes the output of the prior step. No independence.
+Correct: Single agent, sequential implementation.
+
+**Anti-example D: Schema migration + code that uses the schema**
+Task: "Add new database columns and update the ORM models that use them"
+Why NOT: The ORM changes depend on the migration being correct first.
+Correct: Sequential — migration first, then ORM updates.
 
 ---
 
@@ -220,9 +306,10 @@ For each file, report:
 Keep total response under 500 tokens. Focus on what an implementer needs to know.
 ```
 
-### Pattern D: Fire-and-Forget Operations
+### Pattern D: Fire-and-Verify Operations
 
-These need no return value — spawn and move on immediately:
+These spawn without blocking startup, but their results are **verified** before
+the SP presents its orientation. See `startup-checklist.md` for verification logic.
 
 **Serena dashboard fix:**
 ```
@@ -249,14 +336,58 @@ Does the SP need the raw content for reasoning?
   YES → Read directly (CLAUDE.md, handoffs, memories)
   NO  → Agent returns summary
 
-Is this a fire-and-forget config fix?
-  YES → Spawn agent, don't wait for result
+Is this a fire-and-verify config fix?
+  YES → Spawn agent without blocking, verify result before orientation
   NO  → Wait for agent summary before proceeding
 
 Are there 3+ files to read before crafting a prompt?
   YES → Pattern C (foreground agent, wait for summary)
   NO  → Read directly (1-2 files isn't worth the overhead)
 ```
+
+---
+
+## 🛡️ Worktree Isolation for Risky Implementations
+
+When crafting prompts for large or risky changes, recommend `isolation: worktree`
+in the agent spawn instructions. This creates a git worktree — an isolated copy
+of the repo where the agent works without affecting the main working directory.
+
+### When to Recommend Worktree Isolation
+
+```
+Is this change risky or large-scale?
+├─ Touches 5+ files across multiple directories → recommend worktree
+├─ Involves database migrations or schema changes → recommend worktree
+├─ Refactors core infrastructure (auth, routing, state management) → recommend worktree
+├─ Experimental approach (might be discarded) → recommend worktree
+└─ Well-scoped, low-risk change → standard execution (no worktree)
+```
+
+### How to Embed in Prompts
+
+Add to the `<orchestration>` section or as a top-level directive:
+
+```
+<orchestration>
+  isolation: worktree
+
+  Phase 1 (parallel, each in isolated worktree):
+    Agent 1 (Sonnet 4.6): Refactor auth middleware
+    Agent 2 (Sonnet 4.6): Refactor session management
+  Phase 2:
+    Review worktree diffs before merging to main working directory
+</orchestration>
+```
+
+### Benefits
+
+| Benefit | Why It Matters |
+|---------|---------------|
+| 🔄 **Safe rollback** | Implementation goes wrong → discard the worktree |
+| ⚡ **Parallel safety** | Multiple agents can work on overlapping files without conflicts |
+| 🔍 **Review gate** | Changes reviewed before merging to the main tree |
+| 🧹 **No cleanup** | Worktrees are disposable by design |
 
 ---
 
@@ -273,3 +404,8 @@ Are there 3+ files to read before crafting a prompt?
 - ❌ **Delegating memory reads**: Delegating memory content reading (SP reasons from full content)
 - ❌ **Delegating matrix build**: Having an agent build the routing matrix (costs as much to review)
 - ❌ **Waiting on fire-and-forget**: Waiting for dashboard fix or gitignore agents (spawn and move on)
+- ❌ **Opus for parallel workers**: Using Opus for constrained subtasks in parallel spawns (Sonnet handles scoped work)
+- ❌ **Sonnet for synthesis**: Using Sonnet to combine outputs from multiple parallel agents (Opus reasons across inputs)
+- ❌ **Parallel on shared files**: Spawning parallel agents that edit the same file (guaranteed merge conflicts)
+- ❌ **Parallel on dependent steps**: Spawning parallel agents where one consumes the other's output (race condition)
+- ❌ **No worktree for risky changes**: Sending large refactors to execute in the main working directory without isolation

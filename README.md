@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-3.5.3-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.0.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -10,7 +10,9 @@
 
 Think of it as your **Chief of Staff** — a strategic partner, literally. It helps you **plan**, **structure your thoughts**, and **keep track of your project**. It even recommends the **next best action**. It owns your **CLAUDE.md**, crafts **implementation prompts**, routes tasks to the **right skill or agent**, manages **cross-session memory**, and handles **context handoffs** before you lose state. It reads your installed **skills**, **MCP servers**, **agent types**, and **hooks** from the system context — so when it routes a task, it already knows what's available on your machine.
 
-It speaks to **engineers** in their language, to **PMs** in theirs, and to **founders** in theirs. It captures your **git state** on startup, verifies commits landed after implementation sessions, and structures every response around **diagrams first, tables second, prose last**. The ecosystem has plenty of tools for doing. Nothing for **deciding**.
+**v4.0** brings **hooks integration** for proactive session management, **guardrailed compaction** to extend session life without full handoffs, a **fire-and-verify** pattern that catches silent agent failures, and a **lean hub architecture** that cuts SKILL.md context by ~40% while keeping all core behaviors inline. Prompt crafting now enforces **mandatory quality gates** — routing decision trees, parallelization checks, and post-craft verification — so every prompt the SP delivers is properly routed and complete.
+
+It speaks to **engineers** in their language, to **PMs** in theirs, and to **founders** in theirs. It captures your **git state** on startup, recommends optimal session settings (`/effort high`, `/rename`), verifies commits landed after implementation sessions, and structures every response around **diagrams first, tables second, prose last**. The ecosystem has plenty of tools for doing. Nothing for **deciding**.
 
 ---
 
@@ -63,15 +65,15 @@ Two checkpoints, both mandatory:
 
 ### Context handoffs
 
-The SP monitors context usage and escalates through **three tiers**:
+The SP monitors context usage and escalates through **three tiers**, backed by an environment variable that gives it a **reliable system signal** at 70%:
 
 | Context Level | What happens |
 |---|---|
-| **67%** | Gentle nudge — you see an inline note, SP starts preparing state |
-| **72%** | Strong push — SP proposes handoff via a direct question |
-| **77%** | Auto-execute — SP writes the handoff immediately |
+| **65-72%** | Strategic compact — SP suggests `/compact` with focus instructions to extend the session |
+| **72%+** | Full handoff — SP proposes writing state to `.handoffs/` via a direct question |
+| **70% (system)** | PreCompact hook fires — SP intercepts for emergency handoff preparation |
 
-The handoff file goes to `.handoffs/` with everything needed to continue: **decisions made**, **pending prompts**, **pending scripts**, and a **continuation prompt** that restores the advisor persona in a fresh session.
+The handoff file goes to `.handoffs/` with everything needed to continue: **decisions made**, **pending prompts**, **pending scripts**, **`/insights` analysis**, and a **continuation prompt** that restores the advisor persona in a fresh session.
 
 ---
 
@@ -102,11 +104,11 @@ You say: *"3 phases, new signups only"*
 
 | Phase | Prompt | What it does |
 |-------|--------|-------------|
-| **1 — Research** | `/gsd:research-phase` | Read these 5 files. Map existing **auth flow**. Identify where **onboarding state** should live. |
-| **2 — Build UI** | `/feature-dev` | Build **WelcomeScreen** + 3-step wizard components. Use mock data only. **No backend calls yet.** |
-| **3 — Wire It Up** | `/gsd:execute-phase` | Connect wizard to **user state**. Trigger **welcome email** on step 3 completion. |
+| **1 — Research** | *[research skill from routing matrix]* | Read these 5 files. Map existing **auth flow**. Identify where **onboarding state** should live. |
+| **2 — Build UI** | *[feature skill from routing matrix]* | Build **WelcomeScreen** + 3-step wizard components. Use mock data only. **No backend calls yet.** |
+| **3 — Wire It Up** | *[execution skill from routing matrix]* | Connect wizard to **user state**. Trigger **welcome email** on step 3 completion. |
 
-*Skill names are selected dynamically — the SP picks the best match from whatever skills you have installed.*
+*Skill names are never hardcoded — the SP builds a routing matrix from your actual installed skills and picks the best match for each task.*
 
 Each prompt has: **files to read first**, **constraints from CLAUDE.md**, **verification checklist**, **expected commit message**.
 
@@ -136,20 +138,24 @@ SP is a **senior tech lead** who asks the right questions before your team start
 
 ```
 strategic-partner/
-  SKILL.md                              # Skill definition (500+ lines)
+  SKILL.md                              # Lean hub (~440 lines) — identity, core behaviors, routing dispatch
   references/
-    skill-routing-matrix.md             # Task → skill + MCP routing with fallback chains
-    prompt-crafting-guide.md            # Prompt + script format standards
-    orchestration-playbook.md           # Model selection and parallelization rules
-    context-handoff.md                  # Tiered handoff procedure and templates
-    startup-checklist.md                # Internal startup verification
-    partner-protocols.md                # Version bump protocol and partner adaptation
+    startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
+    prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
+    context-handoff.md                  # Env var baseline, strategic compaction, split writes
+    orchestration-playbook.md           # Model selection, parallelization heuristics, worktree isolation
+    skill-routing-matrix.md             # Curated base matrix (~30 skills) + delta-update procedure
+    partner-protocols.md                # Session naming, /compact guardrails, /insights, version bumps
+    hooks-integration.md                # Hook events, JSON configs, phased rollout
+    companion-script-spec.md            # Python context monitor architecture (spec only)
   assets/templates/
     prompt-template.md                  # Implementation prompt skeleton
-    handoff-template.md                 # Session handoff skeleton
+    handoff-template.md                 # Session handoff skeleton (with /insights section)
+  docs/
+    v4.0-implementation-decisions.md    # Decision log for audit findings F1-F12
 ```
 
-These aren't filler. The advisor **loads them on-demand** — keeping the core skill lean while pulling in deep reference material only when crafting prompts, routing edge cases, or preparing handoffs.
+These aren't filler. The advisor **loads them on-demand** — the core SKILL.md (~440 lines) carries identity, core behaviors, and routing dispatch, while deep procedural content loads only when crafting prompts, routing edge cases, or preparing handoffs.
 
 ---
 

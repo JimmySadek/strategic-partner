@@ -1,13 +1,11 @@
-# Skill Routing Matrix — Template & Procedure
+# Skill Routing Matrix — Base Matrix & Delta Procedure
 
-Reference file for the strategic-partner advisor. Defines the format, auto-generation
-procedure, and universal routing rules for skill selection.
-
-The routing matrix is **built at runtime** from the system context's available skills,
-not shipped as a static table. This file provides the template and procedure.
+Reference file for the strategic-partner advisor. Ships a curated base matrix of
+common skills and agent types, with a delta-update procedure for discovering new
+or custom skills at runtime.
 
 ```
-Discover Skills → Classify (Global vs Local) → Build Entries → Store in Serena → Diff on Continuation
+Load Base Matrix → Scan for NEW Skills → Build Delta Entries → Merge → Store in Serena → Diff on Continuation
 ```
 
 ---
@@ -23,15 +21,82 @@ Each entry in the routing matrix follows this schema:
 | Model | Recommended model for the task | Opus, Sonnet, or Haiku |
 | When to Use Instead | Alternative skill for edge cases | "/sc:implement for simpler scope" |
 
-**Example entries** (illustrative — concrete entries are generated at runtime):
+---
 
-```
-| Explore existing code before building | Agent:feature-dev:code-explorer | Sonnet | Quick Grep/Glob for single-file lookups |
-| Architect a new feature               | Agent:feature-dev:code-architect | Opus  | /sc:design for API-level specs |
-| Implement a focused feature           | /feature-dev:feature-dev         | Sonnet | /sc:implement for simpler scope |
-| Debug a complex bug                   | /gsd:debug                       | Opus  | — |
-| Review PR or changeset                | /code-review:code-review         | Sonnet | — |
-```
+## 📦 Curated Base Matrix
+
+These are the ~30 most common skills and agent types pre-mapped. Load this table
+at startup instead of building from scratch — reduces cognitive cost by **~80%**.
+
+### 🔧 Implementation & Feature Development
+
+| Task | Primary Skill | Model | When to Use Instead |
+|---|---|---|---|
+| Quick single-file fix or change | `/gsd:quick` | Sonnet | Direct Edit tool for trivial changes |
+| Focused feature (1-3 files, clear spec) | `/feature-dev:feature-dev` | Sonnet | `/sc:implement` for simpler scope |
+| Complex feature with design phase | `/gsd:feature` | Opus→Sonnet | `/feature-dev` if no design phase needed |
+| Implement from existing spec/plan | `/sc:implement` | Sonnet | `/feature-dev` for broader scope |
+| Full-stack feature (frontend + backend) | `/gsd:fullstack` | Sonnet | Split into separate frontend/backend prompts |
+
+### 🔍 Debugging & Investigation
+
+| Task | Primary Skill | Model | When to Use Instead |
+|---|---|---|---|
+| Debug a complex bug | `/gsd:debug` | Opus | Agent:root-cause-analyst for deep investigation |
+| Root cause analysis | Agent:root-cause-analyst | Opus | `/gsd:debug` for simpler bugs |
+| Performance investigation | Agent:performance-engineer | Sonnet | `/gsd:debug` if perf issue is a bug |
+
+### ✅ Code Quality & Review
+
+| Task | Primary Skill | Model | When to Use Instead |
+|---|---|---|---|
+| Review PR or changeset | `/code-review:code-review` | Sonnet | Agent:feature-dev:code-reviewer for deeper review |
+| Code cleanup and simplification | `/code-simplifier:code-simplifier` | Sonnet | Agent:refactoring-expert for larger refactors |
+| Large-scale refactoring | Agent:refactoring-expert | Sonnet | `/code-simplifier` for single-file cleanup |
+| Security audit | Agent:security-engineer | Opus | `/code-review` if just checking for obvious issues |
+
+### 🏗️ Architecture & Design
+
+| Task | Primary Skill | Model | When to Use Instead |
+|---|---|---|---|
+| Design a new feature's architecture | Agent:feature-dev:code-architect | Opus | `/sc:design` for API-level specs |
+| Backend system design | Agent:backend-architect | Opus | Agent:system-architect for distributed systems |
+| Scalable system architecture | Agent:system-architect | Opus | Agent:backend-architect for single-service scope |
+| Frontend/UI architecture | Agent:frontend-architect | Sonnet | `/frontend-design` for component-level work |
+| DevOps and infrastructure design | Agent:devops-architect | Opus | — |
+
+### 🔍 Research & Exploration
+
+| Task | Primary Skill | Model | When to Use Instead |
+|---|---|---|---|
+| Explore existing code before building | Agent:Explore | Sonnet | Quick Grep/Glob for single-file lookups |
+| Deep feature analysis, execution tracing | Agent:feature-dev:code-explorer | Sonnet | Agent:Explore for broad discovery |
+| Deep research with multiple sources | Agent:deep-research-agent | Opus | Agent:Explore for codebase-only research |
+| Requirements discovery | Agent:requirements-analyst | Opus | Brainstorming mode for less formal discovery |
+| Implementation planning | Agent:Plan | Sonnet | Agent:feature-dev:code-architect for design-heavy planning |
+
+### 📝 Documentation & Teaching
+
+| Task | Primary Skill | Model | When to Use Instead |
+|---|---|---|---|
+| Technical documentation | Agent:technical-writer | Sonnet | Direct writing for simple docs |
+| Explain code or concepts | Agent:learning-guide | Sonnet | Agent:socratic-mentor for guided learning |
+| Educational guidance (Socratic) | Agent:socratic-mentor | Sonnet | Agent:learning-guide for direct explanation |
+
+### 🧪 Testing & Quality Engineering
+
+| Task | Primary Skill | Model | When to Use Instead |
+|---|---|---|---|
+| Testing strategy, edge case detection | Agent:quality-engineer | Sonnet | `/gsd:test` for straightforward test writing |
+| Write tests for existing code | `/gsd:test` | Sonnet | Agent:quality-engineer for strategy-level work |
+
+### 🎯 Multi-Expert & Strategic
+
+| Task | Primary Skill | Model | When to Use Instead |
+|---|---|---|---|
+| Multi-expert business strategy | Agent:business-panel-experts | Opus | Single-domain agent for focused questions |
+| Spec review from multiple perspectives | `/spec-review` (if available) | Opus | Agent:business-panel-experts as fallback |
+| UI component creation | `/frontend-design` (if available) | Sonnet | Agent:frontend-architect for architecture-level |
 
 ---
 
@@ -68,32 +133,38 @@ installed skills. Always include these in the routing matrix.
 
 ---
 
-## Auto-Generation Procedure
+## 🔄 Delta-Update Procedure
+
+The base matrix above covers ~80% of routing needs. The delta procedure handles
+the remaining ~20% — custom skills, new installations, and environment-specific tools.
 
 ### At Startup (Initialization Mode)
 
-1. Read the system context's available skills list (provided automatically in the
-   session's system prompt)
-2. For each skill, create a routing entry:
-   - **Task**: derive from the skill's description and trigger phrases
-   - **Primary Skill**: the exact invocation command
-   - **Model**: apply model selection heuristics (see below)
-   - **When to Use Instead**: identify overlapping skills and note when each is preferred
-3. Merge with the always-available Agent Type table above
-4. Store the complete matrix in Serena memory as `skill_routing_matrix`
+1. **Load the base matrix** from this file (already in context when this reference is read)
+2. **Scan for NEW skills** in the system context's available skills list:
+   - Compare each available skill against the base matrix entries
+   - Skills already in the base matrix → skip (no work needed)
+   - Skills NOT in the base matrix → build a routing entry (see format above)
+3. **Scan for custom agents** in:
+   - `.claude/agents/` (project-level custom agents)
+   - `~/.claude/agents/` (user-level custom agents)
+   - Build routing entries for any discovered custom agents
+4. **Merge**: base matrix + new skill entries + custom agent entries = full matrix
+5. **Store** the full merged matrix in Serena memory as `skill_routing_matrix`
 
 ### On Subsequent Sessions (Continuation Mode)
 
 1. Read `skill_routing_matrix` from Serena memory
 2. Compare against the current session's available skills list
-3. If new skills found or skills removed → rebuild and update Serena memory
-4. If unchanged → use cached matrix
+3. If new skills found → build entries for NEW skills only, merge, update Serena
+4. If skills removed → prune stale entries, update Serena
+5. If unchanged → use cached matrix (zero rebuild cost)
 
 ### If Serena Unavailable
 
-- Use the Agent Type table above (always available) as the base
-- Match tasks to skills in real-time from the system context's skill descriptions
-- No persistent caching — rebuild each session
+- Use the base matrix from this file + the Agent Type table (always available)
+- Build delta entries for unknown skills in real-time from system context descriptions
+- No persistent caching — delta rebuild each session (still cheaper than full rebuild)
 
 ---
 

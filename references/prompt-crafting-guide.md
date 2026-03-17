@@ -4,7 +4,7 @@ Reference file for the strategic-partner advisor. Standards for crafting impleme
 prompts across target models.
 
 ```
-Quality Check → Format (XML/MD/Hybrid) → Deliverable Type (Prompt vs Script) → Save Decision → Launcher
+Routing Decision Tree → Parallelization Check → Quality Check → Format (XML/MD/Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
 ```
 
 ---
@@ -13,7 +13,7 @@ Quality Check → Format (XML/MD/Hybrid) → Deliverable Type (Prompt vs Script)
 
 Every implementation prompt must:
 
-1. **Skill resolved from the routing matrix** — look up the best skill for this specific task before writing line 1. Never default to a remembered skill name or copy one from an example. The first line must be the bare skill command — no backticks, no headers above it, no "Run:" prefix
+1. **Skill resolved via the routing decision tree** — walk the scope + complexity tree (see Mandatory Pre-Craft Analysis) before writing line 1. Never default to a remembered skill name or copy one from an example. The first line must be the bare skill command — no backticks, no headers above it, no "Run:" prefix
 2. **Be fully self-contained** — the implementer has no access to the advisor conversation
 3. **Specify exactly which files to read** — before touching anything
 4. **List deliverables precisely** — files, functions, tests, CHANGELOG entries
@@ -23,6 +23,65 @@ Every implementation prompt must:
 8. **Leave no ambiguity** — nothing that would require follow-up questions
 9. **Use XML structure for Claude targets** — `<context>`, `<instructions>`, `<orchestration>`, `<verification>` tags
 10. **Specify the target branch** — if the project uses feature branches, name the branch in the prompt's `<context>` section so the implementer works in the right place
+
+---
+
+## 🔴 Mandatory Pre-Craft Analysis
+
+**🚨 STOP. Complete both analyses below BEFORE writing any prompt.** These are not
+optional guidance — skipping them is a quality gate failure.
+
+### Step 1: Routing Decision Tree
+
+Replace flat matrix lookup with structured routing. Walk the tree top-to-bottom.
+
+**Scope routing** (determines skill category):
+
+```
+What is the scope of this task?
+├── Single file, single concern
+│   └── quick-task skill (look up in routing matrix)
+├── Focused feature (1-3 files, clear spec)
+│   └── feature-dev skill (look up in routing matrix)
+├── Multi-phase feature (4+ files, needs design)
+│   └── plan + execute workflow (look up in routing matrix)
+├── Bug investigation
+│   └── debugging skill (look up in routing matrix)
+├── Code quality pass (lint, refactor, cleanup)
+│   └── analyze + improve chain (look up in routing matrix)
+└── Architecture change (new patterns, system redesign)
+    └── research + design + plan + execute chain (look up in routing matrix)
+```
+
+**Complexity routing** (determines deliverable type):
+
+```
+What is the complexity?
+├── Mechanical (config, setup, file moves, JSON/YAML edits)
+│   └── Generate .scripts/ bash script — no prompt needed
+├── Requires code reasoning (design decisions, bug fixing, refactoring)
+│   └── Generate implementation prompt
+└── Mixed (some mechanical setup + some code reasoning)
+    └── Generate BOTH: .scripts/ for mechanical part, .prompts/ for judgment part
+```
+
+**After routing**: The skill command on line 1 of the prompt MUST match the
+decision tree output. If it doesn't, re-route — don't rationalize a mismatch.
+
+### Step 2: Mandatory Parallelization Check
+
+Answer all four questions before writing the prompt body. Record answers explicitly.
+
+| # | Question | If YES → | If NO → |
+|---|----------|----------|---------|
+| 1 | Can this task be split into 2+ independent file changes? | Add `<orchestration>` with parallel agents | Continue |
+| 2 | Does this task have a research phase and a build phase? | Sequential phases, parallel within each | Continue |
+| 3 | Are there 3+ deliverables that don't depend on each other? | Parallel agent per deliverable group | Continue |
+| 4 | Is this a single-file, single-concern change? | No orchestration needed, single skill | Re-evaluate Q1-3 |
+
+**🔴 Quality gate**: If the answer to ANY of Q1-3 is **YES** and the prompt
+lacks an `<orchestration>` section, **the prompt FAILS**. Go back and add
+orchestration before proceeding.
 
 ---
 
@@ -105,6 +164,27 @@ When a Claude session writes content consumed by Gemini:
 5. **Frame questions neutrally** → reduced sycophancy in 4.x, leverage it
 6. **No prefill tricks** → use explicit format instructions instead
 7. **Examples in `<example>` tags** → 3-5 diverse examples yield best results when needed
+
+---
+
+## 🔴 Post-Craft Self-Verification (Mandatory)
+
+After writing the prompt, run this checklist before presenting it. **Every item
+must pass.** If any item fails, fix the prompt — do not present a failing prompt.
+
+| # | Check | ❌ Fails If... |
+|---|-------|---------------|
+| 1 | Skill command on line 1 matches routing decision tree | Copied from memory or example |
+| 2 | `<context>` lists specific files with what to look for | Says "read the codebase" or "see relevant files" |
+| 3 | `<instructions>` has numbered deliverables with file paths | Vague like "update the tests" |
+| 4 | `<orchestration>` present if parallelization check triggered | Q1-3 answered YES but no orchestration section |
+| 5 | Each agent spawn has explicit model (Opus 4.6 / Sonnet 4.6) | Unspecified "spawn an agent" |
+| 6 | `<verification>` has testable checkboxes with commands/outcomes | Says "verify it works" without specifying HOW |
+| 7 | Expected commit uses conventional-commit format | Missing or malformed `type(scope): description` |
+| 8 | Prompt is fully self-contained | References "our earlier discussion" or "current approach" |
+
+**🚨 If any row fails**: Fix the prompt before presenting. Do not present with
+a note saying "you might want to add..." — the prompt must be complete.
 
 ---
 
@@ -417,9 +497,9 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Missing context**: "fix the auth bug" → specify the symptom, file, line range
 - ❌ **Assumed knowledge**: "use the same pattern as before" → spell it out
 - ❌ **Skill omission**: starting with implementation details → start with skill invocation
-- ❌ **Hardcoded skill names**: copying `/gsd:quick` or `/feature-dev` from examples or memory → always look up the routing matrix for the best match
+- ❌ **Hardcoded skill names**: copying a skill name from examples, memory, or prior prompts → always look up the routing matrix for the best match for THIS specific task
 - ❌ **Ambiguous ordering**: "also do X" → explicitly state if X is sequential or parallel
-- ❌ **Backtick-wrapped commands**: `` `/gsd:quick` `` renders as code, not executable → bare command
+- ❌ **Backtick-wrapped commands**: wrapping the skill command in backticks renders as code, not executable → bare command on line 1
 - ❌ **Headers before skill command**: `# Implementation Prompt` above the command → skill command must be line 1
 - ❌ **No launcher for saved prompts**: "go read .prompts/v1.5/phase1.md" → provide COPY-PASTEABLE LAUNCHER block
 - ❌ **Missing model specification**: "Spawn an agent" without specifying sonnet/opus
@@ -432,3 +512,8 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Destructive scripts**: Overwriting entire config files → merge into existing (use Python/jq for JSON)
 - ❌ **Missing routing rationale**: Presenting fenced prompt without the `> 🎯 Routing:` line → always explain the skill choice (or no-skill choice) before the fences
 - ❌ **Premature "what's next?"**: Offering follow-up options immediately after a prompt → STOP and wait for user to report back from execution
+- ❌ **Skipped parallelization check**: Writing prompt without answering the 4-question checklist → ALWAYS complete the parallelization check before writing
+- ❌ **Missing orchestration when required**: Parallelization check answered YES to Q1-3 but no `<orchestration>` section → prompt FAILS quality gate
+- ❌ **Skipped routing decision tree**: Picking a skill from memory instead of walking the scope + complexity tree → ALWAYS route through the decision tree
+- ❌ **Skipped post-craft verification**: Presenting prompt without running the 8-item checklist → ALWAYS verify before presenting
+- ❌ **Intuitive routing**: "This feels like a quick-task" without walking the tree → trust the tree, not intuition

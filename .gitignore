@@ -2,4 +2,5 @@
 *.swp
 *.swo
 .env
+.claude/
 awesome-list-submission.md
