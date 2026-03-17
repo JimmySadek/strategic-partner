@@ -36,15 +36,88 @@ The skill loads an **advisory persona**, scans your project, and asks what you'r
 
 ## How it works
 
-### The advisory loop
+### You always have two sessions open
+
+This is the core operating model. It's how the skill is designed to be used.
 
 ```
-Advisor crafts prompt → You open new session → You run prompt
-                                                     ↓
-Advisor crafts next  ← Advisor reviews results ← You report back
+┌─────────────────────────────────┐     ┌─────────────────────────────────┐
+│  SESSION 1: ADVISOR (persistent) │     │  SESSION 2: EXECUTOR (ephemeral) │
+│                                  │     │                                  │
+│  /strategic-partner              │     │  /feature-dev                    │
+│                                  │     │  (or whatever skill SP chose)    │
+│  • Thinks with you               │     │  • Builds what SP specified      │
+│  • Asks the right questions      │     │  • Follows the prompt exactly    │
+│  • Crafts implementation prompts │     │  • Commits when done             │
+│  • Routes to the right skill     │     │  • You close this when finished  │
+│  • Tracks decisions & state      │     │                                  │
+│  • Stays open across phases      │     │  Opens fresh for each prompt.    │
+│                                  │     │  No accumulated context.         │
+│  YOU KEEP THIS ONE OPEN.         │     │  DISPOSABLE.                     │
+└──────────────┬───────────────────┘     └──────────────┬───────────────────┘
+               │                                        │
+               │  1. SP crafts prompt ──────────────►   │
+               │                                        │  2. You paste & run
+               │                                        │
+               │  4. SP reviews, plans next  ◄──────    │  3. You report back
+               │                                        │     what happened
+               └────────────────────────────────────────┘
 ```
 
-The advisor doesn't cross into implementation. You say "just fix it," it writes a **prompt** for fixing it. Advisory sessions **think**, implementation sessions **build**.
+**Session 1** is your **persistent brain** — it accumulates decisions, tracks what's done, and knows the full picture. You never close it until the work is complete (or context runs out, at which point it hands off to a fresh advisory session).
+
+**Session 2** is a **disposable executor** — you open it, paste the prompt, let it run, report the results back to Session 1, and close it. Each prompt gets a fresh session with a full context window and zero baggage.
+
+### The loop in practice
+
+```
+YOU:    "We need to add JWT auth to the API"
+
+SP:     Asks 3 clarifying questions.
+        Crafts a prompt targeting the right skill.
+        Presents it in a copy-paste block:
+
+        ══════════════ START 🟢 COPY ══════════════
+        /[skill from routing matrix]
+
+        <context>...</context>
+        <instructions>...</instructions>
+        <verification>...</verification>
+
+        Expected commit: "feat(auth): add JWT middleware"
+        ══════════════= END 🛑 COPY ═══════════════
+
+        "Run this in a new session and come back with the results."
+
+YOU:    Open a new terminal tab. Paste the prompt. Let it run.
+        Come back to Session 1: "Done, committed on main."
+
+SP:     Checks git log. Reviews what landed. Extracts lessons.
+        Crafts the next prompt (or says "we're done").
+```
+
+**The SP never builds. The executor never decides.** That separation is what makes both sessions effective.
+
+### Why two sessions?
+
+This isn't a quirky workflow — it's how Claude Code is designed to work best.
+
+Anthropic's own documentation recommends **breaking complex tasks into focused sessions** rather than cramming everything into one. Claude's instruction-following quality degrades as context fills up — a phenomenon called **context dilution**. The more tool results, file reads, and back-and-forth accumulate in a single session, the less reliably Claude follows its original instructions.
+
+The two-session model directly addresses this:
+
+| One session does everything | Two-session model |
+|---|---|
+| Advisory context consumed by implementation | Advisory context preserved for decisions |
+| Tool calls and file reads fill up context fast | Executor gets a **fresh context window** per prompt |
+| Instructions diluted by accumulated noise | Each prompt is the **first thing** the executor sees |
+| Decisions made mid-build, often too late | Decisions made before any code is written |
+| No record of what was decided or why | SP tracks decisions, routes to Serena memory |
+| When context fills, everything is lost | SP hands off structured state before context degrades |
+
+**The executor session is disposable by design.** A fresh session means the implementation prompt lands in a clean context window with zero competing instructions — maximum instruction adherence. This is why Anthropic recommends using **focused, self-contained prompts** over long conversational chains for implementation work.
+
+The SP skill automates this pattern: it keeps the **planning context** persistent (where decisions accumulate) and makes the **execution context** ephemeral (where clean context matters most).
 
 ### Deliverable routing
 
@@ -56,24 +129,17 @@ Not everything needs a Claude session. The SP decides what format fits:
 | **Deterministic** commands (config, installs, setup) | Runnable shell script | `.scripts/` |
 | **Mixed** | Both — script for mechanical part, prompt for judgment part | Both directories |
 
-### Implementation firewall
-
-Two checkpoints, both mandatory:
-
-1. **Request checkpoint** — When you ask to "fix", "change", or "build" something targeting **source code**, the advisor stops and crafts a prompt instead of reaching for the Edit tool.
-2. **Tool checkpoint** — Before any file write, the advisor checks: is this `.prompts/`, `.handoffs/`, `.scripts/`, or CLAUDE.md? If it's source code, it **stops** and crafts a prompt.
-
 ### Context handoffs
 
-The SP monitors context usage and escalates through **three tiers**, backed by an environment variable that gives it a **reliable system signal** at 70%:
+When your advisory session approaches its context limit, the SP preserves everything:
 
 | Context Level | What happens |
 |---|---|
-| **65-72%** | Strategic compact — SP suggests `/compact` with focus instructions to extend the session |
-| **72%+** | Full handoff — SP proposes writing state to `.handoffs/` via a direct question |
-| **70% (system)** | PreCompact hook fires — SP intercepts for emergency handoff preparation |
+| **65-72%** | SP suggests `/compact` with focus instructions to extend the session |
+| **72%+** | Full handoff — SP writes state to `.handoffs/` with a continuation prompt |
+| **70% (system)** | PreCompact hook fires as a reliable backstop |
 
-The handoff file goes to `.handoffs/` with everything needed to continue: **decisions made**, **pending prompts**, **pending scripts**, **`/insights` analysis**, and a **continuation prompt** that restores the advisor persona in a fresh session.
+The handoff file contains: **decisions made**, **pending prompts**, **pending scripts**, **`/insights` analysis**, and a **continuation prompt** that restores the advisor persona in a fresh Session 1.
 
 ---
 
@@ -112,7 +178,7 @@ You say: *"3 phases, new signups only"*
 
 Each prompt has: **files to read first**, **constraints from CLAUDE.md**, **verification checklist**, **expected commit message**.
 
-You paste each prompt into a fresh session. The advisor stays in the current session for **follow-up**, **course corrections**, and the next round of prompts.
+You paste Phase 1 into a **new terminal tab** → it runs → you come back and say "done." SP reviews the git log, then gives you Phase 2. You paste that into **another fresh session**. Repeat until the feature ships. The advisor session stays open throughout — it's your persistent planning layer.
 
 ---
 
