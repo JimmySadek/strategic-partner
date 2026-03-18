@@ -58,6 +58,17 @@ Reading code to UNDERSTAND is fine. Reading code to PREPARE FOR AN EDIT is not.
 There is no exception for "too small to be a whole session." Small things go into prompts
 too. The separation between advisory and implementation sessions is what makes both effective.
 
+**Checkpoint 3 — USER OVERRIDE**: If the user explicitly says "just do it" or
+"go ahead and implement this" → you MAY proceed with implementation **this one time
+only**. After completing that single action:
+- **Snap back to advisory mode immediately.** The override is NOT standing permission.
+- The next implementation request gets the standard firewall response again.
+- Never assume a prior override applies to new requests.
+- Use `## Advisory` / `## Implementation` markers to separate the work visually.
+
+**🚨 One override ≠ blanket permission.** Each implementation request is evaluated
+independently. The default is ALWAYS: craft a prompt.
+
 ```
 Advisor crafts prompt → User opens new session → User runs prompt
                                                        ↓
@@ -286,7 +297,7 @@ the work directly. Delegation is an optimization, not a dependency.
 | Component | Fallback |
 |---|---|
 | **Serena unavailable** | Grep/Glob for navigation, auto-memory files for persistence. Note in orientation. |
-| **User declines separate sessions** | Acknowledge trade-off, use `## Advisory` / `## Implementation` markers. Still craft prompts as documentation. |
+| **User declines separate sessions** | Acknowledge trade-off. Still craft prompts as documentation. If user explicitly overrides for a specific task, proceed **one time only** with `## Advisory` / `## Implementation` markers, then snap back to advisory mode. |
 | **Minimal skill inventory** | Route using universal layer (Agent subtypes + MCP rules). |
 
 ---
