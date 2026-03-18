@@ -201,7 +201,9 @@ Deterministic terminal/filesystem ops?
   NO  → Present inline immediately
 ```
 
-**The ═══ fences are mandatory for ALL prompts — inline AND saved:**
+**The ═══ fences are mandatory for ALL prompts — inline AND saved.**
+
+**Inline format** (prompt ≤250 lines AND ≤5 deliverables — full prompt inside fences):
 
 > **🎯 Routing**: `[skill]` — [why this skill fits]
 
@@ -214,6 +216,22 @@ Deterministic terminal/filesystem ops?
 
 Expected commit: "type(scope): description"
 ══════════════════= END 🛑 COPY ═══════════════════
+
+**Saved-prompt launcher** (prompt >250 lines OR >5 deliverables — saved to `.prompts/`):
+
+> **🎯 Routing**: `[skill]` — [why this skill fits]
+
+**COPY THIS INTO NEW SESSION:**
+
+══════════════════ START 🟢 COPY ══════════════════
+/[skill-from-routing-matrix]
+
+Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execute all deliverables.
+══════════════════= END 🛑 COPY ═══════════════════
+
+**🚨 The launcher is TWO LINES inside the fences — skill command + read instruction.
+Nothing else. No deliverable summaries, no `cat` commands, no "copy from ## Prompt
+onward" instructions. The user pastes the launcher, the executor reads the file.**
 
 **Pre-prompt file delegation** (3+ files → delegate to preserve context):
 ```
