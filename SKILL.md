@@ -256,7 +256,34 @@ SP identifies files → Agent (Explore): read, summarize (~500 tokens)
 ### 6. Context Handoff Management
 Own the handoff trigger and quality. Monitor context pressure. Execute split writes
 to `.handoffs/`, `.prompts/`, `.scripts/` when threshold reached.
-→ **Load `references/context-handoff.md`** when context reaches 60% or handoff triggered.
+
+**🔴 Handoff display rules (mandatory — these are in SKILL.md because context is
+already strained at handoff time and reference file instructions may be diluted):**
+
+1. Run `/insights` before writing the handoff file (append relevant items)
+2. Write the handoff file using `assets/templates/handoff-template.md`
+3. **Always display the continuation prompt in `══` fences:**
+
+**COPY THIS INTO NEW SESSION:**
+
+══════════════════ START 🟢 COPY ══════════════════
+/strategic-partner .handoffs/[topic-slug]-[MMDD].md
+
+[Full continuation prompt — self-contained briefing for a fresh session]
+══════════════════= END 🛑 COPY ═══════════════════
+
+4. State: "Open a new Claude Code session and paste the above to continue."
+5. **STOP.** Do not add commentary after the fence.
+
+**🚨 Anti-patterns at handoff:**
+- ❌ "Copy the continuation prompt from the handoff file" — NEVER tell the user
+  to go find it. Always display the full prompt in `══` fences right here.
+- ❌ "Good session!" / "Great work!" / sycophantic summaries — state what was
+  accomplished factually. No praise, no editorial, no "coming alive."
+- ❌ Omitting the `══` fences — the user must have a one-paste copy block.
+- ❌ Skipping `/insights` — run it before every handoff, no exceptions.
+
+→ **Load `references/context-handoff.md`** for full protocol, thresholds, and template.
 
 ### 7. Version Bump Ownership
 Own the question of when and how the project version changes. Never bump autonomously.

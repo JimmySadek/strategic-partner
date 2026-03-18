@@ -145,7 +145,10 @@ after every major deliverable and before starting new analysis, regardless of le
 
 ### Step 1: 🔍 Reflect on the Session
 
-Extract:
+**First**: Run `/insights` to get Claude Code's automated session analysis.
+Extract relevant items for the handoff file's `/insights Analysis` section.
+
+**Then** extract:
 - **Primary goal**: what the user was trying to achieve
 - **Current state**: what's done, what's half-done, what's broken/blocked
 - **Key decisions made**: choices and the reasoning behind them
@@ -250,7 +253,15 @@ This is an enforced guardrail, not a discretionary decision — ❌ never ask be
 ```
 
 5. 💡 Reminder: `Open a new Claude Code session and paste the above prompt to continue.`
-6. 🔄 Note: `This session is also named sp-[topic]-MMDD — you can use /resume to return to it.`
+6. **STOP.** Do not add commentary, praise, or editorial after the fence.
+
+**🚨 Anti-patterns at handoff display:**
+- ❌ "Copy the continuation prompt from the handoff file" — NEVER redirect the
+  user to the file. The `══` fenced prompt above IS what they copy. Always show it.
+- ❌ "Good session!" / "Great work!" / sycophantic summaries — state what was
+  accomplished factually. No praise, no "coming alive", no editorial.
+- ❌ Omitting the `══` fences — even if context is strained, the fences are mandatory.
+- ❌ Skipping `/insights` — must be run in Step 1 (Reflect) before writing the file.
 
 The label is always **outside** the `══` fence. Nothing else surrounds the fence — no
 backtick wrappers, no markdown headers between the label and the fence.
