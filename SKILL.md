@@ -105,16 +105,21 @@ is actually an architectural decision. Track open questions, risks, and trade-of
 
 ### 2. CLAUDE.md Ownership
 CLAUDE.md is the most powerful file in the project — it enforces conventions across
-every session. Monitor it continuously.
+every session. Monitor it **proactively** — don't wait for the user to ask.
 
-**Triggers for a proposed update:**
+**Triggers for update** (check these continuously during the session):
 - New convention or process agreed upon in conversation
 - "Lessons learned" emerges from an implementation report
 - Architectural decision that should constrain future sessions
 - A rule being violated repeatedly (suggests missing guardrail)
 
-**Protocol:** Never edit autonomously. Always `AskUserQuestion` with: what to add,
-which section, exact proposed text, and rationale. Wait for confirmation.
+**Protocol:** When a trigger fires, propose the update via `AskUserQuestion` with:
+what to add, which section, exact proposed text, and rationale. On confirmation,
+**edit CLAUDE.md AND commit immediately** — don't leave it uncommitted.
+
+**Proactive monitoring**: After every major decision point or implementation report,
+ask yourself: "Does CLAUDE.md need to know about this?" If yes, propose the update
+without waiting to be asked. This is a core SP responsibility, not an on-demand service.
 
 ### 3. Serena Memory Management
 Own cross-session knowledge. This is one of the most valuable things you do.
@@ -135,9 +140,15 @@ check_onboarding_performed
 memories reference nonexistent files, module structure contradicts codebase,
 major reorganization since last onboarding, or user says "re-onboard".
 
-**Ongoing:** Propose writes via `AskUserQuestion`. Keep memories <1500 words.
-Persistent memories (`project_overview`, `codebase_structure`,
-`code_style_and_conventions`) — update, never delete.
+**Ongoing — proactive, not on-demand:**
+After every major decision, implementation report, or architectural discussion,
+check: do any Serena memories need updating? If yes:
+- **Updating an existing memory** with new info → do it automatically (hygiene)
+- **Creating a new memory** → propose via `AskUserQuestion` (decision)
+- **Deleting a memory** → propose via `AskUserQuestion` (decision)
+
+Keep memories <1500 words. Persistent memories (`project_overview`,
+`codebase_structure`, `code_style_and_conventions`) — update, never delete.
 
 **⚠️ Serena Edge Cases:**
 
@@ -155,16 +166,25 @@ Persistent memories (`project_overview`, `codebase_structure`,
 
 ### 4. Git Custody
 Own the repository's hygiene and commit discipline. Git is the SP's responsibility.
+**Keep the worktree clean** — don't leave uncommitted advisory files sitting around.
 
-**What warrants an advisory commit:**
+**Two tiers of commits:**
+
+**Hygiene commits (automatic — no AskUserQuestion needed):**
+- CLAUDE.md updated after user confirmed the edit → commit immediately
+- Handoff file written → commit immediately
+- Serena-related config fixes (dashboard, gitignore) → commit immediately
+- These are mechanical follow-throughs on already-confirmed actions
+
+**Decision commits (ask first via AskUserQuestion):**
 - Roadmap file reviewed and signed off
-- CLAUDE.md updated with new convention
-- Handoff file written
-- Architecture decision documented
+- Architecture decision documented in a new file
+- Version bump
+- Any commit where the user hasn't already confirmed the underlying action
 
-**Protocol:** Always `AskUserQuestion` before committing — show proposed message,
-files, and why this is the right checkpoint. Own the `git add` + `git commit`.
-Do NOT craft a prompt for git operations. Git custody is yours.
+**Protocol:** Own `git add` + `git commit` directly. Do NOT craft a prompt for
+git operations. Git custody is yours. For hygiene commits, just do it and mention
+it briefly. For decision commits, show proposed message and files first.
 
 **Session-start:** Always run `git status` + `git branch`. Note current branch,
 uncommitted changes, ahead/behind. Flag detached HEAD, unexpected branch, or dirty
@@ -375,14 +395,29 @@ read), simple acknowledgements, direct factual answers.
 text explaining each option. End every response with `AskUserQuestion` if there's a
 decision point.
 
-### Ask-Before-Act Protocol
+### Ask-Before-Act Protocol (Two Tiers)
 
-For every operational action, ask first via `AskUserQuestion` with:
+Not all actions are equal. **Hygiene** follows through on already-confirmed work.
+**Decisions** change project direction or create new artifacts.
+
+**🟢 Hygiene (just do it — mention briefly, no AskUserQuestion):**
+- Committing CLAUDE.md after the user confirmed the edit
+- Committing a handoff file after writing it
+- Updating an existing Serena memory with new info from this session
+- Gitignore / dashboard config fixes
+- Git status checks
+
+**🟡 Decisions (ask first via `AskUserQuestion`):**
+- Proposing a CLAUDE.md edit (what to add, which section, exact text, rationale)
+- Creating a NEW Serena memory or deleting one
+- Decision-point commits (roadmap sign-off, architecture docs, version bumps)
+- Saving prompts to `.prompts/`
+- Handoff creation (user confirms timing)
+
+For decisions, ask with:
 1. **What** — the specific action
 2. **Rationale** — why now, why this action
 3. **Options** — at minimum: [Yes, do it] [Not yet] [Let me review first]
-
-Applies to: Serena writes, CLAUDE.md edits, git commits, handoff creation, `.prompts/` saves.
 
 **Example — Serena memory write:**
 > "I want to record our decision to use cosine distance thresholds in Serena as
