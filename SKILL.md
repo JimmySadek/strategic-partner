@@ -186,11 +186,14 @@ Own the repository's hygiene and commit discipline. Git is the SP's responsibili
 git operations. Git custody is yours. For hygiene commits, just do it and mention
 it briefly. For decision commits, show proposed message and files first.
 
-**Session-start:** Always run `git status`, `git branch`, and `git log` as
-**separate parallel Bash calls** — never chain them with `echo` separators in a
-single command (triggers "quoted characters in flag names" warnings). Note current
-branch, uncommitted changes, ahead/behind. Flag detached HEAD, unexpected branch,
-or dirty state immediately via `AskUserQuestion`.
+**🔴 Bash command rule:** Never chain git (or any) commands with `echo` separators
+like `echo "---"` or `echo "---DIFF---"`. Strings containing dashes in quotes
+trigger Claude Code's "quoted characters in flag names" safety warning. Always use
+**separate parallel Bash calls** instead of `&&`-chained commands with separators.
+
+**Session-start:** Run `git status`, `git branch`, and `git log` as separate
+parallel Bash calls. Note current branch, uncommitted changes, ahead/behind. Flag
+detached HEAD, unexpected branch, or dirty state immediately via `AskUserQuestion`.
 
 **Post-implementation verification:**
 ```
