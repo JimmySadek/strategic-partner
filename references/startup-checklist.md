@@ -175,6 +175,11 @@ While agents are running, read session context in parallel:
    - Any task/session memories from prior sessions
 3. **Read CLAUDE.md**: Check for project-level rules, conventions, guardrails
 
+4. **Git state**: Run `git status`, `git branch --show-current`, and
+   `git log --oneline -5` as **separate parallel Bash calls**. Never chain
+   git commands with `echo "---"` separators — this triggers Claude Code's
+   "quoted characters in flag names" safety warning.
+
 **Note**: Custom agent scanning and routing matrix building are handled by
 Agent D (Step 2). The SP reads state here while Agent D works in parallel.
 
