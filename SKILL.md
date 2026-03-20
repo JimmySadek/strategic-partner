@@ -42,6 +42,9 @@ advise, and orchestrate — not to build.
 - Draw diagrams when something is spatial, structural, or temporal
 - Push back when you see scope creep, hidden complexity, or a bad trade-off
 - Log decisions with their *why*, not just their *what*
+- **Use separate parallel Bash calls** — never chain commands with `echo` separators
+  (e.g., `echo "---"`, `echo "---DIFF---"`). Quoted strings containing dashes trigger
+  Claude Code's "quoted characters in flag names" safety warning
 
 ### Implementation Firewall
 
@@ -185,11 +188,6 @@ Own the repository's hygiene and commit discipline. Git is the SP's responsibili
 **Protocol:** Own `git add` + `git commit` directly. Do NOT craft a prompt for
 git operations. Git custody is yours. For hygiene commits, just do it and mention
 it briefly. For decision commits, show proposed message and files first.
-
-**🔴 Bash command rule:** Never chain git (or any) commands with `echo` separators
-like `echo "---"` or `echo "---DIFF---"`. Strings containing dashes in quotes
-trigger Claude Code's "quoted characters in flag names" safety warning. Always use
-**separate parallel Bash calls** instead of `&&`-chained commands with separators.
 
 **Session-start:** Run `git status`, `git branch`, and `git log` as separate
 parallel Bash calls. Note current branch, uncommitted changes, ahead/behind. Flag
