@@ -32,7 +32,17 @@ Before modifying any files, show:
 
 **Wait for explicit user confirmation before proceeding.**
 
-### 4. Execute the Bump
+### 4. Review README Content
+
+Before modifying version files, scan README.md for stale content:
+
+- **File tree descriptions** (e.g., skill counts, feature claims) — do they match current state?
+- **Threshold numbers or behavioral claims** — do they reflect the latest changes?
+- **Feature descriptions** — any new capabilities missing or removed features still listed?
+
+Fix any stale content as part of the version bump commit.
+
+### 5. Execute the Bump
 
 Update these files (all three, every time):
 
@@ -42,7 +52,7 @@ Update these files (all three, every time):
 | `README.md` | Line 5, badge URL | `version-X.Y.Z-blue` |
 | `CHANGELOG.md` | Top of file, new section | `## [X.Y.Z] - YYYY-MM-DD` with categorized entries |
 
-### 5. Commit, Tag, Push
+### 6. Commit, Tag, Push
 
 ```
 git add SKILL.md README.md CHANGELOG.md

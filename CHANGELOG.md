@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.1.0] - 2026-03-23
+
+### Changed
+- **Context management: removed strategic compact tier** — the SP no longer suggests `/compact`; context pressure is now managed exclusively via structured handoffs. Two-tier thresholds (🟢 0-60% normal, 🟡 60-70% monitor, 🔴 70%+ handoff) replace the previous three-tier system. Rationale: compaction produces lossy summaries that contradict the fresh-session philosophy
+- **Routing matrix expanded from ~30 to ~87 entries** — 11 new categories added (Project Lifecycle, UI/Frontend, Workflow & Process, Git & DevOps, Content & Publishing, Configuration & Meta, Behavioral Modes, Recurring & Scheduled Tasks, Personal Automation). Base coverage increased from ~37% to ~95%
+- **Agent subagent_types visually distinguished** — all Agent entries now prefixed with ⚙️ to prevent confusion with slash commands
+
+### Fixed
+- **Hook config examples labeled as signal stubs** — SessionStart and Stop hook configs now clearly marked as intentional signal stubs, not broken/incomplete hooks
+- **Companion-script thresholds documented** — explicit 5% guard band delta between companion script and SP self-assessment thresholds now documented
+- **PreCompact framing** — reframed as "system compacts regardless, SP's job is done" across all reference files
+
+### Added
+- **F6 reversal annotation** — v4.0-implementation-decisions.md F6 section annotated to note the compact tier was later removed
+- **Gitignore entries** — `.handoffs/`, `.prompts/`, `.scripts/` added to .gitignore
+- **README review step in release process** — project CLAUDE.md now mandates README content review during version bumps
+
 ## [4.0.1] - 2026-03-23
 
 ### Fixed
