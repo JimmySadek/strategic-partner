@@ -195,6 +195,31 @@ Agent (Opus 4.6, subagent_type=business-panel-experts): [analysis question]
 
 ---
 
+## Agent Failure & Timeout Handling
+
+Delegation is an optimization, not a dependency. If an agent fails, the SP falls
+back to doing the work directly. Never block on agent failures.
+
+| Scenario | Detection | Response |
+|----------|-----------|----------|
+| **Agent times out** | No response within expected window | Other parallel agents continue. Mark timed-out agent's results as incomplete. Fall back to doing that work in main context. |
+| **Agent returns error** | Error message in result | Assess: retry once if transient (permission denied, network). If structural (wrong tool, bad prompt), fix the prompt and re-delegate. |
+| **Agent returns garbled/partial output** | Result doesn't match expected format | Extract what's usable. Fill gaps from main context. Note limitation in orientation. |
+| **Agent permission denied** | Tool call denied by user | Do the work directly in main context. Delegation is an optimization, not a dependency. |
+
+### Applying This to Spawn Patterns
+
+- **Parallel Implementation (Pattern 1)**: If one of N agents fails, the others'
+  results remain valid. Complete the failed agent's work in main context.
+- **Research → Synthesis (Pattern 2)**: If a research agent fails, synthesis proceeds
+  with reduced inputs. Note the gap in the synthesis prompt.
+- **Explore → Design → Build → Review (Pattern 3)**: If the Explore agent fails,
+  fall back to Grep/Glob-based exploration. The chain continues.
+- **Self-Delegation (Patterns A–D)**: Fire-and-verify agents (D) are non-blocking
+  by design. Scanning agents (A–C) fall back to direct reads if they time out.
+
+---
+
 ## Session Planning
 
 ### Single-Task Session
