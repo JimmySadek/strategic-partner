@@ -78,10 +78,9 @@ consumption estimate.
 │     └─ 1M context:   estimated_kb / 1000 * 100              │
 │                                                               │
 │  4. 🚦 Determine alert level                                │
-│     ├─ 🟢 green:           < 50%                             │
-│     ├─ 🟡 monitoring:      50-59%                            │
-│     ├─ 🟠 prepare_handoff: 60-69%                            │
-│     └─ 🔴 urgent_handoff:  ≥ 70%                            │
+│     ├─ 🟢 green:           < 55%                             │
+│     ├─ 🟡 monitoring:      55-64%                            │
+│     └─ 🔴 urgent_handoff:  ≥ 65%                            │
 │                                                               │
 │  5. 💾 Write .context-state file (atomic)                    │
 │  6. 😴 Sleep 10 seconds                                     │
@@ -121,12 +120,11 @@ Written to the project root (or a configured path).
   "agents_active": 1,
   "tool_failures": 0,
   "files_modified": 7,
-  "alert_level": "prepare_handoff",
+  "alert_level": "monitoring",
   "last_updated": "2026-03-16T14:32:05Z",
   "thresholds": {
-    "monitoring": 50,
-    "prepare_handoff": 60,
-    "urgent_handoff": 70
+    "monitoring": 55,
+    "urgent_handoff": 65
   }
 }
 ```
@@ -155,27 +153,17 @@ Written to the project root (or a configured path).
 The script uses threshold markers to signal the SP when action is needed.
 The `.context-state` file's `alert_level` field is the primary signal.
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│  Alert Levels                                                     │
-│                                                                   │
-│  🟢 green            < 50%     No action. Normal operation.      │
-│  ├──────────────────────────────────────────────────────────────┤ │
-│  🟡 monitoring       50-59%    Check every 2nd exchange.         │
-│  │                             Begin background state extraction.│
-│  ├──────────────────────────────────────────────────────────────┤ │
-│  🟠 prepare_handoff  60-69%    Suggest /compact with focus.      │
-│  │                             Begin assembling handoff materials.│
-│  ├──────────────────────────────────────────────────────────────┤ │
-│  🔴 urgent_handoff   ≥ 70%     Execute handoff immediately.      │
-│  │                             Aligns with PreCompact threshold. │
-│  └──────────────────────────────────────────────────────────────┘ │
-└───────────────────────────────────────────────────────────────────┘
-```
+| Marker | Range | Script Action |
+|---|---|---|
+| 🟢 Normal | 0-55% | No marker |
+| 🟡 Monitor | 55-65% | Write `.context-state` with "monitoring" status |
+| 🔴 Handoff | 65%+ | Write `.context-state` with "urgent_handoff" status |
 
-**📌 Note**: These thresholds are intentionally **lower** than the `context-handoff.md`
-thresholds because the companion script's estimates have higher variance than
-in-session self-assessment. The script errs toward early warnings.
+**📌 Note**: These thresholds are intentionally **~5% lower** than the SP's self-assessment
+tiers in `context-handoff.md` (55/65 vs 60/70) to account for external monitoring variance.
+The companion script's estimates have higher variance than in-session self-assessment,
+so it errs toward early warnings. See `context-handoff.md` § Handoff Thresholds for
+the SP's authoritative tiers.
 
 ---
 

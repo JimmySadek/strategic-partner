@@ -65,7 +65,7 @@ Implement these first.
 └──────────────────────────────────────────────────────┘
 ```
 
-**Configuration:**
+**Configuration** — minimal signal stub (detection only, not a functional hook):
 ```json
 {
   "hooks": {
@@ -80,9 +80,10 @@ Implement these first.
 }
 ```
 
-**📌 Note**: The SessionStart hook primarily serves as a trigger signal. The actual
-startup logic lives in the SP skill's startup sequence — the hook ensures it
-fires reliably even if the user doesn't explicitly invoke `/strategic-partner`.
+> **📌 This is intentionally a stub.** The SP startup logic lives in the skill's
+> startup sequence (`startup-checklist.md`), not in this hook. This hook signals
+> that a session started — the skill handles the rest. Do not make this hook
+> "functional"; the stub-as-signal design is correct.
 
 ---
 
@@ -100,7 +101,7 @@ fires reliably even if the user doesn't explicitly invoke `/strategic-partner`.
 │  4. 🧠 Write session summary to Serena memory       │
 │  5. 🏷️ Suggest user finalize name: /rename sp-[topic]│
 │  6. 💬 Present continuation prompt (AskUserQuestion) │
-│  7. ✅ Allow compaction to proceed                   │
+│  7. ✅ System compacts regardless — SP's job is done │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -143,7 +144,7 @@ still allowing aggressive context usage.
 └──────────────────────────────────────────────────────┘
 ```
 
-**Configuration:**
+**Configuration** — minimal signal stub (detection only, not a functional hook):
 ```json
 {
   "hooks": {
@@ -157,6 +158,10 @@ still allowing aggressive context usage.
   }
 }
 ```
+
+> **📌 This is intentionally a stub.** Session cleanup logic (Serena memory writes,
+> file tracking, pending prompt warnings) lives in the SP skill's stop sequence,
+> not in this hook. The hook signals session end — the skill handles cleanup.
 
 ---
 

@@ -479,10 +479,10 @@ Browser automation needed?                → Playwright
 |---|---|---|
 | `references/startup-checklist.md` | 🚀 Env vars, fire-and-verify agents, routing matrix build, orientation + session setup recommendations | **Every fresh session start** — load immediately |
 | `references/prompt-crafting-guide.md` | ✍️ Routing decision tree, parallelization check, XML format, script format, quality gates | **Before crafting any prompt** |
-| `references/context-handoff.md` | 🔄 Env var baseline, tiered thresholds, strategic `/compact`, split writes, continuation format | **Context ≥60%** or handoff triggered |
+| `references/context-handoff.md` | 🔄 Env var baseline, two-tier thresholds, handoff protocol, split writes, continuation format | **Context ≥60%** or handoff triggered |
 | `references/orchestration-playbook.md` | 🎯 Model selection, parallelization heuristics, agent spawning patterns, worktree isolation | **Multi-agent prompts** or delegation decisions |
 | `references/skill-routing-matrix.md` | 🗺️ Curated base matrix, delta-update procedure, agent types, MCP routing | **Edge-case routing**, matrix rebuilds, startup |
-| `references/partner-protocols.md` | 🤝 Session naming, `/compact` guardrails, `/insights` integration, version bumps, partner adaptation | **Session naming**, version discussions, handoff prep |
+| `references/partner-protocols.md` | 🤝 Session naming, `/insights` integration, version bumps, partner adaptation | **Session naming**, version discussions, handoff prep |
 | `references/hooks-integration.md` | 🔧 Hook events (SessionStart, PreCompact, Stop, etc.), JSON configs, phased rollout | **Hook setup**, session management improvements |
 | `references/companion-script-spec.md` | 📊 Python context monitor architecture, `.context-state` format, threshold markers | **Power users** requesting external monitoring |
 

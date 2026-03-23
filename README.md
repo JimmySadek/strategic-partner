@@ -10,7 +10,7 @@
 
 Think of it as your **Chief of Staff** — a strategic partner, literally. It helps you **plan**, **structure your thoughts**, and **keep track of your project**. It even recommends the **next best action**. It owns your **CLAUDE.md**, crafts **implementation prompts**, routes tasks to the **right skill or agent**, manages **cross-session memory**, and handles **context handoffs** before you lose state. It reads your installed **skills**, **MCP servers**, **agent types**, and **hooks** from the system context — so when it routes a task, it already knows what's available on your machine.
 
-**v4.0** brings **hooks integration** for proactive session management, **guardrailed compaction** to extend session life without full handoffs, a **fire-and-verify** pattern that catches silent agent failures, and a **lean hub architecture** that cuts SKILL.md context by ~40% while keeping all core behaviors inline. Prompt crafting now enforces **mandatory quality gates** — routing decision trees, parallelization checks, and post-craft verification — so every prompt the SP delivers is properly routed and complete.
+**v4.0** brings **hooks integration** for proactive session management, **structured context handoffs** that preserve full session state before context degrades, a **fire-and-verify** pattern that catches silent agent failures, and a **lean hub architecture** that cuts SKILL.md context by ~40% while keeping all core behaviors inline. Prompt crafting now enforces **mandatory quality gates** — routing decision trees, parallelization checks, and post-craft verification — so every prompt the SP delivers is properly routed and complete.
 
 It speaks to **engineers** in their language, to **PMs** in theirs, and to **founders** in theirs. It captures your **git state** on startup, recommends optimal session settings (`/effort high`, `/rename`), verifies commits landed after implementation sessions, and structures every response around **diagrams first, tables second, prose last**. The ecosystem has plenty of tools for doing. Nothing for **deciding**.
 
@@ -135,8 +135,8 @@ When your advisory session approaches its context limit, the SP preserves everyt
 
 | Context Level | What happens |
 |---|---|
-| **65-72%** | SP suggests `/compact` with focus instructions to extend the session |
-| **72%+** | Full handoff — SP writes state to `.handoffs/` with a continuation prompt |
+| **60-70%** | SP monitors context, mentions handoff is approaching |
+| **70%+** | Full handoff — SP writes state to `.handoffs/` with a continuation prompt |
 | **70% (system)** | PreCompact hook fires as a reliable backstop |
 
 The handoff file contains: **decisions made**, **pending prompts**, **pending scripts**, **`/insights` analysis**, and a **continuation prompt** that restores the advisor persona in a fresh Session 1.
@@ -208,10 +208,10 @@ strategic-partner/
   references/
     startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
     prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
-    context-handoff.md                  # Env var baseline, strategic compaction, split writes
+    context-handoff.md                  # Env var baseline, two-tier thresholds, split writes
     orchestration-playbook.md           # Model selection, parallelization heuristics, worktree isolation
     skill-routing-matrix.md             # Curated base matrix (~30 skills) + delta-update procedure
-    partner-protocols.md                # Session naming, /compact guardrails, /insights, version bumps
+    partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
     hooks-integration.md                # Hook events, JSON configs, phased rollout
     companion-script-spec.md            # Python context monitor architecture (spec only)
   assets/templates/

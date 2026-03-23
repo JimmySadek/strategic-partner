@@ -1,25 +1,21 @@
 # ⏳ Context Handoff Procedure
 
 Reference file for the strategic-partner advisor. Full handoff protocol with
-environment-based thresholds, strategic compaction, and continuation prompt format.
+environment-based thresholds, handoff protocol, and continuation prompt format.
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Context Lifecycle                                                   │
-│                                                                      │
-│  🟢 0-50%        🟡 50-65%       🟠 65-72%        🔴 72%+           │
-│  Normal       →  Monitor     →  Compact w/    →  Full Handoff       │
-│  operation       every 2nd      focus instrs     AskUserQuestion    │
-│                  exchange                                            │
-│                                                                      │
-│  ════════════════════════════════════════════════════                 │
-│  🚨 PreCompact hook fires at 70% (env var override)                 │
-│     → Emergency handoff preparation (authoritative signal)           │
-│  ════════════════════════════════════════════════════                 │
-│                                                                      │
-│  Handoff Flow:                                                       │
-│  Reflect → Slug → Split Writes → Continuation Prompt → Display      │
-└─────────────────────────────────────────────────────────────────────┘
+🟢 0-60%        🟡 60-70%        🔴 70%+
+Normal       →  Monitor      →  Full Handoff
+operation       every 2nd       AskUserQuestion
+                exchange
+
+════════════════════════════════════════════════
+🚨 PreCompact hook fires at 70% (env var override)
+   → Emergency handoff preparation (authoritative signal)
+════════════════════════════════════════════════
+
+Handoff Flow:
+Reflect → Slug → Split Writes → Continuation Prompt → Display
 ```
 
 ---
@@ -50,7 +46,7 @@ auto-compaction trigger from the default (~95%) to 70%, giving the SP a
 ```
 
 **⚠️ Limitation acknowledged**: Self-assessment is still used for the intermediate
-thresholds (50-65%, 65-72%) below. These are **advisory signals**, not hard gates.
+threshold (60-70%) below. This is an **advisory signal**, not a hard gate.
 The PreCompact hook at 70% serves as the **authoritative backstop** — even if
 self-assessment is wrong, the system will trigger handoff preparation at the
 real 70% mark.
@@ -69,75 +65,42 @@ When the PreCompact hook fires (at the configured 70% threshold):
 │  3. 🧠 Save to Serena memory via write_memory                │
 │  4. 💬 Present continuation prompt via AskUserQuestion       │
 │  5. 🏷️ Suggest user run: /rename sp-[topic]-MMDD            │
-│  6. ✅ Allow compaction to proceed                           │
+│  6. ✅ System compacts regardless — SP's job is done          │
 │                                                               │
 └───────────────────────────────────────────────────────────────┘
 ```
 
 The PreCompact hook is the **last reliable opportunity** to preserve session
-state. After compaction, earlier context is summarized and detail is lost.
+state. The system will compact regardless — the SP's job is to preserve state
+BEFORE that happens. After compaction, earlier context is summarized and detail is lost.
 
 📎 See `hooks-integration.md` for hook configuration details.
 
 ---
 
-## 📊 Handoff Thresholds (Tiered Escalation)
+## 📊 Handoff Thresholds (Two-Tier Escalation)
 
 | Context Level | Tier | Behavior |
 |---|---|---|
-| 🟢 **50-65%** | No action | Normal operation. Context is healthy. |
-| 🟡 **65-72%** | Strategic compact | Suggest `/compact` with focus instructions (see below). Extends session life without a full handoff. |
-| 🔴 **72%+** | Full handoff | `AskUserQuestion` proposing handoff NOW. Options: `[Hand off now]` `[One more thing first]` `[Keep going, I'll call it]` |
+| 🟢 **0-60%** | Normal | Normal operation. Context is healthy. |
+| 🟡 **60-70%** | Monitor | Check every 2nd exchange. Mention handoff is approaching. Begin mentally organizing session state for handoff. |
+| 🔴 **70%+** | Full handoff | `AskUserQuestion` proposing handoff NOW. Options: `[Hand off now]` `[One more thing first]` `[Keep going, I'll call it]` |
 
-**Check cadence**: Once context exceeds 50%, check on **every 2nd exchange**. Also check
+**Check cadence**: Once context exceeds 60%, check on **every 2nd exchange**. Also check
 after every major deliverable and before starting new analysis, regardless of level.
+
+> **Why the SP never suggests `/compact`:** Compaction produces lossy summaries —
+> focus instructions are best-effort, not enforcement. The SP's handoff protocol
+> writes state to files (`.handoffs/`, Serena memories, git commits), which is
+> lossless and cross-session durable. A clean handoff is always preferable to
+> a degraded session.
+>
+> If auto-compaction fires (PreCompact hook at 70%), the SP treats it as an
+> emergency handoff signal, NOT as an opportunity to extend the session.
 
 > 💡 The cost of an early handoff offer is one `AskUserQuestion`.
 > The cost of missing it is losing **all session state** including unrun
 > implementation prompts and scripts.
-
----
-
-## 🟡 Strategic Compaction Protocol (65-72%)
-
-`/compact` is allowed **only with mandatory focus instructions**. Bare `/compact`
-(without focus) is ❌ **never acceptable** — it discards context indiscriminately.
-
-### When to Suggest Compaction
-
-- Context is between 65-72% (self-assessed)
-- The session has significant remaining work
-- A full handoff would be disruptive to the current workflow
-- The user has not yet indicated readiness to wrap up
-
-### Focus Instruction Template
-
-```
-═══════════════════════ COMPACT FOCUS ═══════════════════════
-/compact focus on preserving:
-- All decisions made and their rationale
-- Pending implementation prompts (full content or .prompts/ paths)
-- Current goal and working state
-- Files modified this session with what changed
-- Active conventions and constraints
-- Any unresolved questions or blockers
-═════════════════════════════════════════════════════════════
-```
-
-### ⚠️ Compaction Guardrails
-
-1. **Always via `AskUserQuestion`**: SP suggests compaction with proposed focus, user decides
-2. **Never auto-compact**: The SP does not execute `/compact` without explicit user consent
-3. **Verify after compaction**: After `/compact` completes, confirm critical state survived
-4. **One compaction per session**: If context pressure returns after compaction, escalate to full handoff
-
-### Example Suggestion
-
-> "⏳ Context is around 68%. We still have work to do on the auth middleware.
-> I can compact the session while preserving our decisions and pending prompts,
-> which should buy us another 20-30% of context. Alternatively, we can hand off now.
->
-> Options: `[Compact with focus]` `[Hand off now]` `[Keep going]`"
 
 ---
 

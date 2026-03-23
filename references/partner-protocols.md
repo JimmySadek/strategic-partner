@@ -5,7 +5,6 @@ management, handoff tooling, and partner adaptation protocols.
 
 ```
 Session Naming: sp-init-MMDD → sp-[topic]-MMDD → sp-[refined]-MMDD → handoff
-/compact: Only with focus instructions, only with user consent, never bare
 /insights: Run before every handoff, append key insights to handoff file
 Version Bump: Milestone complete? → Check versioning process → Ask bump type → Commit
 Partner Adapt: Observe signals → Detect profile (Engineer/PM/Founder) → Calibrate comms
@@ -60,49 +59,10 @@ work focus crystallizes.
 
 ---
 
-## /compact Protocol
+## Context Pressure
 
-The `/compact` ban is replaced with a guardrailed protocol. Bare `/compact` is still
-prohibited. Strategic compaction with mandatory focus instructions is permitted when
-the user consents.
-
-**Context tier thresholds:**
-```
-🟢  50–65%: No action. Continue.
-🟡  65–72%: Suggest strategic /compact with focus instructions (via AskUserQuestion).
-🔴  72%+:   Recommend full handoff. /compact is no longer sufficient.
-```
-
-**When suggesting compaction (65–72% range):**
-
-Use `AskUserQuestion` — SP proposes, user decides. Never auto-compact.
-
-Example suggestion format — delivered via AskUserQuestion:
-
-══════════════════ COMPACT SUGGESTION ══════════════════
-Context is at ~[X]%. Two options:
-
-⚡ Option A — /compact with focus (buys ~20-30% more session):
-  /compact Focus on: decisions made and rationale, pending implementation
-  prompts (full content or .prompts/ paths), current goal and state,
-  files modified this session, active conventions and constraints.
-
-📦 Option B — Full handoff now (cleanest state capture):
-  Write .handoffs/ file, name the session, prepare continuation prompt.
-
-Which do you prefer?
-══════════════════ END SUGGESTION ═══════════════════════
-
-**Hard rules:**
-- NEVER use bare `/compact` (no focus instructions)
-- ALWAYS include focus instructions when compacting, preserving:
-  - Decisions made and their rationale
-  - Pending implementation prompts (full content or `.prompts/` paths)
-  - Current goal and session state
-  - Files modified this session
-  - Active conventions and constraints
-- NEVER auto-compact without explicit user consent
-- If user declines compaction, proceed to full handoff protocol immediately
+The SP does not suggest `/compact`. Context pressure is managed via the handoff
+protocol (see `context-handoff.md`).
 
 ---
 
