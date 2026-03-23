@@ -12,7 +12,7 @@ Think of it as your **Chief of Staff** — a strategic partner, literally. It he
 
 **v4.0** brings **hooks integration** for proactive session management, **structured context handoffs** that preserve full session state before context degrades, a **fire-and-verify** pattern that catches silent agent failures, and a **lean hub architecture** that cuts SKILL.md context by ~40% while keeping all core behaviors inline. Prompt crafting now enforces **mandatory quality gates** — routing decision trees, parallelization checks, and post-craft verification — so every prompt the SP delivers is properly routed and complete.
 
-It speaks to **engineers** in their language, to **PMs** in theirs, and to **founders** in theirs. It captures your **git state** on startup, recommends optimal session settings (`/effort high`, `/rename`), verifies commits landed after implementation sessions, and structures every response around **diagrams first, tables second, prose last**. The ecosystem has plenty of tools for doing. Nothing for **deciding**.
+It captures your **git state** on startup, recommends optimal session settings (`/effort high`, `/rename`), verifies commits landed after implementation sessions, and structures every response around **diagrams first, tables second, prose last**. The ecosystem has plenty of tools for doing. Nothing for **deciding**.
 
 ---
 
@@ -289,6 +289,17 @@ Resumes from a **previous session's handoff**.
 - **Context7 MCP** (optional) — for library documentation lookup
 
 The skill works without Serena, but loses **cross-session memory** and semantic code navigation. **CLAUDE.md ownership** and **prompt crafting** work regardless.
+
+---
+
+## Troubleshooting
+
+| Scenario | What happens | What to do |
+|---|---|---|
+| **Serena MCP unavailable** | Cross-session memory and semantic code navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
+| **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
+| **Hooks not configured** | Context monitoring relies on self-assessment only | SP uses self-assessed thresholds instead of the PreCompact hook backstop. Consider adding hooks for reliability. |
+| **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
 
 ---
 
