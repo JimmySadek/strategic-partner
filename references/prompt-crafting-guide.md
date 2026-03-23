@@ -4,7 +4,7 @@ Reference file for the strategic-partner advisor. Standards for crafting impleme
 prompts across target models.
 
 ```
-Routing Decision Tree → Parallelization Check → Quality Check → Format (XML/MD/Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
+Routing Decision Tree → Parallelization Check → Quality Check → Format Selection (Claude XML / GPT-5.4 XML / Gemini MD / Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
 ```
 
 ---
@@ -21,7 +21,7 @@ Every implementation prompt must:
 6. **Specify the model** — every prompt involving agents must name Opus or Sonnet explicitly
 7. **End with the expected commit message** — conventional-commit format
 8. **Leave no ambiguity** — nothing that would require follow-up questions
-9. **Use XML structure for Claude targets** — `<context>`, `<instructions>`, `<orchestration>`, `<verification>` tags
+9. **Match format to target model** — Claude: XML tags; GPT-5.4: flat XML tags; Gemini: Markdown headers (see Format Selection)
 10. **Specify the target branch** — if the project uses feature branches, name the branch in the prompt's `<context>` section so the implementer works in the right place
 
 ---
@@ -85,9 +85,34 @@ orchestration before proceeding.
 
 ---
 
-## Claude 4.x Prompt Format (Primary)
+## Format Selection
 
-Most prompts target Claude Code sessions. Use XML structure:
+After routing and parallelization analysis, determine the prompt format based on the
+target model. This is the **first structural decision** before writing the prompt body.
+
+```
+Which model runs the target session?
+├── Claude (Claude Code, Claude API, Anthropic SDK)
+│   └── XML structure: <context>, <instructions>, <orchestration>, <verification>
+│       → See "Claude 4.x Format" below
+│
+├── GPT-5.4 / OpenAI (Codex CLI, ChatGPT, OpenAI API)
+│   └── XML structure: <task>, <critical_rules>, <execution_order>, <edge_cases>, <output_contract>, <verification_loop>
+│       → See "GPT-5.4 Format" below
+│
+├── Gemini (Gemini CLI, Gemini API)
+│   └── Markdown structure with ## headers
+│       → See "Gemini Format" below
+│
+└── Unknown or multi-model
+    └── Default to Claude XML — most structured, degrades gracefully
+```
+
+---
+
+## Claude 4.x Format
+
+XML tag structure for Claude targets (Claude Code, Claude API, Anthropic SDK):
 
 ```
 /[skill-name]
@@ -134,9 +159,74 @@ Expected commit: "type(scope): description"
 
 ---
 
-## Gemini Prompt Format
+## GPT-5.4 Format
 
-When the target session runs Gemini (not Claude):
+XML-based tag structure, different tags from Claude. GPT-5.4 prioritizes early instructions
+and benefits from flat, explicit structure.
+
+```
+/[skill-name]
+
+<task>
+[What the executor should accomplish — clear, single-paragraph goal]
+</task>
+
+<critical_rules>
+[Non-negotiable constraints — placed FIRST for maximum adherence]
+1. Rule one.
+2. Rule two.
+</critical_rules>
+
+<execution_order>
+[Exact sequence of steps — flat numbered list, no nesting]
+1. Read these files first: [list]
+2. [Step]
+3. [Step]
+</execution_order>
+
+<edge_cases>
+[How to handle ambiguity or exceptions]
+- If X happens → do Y.
+- If unsure about Z → ask, don't assume.
+</edge_cases>
+
+<output_contract>
+[Exact deliverables and format]
+- Files to create/modify: [list]
+- Expected commit: "type(scope): description"
+</output_contract>
+
+<verification_loop>
+[Pre-completion checks — executor verifies before committing]
+1. [ ] Check one
+2. [ ] Check two
+</verification_loop>
+```
+
+### Claude vs GPT-5.4 Comparison
+
+| Aspect | Claude 4.x | GPT-5.4 |
+|---|---|---|
+| Critical rules placement | Inside `<instructions>` | Dedicated `<critical_rules>` tag, placed FIRST |
+| List style | Nested bullets OK | Flat lists only — split into sections instead |
+| Verification | `<verification>` checklist | `<verification_loop>` with pre-finalization checks |
+| Context | `<context>` with file list + constraints | `<task>` for goal + `<execution_order>` for file reads |
+| Orchestration | `<orchestration>` for multi-agent | Not applicable — GPT-5.4 uses single-agent model |
+| Mini/nano variants | N/A | Be more explicit about execution order (more literal) |
+
+### GPT-5.4 Prompt Rules
+
+1. **Critical rules FIRST** — GPT-5.4 prioritizes early instructions more strongly
+2. **Flat structure** — never nest bullets; if a step has sub-steps, make them a separate section
+3. **One example** — include one correct output example when the expected format isn't obvious
+4. **No ambiguity** — GPT-5.4 mini/nano variants are more literal and make fewer assumptions
+5. **Phase field** — for long-running workflows, note that the executor should preserve the phase field to prevent preambles being misinterpreted
+
+---
+
+## Gemini Format
+
+When the target session runs Gemini (see Format Selection above):
 
 - Use Markdown headers and bullet points
 - Plain language instructions — no XML tags
@@ -182,6 +272,7 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 6 | `<verification>` has testable checkboxes with commands/outcomes | Says "verify it works" without specifying HOW |
 | 7 | Expected commit uses conventional-commit format | Missing or malformed `type(scope): description` |
 | 8 | Prompt is fully self-contained | References "our earlier discussion" or "current approach" |
+| 9 | Format matches target model (see Format Selection) | Claude prompt uses Markdown, GPT-5.4 uses Claude tags, or Gemini uses XML |
 
 **🚨 If any row fails**: Fix the prompt before presenting. Do not present with
 a note saying "you might want to add..." — the prompt must be complete.
@@ -503,7 +594,7 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Headers before skill command**: `# Implementation Prompt` above the command → skill command must be line 1
 - ❌ **No launcher for saved prompts**: "go read .prompts/v1.5/phase1.md" → provide COPY-PASTEABLE LAUNCHER block
 - ❌ **Missing model specification**: "Spawn an agent" without specifying sonnet/opus
-- ❌ **XML for Gemini**: Using `<context>` tags in prompts meant for Gemini sessions
+- ❌ **Format mismatch**: Using Claude XML tags for GPT-5.4 or Gemini targets, or GPT-5.4 tags for Claude → match the format from Format Selection to the target model
 - ❌ **Over-prompting**: "Always use Serena for every search" → use conditional triggers
 - ❌ **Claude 3.x workarounds**: Excessive repetition, sycophancy-bait phrasing
 - ❌ **Prompt for config edits**: Writing a Claude prompt to edit JSON configs → generate a `.scripts/` bash script instead
