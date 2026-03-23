@@ -135,6 +135,62 @@ Correct: Sequential — migration first, then ORM updates.
 
 ---
 
+## Agent Permission Modes
+
+Background agents (`run_in_background: true`) **cannot prompt the user for permissions**.
+If a background agent attempts a tool call that requires approval and no `mode` is set,
+it fails silently. Always specify `mode` on every agent spawn.
+
+### Mode Reference
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `"auto"` | Automatically approves safe operations (reads, searches, web fetches) | Research, exploration, scanning, file reading |
+| `"acceptEdits"` | Auto-approves reads AND file edits (Edit, Write, NotebookEdit) | Implementation, code changes, file creation |
+| `"bypassPermissions"` | All tools approved without prompting | Full autonomy — **security risk**, use sparingly |
+| `"default"` | Prompts user for each tool call | Foreground-only — **never use with background agents** |
+| `"plan"` | Requires plan approval before execution | Supervised implementation in foreground |
+| `"dontAsk"` | Skips tool calls that would require permission | Graceful degradation — skips instead of failing |
+
+### ⚠️ Background Agent Warning
+
+```
+Background agent (run_in_background: true) + no mode specified
+  → Agent hits a permission prompt → SILENT FAILURE
+  → No error returned, no work done, no indication of why
+```
+
+This is the #1 cause of "agent did nothing" bugs. Always specify mode.
+
+### Mode Selection Decision Tree
+
+```
+Is this agent doing read-only work (research, exploration, file reading)?
+├─ YES → mode: "auto"
+└─ NO → Does it write/edit files?
+    ├─ YES → mode: "acceptEdits"
+    └─ NO → Does it need unrestricted tool access?
+        ├─ YES → mode: "bypassPermissions" (⚠️ security risk — document why)
+        └─ NO → mode: "default" (foreground agents only)
+```
+
+### Belt-and-Suspenders: Pre-Approve Common Tools
+
+Even with `mode: "auto"`, recommend users pre-approve `WebFetch` and `WebSearch`
+in `~/.claude/settings.json` to avoid edge cases where research agents stall:
+
+```json
+{
+  "permissions": {
+    "allow": ["WebFetch", "WebSearch"]
+  }
+}
+```
+
+This ensures research agents never block on web access regardless of mode.
+
+---
+
 ## Agent Spawn Patterns
 
 ### Pattern 1: Parallel Implementation
@@ -143,9 +199,9 @@ When 3+ files need independent changes:
 
 ```
 Spawn N agents in parallel:
-  Agent 1 (Sonnet 4.6): [file A — task + expected output]
-  Agent 2 (Sonnet 4.6): [file B — task + expected output]
-  Agent 3 (Sonnet 4.6): [file C — task + expected output]
+  Agent 1 (Sonnet 4.6, mode: "acceptEdits"): [file A — task + expected output]
+  Agent 2 (Sonnet 4.6, mode: "acceptEdits"): [file B — task + expected output]
+  Agent 3 (Sonnet 4.6, mode: "acceptEdits"): [file C — task + expected output]
 ```
 
 ---
@@ -156,11 +212,11 @@ When gathering information from multiple sources before deciding:
 
 ```
 Phase 1 (parallel):
-  Agent 1 (Sonnet 4.6): Research [topic A] — produce findings summary
-  Agent 2 (Sonnet 4.6): Research [topic B] — produce findings summary
+  Agent 1 (Sonnet 4.6, mode: "auto"): Research [topic A] — produce findings summary
+  Agent 2 (Sonnet 4.6, mode: "auto"): Research [topic B] — produce findings summary
 
 Phase 2 (sequential):
-  Agent 3 (Opus 4.6): Synthesize Agent 1+2 outputs → produce recommendation
+  Agent 3 (Opus 4.6, mode: "acceptEdits"): Synthesize Agent 1+2 outputs → produce recommendation
 ```
 
 ---
@@ -171,8 +227,8 @@ Standard feature development chain. **Resolve each step from the routing matrix*
 the skill names below are placeholders, not defaults.
 
 ```
-Step 1: Agent (Sonnet 4.6, subagent_type=Explore) → understand existing code
-Step 2: Agent (Opus 4.6, subagent_type=[architect-agent]) → design approach
+Step 1: Agent (Sonnet 4.6, mode: "auto", subagent_type=Explore) → understand existing code
+Step 2: Agent (Opus 4.6, mode: "acceptEdits", subagent_type=[architect-agent]) → design approach
 Step 3: /[best implementation skill from routing matrix] → implement
 Step 4: /[best review skill from routing matrix] → validate
 ```
@@ -188,7 +244,7 @@ Before writing this chain into a prompt, look up the routing matrix for:
 For strategic analysis requiring diverse perspectives:
 
 ```
-Agent (Opus 4.6, subagent_type=business-panel-experts): [analysis question]
+Agent (Opus 4.6, mode: "auto", subagent_type=business-panel-experts): [analysis question]
   or
 /[best spec-review skill from routing matrix] → multi-expert specification review
 ```
@@ -205,7 +261,7 @@ back to doing the work directly. Never block on agent failures.
 | **Agent times out** | No response within expected window | Other parallel agents continue. Mark timed-out agent's results as incomplete. Fall back to doing that work in main context. |
 | **Agent returns error** | Error message in result | Assess: retry once if transient (permission denied, network). If structural (wrong tool, bad prompt), fix the prompt and re-delegate. |
 | **Agent returns garbled/partial output** | Result doesn't match expected format | Extract what's usable. Fill gaps from main context. Note limitation in orientation. |
-| **Agent permission denied** | Tool call denied by user | Do the work directly in main context. Delegation is an optimization, not a dependency. |
+| **Agent permission denied** | Tool call denied by user | Do the work directly in main context. Delegation is an optimization, not a dependency. **Prevention**: specify `mode` parameter on every agent spawn (see Agent Permission Modes above). |
 
 ### Applying This to Spawn Patterns
 
@@ -247,9 +303,10 @@ prompt crafting — not in implementation prompts.
 
 ### Pattern A: Initialization Scan (2 parallel agents)
 
-Spawn after `check_onboarding_performed` completes:
+Spawn after `check_onboarding_performed` completes. Both agents are read-only —
+use `mode: "auto"` for background compatibility.
 
-**Agent 1 — Onboarding/Staleness Check:**
+**Agent 1 — Onboarding/Staleness Check (Sonnet 4.6, mode: "auto"):**
 ```
 You are checking codebase freshness for an advisor session.
 
@@ -268,7 +325,7 @@ IF the project HAS been onboarded:
     Summary: [1 sentence on codebase health]
 ```
 
-**Agent 2 — Architecture Scan:**
+**Agent 2 — Architecture Scan (Sonnet 4.6, mode: "auto"):**
 ```
 You are scanning project documentation for an advisor session.
 
@@ -292,9 +349,9 @@ You are scanning project documentation for an advisor session.
    - Active milestone: [...]
 ```
 
-### Pattern B: Continuation Staleness Check (1 agent)
+### Pattern B: Continuation Staleness Check (1 agent, mode: "auto")
 
-Spawn while reading the handoff file:
+Spawn while reading the handoff file (read-only background agent):
 
 ```
 You are validating session continuity for an advisor.
@@ -310,9 +367,9 @@ You are validating session continuity for an advisor.
    [paste git log output]
 ```
 
-### Pattern C: Pre-Prompt File Reading (1 agent, foreground)
+### Pattern C: Pre-Prompt File Reading (1 agent, foreground, mode: "auto")
 
-Spawn before crafting an implementation prompt that requires reading 3+ files:
+Spawn before crafting an implementation prompt that requires reading 3+ files (read-only):
 
 ```
 You are reading target files to help an advisor craft an implementation prompt.
@@ -331,10 +388,11 @@ For each file, report:
 Keep total response under 500 tokens. Focus on what an implementer needs to know.
 ```
 
-### Pattern D: Fire-and-Verify Operations
+### Pattern D: Fire-and-Verify Operations (mode: "auto")
 
-These spawn without blocking startup, but their results are **verified** before
-the SP presents its orientation. See `startup-checklist.md` for verification logic.
+These spawn without blocking startup (background agents, `mode: "auto"`), but their
+results are **verified** before the SP presents its orientation. See
+`startup-checklist.md` for verification logic.
 
 **Serena dashboard fix:**
 ```
@@ -423,6 +481,7 @@ Add to the `<orchestration>` section or as a top-level directive:
 - ❌ **Dependent parallels**: Parallel agents with dependencies (race conditions, inconsistency)
 - ❌ **Skipping Explore**: Jumping to implementation before understanding existing code
 - ❌ **Missing model spec**: Not specifying model in agent spawn instructions
+- ❌ **Missing mode spec**: Not specifying `mode` in agent spawn instructions — background agents fail silently without it
 - ❌ **Agent overkill**: Spawning agents for tasks that a single skill invocation handles
 - ❌ **Agent vs skill**: Using Agent tool when a direct skill command exists (unnecessary overhead)
 - ❌ **Delegating strategy reads**: Delegating CLAUDE.md or handoff file reading (SP must internalize)

@@ -54,10 +54,12 @@ guessing its own context consumption.
 
 ## 🤖 Step 2: Spawn Background Agents (Fire-and-Verify)
 
-Spawn these agents **in parallel**. They run concurrently with Step 3 (state reading),
-but their results **must be verified** in Step 4 before presenting orientation.
+Spawn these agents **in parallel** with `mode: "auto"`. All four are read-only/config
+background agents — they read files, check patterns, and return summaries. Background
+agents **cannot prompt the user for permissions**, so `mode: "auto"` is required to
+auto-approve their read and search operations without blocking.
 
-### Agent A: 🔍 Staleness Check
+### Agent A: 🔍 Staleness Check (mode: "auto")
 
 Validates that Serena memories match the actual codebase.
 
@@ -66,11 +68,11 @@ Validates that Serena memories match the actual codebase.
 2. Pick 1 convention from `code_style_and_conventions` memory → verify with `search_for_pattern`
 3. Return: ✅ PASS / ❌ FAIL + list of any failures
 
-### Agent B: 🏗️ Architecture Scan
+### Agent B: 🏗️ Architecture Scan (mode: "auto")
 
 Quick scan for major structural changes since last session.
 
-### Agent C: 🛡️ Dashboard Fix + Gitignore Check (Combined)
+### Agent C: 🛡️ Dashboard Fix + Gitignore Check (mode: "auto", Combined)
 
 Combines two previously separate fire-and-forget operations into a **single
 verifiable agent**.
@@ -99,7 +101,7 @@ verifiable agent**.
 **Why combined**: Both are config guardrails (not discretionary). Combining
 reduces agent overhead while keeping verification in a single checkpoint.
 
-### Agent D: 🗺️ Environment Discovery + Routing Matrix (MANDATORY)
+### Agent D: 🗺️ Environment Discovery + Routing Matrix (mode: "auto", MANDATORY)
 
 Full environment scan: skills, custom agents, MCP servers/plugins, and routing
 matrix build. This is mechanical work — exactly what agents should handle.

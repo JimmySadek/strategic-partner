@@ -142,10 +142,10 @@ XML tag structure for Claude targets (Claude Code, Claude API, Anthropic SDK):
 <orchestration>
   [Only include if multi-agent work needed]
   Phase 1 (parallel):
-    Agent A (Sonnet 4.6): [task + expected output]
-    Agent B (Sonnet 4.6): [task + expected output]
+    Agent A (Sonnet 4.6, mode: "auto"): [task + expected output]
+    Agent B (Sonnet 4.6, mode: "auto"): [task + expected output]
   Phase 2 (sequential):
-    Agent C (Opus 4.6): [synthesis task]
+    Agent C (Opus 4.6, mode: "acceptEdits"): [synthesis task]
 </orchestration>
 
 <verification>
@@ -268,7 +268,7 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 2 | `<context>` lists specific files with what to look for | Says "read the codebase" or "see relevant files" |
 | 3 | `<instructions>` has numbered deliverables with file paths | Vague like "update the tests" |
 | 4 | `<orchestration>` present if parallelization check triggered | Q1-3 answered YES but no orchestration section |
-| 5 | Each agent spawn has explicit model (Opus 4.6 / Sonnet 4.6) | Unspecified "spawn an agent" |
+| 5 | Each agent spawn has explicit model AND mode | Unspecified model or missing mode parameter |
 | 6 | `<verification>` has testable checkboxes with commands/outcomes | Says "verify it works" without specifying HOW |
 | 7 | Expected commit uses conventional-commit format | Missing or malformed `type(scope): description` |
 | 8 | Prompt is fully self-contained | References "our earlier discussion" or "current approach" |
@@ -357,8 +357,8 @@ Expected commit: "fix(auth): retry token validation on HTTP 500 with backoff"
 
 <orchestration>
   Spawn 2 agents in parallel:
-    Agent 1 (Sonnet 4.6): Write docker/cli/teams.py + update __init__.py
-    Agent 2 (Sonnet 4.6): Add list_teams tool to cmrad_mcp.py
+    Agent 1 (Sonnet 4.6, mode: "acceptEdits"): Write docker/cli/teams.py + update __init__.py
+    Agent 2 (Sonnet 4.6, mode: "acceptEdits"): Add list_teams tool to cmrad_mcp.py
 </orchestration>
 
 <verification>
@@ -594,6 +594,7 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Headers before skill command**: `# Implementation Prompt` above the command → skill command must be line 1
 - ❌ **No launcher for saved prompts**: "go read .prompts/v1.5/phase1.md" → provide COPY-PASTEABLE LAUNCHER block
 - ❌ **Missing model specification**: "Spawn an agent" without specifying sonnet/opus
+- ❌ **Missing mode on agent spawns**: Background agents fail silently without mode specification → always include `mode` parameter
 - ❌ **Format mismatch**: Using Claude XML tags for GPT-5.4 or Gemini targets, or GPT-5.4 tags for Claude → match the format from Format Selection to the target model
 - ❌ **Over-prompting**: "Always use Serena for every search" → use conditional triggers
 - ❌ **Claude 3.x workarounds**: Excessive repetition, sycophancy-bait phrasing
