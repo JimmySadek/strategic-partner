@@ -13,7 +13,7 @@ Routing Decision Tree → Parallelization Check → Quality Check → Format (XM
 
 Every implementation prompt must:
 
-1. **Skill resolved via the routing decision tree** — walk the scope + complexity tree (see Mandatory Pre-Craft Analysis) before writing line 1. Never default to a remembered skill name or copy one from an example. The first line must be the bare skill command — no backticks, no headers above it, no "Run:" prefix
+1. **Skill resolved via the routing decision tree** (see `references/skill-routing-matrix.md` for the base matrix) — walk the scope + complexity tree (see Mandatory Pre-Craft Analysis) before writing line 1. Never default to a remembered skill name or copy one from an example. The first line must be the bare skill command — no backticks, no headers above it, no "Run:" prefix
 2. **Be fully self-contained** — the implementer has no access to the advisor conversation
 3. **Specify exactly which files to read** — before touching anything
 4. **List deliverables precisely** — files, functions, tests, CHANGELOG entries
@@ -40,7 +40,7 @@ Replace flat matrix lookup with structured routing. Walk the tree top-to-bottom.
 ```
 What is the scope of this task?
 ├── Single file, single concern
-│   └── quick-task skill (look up in routing matrix)
+│   └── quick-task skill (look up in routing matrix — see references/skill-routing-matrix.md)
 ├── Focused feature (1-3 files, clear spec)
 │   └── feature-dev skill (look up in routing matrix)
 ├── Multi-phase feature (4+ files, needs design)
@@ -192,7 +192,7 @@ a note saying "you might want to add..." — the prompt must be complete.
 
 > **Note**: These examples use specific skill names from one environment for
 > concreteness. When crafting actual prompts, **always resolve the skill command
-> from the routing matrix** — never copy a skill name from these examples directly.
+> from the routing matrix** (see `references/skill-routing-matrix.md`) — never copy a skill name from these examples directly.
 
 ### Example 1: Simple Bug Fix
 
@@ -291,7 +291,7 @@ When a task requires multiple implementation sessions (a skill chain):
 4. **Be explicit about ordering** — "Run this AFTER prompt A has been committed"
 5. **Specify model per step** — each agent spawn in the chain gets an explicit model
 
-Example (resolve each skill from the routing matrix):
+Example (resolve each skill from the routing matrix — see `references/skill-routing-matrix.md`):
 ```
 Prompt chain (run in order):
   1. Explore — Agent(Sonnet 4.6, [explorer-agent]) → produces architecture notes
@@ -497,7 +497,7 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Missing context**: "fix the auth bug" → specify the symptom, file, line range
 - ❌ **Assumed knowledge**: "use the same pattern as before" → spell it out
 - ❌ **Skill omission**: starting with implementation details → start with skill invocation
-- ❌ **Hardcoded skill names**: copying a skill name from examples, memory, or prior prompts → always look up the routing matrix for the best match for THIS specific task
+- ❌ **Hardcoded skill names**: copying a skill name from examples, memory, or prior prompts → always look up the routing matrix (see `references/skill-routing-matrix.md`) for the best match for THIS specific task
 - ❌ **Ambiguous ordering**: "also do X" → explicitly state if X is sequential or parallel
 - ❌ **Backtick-wrapped commands**: wrapping the skill command in backticks renders as code, not executable → bare command on line 1
 - ❌ **Headers before skill command**: `# Implementation Prompt` above the command → skill command must be line 1

@@ -167,7 +167,7 @@ Phase 2 (sequential):
 
 ### Pattern 3: Explore → Design → Build → Review
 
-Standard feature development chain. **Resolve each step from the routing matrix** —
+Standard feature development chain. **Resolve each step from the routing matrix** (see `references/skill-routing-matrix.md`) —
 the skill names below are placeholders, not defaults.
 
 ```
