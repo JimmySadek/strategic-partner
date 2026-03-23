@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.2.0] - 2026-03-23
+
+### Added
+- **GPT-5.4 format support** — prompt-crafting guide now supports three target formats (Claude XML, GPT-5.4, Gemini) with a 3-target format decision tree
+- **Agent failure and timeout handling** — orchestration playbook now covers failure modes, retry logic, and fallback paths for spawned agents
+- **Serena memory updates field** — handoff template now includes a dedicated section for tracking which Serena memories need updating
+
+### Fixed
+- **Explicit routing matrix file paths** — prompt-crafting and orchestration guides now reference skill-routing-matrix.md by exact path
+- **Environment-specific skill counts removed** — routing matrix and README no longer hardcode skill counts that vary by installation
+- **Precision variance note** — companion-script-spec heuristics KB estimates now document ±20% variance
+- **Local audit path removed** — implementation-decisions.md no longer references a local-only file path
+
+### Changed
+- **README adaptation claim softened** — removed unverifiable behavioral claims
+- **README troubleshooting section added** — covers Serena, skills, hooks, and executor failure scenarios
+- **SKILL.md line count updated** — README file tree description updated from ~440 to ~540 lines
+
 ## [4.1.0] - 2026-03-23
 
 ### Changed

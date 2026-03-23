@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-4.1.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.2.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -204,7 +204,7 @@ SP is a **senior tech lead** who asks the right questions before your team start
 
 ```
 strategic-partner/
-  SKILL.md                              # Lean hub (~440 lines) — identity, core behaviors, routing dispatch
+  SKILL.md                              # Lean hub (~540 lines) — identity, core behaviors, routing dispatch
   references/
     startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
     prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
