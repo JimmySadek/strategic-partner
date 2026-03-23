@@ -118,6 +118,7 @@ Extract relevant items for the handoff file's `/insights Analysis` section.
 - **Files modified**: every file created, edited, or deleted
 - **Open issues**: unresolved questions, blockers, follow-ups
 - **Pending prompts**: any implementation prompts not yet run
+- **Serena memory changes**: memories created, updated, or deleted this session
 - **Next immediate action**: single most important thing to do next
 
 ### Step 2: 🏷️ Derive Topic Slug
@@ -181,6 +182,10 @@ We're working on [project name and one-line description].
 
 **Pending Scripts** (in `.scripts/`):
 - `.scripts/[name].sh` — [description, status: ready/draft/discussed]
+
+**Serena Memory Updates**:
+- `[memory_name]`: [created/updated/deleted] — [what changed]
+- (or "None — no memory changes this session.")
 
 **Next Step**: [exact action to take]
 

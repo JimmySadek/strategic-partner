@@ -31,6 +31,17 @@ what's broken or blocked]
 - [Registry updates needed]
 - [Or "None" if stable]
 
+## Serena Memory Updates
+
+List any Serena memories written, updated, or deleted during this session.
+The continuation session will use this to verify memory state is current.
+
+| Memory | Action | What Changed |
+|---|---|---|
+| `[memory_name]` | created / updated / deleted | [brief description] |
+
+> If no memories were modified: "None — no memory changes this session."
+
 ## Pending Implementation Prompts
 - `.prompts/[milestone]/[name].md` — [description, status: ready/draft]
 - [... or "None" if all prompts were run]
