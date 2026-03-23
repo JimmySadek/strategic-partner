@@ -3,4 +3,7 @@
 *.swo
 .env
 .claude/
+.handoffs/
+.prompts/
+.scripts/
 awesome-list-submission.md
