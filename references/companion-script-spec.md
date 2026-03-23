@@ -90,8 +90,8 @@ consumption estimate.
 
 ### 📏 Estimation Heuristics
 
-These are **rough estimates** — the script cannot measure actual token consumption.
-The goal is directional accuracy, not precision.
+These are **rough estimates** (±20% variance) — the script cannot measure actual token consumption,
+and file-size-to-token-count conversion is non-linear. The goal is directional accuracy, not precision.
 
 | Source | Estimated Size | Notes |
 |---|---|---|
