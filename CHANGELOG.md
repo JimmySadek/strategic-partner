@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.3.0] - 2026-03-24
+
+### Added
+- **Agent permission mode guidance** — new "Agent Permission Modes" section in orchestration playbook with mode reference table, background agent warning, and decision tree for mode selection
+- **Mode parameter on all agent patterns** — Patterns 1-4 (implementation) and Patterns A-D (self-delegation) now specify mode alongside model
+- **Troubleshooting: sub-agent permission failures** — README now covers the scenario where background agents fail silently due to missing mode parameter
+
+### Changed
+- **Post-craft verification expanded** — item 5 now requires both explicit model AND mode on every agent spawn
+- **Anti-patterns expanded** — both orchestration playbook and prompt-crafting guide now flag missing mode specification
+
 ## [4.2.0] - 2026-03-23
 
 ### Added

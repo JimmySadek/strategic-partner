@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-4.2.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.3.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -299,6 +299,7 @@ The skill works without Serena, but loses **cross-session memory** and semantic 
 | **Serena MCP unavailable** | Cross-session memory and semantic code navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
 | **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
 | **Hooks not configured** | Context monitoring relies on self-assessment only | SP uses self-assessed thresholds instead of the PreCompact hook backstop. Consider adding hooks for reliability. |
+| **Sub-agents hit permission walls** | Background agents can't prompt for approval — WebFetch, WebSearch, and cross-directory reads fail silently | SP now specifies `mode` parameter on all agent spawns. If you still see failures, pre-approve `WebFetch` and `WebSearch` in `~/.claude/settings.json`. |
 | **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
 
 ---
