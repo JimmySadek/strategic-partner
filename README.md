@@ -210,7 +210,7 @@ strategic-partner/
     prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
     context-handoff.md                  # Env var baseline, two-tier thresholds, split writes
     orchestration-playbook.md           # Model selection, parallelization heuristics, worktree isolation
-    skill-routing-matrix.md             # Curated base matrix (~80 skills) + delta-update procedure
+    skill-routing-matrix.md             # Curated base matrix + delta-update procedure
     partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
     hooks-integration.md                # Hook events, JSON configs, phased rollout
     companion-script-spec.md            # Python context monitor architecture (spec only)

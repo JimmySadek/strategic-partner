@@ -25,8 +25,8 @@ Each entry in the routing matrix follows this schema:
 
 ## 📦 Curated Base Matrix
 
-These are the ~80 most common skills and agent types pre-mapped. Load this table
-at startup instead of building from scratch — covers ~95% of routing needs.
+These are the commonly available skills and built-in Agent types pre-mapped. Load
+this table at startup instead of building from scratch — covers the majority of routing needs.
 
 ### 🔧 Implementation & Feature Development
 
@@ -243,8 +243,8 @@ installed skills. Always include these in the routing matrix.
 
 ## 🔄 Delta-Update Procedure
 
-The base matrix above covers ~95% of routing needs. The delta procedure handles
-the remaining ~5% — custom skills, new installations, and environment-specific tools.
+The base matrix above covers the majority of routing needs. The delta procedure handles
+any environment-specific or newly installed skills — custom skills, new installations, and environment-specific tools.
 
 ### At Startup (Initialization Mode)
 
