@@ -4,7 +4,7 @@ Reference file for the strategic-partner advisor. Model selection, parallelizati
 rules, and agent orchestration patterns.
 
 ```
-Model Selection → Parallelization Decision → Spawn Pattern (A/B/C/D) → Session Planning
+Model Selection → Parallelization Decision → Spawn Pattern (A/B/C/D/E) → Session Planning
 ```
 
 ---
@@ -271,8 +271,9 @@ back to doing the work directly. Never block on agent failures.
   with reduced inputs. Note the gap in the synthesis prompt.
 - **Explore → Design → Build → Review (Pattern 3)**: If the Explore agent fails,
   fall back to Grep/Glob-based exploration. The chain continues.
-- **Self-Delegation (Patterns A–D)**: Fire-and-verify agents (D) are non-blocking
+- **Self-Delegation (Patterns A–E)**: Fire-and-verify agents (D) are non-blocking
   by design. Scanning agents (A–C) fall back to direct reads if they time out.
+  Diagnostic audit agents (E) report findings for SP verification.
 
 ---
 
@@ -412,6 +413,85 @@ If .gitignore doesn't exist, create it with those three entries.
 No output needed.
 ```
 
+### Pattern E: Diagnostic Audit (3–4 parallel agents, mode: "auto")
+
+Spawn when the SP needs to audit project files for correctness, consistency, or
+staleness. The SP splits project files into 3–4 logical groups and dispatches
+parallel Explore agents, each analyzing its group against audit categories.
+Findings are severity-classified; the SP verifies all Important+ findings before
+presenting to the user.
+
+**Agent dispatch:**
+- Split files into logical groups (core files, reference groups, templates/docs)
+- Each agent gets a specific file list and audit categories
+- All agents: Sonnet 4.6, `mode: "auto"`, `run_in_background: true`
+
+```
+You are auditing a file group for a project diagnostic.
+
+Files to audit:
+[SP inserts file list for this agent's group]
+
+For each file, check against these categories:
+  C — Correctness: factual errors, wrong values, broken references
+  I — Inconsistency: contradictions between files, mismatched conventions
+  R — Robustness: missing edge cases, fragile assumptions, gaps
+  N — Nice-to-have: style improvements, clarity, optional enhancements
+
+For any finding you'd classify as Important or higher, you MUST complete the
+intent-check gate below BEFORE assigning final severity.
+
+┌─────────────────────────────────────────────────────────┐
+│                 INTENT-CHECK GATE (5 steps)             │
+├─────────────────────────────────────────────────────────┤
+│ 1. Pattern Check                                       │
+│    Is this notation/approach used elsewhere in the      │
+│    file or project? YES → likely intentional            │
+│                                                         │
+│ 2. Context Check                                       │
+│    What kind of document is this?                       │
+│    Historical doc → "stale" may be intentional record   │
+│    Template → placeholders are by design                │
+│    Living spec → stale data is a real concern           │
+│                                                         │
+│ 3. Git Archaeology                                     │
+│    What commit introduced this? Does the commit         │
+│    message explain the design choice?                   │
+│                                                         │
+│ 4. Environment Assumption Check                        │
+│    Hardcoded values → potential bug                     │
+│    Placeholders/generics → correct by design for a     │
+│    multi-environment skill                              │
+│                                                         │
+│ 5. Reclassification Gate                               │
+│    After steps 1–4, does the severity still hold?       │
+│    If reduced → note original + reason for downgrade    │
+│    If maintained → include intent-check evidence        │
+└─────────────────────────────────────────────────────────┘
+
+Return findings in this format:
+
+[CATEGORY]-[N]: [one-line summary]
+  - File: [filename]:[line range]
+  - Detail: [2-3 sentences]
+  - Intent check: [what investigation showed — REQUIRED for Important+]
+  - Severity: [Critical/Important/Minor] [→ downgraded from X if applicable]
+
+Keep total response under 800 tokens. Omit Nice-to-have items unless Critical
+or Important findings are fewer than 3.
+```
+
+**SP verification pass (after all agents report):**
+1. Spot-check all Important+ findings with Grep/Read
+2. Apply intent-check gate to any finding the agent didn't fully investigate
+3. Filter false positives — document rejected findings with reason (transparency)
+4. Present only verified findings to user
+
+**Why this pattern exists:** Agents that check "does this match expectations?"
+without asking "was this deliberate?" produce ~30% false positives on
+documentation-heavy projects (Chesterton's Fence principle). The intent-check
+gate forces investigation of design intent before escalating severity.
+
 ### Delegation Decision Rules
 
 ```
@@ -497,3 +577,4 @@ Add to the `<orchestration>` section or as a top-level directive:
 - ❌ **Parallel on shared files**: Spawning parallel agents that edit the same file (guaranteed merge conflicts)
 - ❌ **Parallel on dependent steps**: Spawning parallel agents where one consumes the other's output (race condition)
 - ❌ **No worktree for risky changes**: Sending large refactors to execute in the main working directory without isolation
+- ❌ **Skipped intent-check**: Classifying audit findings as Important+ without investigating design intent — ~30% false positive rate on docs-heavy projects. Apply the 5-step intent-check gate (Pattern E) before escalating severity
