@@ -12,8 +12,9 @@ Do not display to user.
 │  Env Vars    →   Spawn Agents  → Read State → Verify                   │
 │  AUTOCOMPACT      ┌─ Agent A     $ARGUMENTS    ✅ Agent C (security)    │
 │  _PCT=70         ├─ Agent B     Serena        ✅ Agent D (routing)     │
-│                  ├─ Agent C     CLAUDE.md                              │
-│                  └─ Agent D          │              │                  │
+│                  ├─ Agent C     CLAUDE.md      ⚡ Agent E (version)    │
+│                  ├─ Agent D          │              │                  │
+│                  └─ Agent E          │              │                  │
 │                    🗺️ Matrix          │              │                  │
 │                       │              │              ▼                  │
 │                       └──────────────┘         Step 5                  │
@@ -93,9 +94,19 @@ verifiable agent**.
 │  If any missing → add them                           │
 │  Report: ✅ success | ✅ already_covered | ❌ failed   │
 └──────────────────────────────────────────────────────┘
-┌─ 3. Return ─────────────────────────────────────────┐
-│  { dashboard_fix, gitignore_fix }                    │
-└──────────────────────────────────────────────────────┘
+┌─ 3. Commands Symlink Check ────────────────────────┐
+│  Determine skill directory (where SKILL.md lives)   │
+│  Check if {skill-dir}/commands/ directory exists     │
+│  If exists:                                          │
+│    Target: ~/.claude/commands/strategic-partner/     │
+│    For each .md file in commands/:                   │
+│      If target missing or not a symlink → create it │
+│  Report: ✅ success | ✅ already_linked | ❌ failed   │
+│          + list of any newly linked commands         │
+└─────────────────────────────────────────────────────┘
+┌─ 4. Return ─────────────────────────────────────────┐
+│  { dashboard_fix, gitignore_fix, commands_fix }      │
+└─────────────────────────────────────────────────────┘
 ```
 
 **Why combined**: Both are config guardrails (not discretionary). Combining
@@ -156,6 +167,29 @@ The SP should reason from the environment summary, not spend context building it
 **If Agent D fails**: Fall back to the base matrix from `skill-routing-matrix.md`
 plus real-time matching from system context. Note limitation in orientation.
 
+### Agent E: ⚡ Version Check (mode: "auto")
+
+Lightweight background check for skill updates.
+
+**What it does:**
+
+```
+┌─ Version Check ────────────────────────────────────────┐
+│  1. Read SKILL.md frontmatter → extract repo field      │
+│  2. Fetch: api.github.com/repos/{repo}/releases/latest  │
+│  3. Extract tag_name → strip leading "v" if present     │
+│  4. Return: { latest_version: "X.Y.Z" }                 │
+│     OR:     { error: "unreachable" }                     │
+│                                                          │
+│  ⚠️  Timeout: 5 seconds. No retries.                    │
+│  ⚠️  If no Releases exist, try /tags?per_page=1.        │
+│  ⚠️  If both fail → { error: "no_releases" }.           │
+└──────────────────────────────────────────────────────────┘
+```
+
+**Why an agent**: Network call output should not consume main context.
+Agent returns a clean one-field result.
+
 ---
 
 ## 📖 Step 3: Read State (Parallel with Agents)
@@ -202,6 +236,10 @@ but are not security-critical.
 | 🚨 `gitignore_fix = failed` | **WARN USER IMMEDIATELY**: "`.gitignore` update failed. `.handoffs/` and `.prompts/` may not be excluded from git. **This is a security concern** if this repo is shared or public. Please add these entries manually." |
 | ⚠️ `dashboard_fix = failed` | Note in orientation: "Could not disable Serena dashboard auto-open. You may see a browser tab." **Do not block.** |
 | ✅ `dashboard_fix = success` or `already_off` | No mention needed |
+| ✅ `commands_fix = success` | Note in orientation: "N command(s) linked — subcommands now available" |
+| ✅ `commands_fix = already_linked` | Proceed normally |
+| ⚠️ `commands_fix = failed` | Note in orientation: "Subcommand linking failed. `/strategic-partner:help` and other subcommands may not work. Run manually: see README." |
+| ⚠️ No `commands/` directory | Skip silently — older version without bundled commands |
 
 ### 🗺️ Agent D Verification (Required)
 
@@ -218,6 +256,14 @@ but are not security-critical.
 | ❌ Staleness FAIL | Flag in orientation, propose targeted memory update via `AskUserQuestion` |
 | 🏗️ Architecture scan results | Incorporate into orientation context |
 | ⚠️ Agent timed out / failed | Note limitation in orientation, proceed without that data |
+
+### ⚡ Agent E Integration (Non-blocking)
+
+| Result | Action |
+|---|---|
+| ✅ Remote version = local version | No mention to user |
+| ⚡ Remote version > local version | Show in orientation: "⚡ v{remote} available (you have v{local}). Run `/strategic-partner:update`" |
+| ⚠️ Agent failed / timed out | Skip silently — no mention |
 
 ---
 
@@ -236,6 +282,7 @@ and ask what the user wants to work on.
 - ❌ Staleness check results (if FAIL)
 - 🌿 Current branch and git state
 - 🗺️ Environment summary from Agent D: skills (base + delta), custom agents, active MCP servers
+- ⚡ Update available (from Agent E): one-liner with version diff and update command
 
 **Session setup recommendations** (include in orientation via `AskUserQuestion`):
 

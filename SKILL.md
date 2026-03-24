@@ -14,6 +14,7 @@ argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
 mcp-servers: [serena, context7]
+repo: JimmySadek/strategic-partner
 ---
 
 # /strategic-partner — Chief of Staff for Claude Code
@@ -312,6 +313,50 @@ already strained at handoff time and reference file instructions may be diluted)
 Own the question of when and how the project version changes. Never bump autonomously.
 → **Load `references/partner-protocols.md`** for the full protocol.
 
+### 8. Update Management
+Own version awareness for users and commands distribution. Three mechanisms:
+
+**Passive — startup version check (Agent E):**
+During startup, a background agent fetches the latest GitHub release using the `repo`
+field from SKILL.md frontmatter. If the local `version` is behind, show one line in
+orientation:
+
+> ⚡ Strategic Partner **v{remote}** available (you have v{local}).
+> Run `/strategic-partner:update` to update.
+
+Silent degradation: if GitHub API is unreachable, skip. Never block startup.
+
+**Active — `/strategic-partner:update` subcommand:**
+
+```
+/strategic-partner:update invoked
+  │
+  ├─ Read version + repo from SKILL.md frontmatter
+  ├─ Fetch latest release: api.github.com/repos/{repo}/releases/latest
+  ├─ Compare versions
+  │
+  ├─ UP TO DATE → "✅ You're on the latest version (v{local})"
+  │
+  └─ OUTDATED →
+      ├─ Show: "v{local} → v{remote}"
+      ├─ Fetch release notes from GitHub API → display highlights
+      ├─ Detect install method from .skillshare-meta.json:
+      │   ├─ type: "github-subdir" or "github"
+      │   │   → skillshare update strategic-partner && skillshare sync
+      │   └─ type: "local" or no meta file
+      │       → cd {skill-dir} && git pull
+      ├─ AskUserQuestion: [Update now] [Not now] [Show full changelog]
+      └─ If confirmed → run update → re-link commands
+         → "Updated. Start a new session to use v{remote}."
+```
+
+This is a self-maintenance operation (like Git Custody) — the SP executes it directly.
+
+**Commands self-install (Agent C, startup):**
+Bundled subcommand files in `commands/` are auto-linked to `~/.claude/commands/`
+on first run. This ensures every user who installs the skill gets working
+subcommands without manual setup. See startup-checklist.md Agent C.
+
 ---
 
 ## ⚙️ Self-Delegation Principle
@@ -324,6 +369,8 @@ Strategic operations stay in main context.
 - docs/ and architecture file scanning
 - Serena onboarding (when needed)
 - Dashboard config fix + .gitignore check (fire-and-verify)
+- Version check (Agent E — returns one version string, not raw API output)
+- Commands symlink check (Agent C — config guardrail, returns status)
 - Pre-prompt file reading (3+ files → agent summary → craft from summary)
 
 **Never delegate** (must be in main context for reasoning):
@@ -496,6 +543,7 @@ Browser automation needed?                → Playwright
 | `/strategic-partner:sync-skills` | Rebuild routing matrix from system context; show diff |
 | `/strategic-partner:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's done, what's next |
+| `/strategic-partner:update` | Check for updates and self-update to latest version |
 
 ---
 

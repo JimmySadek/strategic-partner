@@ -202,7 +202,13 @@ SP is a **senior tech lead** who asks the right questions before your team start
 
 ```
 strategic-partner/
-  SKILL.md                              # Lean hub (~540 lines) — identity, core behaviors, routing dispatch
+  SKILL.md                              # Lean hub — identity, core behaviors, routing dispatch
+  commands/
+    help.md                             # Subcommand reference
+    sync-skills.md                      # Skill inventory sync
+    handoff.md                          # Context handoff trigger
+    status.md                           # Status briefing
+    update.md                           # Version check + self-update
   references/
     startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
     prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
@@ -219,7 +225,7 @@ strategic-partner/
     v4.0-implementation-decisions.md    # Decision log for audit findings F1-F12
 ```
 
-These aren't filler. The advisor **loads them on-demand** — the core SKILL.md (~540 lines) carries identity, core behaviors, and routing dispatch, while deep procedural content loads at startup and when crafting prompts, routing edge cases, or preparing handoffs.
+These aren't filler. The advisor **loads them on-demand** — the core SKILL.md carries identity, core behaviors, and routing dispatch, while deep procedural content loads at startup and when crafting prompts, routing edge cases, or preparing handoffs. The `commands/` directory is auto-linked to `~/.claude/commands/strategic-partner/` on first run — no manual setup needed.
 
 ---
 
@@ -273,6 +279,7 @@ Resumes from a **previous session's handoff**.
 | `/strategic-partner:sync-skills` | Rebuild **routing matrix** from system context, show diff against previous |
 | `/strategic-partner:handoff` | Trigger a **context handoff** with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
+| `/strategic-partner:update` | Check for **updates** and self-update to latest version |
 
 ### Aliases
 
@@ -299,6 +306,33 @@ The skill works without Serena, but loses **cross-session memory** and semantic 
 | **Hooks not configured** | Context monitoring relies on self-assessment only | SP uses self-assessed thresholds instead of the PreCompact hook backstop. Consider adding hooks for reliability. |
 | **Sub-agents hit permission walls** | Background agents can't prompt for approval — WebFetch, WebSearch, and cross-directory reads fail silently | SP now specifies `mode` parameter on all agent spawns. If you still see failures, pre-approve `WebFetch` and `WebSearch` in `~/.claude/settings.json`. |
 | **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
+
+---
+
+## Staying updated
+
+### Automatic check
+
+Every SP session checks for updates in the background. If a newer version exists:
+
+> ⚡ Strategic Partner **v4.4.0** available (you have v4.3.2). Run `/strategic-partner:update` to update.
+
+### Update command
+
+```
+/strategic-partner:update
+```
+
+Checks the latest version, shows what changed, and runs the update. Detects whether
+you installed via skillshare or git clone and uses the right method. After updating,
+it re-links any new subcommand files automatically.
+
+### GitHub notifications
+
+For release announcements with full changelogs:
+
+1. Go to [github.com/JimmySadek/strategic-partner](https://github.com/JimmySadek/strategic-partner)
+2. Click **Watch** → **Custom** → check **Releases** → **Apply**
 
 ---
 

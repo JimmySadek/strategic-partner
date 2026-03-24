@@ -61,6 +61,25 @@ git tag vX.Y.Z
 git push origin main --tags
 ```
 
+### 7. Create GitHub Release
+
+After pushing, create a GitHub Release (required for the version-check system):
+
+```bash
+gh release create vX.Y.Z --title "vX.Y.Z — [one-line summary]" --notes "[CHANGELOG entry for this version]"
+```
+
+Or extract the entry automatically:
+
+```bash
+gh release create vX.Y.Z --title "vX.Y.Z — [one-line summary]" \
+  --notes "$(awk '/^## \['"X.Y.Z"'\]/{found=1; next} found && /^## \[/{exit} found' CHANGELOG.md)"
+```
+
+**Why**: The startup version check and `/strategic-partner:update` fetch
+`/releases/latest` from GitHub API. Without a Release, users won't get
+update notifications.
+
 ### CHANGELOG Entry Format
 
 Follow the existing convention (Keep a Changelog style):
