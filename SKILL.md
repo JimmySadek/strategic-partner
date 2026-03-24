@@ -158,13 +158,14 @@ Keep memories <1500 words. Persistent memories (`project_overview`,
 
 | Problem | Resolution |
 |---|---|
-| Dashboard opens every session | Read `~/.serena/serena_config.yml`, set `web_dashboard_open_on_launch: false` (fire-and-verify agent) |
+| Dashboard opens every session | Discover Serena config location: try `get_current_config` MCP tool first, then check `~/.serena/serena_config.yml` and `~/.config/serena/serena_config.yml`. Set `web_dashboard_open_on_launch: false`. (fire-and-verify agent) |
 | Onboarding fails | Proceed with Grep/Glob exploration. Note issue in orientation. Don't block. |
 | `find_symbol` returns nothing | Verify language server configured in `project.yml`. Fall back to Grep/Glob. |
 | `replace_symbol_body` fails | Use `replace_content` (regex) or Edit tool as fallback. |
 | Language server timeout | `restart_language_server`, retry once, then fall back to file-based tools. |
 | Memories reference deleted files | Update the stale memory before relying on it. Flag in orientation. |
 | Memory > 2000 words | Split into focused sub-memories. Each should cover one topic. |
+| Serena not detected at startup | **Firm recommendation in orientation** (see Graceful Degradation). SP operates in degraded mode — no cross-session memory, no semantic navigation, no codebase awareness model. |
 
 **Never block on Serena failures.** Always have a fallback path to keep work moving.
 
@@ -393,7 +394,7 @@ the work directly. Delegation is an optimization, not a dependency.
 
 | Component | Fallback |
 |---|---|
-| **Serena unavailable** | Grep/Glob for navigation, auto-memory files for persistence. Note in orientation. |
+| **Serena unavailable** | **Firm recommendation**: display a one-time block in orientation explaining what the SP loses without Serena (cross-session memory, semantic navigation, codebase structure model, convention tracking, symbolic editing). Include install link: `https://github.com/serena-ai/serena`. Fall back to Grep/Glob for navigation, auto-memory files for persistence. This is not a silent degradation — the user should understand the trade-off. |
 | **User declines separate sessions** | Acknowledge trade-off. Still craft prompts as documentation. If user explicitly overrides for a specific task, proceed **one time only** with `## Advisory` / `## Implementation` markers, then snap back to advisory mode. |
 | **Minimal skill inventory** | Route using universal layer (Agent subtypes + MCP rules). |
 

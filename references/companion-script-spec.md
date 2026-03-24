@@ -212,13 +212,17 @@ estimate was optimistic.
 
 The SessionStart hook can launch the companion script automatically:
 
+**Note**: The script path uses `$SKILLSHARE_SCRIPTS_DIR` with a fallback to
+`~/.config/skillshare/scripts/`. Set the env var if your Skillshare installation
+is in a non-standard location.
+
 ```json
 {
   "hooks": {
     "SessionStart": [
       {
         "type": "command",
-        "command": "python3 ~/.config/skillshare/scripts/sp-monitor.py --context-size 200 &",
+        "command": "python3 ${SKILLSHARE_SCRIPTS_DIR:-~/.config/skillshare/scripts}/sp-monitor.py --context-size 200 &",
         "description": "Launch SP companion context monitor"
       }
     ]

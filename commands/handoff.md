@@ -29,10 +29,11 @@ to draw from (it will do its best with what's available in conversation history)
 
 ### Step 1 — Load Procedure and Templates
 
-Read these files (parallel):
-- `~/.claude/skills/strategic-partner/references/context-handoff.md` — full procedure
-- `~/.claude/skills/strategic-partner/assets/templates/handoff-template.md` — handoff structure
-- `~/.claude/skills/strategic-partner/assets/templates/prompt-template.md` — for prompts if needed
+Read these files (parallel) from the skill directory (where SKILL.md lives — resolve
+from the skill invocation context, not a hardcoded path):
+- `{skill-dir}/references/context-handoff.md` — full procedure
+- `{skill-dir}/assets/templates/handoff-template.md` — handoff structure
+- `{skill-dir}/assets/templates/prompt-template.md` — for prompts if needed
 
 ### Step 2 — Ensure Directory and Gitignore Coverage
 

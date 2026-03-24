@@ -84,7 +84,8 @@ Re-run the commands symlink check:
 
 1. Get the skill directory path (where SKILL.md lives)
 2. For each `.md` file in `{skill-dir}/commands/`:
-   - Target: `~/.claude/commands/strategic-partner/{filename}`
+   - Discover Claude commands dir (check `~/.claude/commands/` or `$CLAUDE_CONFIG_DIR/commands/`)
+   - Target: `{commands-dir}/strategic-partner/{filename}`
    - If target doesn't exist or isn't a symlink → create symlink
 3. Report any new commands installed:
    ```

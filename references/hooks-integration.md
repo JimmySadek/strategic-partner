@@ -23,8 +23,9 @@ for proactive session management. Phased rollout from essential to advanced.
 
 ## 🔧 Hook Configuration
 
-Hooks are configured in `~/.claude/hooks.json` or `.claude/settings.json`
-(project-level). The SP should document a recommended configuration and
+Hooks are configured in Claude Code's settings files. Discover the location:
+- **User-global**: typically `~/.claude/settings.json` (check `$CLAUDE_CONFIG_DIR/settings.json` as fallback)
+- **Project-level**: `.claude/settings.json` in the project root The SP should document a recommended configuration and
 offer to auto-install it during startup — but **always ask-before-act**
 for hook installation, since hooks affect the user's global or project settings.
 
@@ -32,7 +33,7 @@ for hook installation, since hooks affect the user's global or project settings.
 
 | Scope | File | Precedence |
 |---|---|---|
-| 🌐 User-global | `~/.claude/hooks.json` | Lower |
+| 🌐 User-global | `~/.claude/settings.json` (or `$CLAUDE_CONFIG_DIR/settings.json`) | Lower |
 | 📁 Project-level | `.claude/settings.json` (hooks key) | Higher |
 
 **💡 Recommendation**: Install SP hooks at the **user-global** level so they apply

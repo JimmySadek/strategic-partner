@@ -48,7 +48,8 @@ For each discovered skill, classify:
 
 ### Step 3 — Compare Against Routing Matrix
 
-Read `~/.claude/skills/strategic-partner/references/skill-routing-matrix.md`.
+Read `{skill-dir}/references/skill-routing-matrix.md` (where `{skill-dir}` is the
+directory containing SKILL.md — resolve from the skill invocation context).
 
 Compare **global skills only** (project-local skills live in Serena, not the matrix):
 
@@ -109,7 +110,7 @@ Use `AskUserQuestion` to present the scan results:
 - Format as a concise reference table
 
 **If matrix update confirmed:**
-- Edit `~/.claude/skills/strategic-partner/references/skill-routing-matrix.md`
+- Edit `{skill-dir}/references/skill-routing-matrix.md`
 - Add uncatalogued global skills to the Task → Skill Mapping table
 - Mark unavailable skills (in matrix but not in environment) with a note
 

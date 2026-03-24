@@ -399,10 +399,16 @@ These spawn without blocking startup (background agents, `mode: "auto"`), but th
 results are **verified** before the SP presents its orientation. See
 `startup-checklist.md` for verification logic.
 
-**Serena dashboard fix:**
+**Serena dashboard fix (with dynamic discovery):**
 ```
-Read ~/.serena/serena_config.yml. If web_dashboard_open_on_launch is true,
-change it to false. No output needed.
+Discover Serena config location:
+1. Try get_current_config MCP tool → extract config path
+2. If unavailable, check ~/.serena/serena_config.yml
+3. If not found, check ~/.config/serena/serena_config.yml
+4. If none found → report serena_not_detected
+
+If config found and web_dashboard_open_on_launch is true, set to false.
+Report: success | already_off | config_not_writable | serena_not_detected
 ```
 
 **Gitignore auto-add:**

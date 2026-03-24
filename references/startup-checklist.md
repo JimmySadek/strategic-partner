@@ -81,11 +81,18 @@ verifiable agent**.
 **What it does:**
 
 ```
-┌─ 1. Dashboard Fix ──────────────────────────────────┐
-│  Read ~/.serena/serena_config.yml                    │
-│  If web_dashboard_open_on_launch = true → set false  │
-│  Report: ✅ success | ✅ already_off | ❌ failed      │
-└──────────────────────────────────────────────────────┘
+┌─ 1. Serena Dashboard Fix ───────────────────────────────────────┐
+│  Discover Serena config location (discovery chain):              │
+│    1. Try get_current_config MCP tool → extract config path     │
+│    2. If unavailable, check ~/.serena/serena_config.yml          │
+│    3. If not found, check ~/.config/serena/serena_config.yml     │
+│    4. If none found → Serena likely not installed                │
+│  If config found:                                                │
+│    If web_dashboard_open_on_launch = true → set false            │
+│  Report:                                                         │
+│    ✅ success | ✅ already_off | ❌ config_not_writable           │
+│    ⚠️ serena_not_detected (no config found anywhere)             │
+└──────────────────────────────────────────────────────────────────┘
 ┌─ 2. Gitignore Check ────────────────────────────────┐
 │  Check .gitignore for required entries:              │
 │    • .handoffs/                                      │
@@ -94,16 +101,19 @@ verifiable agent**.
 │  If any missing → add them                           │
 │  Report: ✅ success | ✅ already_covered | ❌ failed   │
 └──────────────────────────────────────────────────────┘
-┌─ 3. Commands Symlink Check ────────────────────────┐
-│  Determine skill directory (where SKILL.md lives)   │
-│  Check if {skill-dir}/commands/ directory exists     │
-│  If exists:                                          │
-│    Target: ~/.claude/commands/strategic-partner/     │
-│    For each .md file in commands/:                   │
-│      If target missing or not a symlink → create it │
-│  Report: ✅ success | ✅ already_linked | ❌ failed   │
-│          + list of any newly linked commands         │
-└─────────────────────────────────────────────────────┘
+┌─ 3. Commands Symlink Check ─────────────────────────────────────┐
+│  Determine skill directory (where SKILL.md lives)                │
+│  Check if {skill-dir}/commands/ directory exists                  │
+│  If exists:                                                       │
+│    Discover Claude commands dir:                                  │
+│      Check ~/.claude/commands/ (standard location)               │
+│      If not found, check $CLAUDE_CONFIG_DIR/commands/            │
+│    Target: {commands-dir}/strategic-partner/                      │
+│    For each .md file in {skill-dir}/commands/:                   │
+│      If target missing or not a symlink → create symlink         │
+│  Report: ✅ success | ✅ already_linked | ❌ failed               │
+│          + list of any newly linked commands                      │
+└──────────────────────────────────────────────────────────────────┘
 ┌─ 4. Return ─────────────────────────────────────────┐
 │  { dashboard_fix, gitignore_fix, commands_fix }      │
 └─────────────────────────────────────────────────────┘
@@ -236,6 +246,7 @@ but are not security-critical.
 | 🚨 `gitignore_fix = failed` | **WARN USER IMMEDIATELY**: "`.gitignore` update failed. `.handoffs/` and `.prompts/` may not be excluded from git. **This is a security concern** if this repo is shared or public. Please add these entries manually." |
 | ⚠️ `dashboard_fix = failed` | Note in orientation: "Could not disable Serena dashboard auto-open. You may see a browser tab." **Do not block.** |
 | ✅ `dashboard_fix = success` or `already_off` | No mention needed |
+| ⚠️ `dashboard_fix = serena_not_detected` | **Include Serena recommendation in orientation** (see below). Do not block. |
 | ✅ `commands_fix = success` | Note in orientation: "N command(s) linked — subcommands now available" |
 | ✅ `commands_fix = already_linked` | Proceed normally |
 | ⚠️ `commands_fix = failed` | Note in orientation: "Subcommand linking failed. `/strategic-partner:help` and other subcommands may not work. Run manually: see README." |
@@ -283,6 +294,19 @@ and ask what the user wants to work on.
 - 🌿 Current branch and git state
 - 🗺️ Environment summary from Agent D: skills (base + delta), custom agents, active MCP servers
 - ⚡ Update available (from Agent E): one-liner with version diff and update command
+- 🔌 **Serena not detected** (from Agent C): If `serena_not_detected`, display this block:
+
+> **Serena MCP is not detected.** The Strategic Partner works without it but operates
+> in degraded mode — losing cross-session memory, semantic code navigation, codebase
+> structure awareness, and convention tracking. These capabilities make advisory sessions
+> significantly more effective across projects and sessions.
+>
+> **Setup**: https://github.com/serena-ai/serena
+>
+> Serena is an investment that pays off across every project the SP touches.
+
+This is a **firm, one-time recommendation** — not a nag. Display once in orientation,
+then proceed normally in degraded mode.
 
 **Session setup recommendations** (include in orientation via `AskUserQuestion`):
 

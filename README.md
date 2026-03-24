@@ -248,7 +248,12 @@ npx skillshare install https://github.com/JimmySadek/strategic-partner
 Clone the repo into your skills directory:
 
 ```bash
-git clone https://github.com/JimmySadek/strategic-partner.git ~/.config/skillshare/skills/strategic-partner
+# Clone to your preferred skills directory
+git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/strategic-partner
+
+# Common locations:
+# ~/.config/skillshare/skills/strategic-partner  (Skillshare standard)
+# ~/.claude/skills/strategic-partner              (Claude Code standard)
 ```
 
 ---
