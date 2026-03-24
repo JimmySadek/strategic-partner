@@ -50,7 +50,7 @@
 
 ### Fixed
 - **Saved-prompt launcher format** — added `══` fenced prompt launcher for saved `.prompts/` files, matching the inline prompt display convention
-- **Implementation firewall Checkpoint 3** — one-time user override ("just do it") with mandatory reset to advisory mode after the single action completes
+- **Implementation firewall user override** — one-time user override ("just do it") with mandatory reset to advisory mode after the single action completes
 - **Handoff continuation prompt display** — enforced fenced display rules in SKILL.md core so they survive context pressure (not just in reference files)
 - **Ask-before-act two-tier model** — hygiene ops (git, gitignore) execute autonomously, decision ops (Serena, CLAUDE.md, handoffs) always ask first
 - **Bash echo-separator ban** — chaining commands with `echo "---"` separators triggers Claude Code's "quoted characters in flag names" safety warning; elevated to global "You always" rule requiring separate parallel Bash calls

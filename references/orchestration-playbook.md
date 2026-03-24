@@ -297,6 +297,10 @@ back to doing the work directly. Never block on agent failures.
 
 ## Advisor Self-Delegation
 
+> **Internal patterns only.** The patterns below describe how the SP itself delegates
+> during startup and prompt crafting. They are NOT used in crafted implementation
+> prompts. For implementation prompt orchestration, see Patterns 1–4 above.
+
 The SP delegates mechanical work to Explore agents to preserve its own context window
 for strategic reasoning. These patterns are used by the SP itself during startup and
 prompt crafting — not in implementation prompts.

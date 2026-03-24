@@ -370,6 +370,38 @@ Expected commit: "fix(auth): retry token validation on HTTP 500 with backoff"
 Expected commit: "feat(cli): add list teams wizard and MCP tool"
 ```
 
+### Example 3: Failing Prompt (What NOT to Do)
+
+> **Note**: This example shows what goes wrong when the post-craft verification
+> checklist is skipped. Every issue below maps to a specific checklist item.
+
+```
+/sc:implement
+
+Fix the authentication flow. It's broken when users try to log in
+with SSO. Check the auth files and make it work.
+
+Also update the tests.
+
+Expected commit: "fix: auth"
+```
+
+**Failures (mapped to post-craft verification checklist):**
+
+| # | Check | Issue |
+|---|-------|-------|
+| 1 | Skill from routing tree | No routing decision documented — copied from memory? |
+| 2 | Self-contained | "SSO" and "broken" need context the implementer doesn't have |
+| 3 | Files to read | "Check the auth files" — no file paths |
+| 4 | Numbered deliverables | No deliverables section — "make it work" is not a deliverable |
+| 5 | Model + mode | N/A (no orchestration) |
+| 6 | Verification | No verification section |
+| 7 | Commit format | "fix: auth" lacks scope and description |
+| 8 | No ambiguity | Requires follow-up questions the implementer can't ask |
+| 9 | Format matches target | No XML structure — missing context, instructions, verification |
+
+Apply the post-craft verification checklist row by row. The corrected version would look like Example 1.
+
 ---
 
 ## Skill Chain Embedding

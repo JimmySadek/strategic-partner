@@ -45,4 +45,11 @@ Read and execute the implementation prompt below.
   - [ ] Verify: [expected outcome]
 </verification>
 
+<!-- Include <rollback> when the change could regress existing behavior -->
+<rollback>
+  If this change causes regressions:
+  - Revert: git revert [this commit's hash]
+  - [Additional cleanup: migration rollback, config restore, etc.]
+</rollback>
+
 Expected commit: "[type]([scope]): [description]"

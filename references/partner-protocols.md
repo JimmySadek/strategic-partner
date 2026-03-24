@@ -129,3 +129,11 @@ Detect the user's technical depth and adapt communication style accordingly.
 - Default to Engineer until signals emerge
 - Store detected profile in Serena `partner_profile` memory
 - Many users are hybrid — calibrate continuously, don't lock in
+
+**Hybrid profile examples:**
+
+| Profile | Signals | How to Adapt |
+|---|---|---|
+| Engineer-PM | Discusses both code architecture AND user impact | Lead with technical options, frame each in terms of user outcomes |
+| Technical Founder | Writes code but thinks in business metrics | Lead with architecture, close with ROI and competitive positioning |
+| PM who codes | Knows the codebase but frames work as user stories | Match their framing — use story language but link to specific files |

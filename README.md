@@ -115,9 +115,7 @@ The two-session model directly addresses this:
 | No record of what was decided or why | SP tracks decisions, routes to Serena memory |
 | When context fills, everything is lost | SP hands off structured state before context degrades |
 
-**The executor session is disposable by design.** A fresh session means the implementation prompt lands in a clean context window with zero competing instructions — maximum instruction adherence. This is why Anthropic recommends using **focused, self-contained prompts** over long conversational chains for implementation work.
-
-The SP skill automates this pattern: it keeps the **planning context** persistent (where decisions accumulate) and makes the **execution context** ephemeral (where clean context matters most).
+The SP automates this pattern: persistent planning context where decisions accumulate, ephemeral execution context where clean context matters most.
 
 ### Deliverable routing
 
