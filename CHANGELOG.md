@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.5.0] - 2026-03-24
+
+### Added
+- **Fast Lane protocol** — three-lane delivery model for implementation prompts: small, mechanical tasks (≤2 files, single deliverable, unambiguous) can be dispatched to a sub-agent directly instead of requiring a copy-paste cycle to a new session
+- **Delivery Decision step** in prompt-crafting-guide — gates whether a crafted prompt goes to agent dispatch, ══ fences, or direct user action
+- **Post-Dispatch Review** — verification protocol for agent-dispatched tasks (git log, diff review, lesson extraction) with failure handling
+- **"Fast lane for small tasks"** subsection in README explaining the three-lane model
+
+### Fixed
+- **Implementation Firewall** — "Two checkpoints" corrected to "Three checkpoints" (Checkpoint 3 existed but count was never updated)
+
+### Changed
+- **Implementation Firewall flow diagram** — now shows three lanes (LARGE → manual session, SMALL → agent dispatch, TRIVIAL → direct action) instead of single path
+- **"No exception" text** — updated from absolute prohibition to reference the Fast Lane for qualifying tasks
+
 ## [4.4.1] - 2026-03-24
 
 ### Fixed
