@@ -98,6 +98,26 @@ SP:     Checks git log. Reviews what landed. Extracts lessons.
 
 **The SP never builds. The executor never decides.** That separation is what makes both sessions effective.
 
+### Fast lane for small tasks
+
+Not every task needs the full cycle. When a task is small enough (≤2 files, single
+deliverable, mechanical), the SP can dispatch it to a **sub-agent** directly:
+
+```
+SP:     Crafts the prompt as usual.
+        "This is small enough for agent dispatch. Want me to run it directly?"
+
+YOU:    "Go for it."
+
+SP:     Dispatches to a sub-agent (fresh context, same as a new session).
+        Agent runs → commits → returns result.
+        SP reviews the diff and reports back.
+```
+
+The sub-agent gets a **fresh context window** — same benefit as a separate session,
+without the copy-paste overhead. The SP still crafts the prompt, still reviews the
+result, still tracks decisions. For larger tasks, the full two-session model applies.
+
 ### Why two sessions?
 
 This isn't a quirky workflow — it's how Claude Code is designed to work best.

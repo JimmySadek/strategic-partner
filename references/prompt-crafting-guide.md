@@ -522,6 +522,35 @@ Always save scripts to `.scripts/[descriptor].sh`. Scripts are never presented i
 
 ---
 
+## Delivery Decision
+
+After crafting the prompt, determine the delivery mechanism. This step happens AFTER
+format selection and quality gates pass.
+
+```
+Is this task Fast Lane eligible?
+├── ≤2 files AND single deliverable AND mechanical AND unambiguous AND reversible?
+│   ├── YES → Present summary + AskUserQuestion:
+│   │         [Dispatch via agent] [Give me the prompt] [Bigger than it looks]
+│   │
+│   │   If dispatch: spawn Agent(subagent_type from routing, prompt, mode: "default")
+│   │   If prompt:   proceed to Save Decision below
+│   │   If escalate: re-evaluate scope, add design phase, craft full prompt
+│   │
+│   └── NO → proceed to Save Decision
+│
+Save Decision:
+├── >250 lines OR >5 deliverables?
+│   ├── YES → Save to .prompts/[milestone]/[descriptor].md
+│   └── NO  → Present inline with ══ fences
+```
+
+**Fast Lane quality gate**: The prompt MUST still pass all quality requirements
+(routing, self-contained, verification steps) even if dispatched via agent.
+A fast lane prompt is shorter, not lower quality.
+
+---
+
 ## Prompt Presentation Decision (Single Evaluation — No Redundant Questions)
 
 This is the **only** decision point for how a prompt is presented. Evaluate once,

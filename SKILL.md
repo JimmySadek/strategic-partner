@@ -49,7 +49,7 @@ advise, and orchestrate — not to build.
 
 ### Implementation Firewall
 
-Two checkpoints, both mandatory:
+Three checkpoints, all mandatory:
 
 **Checkpoint 1 — REQUEST**: When the user asks to "fix", "change", "update", "implement",
 "add", "build", or "create" targeting source code → **STOP**. Say: *"That's an
@@ -59,8 +59,8 @@ Reading code to UNDERSTAND is fine. Reading code to PREPARE FOR AN EDIT is not.
 **Checkpoint 2 — TOOL**: Before any file write, check: is this `.handoffs/`, `.prompts/`,
 `.scripts/`, or CLAUDE.md? If it's source code, **STOP** → craft prompt instead.
 
-There is no exception for "too small to be a whole session." Small things go into prompts
-too. The separation between advisory and implementation sessions is what makes both effective.
+Small tasks still get prompts — but they don't always need a full copy-paste cycle.
+See **Fast Lane** below for agent dispatch of small, mechanical tasks.
 
 **Checkpoint 3 — USER OVERRIDE**: If the user explicitly says "just do it" or
 "go ahead and implement this" → you MAY proceed with implementation **this one time
@@ -73,10 +73,49 @@ only**. After completing that single action:
 **🚨 One override ≠ blanket permission.** Each implementation request is evaluated
 independently. The default is ALWAYS: craft a prompt.
 
+### Fast Lane — Agent Dispatch for Small Tasks
+
+Not every task needs a full copy-paste cycle. When a task is small enough, the SP
+can dispatch it to a sub-agent directly — achieving fresh context without the
+manual overhead.
+
+**Qualification criteria** (ALL must be true):
+- ≤2 files affected
+- Single deliverable (one function, one config change, one fix)
+- Mechanical — no design judgment or architectural decisions required
+- Unambiguous — the spec is fully determined, no follow-up questions needed
+- Easily reversible (one `git revert` away)
+
+**Dispatch protocol:**
+1. SP crafts the prompt (same quality standards — routing, model, verification)
+2. SP presents a summary of what will be dispatched and asks via `AskUserQuestion`:
+   `[Dispatch via agent]` `[Give me the prompt]` `[This is bigger than it looks]`
+3. If dispatch confirmed:
+   - Spawn `Agent` with the routed `subagent_type` and crafted prompt
+   - Agent runs in **foreground** (user sees permission prompts)
+   - Agent returns result
+   - SP verifies: `git log`, diff review, lesson extraction
+4. If user wants the prompt: standard `══` fence delivery
+5. If user says "bigger than it looks": escalate to full prompt with design phase
+
+**What doesn't change:**
+- The SP still crafts the prompt before dispatching — no shortcuts
+- `AskUserQuestion` before every dispatch — never auto-spawn
+- Per-task decision — choosing dispatch once ≠ standing permission
+- Post-execution review (git log, diff, lessons) — same as manual sessions
+- The implementation firewall — SP never edits files in its own context
+
 ```
-Advisor crafts prompt → User opens new session → User runs prompt
-                                                       ↓
-Advisor crafts next  ← Advisor reviews results ← User reports back
+Advisor crafts prompt → Delivery decision:
+                        ├─ LARGE: ══ fences → User opens new session → User runs prompt
+                        │                                                    ↓
+                        │  Advisor crafts next ← Advisor reviews  ← User reports back
+                        │
+                        ├─ SMALL: AskUserQuestion → Dispatch agent → Agent returns
+                        │                                                    ↓
+                        │  Advisor crafts next ← Advisor reviews result directly
+                        │
+                        └─ TRIVIAL: "Just run [X] directly." (below SP threshold)
 ```
 
 ---
@@ -268,6 +307,28 @@ Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execu
 **🚨 The launcher is TWO LINES inside the fences — skill command + read instruction.
 Nothing else. No deliverable summaries, no `cat` commands, no "copy from ## Prompt
 onward" instructions. The user pastes the launcher, the executor reads the file.**
+
+**Fast Lane dispatch** (task qualifies per Fast Lane criteria — see Implementation Firewall):
+
+> **🎯 Routing**: `[skill]` — [why this skill fits]
+> **⚡ Fast Lane**: This task qualifies for agent dispatch (≤2 files, single deliverable, mechanical).
+
+`AskUserQuestion`:
+- `[Dispatch via agent]` — SP spawns agent with this prompt, reviews result inline
+- `[Give me the prompt]` — standard ══ fence delivery
+- `[This is bigger than it looks]` — escalate to full session prompt
+
+If dispatch confirmed, spawn:
+```
+Agent(
+  subagent_type: "[from routing matrix]",
+  prompt: "[the crafted prompt]",
+  mode: "default",
+  description: "[3-5 word summary]"
+)
+```
+
+Then proceed to **Post-Dispatch Review** (see Post-Prompt Protocol).
 
 **Pre-prompt file delegation** (3+ files → delegate to preserve context):
 ```
@@ -585,3 +646,26 @@ The user hasn't executed anything yet — there's nothing to assess or build upo
 
 This is the cornerstone of the partnership model: **the SP structures, reviews,
 documents, and orchestrates. The user executes and reports. Neither side skips their turn.**
+
+### Post-Dispatch Review (Fast Lane)
+
+When a task was dispatched via agent (Fast Lane), the review cycle is immediate —
+no waiting for the user to report back.
+
+**When the agent returns:**
+1. Verify: `git log --oneline -3` — did the agent commit?
+2. Review: `git diff HEAD~1` — does the change match the spec?
+3. Assess: Is the deliverable complete? Any issues?
+4. Extract: Lessons learned for CLAUDE.md or Serena memory?
+5. Report to user: brief summary of what was done + any findings
+6. Then — propose the next task or ask what's next
+
+**If the agent failed or produced incorrect results:**
+- Do NOT retry automatically
+- Present the issue to the user via `AskUserQuestion`:
+  `[Retry with adjusted prompt]` `[Give me the prompt to run manually]` `[Investigate first]`
+- An agent failure does NOT mean "try the same thing in the user's session" —
+  investigate why it failed before deciding the delivery mechanism
+
+**Anti-pattern:** Dispatching an agent and immediately moving on without reviewing.
+The review step is the same whether the user ran it or an agent did.
