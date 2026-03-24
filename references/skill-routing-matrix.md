@@ -239,6 +239,8 @@ installed skills. Always include these in the routing matrix.
 | `⚙️ Agent:socratic-mentor` | Sonnet | Educational guidance |
 | `⚙️ Agent:devops-architect` | Opus | Infrastructure, deployment |
 
+**📎 Mode selection**: See `orchestration-playbook.md` § Agent Permission Modes for the mode decision tree. Background agents require `mode: "auto"`.
+
 ---
 
 ## 🔄 Delta-Update Procedure

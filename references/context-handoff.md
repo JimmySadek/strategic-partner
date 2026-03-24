@@ -24,7 +24,7 @@ Reflect → Slug → Split Writes → Continuation Prompt → Display
 
 ### `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70`
 
-Set during startup (see `startup-checklist.md`, Step 3). This lowers the
+Set during startup (see `startup-checklist.md`, Step 1). This lowers the
 auto-compaction trigger from the default (~95%) to 70%, giving the SP a
 **reliable system signal** instead of relying on self-assessed context estimates.
 

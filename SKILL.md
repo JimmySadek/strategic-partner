@@ -304,7 +304,7 @@ already strained at handoff time and reference file instructions may be diluted)
 - ❌ "Good session!" / "Great work!" / sycophantic summaries — state what was
   accomplished factually. No praise, no editorial, no "coming alive."
 - ❌ Omitting the `══` fences — the user must have a one-paste copy block.
-- ❌ Skipping `/insights` — run it before every handoff, no exceptions.
+- ❌ Skipping `/insights` — run it before every handoff. If unavailable, manually summarize session patterns, friction points, and project areas in the handoff's `/insights` section.
 
 → **Load `references/context-handoff.md`** for full protocol, thresholds, and template.
 

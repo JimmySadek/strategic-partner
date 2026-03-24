@@ -639,5 +639,5 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Skipped parallelization check**: Writing prompt without answering the 4-question checklist → ALWAYS complete the parallelization check before writing
 - ❌ **Missing orchestration when required**: Parallelization check answered YES to Q1-3 but no `<orchestration>` section → prompt FAILS quality gate
 - ❌ **Skipped routing decision tree**: Picking a skill from memory instead of walking the scope + complexity tree → ALWAYS route through the decision tree
-- ❌ **Skipped post-craft verification**: Presenting prompt without running the 8-item checklist → ALWAYS verify before presenting
+- ❌ **Skipped post-craft verification**: Presenting prompt without running the 9-item checklist → ALWAYS verify before presenting
 - ❌ **Intuitive routing**: "This feels like a quick-task" without walking the tree → trust the tree, not intuition

@@ -219,7 +219,7 @@ strategic-partner/
     v4.0-implementation-decisions.md    # Decision log for audit findings F1-F12
 ```
 
-These aren't filler. The advisor **loads them on-demand** — the core SKILL.md (~540 lines) carries identity, core behaviors, and routing dispatch, while deep procedural content loads only when crafting prompts, routing edge cases, or preparing handoffs.
+These aren't filler. The advisor **loads them on-demand** — the core SKILL.md (~540 lines) carries identity, core behaviors, and routing dispatch, while deep procedural content loads at startup and when crafting prompts, routing edge cases, or preparing handoffs.
 
 ---
 
