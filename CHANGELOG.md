@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.3.2] - 2026-03-24
+
+### Added
+- **Pattern E: Diagnostic Audit** — orchestration playbook now includes a formal audit protocol with 5-step intent-check gate (Chesterton's Fence principle) preventing ~30% false positive rate at Important+ severity
+
+### Fixed
+- **Cross-reference step number** — context-handoff.md referenced "Step 3" for env var setup; corrected to "Step 1"
+- **Stale checklist count** — prompt-crafting-guide anti-patterns referenced "8-item checklist"; corrected to 9-item (format selection added in v4.2.0)
+- **README loading description** — added "at startup" to reference file loading description (previously excluded startup-checklist from on-demand list)
+- **/insights fallback alignment** — SKILL.md "no exceptions" softened to include manual fallback when /insights unavailable, aligning with existing template guidance
+
+### Changed
+- **Mode cross-reference** — skill-routing-matrix agent table now links to orchestration playbook's Agent Permission Modes section
+
 ## [4.3.1] - 2026-03-24
 
 ### Added
