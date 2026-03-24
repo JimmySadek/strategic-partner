@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.4.1] - 2026-03-24
+
+### Fixed
+- **Hardcoded Serena config path** — replaced `~/.serena/serena_config.yml` with dynamic discovery chain (get_current_config → ~/.serena/ → ~/.config/serena/) in SKILL.md, startup-checklist, and orchestration-playbook
+- **Hardcoded skill directory paths** — commands/handoff.md, sync-skills.md, and update.md now use `{skill-dir}` notation instead of `~/.claude/skills/strategic-partner/`
+- **Hardcoded hooks config path** — hooks-integration.md updated from legacy `~/.claude/hooks.json` to `~/.claude/settings.json` with `$CLAUDE_CONFIG_DIR` fallback
+- **Hardcoded companion script path** — uses `$SKILLSHARE_SCRIPTS_DIR` env var with fallback
+- **README manual install** — now shows multiple location options instead of single hardcoded path
+
+### Changed
+- **Serena unavailable → firm recommendation** — graceful degradation no longer silently "notes in orientation"; now displays a firm, one-time recommendation explaining concrete capability losses (cross-session memory, semantic navigation, codebase structure model) with install link
+- **Agent C dashboard check** — now uses Serena config discovery chain and reports `serena_not_detected` status when no config found
+
 ## [4.4.0] - 2026-03-24
 
 ### Added
