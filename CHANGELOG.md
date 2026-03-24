@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.4.0] - 2026-03-24
+
+### Added
+- **Version check agent (Agent E)** — background startup check fetches latest GitHub release; shows one-liner in orientation if outdated
+- **`/strategic-partner:update` subcommand** — checks version, shows changelog, detects install method (skillshare or git), runs update with confirmation
+- **Commands distribution** — subcommand files now bundled in `commands/` directory and auto-linked to `~/.claude/commands/` via Agent C on first run
+- **GitHub Releases step** — added step 7 to release process in CLAUDE.md; required for version-check system
+- **`repo:` frontmatter field** — SKILL.md now declares the GitHub repo for version checks
+- **"Staying updated" section in README** — documents automatic checks, update command, and GitHub Watch
+
+### Changed
+- **Agent C expanded** — now performs 3 checks: dashboard fix, gitignore, and commands symlink verification
+- **Self-delegation list updated** — version check and commands check added to "always delegate" tier
+- **Startup checklist** — Steps 2, 4, and 5 updated for Agent E integration
+
 ## [4.3.2] - 2026-03-24
 
 ### Added
