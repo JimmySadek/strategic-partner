@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.3.1] - 2026-03-24
+
+### Added
+- **Failing prompt example** — prompt-crafting guide now includes Example 3 showing common mistakes with a failures table mapping each issue to the post-craft verification checklist
+- **Rollback strategy section** — prompt template now includes a commented-out `<rollback>` section for changes that could regress existing behavior
+- **Hybrid profile examples** — partner-protocols now includes a table of hybrid user profiles (Engineer-PM, Technical Founder, PM who codes)
+
+### Fixed
+- **README "Why two sessions?" deduplication** — collapsed redundant conclusion paragraphs into a single sentence; intro + table + one-liner now covers the argument without repetition
+- **CHANGELOG "Checkpoint 3" phrasing** — renamed to "user override" for clarity without needing to read SKILL.md
+- **README stale line count** — second reference to SKILL.md line count updated from ~440 to ~540
+
+### Changed
+- **Internal pattern separation** — orchestration playbook Patterns A-D now have an explicit "Internal patterns only" callout preventing confusion with Patterns 1-4 used in crafted prompts
+
 ## [4.3.0] - 2026-03-24
 
 ### Added
