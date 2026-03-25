@@ -258,7 +258,7 @@ fails → **warn user immediately** (security concern for public repos).
 6. **Specify the model** — Opus or Sonnet explicitly for every agent spawn
 7. **Expected commit message** — conventional-commit format
 8. **No ambiguity** — nothing requiring follow-up questions
-9. **XML structure** — `<context>`, `<instructions>`, `<orchestration>`, `<verification>`
+9. **Match format to target provider** — load the provider guide from `references/provider-guides/` and use the correct tag/header structure for the user's chosen provider
 10. **Target branch** — if the project uses feature branches
 
 **Deliverable type routing:**
@@ -594,6 +594,7 @@ Browser automation needed?                → Playwright
 | `references/partner-protocols.md` | 🤝 Session naming, `/insights` integration, version bumps, partner adaptation | **Session naming**, version discussions, handoff prep |
 | `references/hooks-integration.md` | 🔧 Hook events (SessionStart, PreCompact, Stop, etc.), JSON configs, phased rollout | **Hook setup**, session management improvements |
 | `references/companion-script-spec.md` | 📊 Python context monitor architecture, `.context-state` format, threshold markers | **Power users** requesting external monitoring |
+| `references/provider-guides/` | 🎯 Provider-specific prompt format templates (Anthropic, OpenAI, Google) | **Before crafting any prompt** — load the guide matching the user's provider |
 
 ---
 

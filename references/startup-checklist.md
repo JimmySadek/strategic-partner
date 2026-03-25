@@ -327,6 +327,20 @@ These are **user-only slash commands** — the SP cannot execute them programmat
 As the session topic crystallizes (after 2-3 exchanges), suggest the user
 refine the name: `/rename sp-[topic]-MMDD` (e.g., `sp-auth-refactor-0316`).
 
+**Provider selection** (ask when the session topic involves implementation prompts):
+
+If the session will involve crafting implementation prompts (most SP sessions do),
+ask the user which model provider executors will target:
+
+> "Which provider will run your implementation sessions?"
+> Options: [Claude/Anthropic (Recommended)] [OpenAI/Codex] [Google/Gemini]
+
+Store the answer for the session. When crafting prompts, load the matching
+guide from `references/provider-guides/`. If the user doesn't know or says
+"mixed", default to Claude format (most structured, degrades gracefully).
+
+This question is asked ONCE per session, not per prompt.
+
 ---
 
 ## 🧠 Serena Memory Monitoring

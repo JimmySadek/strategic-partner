@@ -83,6 +83,28 @@ Answer all four questions before writing the prompt body. Record answers explici
 lacks an `<orchestration>` section, **the prompt FAILS**. Go back and add
 orchestration before proceeding.
 
+### Step 3: Delivery Routing
+
+Determine HOW the prompt will be delivered. This decision happens here — during
+pre-craft analysis — not as an afterthought after crafting.
+
+```
+How should this task be delivered?
+├── Meets ALL Fast Lane criteria?
+│   (≤2 files, single deliverable, mechanical, unambiguous, reversible)
+│   └── YES → Fast Lane — present dispatch option via AskUserQuestion
+│         [Dispatch via agent] [Give me the prompt] [Bigger than it looks]
+├── Below SP threshold entirely?
+│   (Single command, trivial config edit, no judgment needed)
+│   └── YES → Trivial — "Just run [X] directly."
+└── Otherwise
+    └── Full prompt — ══ fences (inline or saved per size rules)
+```
+
+**🔴 Quality gate**: Record the delivery decision before writing the prompt.
+If you skip this step and only realize the task is Fast Lane after crafting
+a full prompt, you wasted context. Assess early.
+
 ---
 
 ## Format Selection
@@ -92,168 +114,14 @@ target model. This is the **first structural decision** before writing the promp
 
 ```
 Which model runs the target session?
-├── Claude (Claude Code, Claude API, Anthropic SDK)
-│   └── XML structure: <context>, <instructions>, <orchestration>, <verification>
-│       → See "Claude 4.x Format" below
-│
-├── GPT-5.4 / OpenAI (Codex CLI, ChatGPT, OpenAI API)
-│   └── XML structure: <task>, <critical_rules>, <execution_order>, <edge_cases>, <output_contract>, <verification_loop>
-│       → See "GPT-5.4 Format" below
-│
-├── Gemini (Gemini CLI, Gemini API)
-│   └── Markdown structure with ## headers
-│       → See "Gemini Format" below
-│
-└── Unknown or multi-model
-    └── Default to Claude XML — most structured, degrades gracefully
+├── Claude → Load references/provider-guides/anthropic.md
+├── OpenAI → Load references/provider-guides/openai.md
+├── Gemini → Load references/provider-guides/google.md
+└── Unknown → Default to Claude (most structured, degrades gracefully)
 ```
 
----
-
-## Claude 4.x Format
-
-XML tag structure for Claude targets (Claude Code, Claude API, Anthropic SDK):
-
-```
-/[skill-name]
-
-<context>
-  Read first (in order):
-  1. path/to/file — what to look for
-  2. path/to/file — what to look for
-
-  Project conventions:
-  - [relevant CLAUDE.md rules]
-  - [relevant Serena memory gotchas]
-</context>
-
-<instructions>
-  [Clear, direct task description — 2-3 sentences max]
-
-  Deliverables:
-  1. [Specific file + what changes]
-  2. [...]
-
-  Constraints:
-  - [Project-specific rules from CLAUDE.md]
-  - [Pattern to follow from existing codebase]
-</instructions>
-
-<orchestration>
-  [Only include if multi-agent work needed]
-  Phase 1 (parallel):
-    Agent A (Sonnet 4.6, mode: "auto"): [task + expected output]
-    Agent B (Sonnet 4.6, mode: "auto"): [task + expected output]
-  Phase 2 (sequential):
-    Agent C (Opus 4.6, mode: "acceptEdits"): [synthesis task]
-</orchestration>
-
-<verification>
-  - [ ] [Specific check]
-  - [ ] Run: [test command]
-  - [ ] Verify: [expected outcome]
-</verification>
-
-Expected commit: "type(scope): description"
-```
-
----
-
-## GPT-5.4 Format
-
-XML-based tag structure, different tags from Claude. GPT-5.4 prioritizes early instructions
-and benefits from flat, explicit structure.
-
-```
-/[skill-name]
-
-<task>
-[What the executor should accomplish — clear, single-paragraph goal]
-</task>
-
-<critical_rules>
-[Non-negotiable constraints — placed FIRST for maximum adherence]
-1. Rule one.
-2. Rule two.
-</critical_rules>
-
-<execution_order>
-[Exact sequence of steps — flat numbered list, no nesting]
-1. Read these files first: [list]
-2. [Step]
-3. [Step]
-</execution_order>
-
-<edge_cases>
-[How to handle ambiguity or exceptions]
-- If X happens → do Y.
-- If unsure about Z → ask, don't assume.
-</edge_cases>
-
-<output_contract>
-[Exact deliverables and format]
-- Files to create/modify: [list]
-- Expected commit: "type(scope): description"
-</output_contract>
-
-<verification_loop>
-[Pre-completion checks — executor verifies before committing]
-1. [ ] Check one
-2. [ ] Check two
-</verification_loop>
-```
-
-### Claude vs GPT-5.4 Comparison
-
-| Aspect | Claude 4.x | GPT-5.4 |
-|---|---|---|
-| Critical rules placement | Inside `<instructions>` | Dedicated `<critical_rules>` tag, placed FIRST |
-| List style | Nested bullets OK | Flat lists only — split into sections instead |
-| Verification | `<verification>` checklist | `<verification_loop>` with pre-finalization checks |
-| Context | `<context>` with file list + constraints | `<task>` for goal + `<execution_order>` for file reads |
-| Orchestration | `<orchestration>` for multi-agent | Not applicable — GPT-5.4 uses single-agent model |
-| Mini/nano variants | N/A | Be more explicit about execution order (more literal) |
-
-### GPT-5.4 Prompt Rules
-
-1. **Critical rules FIRST** — GPT-5.4 prioritizes early instructions more strongly
-2. **Flat structure** — never nest bullets; if a step has sub-steps, make them a separate section
-3. **One example** — include one correct output example when the expected format isn't obvious
-4. **No ambiguity** — GPT-5.4 mini/nano variants are more literal and make fewer assumptions
-5. **Phase field** — for long-running workflows, note that the executor should preserve the phase field to prevent preambles being misinterpreted
-
----
-
-## Gemini Format
-
-When the target session runs Gemini (see Format Selection above):
-
-- Use Markdown headers and bullet points
-- Plain language instructions — no XML tags
-- Gemini doesn't benefit from XML structure
-- Include the same information (context, deliverables, constraints) in Markdown form
-
----
-
-## Hybrid Prompts (Claude Orchestrating Gemini)
-
-When a Claude session writes content consumed by Gemini:
-
-- Outer prompt: XML (for Claude to parse)
-- Inner content: Markdown (for Gemini to consume)
-- Clear delineation: "The following Markdown content is for Gemini, not for you to execute"
-
----
-
-## Claude 4.x Prompt Rules
-
-1. **No blanket tool instructions** → conditional triggers only ("use Serena find_symbol IF looking up a named symbol")
-2. **XML tags are native** → Claude is trained on XML-structured data, use them for structure
-3. **Self-check verification blocks** → Anthropic-recommended pattern for quality
-4. **Remove 3.x workarounds** → no excessive repetition, no sycophancy-bait phrasing
-5. **Frame questions neutrally** → reduced sycophancy in 4.x, leverage it
-6. **No prefill tricks** → use explicit format instructions instead
-7. **Examples in `<example>` tags** → 3-5 diverse examples yield best results when needed
+Provider guides contain format templates, tag references, rules, and examples.
+Load the matching guide before writing the prompt body.
 
 ---
 
@@ -272,7 +140,7 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 6 | `<verification>` has testable checkboxes with commands/outcomes | Says "verify it works" without specifying HOW |
 | 7 | Expected commit uses conventional-commit format | Missing or malformed `type(scope): description` |
 | 8 | Prompt is fully self-contained | References "our earlier discussion" or "current approach" |
-| 9 | Format matches target model (see Format Selection) | Claude prompt uses Markdown, GPT-5.4 uses Claude tags, or Gemini uses XML |
+| 9 | Format matches provider guide (see references/provider-guides/) | Claude prompt uses Markdown, GPT-5.4 uses Claude tags, or Gemini uses XML |
 
 **🚨 If any row fails**: Fix the prompt before presenting. Do not present with
 a note saying "you might want to add..." — the prompt must be complete.
@@ -524,29 +392,18 @@ Always save scripts to `.scripts/[descriptor].sh`. Scripts are never presented i
 
 ## Delivery Decision
 
-After crafting the prompt, determine the delivery mechanism. This step happens AFTER
-format selection and quality gates pass.
+The Fast Lane assessment was already made in Step 3 of the pre-craft analysis.
+This section covers the **save/inline decision for full prompts**.
 
 ```
-Is this task Fast Lane eligible?
-├── ≤2 files AND single deliverable AND mechanical AND unambiguous AND reversible?
-│   ├── YES → Present summary + AskUserQuestion:
-│   │         [Dispatch via agent] [Give me the prompt] [Bigger than it looks]
-│   │
-│   │   If dispatch: spawn Agent(subagent_type from routing, prompt, mode: "default")
-│   │   If prompt:   proceed to Save Decision below
-│   │   If escalate: re-evaluate scope, add design phase, craft full prompt
-│   │
-│   └── NO → proceed to Save Decision
-│
 Save Decision:
 ├── >250 lines OR >5 deliverables?
 │   ├── YES → Save to .prompts/[milestone]/[descriptor].md
 │   └── NO  → Present inline with ══ fences
 ```
 
-**Fast Lane quality gate**: The prompt MUST still pass all quality requirements
-(routing, self-contained, verification steps) even if dispatched via agent.
+**Quality gate**: The prompt MUST still pass all quality requirements
+(routing, self-contained, verification steps) regardless of delivery mechanism.
 A fast lane prompt is shorter, not lower quality.
 
 ---
