@@ -48,6 +48,11 @@ visual hierarchy.
 Expected commit: "type(scope): description"
 ```
 
+> **Note**: The Gemini format uses Markdown headers (`## Context`, `## Instructions`),
+> which is fine for saved prompts. For inline delivery (══ fences), avoid rendered markdown
+> features (bold, bullet lists, tables) within sections. Use numbered lists and plain text.
+> Saved prompts (`.prompts/`) can use full markdown.
+
 ---
 
 ## Formatting Rules

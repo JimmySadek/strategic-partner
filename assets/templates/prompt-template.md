@@ -14,8 +14,8 @@ Read and execute the implementation prompt below.
   2. path/to/file — [what to look for]
 
   Project conventions:
-  - [relevant CLAUDE.md rules]
-  - [relevant Serena memory gotchas]
+  1. [relevant CLAUDE.md rules]
+  2. [relevant Serena memory gotchas]
 </context>
 
 <instructions>
@@ -26,8 +26,8 @@ Read and execute the implementation prompt below.
   2. [...]
 
   Constraints:
-  - [Project-specific rules]
-  - [Patterns to follow]
+  1. [Project-specific rules]
+  2. [Patterns to follow]
 </instructions>
 
 <!-- Include <orchestration> only for multi-agent tasks -->
@@ -40,9 +40,9 @@ Read and execute the implementation prompt below.
 </orchestration>
 
 <verification>
-  - [ ] [Specific check — what to verify]
-  - [ ] Run: [test command]
-  - [ ] Verify: [expected outcome]
+  1. [ ] [Specific check — what to verify]
+  2. [ ] Run: [test command]
+  3. [ ] Verify: [expected outcome]
 </verification>
 
 <!-- Include <rollback> when the change could regress existing behavior -->

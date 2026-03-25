@@ -21,8 +21,8 @@ to Claude and provide the most reliable structure for complex prompts.
   2. path/to/file — what to look for
 
   Project conventions:
-  - [relevant CLAUDE.md rules]
-  - [relevant Serena memory gotchas]
+  1. [relevant CLAUDE.md rules]
+  2. [relevant Serena memory gotchas]
 </context>
 
 <instructions>
@@ -33,8 +33,8 @@ to Claude and provide the most reliable structure for complex prompts.
   2. [...]
 
   Constraints:
-  - [Project-specific rules from CLAUDE.md]
-  - [Pattern to follow from existing codebase]
+  1. [Project-specific rules from CLAUDE.md]
+  2. [Pattern to follow from existing codebase]
 </instructions>
 
 <orchestration>
@@ -47,13 +47,17 @@ to Claude and provide the most reliable structure for complex prompts.
 </orchestration>
 
 <verification>
-  - [ ] [Specific check]
-  - [ ] Run: [test command]
-  - [ ] Verify: [expected outcome]
+  1. [ ] [Specific check]
+  2. [ ] Run: [test command]
+  3. [ ] Verify: [expected outcome]
 </verification>
 
 Expected commit: "type(scope): description"
 ```
+
+> **Note**: When this template is used in inline prompts (══ fences), avoid markdown
+> formatting within tags. Use numbered lists and plain text. Saved prompts (`.prompts/`)
+> can use full markdown.
 
 ---
 

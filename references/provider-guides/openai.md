@@ -35,14 +35,14 @@ Uses XML-based tags but with different tag names and conventions from Claude.
 
 <edge_cases>
 [How to handle ambiguity or exceptions]
-- If X happens → do Y.
-- If unsure about Z → ask, don't assume.
+1. If X happens → do Y.
+2. If unsure about Z → ask, don't assume.
 </edge_cases>
 
 <output_contract>
 [Exact deliverables and format]
-- Files to create/modify: [list]
-- Expected commit: "type(scope): description"
+1. Files to create/modify: [list]
+2. Expected commit: "type(scope): description"
 </output_contract>
 
 <verification_loop>
@@ -51,6 +51,10 @@ Uses XML-based tags but with different tag names and conventions from Claude.
 2. [ ] Check two
 </verification_loop>
 ```
+
+> **Note**: When this template is used in inline prompts (══ fences), avoid markdown
+> formatting within tags. Use numbered lists and plain text. Saved prompts (`.prompts/`)
+> can use full markdown.
 
 ---
 

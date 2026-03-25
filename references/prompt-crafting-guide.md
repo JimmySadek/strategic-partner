@@ -125,6 +125,33 @@ Load the matching guide before writing the prompt body.
 
 ---
 
+## Copy-Safe Formatting (Inline Prompts)
+
+Inline prompts are rendered as markdown in Claude Code. When the user copies rendered
+text, markdown syntax is stripped: bold becomes plain text, bullet markers disappear,
+tables lose structure. Saved prompts do not have this problem (the executor reads raw
+file content via the Read tool).
+
+**Rule**: Inline prompt content inside ══ fences must use ONLY:
+
+1. XML tags for structure (these pass through markdown rendering untouched)
+2. Numbered lists (1. 2. 3.) for ordered items within tags
+3. Plain text for everything else
+4. Indentation for visual hierarchy
+
+Do NOT use inside inline prompts:
+
+1. Bold or italic markers (`**`, `*`, `_`)
+2. Bullet lists with `-` or `*`
+3. Markdown tables (`| col | col |`)
+4. Markdown headers (`## Header`) — use XML tags instead
+5. Code fences — unless the entire prompt is wrapped in one
+
+This rule applies to inline prompts only. Saved prompts (`.prompts/`) are read
+as raw files and can use any formatting.
+
+---
+
 ## 🔴 Post-Craft Self-Verification (Mandatory)
 
 After writing the prompt, run this checklist before presenting it. **Every item
@@ -141,6 +168,7 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 7 | Expected commit uses conventional-commit format | Missing or malformed `type(scope): description` |
 | 8 | Prompt is fully self-contained | References "our earlier discussion" or "current approach" |
 | 9 | Format matches provider guide (see references/provider-guides/) | Claude prompt uses Markdown, GPT-5.4 uses Claude tags, or Gemini uses XML |
+| 10 | Inline prompt is copy-safe (no markdown formatting inside ══ fences) | Uses bold, `-` bullets, or tables inside an inline prompt |
 
 **🚨 If any row fails**: Fix the prompt before presenting. Do not present with
 a note saying "you might want to add..." — the prompt must be complete.
@@ -527,3 +555,4 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Skipped routing decision tree**: Picking a skill from memory instead of walking the scope + complexity tree → ALWAYS route through the decision tree
 - ❌ **Skipped post-craft verification**: Presenting prompt without running the 9-item checklist → ALWAYS verify before presenting
 - ❌ **Intuitive routing**: "This feels like a quick-task" without walking the tree → trust the tree, not intuition
+- ❌ **Markdown in inline prompts**: Using bold, `-` bullets, or `| tables |` inside ══ fences — stripped on copy-paste → use XML tags + numbered plain text instead
