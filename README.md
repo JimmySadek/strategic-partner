@@ -2,43 +2,29 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-4.7.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.8.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 > Every other tool executes. This one decides **what** to execute.
 
-Think of it as your **Chief of Staff** — a strategic partner, literally. It helps you **plan**, **structure your thoughts**, and **keep track of your project**. It even recommends the **next best action**. It owns your **CLAUDE.md**, crafts **implementation prompts**, routes tasks to the **right skill or agent**, manages **cross-session memory**, and handles **context handoffs** before you lose state. It reads your installed **skills**, **MCP servers**, **agent types**, and **hooks** from the system context — so when it routes a task, it already knows what's available on your machine.
-
-**v4.0** brings **hooks integration** for proactive session management, **structured context handoffs** that preserve full session state before context degrades, a **fire-and-verify** pattern that catches silent agent failures, and a **lean hub architecture** that cuts SKILL.md context by ~40% while keeping all core behaviors inline. Prompt crafting now enforces **mandatory quality gates** — routing decision trees, parallelization checks, and post-craft verification — so every prompt the SP delivers is properly routed and complete.
-
-It captures your **git state** on startup, recommends optimal session settings (`/effort high`, `/rename`), verifies commits landed after implementation sessions, and structures every response around **diagrams first, tables second, prose last**. The ecosystem has plenty of tools for doing. Nothing for **deciding**.
+A strategic advisory skill for Claude Code. It sits between you and your implementation tools — asking the right questions, crafting scoped prompts, routing tasks to the right skill, and tracking decisions across sessions. You think with it. Other tools build what it specifies.
 
 ---
 
-## Quick start
+## The problem: context dilution
 
-Install:
+Claude's instruction-following quality degrades as context fills up. The more tool results, file reads, and back-and-forth accumulate in a single session, the less reliably Claude follows its original instructions. This is called **context dilution**.
 
-```bash
-npx skills add https://github.com/JimmySadek/strategic-partner
-```
+Most workflows ignore this. You open one session, plan and build in the same window, and by the time you're deep into implementation, the careful thinking from earlier has been pushed out by hundreds of tool calls. Decisions get made mid-build, often too late. When context fills, everything is lost.
 
-Run:
-
-```
-/strategic-partner
-```
-
-The skill loads an **advisory persona**, scans your project, and asks what you're working on. From there, it thinks with you and writes prompts for you to run in **separate implementation sessions**.
+The strategic partner solves this by splitting planning and execution into separate sessions — persistent advisory context where decisions accumulate, and ephemeral execution context where clean context matters most.
 
 ---
 
 ## How it works
 
-### You always have two sessions open
-
-This is the core operating model. It's how the skill is designed to be used.
+### Two sessions, one loop
 
 ```
 ┌─────────────────────────────────┐     ┌─────────────────────────────────┐
@@ -64,102 +50,13 @@ This is the core operating model. It's how the skill is designed to be used.
                └────────────────────────────────────────┘
 ```
 
-**Session 1** is your **persistent brain** — it accumulates decisions, tracks what's done, and knows the full picture. You never close it until the work is complete (or context runs out, at which point it hands off to a fresh advisory session).
-
-**Session 2** is a **disposable executor** — you open it, paste the prompt, let it run, report the results back to Session 1, and close it. Each prompt gets a fresh session with a full context window and zero baggage.
-
-### The loop in practice
-
-```
-YOU:    "We need to add JWT auth to the API"
-
-SP:     Asks 3 clarifying questions.
-        Crafts a prompt targeting the right skill.
-        Presents it in a copy-paste block:
-
-        ══════════════ START 🟢 COPY ══════════════
-        /[skill from routing matrix]
-
-        <context>...</context>
-        <instructions>...</instructions>
-        <verification>...</verification>
-
-        Expected commit: "feat(auth): add JWT middleware"
-        ══════════════= END 🛑 COPY ═══════════════
-
-        "Run this in a new session and come back with the results."
-
-YOU:    Open a new terminal tab. Paste the prompt. Let it run.
-        Come back to Session 1: "Done, committed on main."
-
-SP:     Checks git log. Reviews what landed. Extracts lessons.
-        Crafts the next prompt (or says "we're done").
-```
+You describe what you need. The SP asks clarifying questions, then delivers a self-contained prompt targeting the right skill with the right model. You paste that prompt into a fresh session — full context window, zero baggage. When it finishes, you report back. The SP reviews what landed, extracts lessons, and crafts the next prompt.
 
 **The SP never builds. The executor never decides.** That separation is what makes both sessions effective.
 
 ### Fast lane for small tasks
 
-Not every task needs the full cycle. When a task scores high on a 5-question
-simplicity assessment (no design judgment, no ambiguity, no cross-cutting concerns),
-the SP can dispatch it to a **sub-agent** directly:
-
-```
-SP:     Crafts the prompt as usual.
-        "This is small enough for agent dispatch. Want me to run it directly?"
-
-YOU:    "Go for it."
-
-SP:     Dispatches to a sub-agent (fresh context, same as a new session).
-        Agent runs → commits → returns result.
-        SP reviews the diff and reports back.
-```
-
-The sub-agent gets a **fresh context window** — same benefit as a separate session,
-without the copy-paste overhead. The SP still crafts the prompt, still reviews the
-result, still tracks decisions. For larger tasks, the full two-session model applies.
-
-### Why two sessions?
-
-This isn't a quirky workflow — it's how Claude Code is designed to work best.
-
-Anthropic's own documentation recommends **breaking complex tasks into focused sessions** rather than cramming everything into one. Claude's instruction-following quality degrades as context fills up — a phenomenon called **context dilution**. The more tool results, file reads, and back-and-forth accumulate in a single session, the less reliably Claude follows its original instructions.
-
-The two-session model directly addresses this:
-
-| One session does everything | Two-session model |
-|---|---|
-| Advisory context consumed by implementation | Advisory context preserved for decisions |
-| Tool calls and file reads fill up context fast | Executor gets a **fresh context window** per prompt |
-| Instructions diluted by accumulated noise | Each prompt is the **first thing** the executor sees |
-| Decisions made mid-build, often too late | Decisions made before any code is written |
-| No record of what was decided or why | SP tracks decisions, routes to Serena memory |
-| When context fills, everything is lost | SP hands off structured state before context degrades |
-
-The SP automates this pattern: persistent planning context where decisions accumulate, ephemeral execution context where clean context matters most.
-
-### Deliverable routing
-
-Not everything needs a Claude session. The SP decides what format fits:
-
-| Task type | Output | Where it goes |
-|-----------|--------|---------------|
-| Needs **AI judgment** (code, debugging, architecture) | Implementation prompt | `.prompts/` |
-| **Deterministic** commands (config, installs, setup) | Runnable shell script | `.scripts/` |
-| **Mixed** | Both — script for mechanical part, prompt for judgment part | Both directories |
-
-### Context handoffs
-
-When your advisory session approaches its context limit, the SP preserves everything:
-
-| Context Level | What happens |
-|---|---|
-| **Session end** | User says "done" / "wrapping up" → SP triggers full handoff automatically |
-| **60-70%** | SP monitors context, mentions handoff is approaching |
-| **70%+** | Full handoff — SP writes state to `.handoffs/` with a continuation prompt |
-| **70% (system)** | PreCompact hook fires as a reliable backstop |
-
-The handoff file contains: **decisions made**, **pending prompts**, **pending scripts**, **`/insights` analysis**, and a **continuation prompt** that restores the advisor persona in a fresh Session 1.
+Not every task needs the full cycle. When a task passes a 5-question simplicity assessment (no design judgment, no ambiguity, no cross-cutting concerns), the SP can dispatch it to a sub-agent directly — same fresh context, without the copy-paste overhead. The SP still crafts the prompt, still reviews the result.
 
 ---
 
@@ -198,29 +95,69 @@ You say: *"3 phases, new signups only"*
 
 Each prompt has: **files to read first**, **constraints from CLAUDE.md**, **verification checklist**, **expected commit message**.
 
-You paste Phase 1 into a **new terminal tab** → it runs → you come back and say "done." SP reviews the git log, then gives you Phase 2. You paste that into **another fresh session**. Repeat until the feature ships. The advisor session stays open throughout — it's your persistent planning layer.
+You paste Phase 1 into a **new terminal tab** — it runs — you come back and say "done." SP reviews the git log, then gives you Phase 2. Repeat until the feature ships.
 
----
-
-## The key difference
+### The key difference
 
 | Aspect | Normal session | `/strategic-partner` session |
 |--------|---------------|------------------------------|
-| **How it works** | You ask → Claude builds | You ask → SP **plans** → writes the brief → the right tool executes |
-| **Role** | Claude is a builder | SP is your **planning layer** — it decides, delegates, and tracks |
-| **Big tasks** | One session does everything → falls apart at scale | Work is **broken into focused phases** — each one scoped and self-contained |
-| **Decisions** | Discovered mid-build, often too late to change | **Surfaced before any work starts** — so you choose, not guess |
-| **Knowledge** | Dies when the session ends | **Carries forward** — decisions, patterns, and context survive across sessions |
-| **Tool selection** | You have to know which tool to use | SP **picks the right tool** based on what the task actually needs |
-| **Manual steps** | Terminal commands or manual steps? Claude gives you a **list to follow yourself** | SP generates a **runnable script** — one command replaces a page of manual steps |
-| **Context** | **Context** fills up silently — your progress and decisions are lost | SP **monitors your context** and preserves your state before it degrades |
-| **Releases** | You track versions and milestones manually | SP **proposes version bumps** at the right moment and keeps commit history clean |
+| **How it works** | You ask, Claude builds | You ask, SP **plans**, writes the brief, the right tool executes |
+| **Big tasks** | One session does everything, falls apart at scale | Work **broken into focused phases**, each scoped and self-contained |
+| **Decisions** | Discovered mid-build, often too late | **Surfaced before any work starts** |
+| **Knowledge** | Dies when the session ends | **Carries forward** via Serena memory and handoffs |
+| **Tool selection** | You pick the tool | SP **routes to the right tool** based on what the task needs |
+| **Context** | Fills up silently, progress lost | SP **monitors context** and preserves state before it degrades |
 
-SP is a **senior tech lead** who asks the right questions before your team starts building — so you don't discover the problem halfway through.
+---
+
+## Quick start
+
+### Install
+
+```bash
+# Via npx (recommended)
+npx skills add https://github.com/JimmySadek/strategic-partner
+
+# Via skillshare
+npx skillshare install https://github.com/JimmySadek/strategic-partner
+
+# Manual — clone to your preferred skills directory
+git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/strategic-partner
+```
+
+### Run
+
+```
+/strategic-partner
+```
+
+The skill loads an advisory persona, scans your project, and asks what you're working on.
+
+### Resume from a previous session
+
+```
+/strategic-partner .handoffs/onboarding-flow-0304-1430.md
+```
+
+### Aliases
+
+`/strategic-partner`, `/advisor`, `/sp` all invoke the same skill.
 
 ---
 
 ## What's included
+
+The SP operates through a lean core (SKILL.md) that loads reference material on demand:
+
+- **Strategic advisory and prompt crafting** — the core loop: think, plan, route, craft, review
+- **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
+- **Cross-session memory** — uses Serena to persist decisions, conventions, and codebase knowledge across sessions
+- **Context handoff management** — monitors context pressure and preserves full session state before it degrades
+- **Anti-sycophancy and cognitive patterns** — direct communication style with named thinking heuristics for architecture and trade-off decisions
+- **Provider-specific prompt formatting** — adapts prompt structure for Claude, OpenAI, and Gemini targets
+
+<details>
+<summary>Full file tree</summary>
 
 ```
 strategic-partner/
@@ -240,6 +177,7 @@ strategic-partner/
     partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
     hooks-integration.md                # Hook events, JSON configs, phased rollout
     companion-script-spec.md            # Python context monitor architecture (spec only)
+    cognitive-patterns.md               # Named thinking heuristics for architecture and trade-offs
     provider-guides/
       anthropic.md                      # Claude XML prompt format template
       openai.md                         # GPT-5.4 prompt format template
@@ -251,58 +189,13 @@ strategic-partner/
     v4.0-implementation-decisions.md    # Decision log for audit findings F1-F12
 ```
 
-These aren't filler. The advisor **loads them on-demand** — the core SKILL.md carries identity, core behaviors, and routing dispatch, while deep procedural content loads at startup and when crafting prompts, routing edge cases, or preparing handoffs. The `commands/` directory is auto-linked to `~/.claude/commands/strategic-partner/` on first run — no manual setup needed.
+</details>
+
+The `commands/` directory is auto-linked to `~/.claude/commands/strategic-partner/` on first run — no manual setup needed.
 
 ---
 
-## Installation
-
-### Via npx (recommended)
-
-```bash
-npx skills add https://github.com/JimmySadek/strategic-partner
-```
-
-### Via skillshare
-
-```bash
-npx skillshare install https://github.com/JimmySadek/strategic-partner
-```
-
-### Manual
-
-Clone the repo into your skills directory:
-
-```bash
-# Clone to your preferred skills directory
-git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/strategic-partner
-
-# Common locations:
-# ~/.config/skillshare/skills/strategic-partner  (Skillshare standard)
-# ~/.claude/skills/strategic-partner              (Claude Code standard)
-```
-
----
-
-## Usage
-
-### Main command
-
-```
-/strategic-partner
-```
-
-Loads the full **advisory persona** with startup sequence.
-
-### With a handoff file
-
-```
-/strategic-partner .handoffs/onboarding-flow-0304-1430.md
-```
-
-Resumes from a **previous session's handoff**.
-
-### Subcommands
+## Subcommands
 
 | Command | What it does |
 |---------|-------------|
@@ -312,31 +205,15 @@ Resumes from a **previous session's handoff**.
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for **updates** and self-update to latest version |
 
-### Aliases
-
-`/strategic-partner`, `/advisor`, `/sp` all invoke the same skill.
-
 ---
 
 ## Requirements
 
 - **Claude Code** — the skill runs inside Claude Code sessions
-- **Serena MCP** (recommended) — for **cross-session memory** and semantic code navigation
+- **Serena MCP** (recommended) — for cross-session memory and semantic code navigation
 - **Context7 MCP** (optional) — for library documentation lookup
 
-The skill works without Serena, but loses **cross-session memory** and semantic code navigation. **CLAUDE.md ownership** and **prompt crafting** work regardless.
-
----
-
-## Troubleshooting
-
-| Scenario | What happens | What to do |
-|---|---|---|
-| **Serena MCP unavailable** | Cross-session memory and semantic code navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
-| **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
-| **Hooks not configured** | Context monitoring relies on self-assessment only | SP uses self-assessed thresholds instead of the PreCompact hook backstop. Consider adding hooks for reliability. |
-| **Sub-agents hit permission walls** | Background agents can't prompt for approval — WebFetch, Bash, and cross-directory reads fail silently | SP runs a **permission pre-flight** on startup that detects missing permissions and proposes adding them. One-time fix that persists across all sessions. |
-| **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
+The skill works without Serena, but loses cross-session memory and semantic code navigation. CLAUDE.md ownership and prompt crafting work regardless.
 
 ---
 
@@ -346,7 +223,7 @@ The skill works without Serena, but loses **cross-session memory** and semantic 
 
 Every SP session checks for updates in the background. If a newer version exists:
 
-> ⚡ Strategic Partner **v4.4.0** available (you have v4.3.2). Run `/strategic-partner:update` to update.
+> Strategic Partner **v4.8.0** available (you have v4.7.0). Run `/strategic-partner:update` to update.
 
 ### Update command
 
@@ -354,22 +231,32 @@ Every SP session checks for updates in the background. If a newer version exists
 /strategic-partner:update
 ```
 
-Checks the latest version, shows what changed, and runs the update. Detects whether
-you installed via skillshare or git clone and uses the right method. After updating,
-it re-links any new subcommand files automatically.
+Checks the latest version, shows what changed, and runs the update. Detects whether you installed via skillshare or git clone and uses the right method. After updating, it re-links any new subcommand files automatically.
 
 ### GitHub notifications
 
 For release announcements with full changelogs:
 
 1. Go to [github.com/JimmySadek/strategic-partner](https://github.com/JimmySadek/strategic-partner)
-2. Click **Watch** → **Custom** → check **Releases** → **Apply**
+2. Click **Watch** > **Custom** > check **Releases** > **Apply**
+
+---
+
+## Troubleshooting
+
+| Scenario | What happens | What to do |
+|---|---|---|
+| **Serena MCP unavailable** | Cross-session memory and semantic navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
+| **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
+| **Hooks not configured** | Context monitoring relies on self-assessment only | SP uses self-assessed thresholds instead of the PreCompact hook backstop. Consider adding hooks for reliability. |
+| **Sub-agents hit permission walls** | Background agents can't prompt for approval — WebFetch, Bash, and cross-directory reads fail silently | SP runs a permission pre-flight on startup that detects missing permissions and proposes adding them. One-time fix. |
+| **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
 
 ---
 
 ## What this is not
 
-- Not an **orchestrator** — though it can dispatch small tasks to sub-agents via Fast Lane, its primary role is deciding what to build and routing to the right tool.
+- Not an **orchestrator** — it can dispatch small tasks to sub-agents, but its primary role is deciding what to build and routing to the right tool.
 - Not a **skill catalogue**. It knows when to use the skills you already have.
 - Not a **memory system**. It uses Serena for storage, but the point is knowing what to remember and when to bring it back.
 - Doesn't **replace** your implementation skills. Just gives them better prompts.
