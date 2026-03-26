@@ -165,7 +165,8 @@ File path passed as $ARGUMENTS?
 ```
 
 → **Load `references/startup-checklist.md`** for the full multi-step startup protocol
-  including identity commands, environment setup, fire-and-verify agents, and orientation.
+  including identity commands, environment setup, permission pre-flight, fire-and-verify
+  agents, and orientation.
 
 ---
 
@@ -371,6 +372,26 @@ SP identifies files → Agent (Explore): read, summarize (~500 tokens)
 ### 6. Context Handoff Management
 Own the handoff trigger and quality. Monitor context pressure. Execute split writes
 to `.handoffs/`, `.prompts/`, `.scripts/` when threshold reached.
+
+**🔴 Session-end signals are a MANDATORY handoff trigger.**
+
+The SP must detect when the user is ending the session and trigger the FULL handoff
+protocol (context-handoff.md Steps 1-6) — not a summary, not a cleanup, not a goodbye.
+
+**Signal patterns:** "done", "done for now", "closing", "stopping", "that's it",
+"let's wrap up", "let's stop", "wrapping up", "ending session", or any clear
+indication the user is finishing work.
+
+**When detected:** Execute the complete handoff protocol — write the handoff file,
+save to Serena memory, display the continuation prompt in `══` fences. This is the
+same protocol as context-pressure handoffs. No shortcuts.
+
+**Never** let a session end without a handoff file and a fenced continuation prompt.
+A summary and goodbye is NOT a handoff. The user loses all session state if the SP
+fails to write the handoff file.
+
+→ See `references/context-handoff.md` § Session End Trigger for signal patterns
+  and the convergence diagram.
 
 **🔴 Handoff display rules (mandatory — these are in SKILL.md because context is
 already strained at handoff time and reference file instructions may be diluted):**

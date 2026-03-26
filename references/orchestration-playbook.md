@@ -167,11 +167,13 @@ This is the #1 cause of "agent did nothing" bugs. Always specify mode.
 ```
 Is this agent doing read-only work (research, exploration, file reading)?
 ├─ YES → mode: "auto"
-└─ NO → Does it write/edit files?
+└─ NO → Does it write config files (gitignore, settings, symlinks)?
     ├─ YES → mode: "acceptEdits"
-    └─ NO → Does it need unrestricted tool access?
-        ├─ YES → mode: "bypassPermissions" (⚠️ security risk — document why)
-        └─ NO → mode: "default" (foreground agents only)
+    └─ NO → Does it write/edit source or implementation files?
+        ├─ YES → mode: "acceptEdits"
+        └─ NO → Does it need unrestricted tool access?
+            ├─ YES → mode: "bypassPermissions" (⚠️ security risk — document why)
+            └─ NO → mode: "default" (foreground agents only)
 ```
 
 ### Belt-and-Suspenders: Pre-Approve Common Tools
@@ -393,11 +395,12 @@ For each file, report:
 Keep total response under 500 tokens. Focus on what an implementer needs to know.
 ```
 
-### Pattern D: Fire-and-Verify Operations (mode: "auto")
+### Pattern D: Fire-and-Verify Operations (mode: "auto", Agent C: "acceptEdits")
 
-These spawn without blocking startup (background agents, `mode: "auto"`), but their
-results are **verified** before the SP presents its orientation. See
-`startup-checklist.md` for verification logic.
+These spawn without blocking startup. Background agents require explicit mode:
+`"auto"` for read-only agents, `"acceptEdits"` for agents that write files
+(e.g., Agent C). Results are **verified** before the SP presents its orientation.
+See `startup-checklist.md` for verification logic.
 
 **Serena dashboard fix (with dynamic discovery):**
 ```
@@ -616,6 +619,7 @@ definition exists, recommend it to the user alongside the standard `Agent()` opt
 - ❌ **Skipping Explore**: Jumping to implementation before understanding existing code
 - ❌ **Missing model spec**: Not specifying model in agent spawn instructions
 - ❌ **Missing mode spec**: Not specifying `mode` in agent spawn instructions — background agents fail silently without it
+- ❌ **Wrong mode for writing agents**: Using `mode: "auto"` for agents that write files (e.g., gitignore, config fixes, symlinks) — auto only covers reads. Use `"acceptEdits"` for any agent that writes files
 - ❌ **Agent overkill**: Spawning agents for tasks that a single skill invocation handles
 - ❌ **Agent vs skill**: Using Agent tool when a direct skill command exists (unnecessary overhead)
 - ❌ **Delegating strategy reads**: Delegating CLAUDE.md or handoff file reading (SP must internalize)

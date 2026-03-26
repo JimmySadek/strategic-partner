@@ -134,16 +134,24 @@ still allowing aggressive context usage.
 
 **SP Behavior:**
 ```
-┌─ Stop Cleanup Sequence ─────────────────────────────┐
-│  1. 🧠 Write session summary to Serena memory       │
-│     • Key decisions made                             │
-│     • Files modified                                 │
-│     • Open issues and next steps                     │
-│  2. 🏷️ Remind user to name session if unnamed      │
-│  3. ⚠️ Warn if pending prompts exist               │
-│  4. 🧹 Clean up temporary session files             │
-└──────────────────────────────────────────────────────┘
+┌─ Stop Sequence ───────────────────────────────────────────────────┐
+│  1. 🔄 Trigger full handoff protocol if not already done          │
+│     • Write handoff file + continuation prompt (══ fences)       │
+│     • This is the PRIMARY action — session state preservation    │
+│     • Skip only if handoff was already written this session      │
+│  2. 🧠 Write session summary to Serena memory                    │
+│     • Key decisions made                                         │
+│     • Files modified                                             │
+│     • Open issues and next steps                                 │
+│  3. ⚠️ Warn if pending prompts exist                            │
+│  4. 🧹 Clean up temporary session files                          │
+└───────────────────────────────────────────────────────────────────┘
 ```
+
+The handoff protocol (Step 1) follows the same Steps 1-6 from `context-handoff.md`.
+This is the **backstop** — if the SP detected the user's session-end signal earlier
+and already wrote the handoff, Step 1 is a no-op. If the SP missed the signal,
+the Stop hook ensures state is preserved before the session closes.
 
 **Configuration** — minimal signal stub (detection only, not a functional hook):
 ```json

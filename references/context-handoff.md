@@ -104,6 +104,55 @@ after every major deliverable and before starting new analysis, regardless of le
 
 ---
 
+## 🛑 Session End Trigger
+
+Session-end signals trigger the **same handoff protocol** as context pressure.
+When the user indicates they are finishing, the SP executes Steps 1-6 below —
+identical to context-pressure handoffs. There is no separate "session end" flow.
+
+**Signal patterns** (keywords and intent indicators):
+- Explicit: "done", "done for now", "closing", "stopping", "that's it"
+- Wrap-up: "let's wrap up", "let's stop", "wrapping up", "ending session"
+- Intent: any clear indication the user is finishing work for this session
+
+```
+┌─ Two Trigger Paths, One Protocol ──────────────────────────────────┐
+│                                                                     │
+│  Path 1: Context Pressure              Path 2: Session End          │
+│  ┌────────────────────────┐           ┌────────────────────────┐   │
+│  │ 🟡 60-70%: monitor     │           │ User signals "done",   │   │
+│  │ 🔴 70%+: full handoff  │           │ "wrapping up", etc.    │   │
+│  │ 🚨 PreCompact fires    │           │                        │   │
+│  └──────────┬─────────────┘           └──────────┬─────────────┘   │
+│             │                                     │                 │
+│             └──────────────┬──────────────────────┘                 │
+│                            ▼                                        │
+│              ┌──────────────────────────┐                           │
+│              │  SAME Handoff Protocol   │                           │
+│              │  Steps 1-6 (below)       │                           │
+│              │                          │                           │
+│              │  1. Reflect (/insights)  │                           │
+│              │  2. Derive slug          │                           │
+│              │  3. Split writes         │                           │
+│              │  4. Continuation prompt  │                           │
+│              │  5. Gitignore coverage   │                           │
+│              │  6. Display ══ fences    │                           │
+│              └──────────────────────────┘                           │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+> **🚨 Anti-pattern:** The SP summarized the session and said goodbye without
+> writing a handoff file. This is the exact failure mode this trigger prevents.
+> A summary is NOT a handoff. Without the handoff file and continuation prompt,
+> all session state is lost when the session closes.
+
+**Backstop:** The Stop hook (`hooks-integration.md`) fires when the session ends
+and will trigger the handoff protocol if the SP missed the user's signal. This is
+a safety net — the SP should catch session-end signals proactively, not rely on
+the hook.
+
+---
+
 ## 📋 Handoff Protocol
 
 ### Step 1: 🔍 Reflect on the Session

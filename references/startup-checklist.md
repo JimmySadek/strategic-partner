@@ -8,18 +8,18 @@ Do not display to user.
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  SP Startup Flow                                                          │
 │                                                                           │
-│  Step 1           Step 2          Step 3       Step 4                    │
-│  Env Vars    →   Spawn Agents  → Read State → Verify                   │
-│  AUTOCOMPACT      ┌─ Agent A     $ARGUMENTS    ✅ Agent C (security)    │
-│  _PCT=70         ├─ Agent B     Serena        ✅ Agent D (routing)     │
-│                  ├─ Agent C     CLAUDE.md      ⚡ Agent E (version)    │
-│                  ├─ Agent D          │              │                  │
-│                  └─ Agent E          │              │                  │
-│                    🗺️ Matrix          │              │                  │
-│                       │              │              ▼                  │
-│                       └──────────────┘         Step 5                  │
-│                                                📋 Orientation          │
-│                                                + Session setup recs    │
+│  Step 1        Step 1.5       Step 2          Step 3       Step 4       │
+│  Env Vars  →  Permission  → Spawn Agents  → Read State → Verify        │
+│  AUTOCOMPACT   Pre-flight     ┌─ Agent A     $ARGUMENTS    ✅ Agent C   │
+│  _PCT=70      WebFetch       ├─ Agent B     Serena        ✅ Agent D   │
+│               ln -s          ├─ Agent C     CLAUDE.md      ⚡ Agent E  │
+│               mkdir -p       ├─ Agent D          │              │      │
+│                              └─ Agent E          │              │      │
+│                                🗺️ Matrix          │              │      │
+│                                   │              │              ▼      │
+│                                   └──────────────┘         Step 5      │
+│                                                            📋 Orient   │
+│                                                            + Setup recs│
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -53,12 +53,65 @@ guessing its own context consumption.
 
 ---
 
+## 🔑 Step 1.5: Permission Pre-flight
+
+Ensure background agents have the permissions they need before spawning them.
+This is a one-time setup — permissions persist in `settings.json` across all sessions.
+
+```
+┌─ Permission Pre-flight Flow ──────────────────────────────────────────────┐
+│                                                                            │
+│  1. 📂 Discover settings file                                              │
+│     ├─ Check ~/.claude/settings.json                                       │
+│     ├─ If not found → check $CLAUDE_CONFIG_DIR/settings.json               │
+│     └─ If neither exists → create ~/.claude/settings.json with {}          │
+│                                                                            │
+│  2. 📖 Read current permissions.allow array (may not exist)                │
+│                                                                            │
+│  3. ✅ Check for required entries:                                          │
+│     ├─ "WebFetch *"      — Agent E needs this for version checks           │
+│     ├─ "Bash(ln -s *)"   — Agent C needs this for command symlinks         │
+│     └─ "Bash(mkdir -p *)" — Agent C needs this for creating directories    │
+│                                                                            │
+│  4. All present?                                                            │
+│     ├─ YES → proceed silently (no user interaction)                        │
+│     └─ NO  → AskUserQuestion (see below)                                   │
+│                                                                            │
+│  5. If user approves:                                                       │
+│     ├─ Read settings.json                                                  │
+│     ├─ Merge missing entries into permissions.allow (preserve existing)     │
+│     └─ Write back                                                          │
+│                                                                            │
+│  6. If user declines:                                                       │
+│     └─ Note in orientation that some agents may fail silently              │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+**When permissions are missing**, ask via `AskUserQuestion`:
+
+> "The Strategic Partner's startup agents need these permissions:
+>
+> - `WebFetch *` — version check agent fetches GitHub API
+> - `Bash(ln -s *)` — config agent symlinks subcommands to `~/.claude/commands/`
+> - `Bash(mkdir -p *)` — config agent creates the commands directory if needed
+>
+> This is a one-time setup — permissions persist in `settings.json` across all sessions."
+>
+> Options: `[Yes, add them]` `[Skip — agents will run with reduced capability]`
+
+If the user approves, read `settings.json`, merge only the missing entries into
+`permissions.allow` (preserve all existing entries), and write back. If the user
+declines, proceed normally but note in orientation that some agents may fail silently.
+
+---
+
 ## 🤖 Step 2: Spawn Background Agents (Fire-and-Verify)
 
-Spawn these agents **in parallel** with `mode: "auto"`. All four are read-only/config
-background agents — they read files, check patterns, and return summaries. Background
-agents **cannot prompt the user for permissions**, so `mode: "auto"` is required to
-auto-approve their read and search operations without blocking.
+Spawn these agents **in parallel**. Agents A, B, D, E are read-only and use
+`mode: "auto"`. Agent C writes config files and uses `mode: "acceptEdits"`.
+Background agents **cannot prompt the user for permissions**, so explicit mode
+selection is required to auto-approve operations without blocking.
 
 ### Agent A: 🔍 Staleness Check (mode: "auto")
 
@@ -73,7 +126,7 @@ Validates that Serena memories match the actual codebase.
 
 Quick scan for major structural changes since last session.
 
-### Agent C: 🛡️ Dashboard Fix + Gitignore Check (mode: "auto", Combined)
+### Agent C: 🛡️ Dashboard Fix + Gitignore Check (mode: "acceptEdits", Combined)
 
 Combines two previously separate fire-and-forget operations into a **single
 verifiable agent**.
@@ -88,19 +141,20 @@ verifiable agent**.
 │    3. If not found, check ~/.config/serena/serena_config.yml     │
 │    4. If none found → Serena likely not installed                │
 │  If config found:                                                │
-│    If web_dashboard_open_on_launch = true → set false            │
+│    Read config → if web_dashboard_open_on_launch = true          │
+│    → use Edit tool to set false (NOT Bash)                       │
 │  Report:                                                         │
 │    ✅ success | ✅ already_off | ❌ config_not_writable           │
 │    ⚠️ serena_not_detected (no config found anywhere)             │
 └──────────────────────────────────────────────────────────────────┘
-┌─ 2. Gitignore Check ────────────────────────────────┐
-│  Check .gitignore for required entries:              │
-│    • .handoffs/                                      │
-│    • .prompts/                                       │
-│    • .scripts/                                       │
-│  If any missing → add them                           │
-│  Report: ✅ success | ✅ already_covered | ❌ failed   │
-└──────────────────────────────────────────────────────┘
+┌─ 2. Gitignore Check ────────────────────────────────────────────┐
+│  Read .gitignore for required entries:                            │
+│    • .handoffs/                                                  │
+│    • .prompts/                                                   │
+│    • .scripts/                                                   │
+│  If any missing → use Edit or Write tool to add them (NOT Bash) │
+│  Report: ✅ success | ✅ already_covered | ❌ failed              │
+└──────────────────────────────────────────────────────────────────┘
 ┌─ 3. Commands Symlink Check ─────────────────────────────────────┐
 │  Determine skill directory (where SKILL.md lives)                │
 │  Check if {skill-dir}/commands/ directory exists                  │
@@ -109,6 +163,8 @@ verifiable agent**.
 │      Check ~/.claude/commands/ (standard location)               │
 │      If not found, check $CLAUDE_CONFIG_DIR/commands/            │
 │    Target: {commands-dir}/strategic-partner/                      │
+│    Use Bash for mkdir -p and ln -s (covered by permission        │
+│    pre-flight in Step 1.5)                                       │
 │    For each .md file in {skill-dir}/commands/:                   │
 │      If target missing or not a symlink → create symlink         │
 │  Report: ✅ success | ✅ already_linked | ❌ failed               │
@@ -184,17 +240,23 @@ Lightweight background check for skill updates.
 **What it does:**
 
 ```
-┌─ Version Check ────────────────────────────────────────┐
-│  1. Read SKILL.md frontmatter → extract repo field      │
-│  2. Fetch: api.github.com/repos/{repo}/releases/latest  │
-│  3. Extract tag_name → strip leading "v" if present     │
-│  4. Return: { latest_version: "X.Y.Z" }                 │
-│     OR:     { error: "unreachable" }                     │
-│                                                          │
-│  ⚠️  Timeout: 5 seconds. No retries.                    │
-│  ⚠️  If no Releases exist, try /tags?per_page=1.        │
-│  ⚠️  If both fail → { error: "no_releases" }.           │
-└──────────────────────────────────────────────────────────┘
+┌─ Version Check ────────────────────────────────────────────────────┐
+│  1. Read SKILL.md frontmatter → extract repo field                  │
+│  2. Use the WebFetch tool to fetch the URL:                         │
+│     https://api.github.com/repos/{repo}/releases/latest             │
+│     Do NOT use Bash, curl, or any shell command for HTTP requests.  │
+│     WebFetch is covered by the permission pre-flight (Step 1.5).   │
+│  3. Extract tag_name → strip leading "v" if present                 │
+│  4. Return: { latest_version: "X.Y.Z" }                             │
+│     OR:     { error: "unreachable" }                                 │
+│                                                                      │
+│  ⚠️  Timeout: 5 seconds. No retries.                                │
+│  ⚠️  If no Releases exist, try /tags?per_page=1 (also via WebFetch)│
+│  ⚠️  If both fail → { error: "no_releases" }.                       │
+│  ⚠️  If WebFetch is unavailable or denied →                         │
+│       return { error: "webfetch_unavailable" }                       │
+│       Do NOT fall back to Bash/curl.                                 │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 **Why an agent**: Network call output should not consume main context.
