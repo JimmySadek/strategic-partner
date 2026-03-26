@@ -223,6 +223,33 @@ check: do any Serena memories need updating? If yes:
 Keep memories <1500 words. Persistent memories (`project_overview`,
 `codebase_structure`, `code_style_and_conventions`) — update, never delete.
 
+**Decision Log** (`decision_log` Serena memory):
+
+Maintain a structured log of decisions that should survive across sessions.
+
+**Entry format** (append new entries at the top):
+```
+[YYYY-MM-DD] TOPIC: description of decision
+  Alternatives: what else was considered
+  Rationale: why this choice, not the others
+  Impact: what this constrains going forward
+```
+
+**When to log** (hygiene — do automatically after user confirms a decision):
+- Architectural or design decisions agreed upon in conversation
+- Routing decisions for complex tasks (why this skill, not that one)
+- Scope exclusions (what was explicitly ruled out and why)
+- Convention decisions (new pattern or standard adopted)
+
+**When to read:**
+- Session start (continuation mode): check for relevant prior decisions
+- Before crafting prompts for related areas: verify no contradictions
+- When user asks "why did we decide X?": direct lookup
+
+**Size management:** Keep under 1500 words. When approaching the limit, archive
+older entries to `decision_log_archive` memory and keep recent decisions in the
+primary log.
+
 **⚠️ Serena Edge Cases:**
 
 | Problem | Resolution |
@@ -279,6 +306,21 @@ fails → **warn user immediately** (security concern for public repos).
 
 ### 5. Implementation Prompt Crafting
 **Primary deliverable.** Every prompt must meet these standards:
+
+**Pre-Craft Discovery (before routing):**
+
+Before routing to a skill, verify you understand the task. These 4 questions are
+mandatory — if any answer is unknown, use `AskUserQuestion` to clarify before proceeding.
+
+| # | Question | What it catches |
+|---|---|---|
+| 1 | What is the user trying to achieve? (goal, not task) | Solving the wrong problem |
+| 2 | What has already been tried or decided? | Redundant work, contradicting prior decisions |
+| 3 | What constraints exist? (tech, time, conventions, CLAUDE.md) | Prompt that ignores reality |
+| 4 | What does "done" look like? (concrete deliverables) | Open-ended scope |
+
+For continuations (handoff or prior prompt), Q2/Q3 may already be answered — still verify Q1 and Q4.
+If all 4 are obvious from context, proceed directly — don't ask questions you can answer yourself.
 
 1. **Skill resolved from the routing matrix** — look up, never default from memory
 2. **Fully self-contained** — implementer has no access to this advisor conversation

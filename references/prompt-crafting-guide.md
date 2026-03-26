@@ -4,7 +4,7 @@ Reference file for the strategic-partner advisor. Standards for crafting impleme
 prompts across target models.
 
 ```
-Routing Decision Tree → Parallelization Check → Quality Check → Format Selection (Claude XML / GPT-5.4 XML / Gemini MD / Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
+Discovery Protocol → Routing Decision Tree → Parallelization Check → Quality Check → Format Selection (Claude XML / GPT-5.4 XML / Gemini MD / Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
 ```
 
 ---
@@ -30,6 +30,28 @@ Every implementation prompt must:
 
 **🚨 STOP. Complete both analyses below BEFORE writing any prompt.** These are not
 optional guidance — skipping them is a quality gate failure.
+
+### Step 0: Discovery Protocol
+
+Before routing, confirm you can answer all 4 discovery questions:
+
+1. **Goal**: What is the user trying to achieve? (the outcome, not the task)
+2. **Prior work**: What has already been tried or decided? (check handoff files, Serena decision_log, conversation history)
+3. **Constraints**: What constraints exist? (CLAUDE.md rules, tech stack, time, existing patterns)
+4. **Definition of done**: What does "done" look like? (concrete, verifiable deliverables)
+
+If ANY answer is unknown or ambiguous, use `AskUserQuestion` to clarify BEFORE
+proceeding to routing. Do not guess — the prompt cannot ask follow-up questions.
+
+For continuation tasks (handoff or prior prompt), answers 2 and 3 may already be
+established. Still verify 1 and 4 — goals shift and definitions of done evolve.
+
+If all 4 are obvious from conversation context, proceed directly to Step 1.
+Do not ask questions you can answer yourself — that wastes the user's time.
+
+**Quality gate**: If you reach Step 1 (Routing) without being able to articulate
+the goal and definition of done, STOP and go back. A well-routed prompt for the
+wrong goal is worse than no prompt at all.
 
 ### Step 1: Routing Decision Tree
 
