@@ -314,13 +314,65 @@ mandatory — if any answer is unknown, use `AskUserQuestion` to clarify before 
 
 | # | Question | What it catches |
 |---|---|---|
-| 1 | What is the user trying to achieve? (goal, not task) | Solving the wrong problem |
+| 1 | What is the user trying to achieve? (goal, not task) — **see Premise Challenge below** | Solving the wrong problem; solution-shaped requests |
 | 2 | What has already been tried or decided? | Redundant work, contradicting prior decisions |
 | 3 | What constraints exist? (tech, time, conventions, CLAUDE.md) | Prompt that ignores reality |
 | 4 | What does "done" look like? (concrete deliverables) | Open-ended scope |
 
+**Premise Challenge (conditional depth increase on Q1):**
+
+When a request assumes a solution rather than stating a problem, push harder on Q1
+before accepting the framing. Trigger conditions — any one activates the challenge:
+
+1. **Names a specific technology** as the starting point ("add caching", "use Redis")
+2. **Describes HOW before WHY** ("refactor to use GraphQL")
+3. **Assumes a root cause** without evidence ("the database is slow")
+4. **Solution-shaped** rather than problem-shaped ("build a queue" vs "users see stale data")
+
+When any trigger fires, the SP asks via `AskUserQuestion`:
+- "What evidence points to [assumed cause]?"
+- "What happens if we do nothing?"
+- "Is there a simpler explanation?"
+
+If no triggers fire, Q1 proceeds as written. If the user has already provided evidence
+and rationale (e.g., in a handoff or prior discussion), acknowledge it and move on —
+premise challenge is not an interrogation, it's a smell check.
+
 For continuations (handoff or prior prompt), Q2/Q3 may already be answered — still verify Q1 and Q4.
+Alternatives may also be pre-decided in continuation sessions (see Forced Alternatives below).
 If all 4 are obvious from context, proceed directly — don't ask questions you can answer yourself.
+
+### Forced Alternatives (pre-routing path selection)
+
+After discovery and BEFORE routing, for non-trivial tasks the SP presents 2–3 distinct
+approaches via `AskUserQuestion`. The user picks a path. THEN the SP routes and crafts.
+
+```
+Discovery → Alternatives → Routing → Craft
+               ↑                       ↑
+         "Which path?"          "Here's the prompt"
+```
+
+**Three paths:**
+
+| Path | Description | Purpose |
+|---|---|---|
+| **A — Minimal** | Smallest change that solves the stated problem | Low risk, fast, may leave debt |
+| **B — Recommended** | What the SP would actually suggest, with rationale | Balanced — the SP's best judgment |
+| **C — Lateral** | Reframing the problem or a creative alternative | May unlock a better outcome entirely |
+
+Each path: 2–3 sentences + the key trade-off. The SP states which path it recommends
+and why. User picks via `AskUserQuestion`: `[Path A — Minimal]` `[Path B — Recommended]`
+`[Path C — Lateral]` `[Just do what you'd recommend]`
+
+**Skip conditions (alternatives NOT required):**
+
+| Condition | Rationale |
+|---|---|
+| Fast Lane tasks (scored 4–5/5 on simplicity) | Mechanical — no design judgment |
+| Continuation tasks with approach already decided | Re-litigating wastes time |
+| Single-file mechanical changes | One obvious path |
+| User explicitly overrides ("just do X") | User has already chosen |
 
 1. **Skill resolved from the routing matrix** — look up, never default from memory
 2. **Fully self-contained** — implementer has no access to this advisor conversation

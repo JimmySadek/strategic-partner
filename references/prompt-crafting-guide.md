@@ -4,7 +4,7 @@ Reference file for the strategic-partner advisor. Standards for crafting impleme
 prompts across target models.
 
 ```
-Discovery Protocol → Routing Decision Tree → Parallelization Check → Quality Check → Format Selection (Claude XML / GPT-5.4 XML / Gemini MD / Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
+Discovery Protocol → Alternatives Analysis → Routing Decision Tree → Parallelization Check → Quality Check → Format Selection (Claude XML / GPT-5.4 XML / Gemini MD / Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
 ```
 
 ---
@@ -35,7 +35,7 @@ optional guidance — skipping them is a quality gate failure.
 
 Before routing, confirm you can answer all 4 discovery questions:
 
-1. **Goal**: What is the user trying to achieve? (the outcome, not the task)
+1. **Goal**: What is the user trying to achieve? (the outcome, not the task) — **see Premise Challenge below**
 2. **Prior work**: What has already been tried or decided? (check handoff files, Serena decision_log, conversation history)
 3. **Constraints**: What constraints exist? (CLAUDE.md rules, tech stack, time, existing patterns)
 4. **Definition of done**: What does "done" look like? (concrete, verifiable deliverables)
@@ -45,13 +45,87 @@ proceeding to routing. Do not guess — the prompt cannot ask follow-up question
 
 For continuation tasks (handoff or prior prompt), answers 2 and 3 may already be
 established. Still verify 1 and 4 — goals shift and definitions of done evolve.
+Alternatives (Step 0b) may also be pre-decided in continuation sessions.
 
-If all 4 are obvious from conversation context, proceed directly to Step 1.
+If all 4 are obvious from conversation context, proceed directly to Step 0b.
 Do not ask questions you can answer yourself — that wastes the user's time.
 
-**Quality gate**: If you reach Step 1 (Routing) without being able to articulate
+**Quality gate**: If you reach Step 0b (Alternatives) without being able to articulate
 the goal and definition of done, STOP and go back. A well-routed prompt for the
 wrong goal is worse than no prompt at all.
+
+#### Premise Challenge (conditional depth increase on Q1)
+
+When a request assumes a solution rather than stating a problem, push harder on Q1
+before accepting the framing. This is not a separate protocol — it is a conditional
+escalation that activates when smell triggers fire.
+
+**Trigger conditions** — any one activates the challenge:
+
+| # | Trigger | Example |
+|---|---------|---------|
+| 1 | Names a specific technology as the starting point | "add caching", "use Redis" |
+| 2 | Describes HOW before WHY | "refactor to use GraphQL" |
+| 3 | Assumes a root cause without evidence | "the database is slow" |
+| 4 | Solution-shaped rather than problem-shaped | "build a queue" vs "users see stale data" |
+
+**When any trigger fires**, ask via `AskUserQuestion`:
+- "What evidence points to [assumed cause]?"
+- "What happens if we do nothing?"
+- "Is there a simpler explanation?"
+
+**When no triggers fire**, Q1 proceeds as written — no extra questions.
+
+**Edge case**: If the user has already provided evidence and rationale (e.g., in a
+handoff, prior session, or detailed request), acknowledge it and move on. Premise
+challenge is a smell check, not an interrogation.
+
+### Step 0b: Alternatives Analysis
+
+After discovery and BEFORE routing, for non-trivial tasks the SP presents 2–3 distinct
+approaches. The user picks a path via `AskUserQuestion`. THEN the SP routes and crafts.
+
+```
+Discovery (Step 0) → Alternatives (Step 0b) → Routing (Step 1) → Craft
+                          ↑                                         ↑
+                    "Which path?"                          "Here's the prompt"
+```
+
+**Three paths:**
+
+| Path | Description | Purpose |
+|---|---|---|
+| **A — Minimal** | Smallest change that solves the stated problem | Low risk, fast, may leave debt |
+| **B — Recommended** | What the SP would actually suggest, with rationale | Balanced — the SP's best judgment |
+| **C — Lateral** | Reframing the problem or a creative alternative | May unlock a better outcome entirely |
+
+Each path: 2–3 sentences + the key trade-off. The SP states which path it recommends
+and why. Present via `AskUserQuestion`:
+`[Path A — Minimal]` `[Path B — Recommended]` `[Path C — Lateral]` `[Just do what you'd recommend]`
+
+**Example — "Add caching to the API layer":**
+
+| Path | Approach | Trade-off |
+|---|---|---|
+| **A — Minimal** | Add response-level HTTP cache headers (`Cache-Control`, `ETag`) on the 3 slowest endpoints. No new infrastructure. | Fast to ship, but only helps repeat requests from the same client. |
+| **B — Recommended** | Introduce an in-process LRU cache (e.g., `lru-cache` or `@isaacs/ttlcache`) keyed by query params, with a 60s TTL. Requires invalidation strategy for write-after-read. | Covers all clients, moderate complexity, no external dependencies. |
+| **C — Lateral** | Profile the actual bottleneck first (`--inspect` + flame graph). The "slow API" may be N+1 queries or missing indexes — caching would mask the real problem. | Slower to start, but might eliminate the need for caching entirely. |
+
+**→ Recommendation: Path C.** The request assumes caching is the fix, but we haven't
+confirmed what's actually slow. 30 minutes of profiling could save a week of cache
+invalidation bugs.
+
+**Skip conditions** (alternatives NOT required):
+
+| Condition | Rationale |
+|---|---|
+| Fast Lane tasks (scored 4–5/5 on simplicity) | Mechanical — no design judgment needed |
+| Continuation tasks with approach already decided | Re-litigating wastes time |
+| Single-file mechanical changes | One obvious path |
+| User explicitly overrides ("just do X") | User has already chosen |
+
+**Quality gate**: If alternatives are required (non-trivial task, not skipped) but
+not presented before routing, the prompt **FAILS**. Go back to Step 0b.
 
 ### Step 1: Routing Decision Tree
 
