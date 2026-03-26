@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-4.5.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.6.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -239,6 +239,10 @@ strategic-partner/
     partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
     hooks-integration.md                # Hook events, JSON configs, phased rollout
     companion-script-spec.md            # Python context monitor architecture (spec only)
+    provider-guides/
+      anthropic.md                      # Claude XML prompt format template
+      openai.md                         # GPT-5.4 prompt format template
+      google.md                         # Gemini Markdown prompt format template
   assets/templates/
     prompt-template.md                  # Implementation prompt skeleton
     handoff-template.md                 # Session handoff skeleton (with /insights section)
@@ -364,7 +368,7 @@ For release announcements with full changelogs:
 
 ## What this is not
 
-- Not an **orchestrator**. It doesn't spawn agents. It tells you which orchestrator to reach for.
+- Not an **orchestrator** — though it can dispatch small tasks to sub-agents via Fast Lane, its primary role is deciding what to build and routing to the right tool.
 - Not a **skill catalogue**. It knows when to use the skills you already have.
 - Not a **memory system**. It uses Serena for storage, but the point is knowing what to remember and when to bring it back.
 - Doesn't **replace** your implementation skills. Just gives them better prompts.

@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.6.0] - 2026-03-26
+
+### Added
+- **Simplicity scoring model** — Fast Lane now uses a 5-question negative-test assessment instead of rigid file-count criteria; file count becomes a signal, not a gate
+- **Agent definition file awareness** — SP checks for `.claude/agents/` definitions before dispatch, recommends creating them for recurring patterns; comparison table added to orchestration playbook
+- **Provider-specific prompt format guides** — dedicated guides for Claude (XML), OpenAI (GPT-5.4), and Gemini (Markdown) extracted to `references/provider-guides/`
+- **Copy-safe formatting rules** — inline prompts use XML + plain text only to survive markdown rendering on copy-paste
+- **Delivery routing in pre-craft** — format selection and delivery routing integrated as mandatory pre-craft steps
+
+### Changed
+- **Fast Lane criteria** — replaced "≤2 files, single deliverable, mechanical, unambiguous, reversible" with simplicity scoring (5/5 = dispatch, ≤2/5 = full prompt)
+- **Prompt-crafting guide refactored** — provider-specific format details extracted to dedicated guides, reducing main guide ~160 lines
+
+### Fixed
+- **README file tree** — added `references/provider-guides/` directory
+- **README "What this is not"** — corrected "doesn't spawn agents" claim (Fast Lane dispatches agents)
+
 ## [4.5.0] - 2026-03-24
 
 ### Added
