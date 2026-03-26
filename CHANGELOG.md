@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.7.0] - 2026-03-26
+
+### Added
+- **Permission pre-flight** — new startup step (1.5) detects missing permissions (`WebFetch *`, `Bash(ln -s *)`, `Bash(mkdir -p *)`) and proposes adding them via AskUserQuestion; one-time fix that persists across all sessions
+- **Session-end mandatory handoff** — SP detects session-end signals ("done", "wrapping up", etc.) and triggers the full handoff protocol instead of summarizing and exiting; Stop hook serves as backstop
+
+### Fixed
+- **Agent C mode mismatch** — changed from `mode: "auto"` to `mode: "acceptEdits"`; uses Edit/Write for file modifications, Bash only for symlinks (covered by pre-flight permissions)
+- **Agent E tool selection** — explicitly uses WebFetch for HTTP requests instead of Bash/curl; covered by pre-flight WebFetch permission
+- **Orchestration playbook mode guidance** — mode decision tree now distinguishes read-only agents (`auto`) from config-writing agents (`acceptEdits`)
+
 ## [4.6.0] - 2026-03-26
 
 ### Added
