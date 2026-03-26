@@ -34,13 +34,27 @@ Before modifying any files, show:
 
 ### 4. Review README Content
 
-Before modifying version files, scan README.md for stale content:
+Before modifying version files, review README.md at TWO levels:
 
-- **File tree descriptions** (e.g., skill counts, feature claims) — do they match current state?
-- **Threshold numbers or behavioral claims** — do they reflect the latest changes?
-- **Feature descriptions** — any new capabilities missing or removed features still listed?
+**Level 1 — Factual accuracy (every release):**
+- File tree descriptions — do they match current state?
+- Version numbers in example text — do they reference current versions?
+- Feature descriptions — any new capabilities missing or removed features still listed?
+- Stale claims — any behavioral descriptions that no longer match reality?
 
-Fix any stale content as part of the version bump commit.
+**Level 2 — First-time user test (every 3rd minor release, or on any release with new user-facing features):**
+- Read the README as a stranger. Does the opening explain what this is within 30 seconds?
+- Is the information flow logical? (Why → What → How → Get started)
+- Are there version-specific callouts that should be timeless? (e.g., "v4.0 brings..." → should describe current state)
+- Is the two-session model explained clearly and without redundancy?
+- Would a user be excited to install this after reading?
+- Are features from the last 3+ releases represented (not just the latest)?
+
+If Level 2 reveals structural issues, propose a README rewrite as a separate deliverable
+in the release — not a patch. Present findings to user via AskUserQuestion before proceeding.
+
+Fix Level 1 issues as part of the version bump commit.
+Fix Level 2 issues as a dedicated commit (may require a separate implementation prompt).
 
 ### 5. Execute the Bump
 
