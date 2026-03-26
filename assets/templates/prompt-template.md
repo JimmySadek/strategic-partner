@@ -30,6 +30,16 @@ Read and execute the implementation prompt below.
   2. [Patterns to follow]
 </instructions>
 
+<!-- Include <not-in-scope> for multi-file changes. Optional for single-file fixes.
+     Name specific adjacent temptations the executor will face — not vague platitudes
+     like "keep changes minimal." The goal is to prevent scope creep at execution time. -->
+<not-in-scope>
+  Do NOT:
+  1. [Specific adjacent change the executor will be tempted to make]
+  2. [Another specific exclusion — name the file, module, or pattern to leave alone]
+  3. [...]
+</not-in-scope>
+
 <!-- Include <orchestration> only for multi-agent tasks -->
 <orchestration>
   Phase 1 (parallel):

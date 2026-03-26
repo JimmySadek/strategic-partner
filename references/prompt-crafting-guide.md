@@ -23,6 +23,8 @@ Every implementation prompt must:
 8. **Leave no ambiguity** — nothing that would require follow-up questions
 9. **Match format to target model** — Claude: XML tags; GPT-5.4: flat XML tags; Gemini: Markdown headers (see Format Selection)
 10. **Specify the target branch** — if the project uses feature branches, name the branch in the prompt's `<context>` section so the implementer works in the right place
+11. **Include NOT-in-scope exclusions** for multi-file prompts — name specific adjacent temptations the executor will face (optional for single-file fixes)
+12. **Label recommendations SAFE or RISK** — signal whether a recommendation is established practice or an opinionated position (skip for factual statements)
 
 ---
 
@@ -277,6 +279,8 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 8 | Prompt is fully self-contained | References "our earlier discussion" or "current approach" |
 | 9 | Format matches provider guide (see references/provider-guides/) | Claude prompt uses Markdown, GPT-5.4 uses Claude tags, or Gemini uses XML |
 | 10 | Inline prompt is copy-safe (no markdown formatting inside ══ fences) | Uses bold, `-` bullets, or tables inside an inline prompt |
+| 11 | `<not-in-scope>` present for multi-file prompts with specific exclusions | Missing for multi-file prompt, or contains vague platitudes ("keep changes minimal") instead of naming specific adjacent temptations |
+| 12 | Recommendations within the prompt are labeled SAFE or RISK where applicable | Opinionated recommendation presented as fact without signaling confidence level |
 
 **🚨 If any row fails**: Fix the prompt before presenting. Do not present with
 a note saying "you might want to add..." — the prompt must be complete.
@@ -661,6 +665,9 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Skipped parallelization check**: Writing prompt without answering the 4-question checklist → ALWAYS complete the parallelization check before writing
 - ❌ **Missing orchestration when required**: Parallelization check answered YES to Q1-3 but no `<orchestration>` section → prompt FAILS quality gate
 - ❌ **Skipped routing decision tree**: Picking a skill from memory instead of walking the scope + complexity tree → ALWAYS route through the decision tree
-- ❌ **Skipped post-craft verification**: Presenting prompt without running the 9-item checklist → ALWAYS verify before presenting
+- ❌ **Skipped post-craft verification**: Presenting prompt without running the 12-item checklist → ALWAYS verify before presenting
 - ❌ **Intuitive routing**: "This feels like a quick-task" without walking the tree → trust the tree, not intuition
 - ❌ **Markdown in inline prompts**: Using bold, `-` bullets, or `| tables |` inside ══ fences — stripped on copy-paste → use XML tags + numbered plain text instead
+- ❌ **Missing not-in-scope**: Multi-file prompt without a `<not-in-scope>` section → executors fill silence with features; name the specific adjacent changes to leave alone
+- ❌ **Vague scope exclusions**: "Don't change unrelated code" or "keep changes minimal" → name the exact files, modules, or patterns the executor should not touch (e.g., "Do NOT migrate existing tests to the new pattern")
+- ❌ **Unlabeled opinionated recommendations**: Presenting a judgment call as if it were established practice → label with [RISK] so the user/executor can calibrate trust. Factual statements don't need labels
