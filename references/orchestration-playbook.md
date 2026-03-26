@@ -564,6 +564,50 @@ Add to the `<orchestration>` section or as a top-level directive:
 
 ---
 
+## Agent Definition Files vs Agent() Dispatch
+
+The `Agent()` tool accepts: `model`, `mode`, `subagent_type`, `prompt`,
+`description`, `name`, `isolation`, `run_in_background`. This covers most
+dispatch needs. But **agent definition files** (`.claude/agents/name.md`)
+unlock additional configuration:
+
+| Capability | Agent() | Definition file |
+|---|---|---|
+| model, mode, prompt | ✅ | ✅ |
+| skills, effort | ❌ | ✅ |
+| tools, disallowedTools | ❌ | ✅ |
+| hooks, memory, maxTurns | ❌ | ✅ |
+| mcpServers, initialPrompt | ❌ | ✅ |
+
+### When to Recommend Creating a Definition
+
+- **Recurring task patterns**: The same Fast Lane shape appears 3+ times (quick-fixes,
+  doc updates, test additions) — encode the skills, effort, and tool restrictions once
+- **Skill injection**: The agent needs specific skills loaded that `Agent()` can't set
+- **Tool restrictions**: The agent should NOT have access to certain tools (e.g., no
+  `WebFetch` for a code-only fixer)
+- **Effort tuning**: Low-effort tasks shouldn't consume full reasoning depth
+
+### Example Definition (`.claude/agents/quick-fix.md`)
+
+```markdown
+---
+model: sonnet
+effort: low
+skills: ["code-simplifier"]
+disallowedTools: ["WebFetch", "WebSearch"]
+maxTurns: 15
+---
+
+You are a quick-fix agent. Execute the task described in your prompt.
+Follow project conventions from CLAUDE.md. Commit when done.
+```
+
+When dispatching via Fast Lane, check `.claude/agents/` first. If a matching
+definition exists, recommend it to the user alongside the standard `Agent()` option.
+
+---
+
 ## Anti-Patterns
 
 - ❌ **Opus for implementation**: Spawning Opus agents for implementation tasks (waste of capability)

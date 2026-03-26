@@ -79,12 +79,25 @@ Not every task needs a full copy-paste cycle. When a task is small enough, the S
 can dispatch it to a sub-agent directly — achieving fresh context without the
 manual overhead.
 
-**Qualification criteria** (ALL must be true):
-- ≤2 files affected
-- Single deliverable (one function, one config change, one fix)
-- Mechanical — no design judgment or architectural decisions required
-- Unambiguous — the spec is fully determined, no follow-up questions needed
-- Easily reversible (one `git revert` away)
+**Simplicity assessment** (evaluate all 5 — score by NO answers):
+
+| # | Disqualifying factor | What it checks |
+|---|---|---|
+| 1 | Does it require design judgment? | Choosing between approaches, architecture decisions |
+| 2 | Are there multiple valid implementations? | More than one reasonable way to do it |
+| 3 | Are requirements uncertain or ambiguous? | Needs clarification before starting |
+| 4 | Does it cross architectural boundaries? | Touches patterns used across the system |
+| 5 | Could it break unrelated functionality? | Side effects beyond the changed files |
+
+| Score | Action |
+|---|---|
+| 5/5 NO | **DISPATCH** — high confidence |
+| 4/5 NO | **DISPATCH** — mention the one concern to user |
+| 3/5 NO | **ASK USER** — borderline; present dispatch as an option alongside full prompt |
+| ≤2/5 NO | **FULL PROMPT** — too complex for dispatch |
+
+File count is a signal, not a gate. A 5-file mechanical rename scores 5/5.
+A 1-file algorithm redesign scores 2/5.
 
 **Dispatch protocol:**
 1. SP crafts the prompt (same quality standards — routing, model, verification)
@@ -104,6 +117,22 @@ manual overhead.
 - Per-task decision — choosing dispatch once ≠ standing permission
 - Post-execution review (git log, diff, lessons) — same as manual sessions
 - The implementation firewall — SP never edits files in its own context
+
+### Agent Definition Files
+
+Projects with `.claude/agents/` definition files get richer dispatch than the
+`Agent()` tool alone. Definition files support `skills`, `effort`, `tools`,
+`disallowedTools`, `hooks`, `memory`, `maxTurns`, `mcpServers`, and
+`initialPrompt` — none of which `Agent()` can set.
+
+**Before dispatching**, check `.claude/agents/` for a definition that matches
+the task type. If one exists, recommend using it. If a project has recurring
+Fast Lane patterns (e.g., frequent quick-fixes, doc updates), suggest creating
+a purpose-built agent definition to capture skills, tool restrictions, and
+effort level — so dispatch quality improves over time without SP overhead.
+
+→ See `references/orchestration-playbook.md` § Agent Definition Files vs Agent()
+  Dispatch for the full comparison and an example definition.
 
 ```
 Advisor crafts prompt → Delivery decision:
@@ -311,7 +340,7 @@ onward" instructions. The user pastes the launcher, the executor reads the file.
 **Fast Lane dispatch** (task qualifies per Fast Lane criteria — see Implementation Firewall):
 
 > **🎯 Routing**: `[skill]` — [why this skill fits]
-> **⚡ Fast Lane**: This task qualifies for agent dispatch (≤2 files, single deliverable, mechanical).
+> **⚡ Fast Lane**: This task qualifies for agent dispatch (scored 4-5/5 on simplicity assessment).
 
 `AskUserQuestion`:
 - `[Dispatch via agent]` — SP spawns agent with this prompt, reviews result inline

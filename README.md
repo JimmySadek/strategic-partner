@@ -100,8 +100,9 @@ SP:     Checks git log. Reviews what landed. Extracts lessons.
 
 ### Fast lane for small tasks
 
-Not every task needs the full cycle. When a task is small enough (≤2 files, single
-deliverable, mechanical), the SP can dispatch it to a **sub-agent** directly:
+Not every task needs the full cycle. When a task scores high on a 5-question
+simplicity assessment (no design judgment, no ambiguity, no cross-cutting concerns),
+the SP can dispatch it to a **sub-agent** directly:
 
 ```
 SP:     Crafts the prompt as usual.

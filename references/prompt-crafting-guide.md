@@ -90,16 +90,28 @@ pre-craft analysis — not as an afterthought after crafting.
 
 ```
 How should this task be delivered?
-├── Meets ALL Fast Lane criteria?
-│   (≤2 files, single deliverable, mechanical, unambiguous, reversible)
-│   └── YES → Fast Lane — present dispatch option via AskUserQuestion
+├── Run the 5-question simplicity assessment:
+│   1. Does it require design judgment?
+│   2. Are there multiple valid implementations?
+│   3. Are requirements uncertain or ambiguous?
+│   4. Does it cross architectural boundaries?
+│   5. Could it break unrelated functionality?
+│
+├── Score 5/5 or 4/5 NO?
+│   └── Fast Lane — present dispatch option via AskUserQuestion
 │         [Dispatch via agent] [Give me the prompt] [Bigger than it looks]
+│         (4/5: mention the one concern to user)
+├── Score 3/5 NO?
+│   └── Borderline — present dispatch as an option alongside full prompt
 ├── Below SP threshold entirely?
 │   (Single command, trivial config edit, no judgment needed)
-│   └── YES → Trivial — "Just run [X] directly."
-└── Otherwise
+│   └── Trivial — "Just run [X] directly."
+└── Score ≤2/5 NO or otherwise
     └── Full prompt — ══ fences (inline or saved per size rules)
 ```
+
+File count is a signal, not a gate. A 5-file mechanical rename scores 5/5.
+A 1-file algorithm redesign scores 2/5.
 
 **🔴 Quality gate**: Record the delivery decision before writing the prompt.
 If you skip this step and only realize the task is Fast Lane after crafting
