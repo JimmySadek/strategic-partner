@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.8.0] - 2026-03-26
+
+### Added
+- **Anti-sycophancy protocol** — Communication Style expanded with 8 banned phrases, direct replacement alternatives table, 5 pushback patterns, position mandate, and partner adaptation rules
+- **Cognitive patterns library** — new reference file (`references/cognitive-patterns.md`) with 15 named thinking heuristics across 4 categories: Decision Classification, Architecture Thinking, Strategic Thinking, Advisory-Specific
+- **Two-level README review gate** — release process now distinguishes factual accuracy checks (every release) from first-time user tests (every 3rd minor or new user-facing features)
+
+### Changed
+- **README restructured** — information flow redesigned for first-time users (Problem → How → Show Me → Quick Start); core insight moved from line 126 to line 15; two-session model explained once instead of four times; file tree collapsed to `<details>` block; 268 lines, down from 382
+
 ## [4.7.0] - 2026-03-26
 
 ### Added
