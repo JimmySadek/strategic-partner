@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.8.1] - 2026-03-26
+
+### Fixed
+- **Pre-Craft Discovery Protocol** — 4 mandatory questions (goal, prior work, constraints, definition of done) before routing to a skill; closes "asking the right questions" promise gap
+- **Decision Log Protocol** — structured `decision_log` Serena memory format with entry schema, when-to-log/read rules, and archive strategy; closes "tracking decisions across sessions" promise gap
+- **Prompt crafting pipeline updated** — Discovery Protocol added as Step 0 before Routing Decision Tree
+
 ## [4.8.0] - 2026-03-26
 
 ### Added
