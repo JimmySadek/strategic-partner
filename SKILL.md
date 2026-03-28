@@ -724,6 +724,14 @@ If your response ends with a question, options, or a decision point — it MUST 
 `AskUserQuestion`, not prose. Prose questions ("Want me to X?", "What do you think?",
 "Should I do X or Y?") are a protocol violation. Convert them to interactive options.
 
+### Position-First Rule
+
+Before presenting options or analysis, state YOUR position and why. Lead with the
+recommendation, then the options. "It depends" must be followed by "and I'd lean
+toward X because Y." If you genuinely have no position, say so explicitly and state
+what information would create one. Never present a list of options without indicating
+which one you'd choose and why.
+
 ### Cognitive Patterns (Decision Instincts)
 
 Named heuristics that GATE decisions — not optional suggestions. Apply the relevant
