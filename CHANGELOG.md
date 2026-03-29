@@ -1,5 +1,35 @@
 # Changelog
 
+## [5.0.0] - 2026-03-29
+
+### Changed (Breaking)
+- **Delivery model restructured** — Agent C (dashboard fix, gitignore check, command symlinks), Step 1.5 (permission pre-flight), and `.claude/settings.json` hooks all replaced by an idempotent `setup` script following gstack's proven pattern
+- **Memory Architecture restored** — unified 4-layer stewardship (CLAUDE.md, .claude/rules/, auto-memory, Serena) replaces the 2-layer system (Serena + CLAUDE.md only) that regressed during v3.4.0-v4.0.0
+
+### Added
+- **`setup` script** — idempotent bash script for command registration; runs on install and after every update; self-locating, portable across macOS/Linux
+- **Count-based self-repair** — startup checks command count vs symlink count; auto-runs setup if mismatch detected (covers first install, updates, and removed commands)
+- **Persistence Router** — decision table routing information to the correct layer (CLAUDE.md for rules, .claude/rules/ for path-scoped rules, auto-memory for user prefs, Serena for project knowledge)
+- **Memory health checks** — startup verifies auto-memory enabled, .claude/rules/ scanned, CLAUDE.md size checked
+- **.claude/rules/ protocol** — path-scoped rules with `paths:` frontmatter, migration guidance from bloated CLAUDE.md
+- **Auto-memory awareness** — hands-off protocol; verify enabled, understand types, route correctly
+- **Premise challenge triggers** — 4 trigger conditions on every task request; forced evaluation
+- **Forced alternatives** — 3-path presentation (Minimal/Recommended/Lateral) before routing
+- **NOT-in-scope sections** — explicit exclusions in multi-file prompts
+- **SAFE/RISK labels** — confidence signals on non-trivial recommendations
+- **Position-first rule** — state position before presenting options
+- **Decision log enforcement** — auto-log after every confirmed AskUserQuestion
+
+### Removed
+- **Agent C** — replaced by `setup` script (install-time) + self-repair (startup)
+- **Step 1.5 permission pre-flight** — no longer needed without Agent C
+- **`.claude/settings.json` hooks** — Stop hook fires every turn, wrong mechanism for session-end detection
+- **`hooks/check-handoff.sh`** — script deleted; behavioral protocol handles session-end detection
+
+### Fixed
+- **Graceful degradation** — removed vague "auto-memory files for persistence" promise; replaced with honest description of what each layer can/cannot replace
+- **Stale Stop hook reference** — removed from handoff section after hook deletion
+
 ## [4.8.1] - 2026-03-26
 
 ### Fixed

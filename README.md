@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-4.8.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.0.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -173,6 +173,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 ```
 strategic-partner/
   SKILL.md                              # Lean hub — identity, core behaviors, routing dispatch
+  setup                                 # Command registration script (run after install/update)
   commands/
     help.md                             # Subcommand reference
     sync-skills.md                      # Skill inventory sync
@@ -186,7 +187,7 @@ strategic-partner/
     orchestration-playbook.md           # Model selection, parallelization heuristics, worktree isolation
     skill-routing-matrix.md             # Curated base matrix + delta-update procedure
     partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
-    hooks-integration.md                # Hook events, JSON configs, phased rollout
+    hooks-integration.md                # Hook event reference and integration patterns
     companion-script-spec.md            # Python context monitor architecture (spec only)
     cognitive-patterns.md               # Named thinking heuristics for architecture and trade-offs
     provider-guides/
@@ -234,7 +235,7 @@ The skill works without Serena, but loses cross-session memory and semantic code
 
 Every SP session checks for updates in the background. If a newer version exists:
 
-> Strategic Partner **v4.8.0** available (you have v4.7.0). Run `/strategic-partner:update` to update.
+> Strategic Partner **v5.1.0** available (you have v5.0.0). Run `/strategic-partner:update` to update.
 
 ### Update command
 
@@ -259,7 +260,7 @@ For release announcements with full changelogs:
 |---|---|---|
 | **Serena MCP unavailable** | Cross-session memory and semantic navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
 | **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
-| **Hooks not configured** | Context monitoring relies on self-assessment only | SP uses self-assessed thresholds instead of the PreCompact hook backstop. Consider adding hooks for reliability. |
+| **Context pressure undetected** | No PreCompact hook configured | SP uses self-assessed thresholds and periodic checks. Consider adding a PreCompact hook for earlier detection. |
 | **Sub-agents hit permission walls** | Background agents can't prompt for approval — some tool calls fail silently | Specify `mode` on every agent spawn (see orchestration-playbook.md). Pre-approve `WebFetch` and `WebSearch` in `~/.claude/settings.json` for research agents. |
 | **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
 
