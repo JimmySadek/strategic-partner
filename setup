@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# setup — Register strategic-partner subcommands with Claude Code
+# Idempotent. Safe to re-run. Called by install + /strategic-partner:update.
+
+SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
+COMMANDS_SRC="${SKILL_DIR}/commands"
+COMMANDS_DST="${HOME}/.claude/commands/strategic-partner"
+
+# ── Legacy cleanup warning ──────────────────────────────────────────────
+LEGACY_DIR="${HOME}/.claude/skills/strategic-partner"
+if [ -d "$LEGACY_DIR" ] && [ ! -L "$LEGACY_DIR" ]; then
+  echo "⚠️  Stale legacy installation detected: ${LEGACY_DIR}"
+  echo "   This is a leftover copy, not a symlink. You can safely remove it:"
+  echo "   rm -rf ${LEGACY_DIR}"
+  echo ""
+fi
+
+# ── Register subcommands ────────────────────────────────────────────────
+if [ ! -d "$COMMANDS_SRC" ]; then
+  echo "⚠️  No commands/ directory found in ${SKILL_DIR}. Skipping command registration."
+  exit 0
+fi
+
+mkdir -p "$COMMANDS_DST"
+
+linked=0
+for cmd in "${COMMANDS_SRC}"/*.md; do
+  [ -f "$cmd" ] || continue
+  filename="$(basename "$cmd")"
+  ln -snf "$cmd" "${COMMANDS_DST}/${filename}"
+  linked=$((linked + 1))
+done
+
+if [ "$linked" -gt 0 ]; then
+  echo "✅ Registered ${linked} subcommand(s) in ${COMMANDS_DST}"
+else
+  echo "✅ No command files found to register."
+fi

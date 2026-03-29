@@ -274,7 +274,7 @@ back to doing the work directly. Never block on agent failures.
 - **Explore → Design → Build → Review (Pattern 3)**: If the Explore agent fails,
   fall back to Grep/Glob-based exploration. The chain continues.
 - **Self-Delegation (Patterns A–E)**: Fire-and-verify agents (D) are non-blocking
-  by design. Scanning agents (A–C) fall back to direct reads if they time out.
+  by design. Scanning agents (A, B) fall back to direct reads if they time out.
   Diagnostic audit agents (E) report findings for SP verification.
 
 ---
@@ -395,32 +395,15 @@ For each file, report:
 Keep total response under 500 tokens. Focus on what an implementer needs to know.
 ```
 
-### Pattern D: Fire-and-Verify Operations (mode: "auto", Agent C: "acceptEdits")
+### Pattern D: Fire-and-Verify Operations (mode: "auto")
 
 These spawn without blocking startup. Background agents require explicit mode:
-`"auto"` for read-only agents, `"acceptEdits"` for agents that write files
-(e.g., Agent C). Results are **verified** before the SP presents its orientation.
-See `startup-checklist.md` for verification logic.
+`"auto"` for read-only agents. Results are **verified** before the SP presents
+its orientation. See `startup-checklist.md` for verification logic.
 
-**Serena dashboard fix (with dynamic discovery):**
-```
-Discover Serena config location:
-1. Try get_current_config MCP tool → extract config path
-2. If unavailable, check ~/.serena/serena_config.yml
-3. If not found, check ~/.config/serena/serena_config.yml
-4. If none found → report serena_not_detected
-
-If config found and web_dashboard_open_on_launch is true, set to false.
-Report: success | already_off | config_not_writable | serena_not_detected
-```
-
-**Gitignore auto-add:**
-```
-Read .gitignore in the project root. If any of these entries are missing,
-add them: .handoffs/, .prompts/, .scripts/
-If .gitignore doesn't exist, create it with those three entries.
-No output needed.
-```
+> **Note**: Command registration and hook delivery previously handled by Agent C
+> at runtime are now handled by the `setup` script (install/update time) and
+> SKILL.md frontmatter hooks (session-scoped). No runtime config agent is needed.
 
 ### Pattern E: Diagnostic Audit (3–4 parallel agents, mode: "auto")
 
@@ -512,7 +495,7 @@ Does the SP need the raw content for reasoning?
   YES → Read directly (CLAUDE.md, handoffs, memories)
   NO  → Agent returns summary
 
-Is this a fire-and-verify config fix?
+Is this a fire-and-verify scan?
   YES → Spawn agent without blocking, verify result before orientation
   NO  → Wait for agent summary before proceeding
 
@@ -619,13 +602,13 @@ definition exists, recommend it to the user alongside the standard `Agent()` opt
 - ❌ **Skipping Explore**: Jumping to implementation before understanding existing code
 - ❌ **Missing model spec**: Not specifying model in agent spawn instructions
 - ❌ **Missing mode spec**: Not specifying `mode` in agent spawn instructions — background agents fail silently without it
-- ❌ **Wrong mode for writing agents**: Using `mode: "auto"` for agents that write files (e.g., gitignore, config fixes, symlinks) — auto only covers reads. Use `"acceptEdits"` for any agent that writes files
+- ❌ **Wrong mode for writing agents**: Using `mode: "auto"` for agents that write files — auto only covers reads. Use `"acceptEdits"` for any agent that writes files
 - ❌ **Agent overkill**: Spawning agents for tasks that a single skill invocation handles
 - ❌ **Agent vs skill**: Using Agent tool when a direct skill command exists (unnecessary overhead)
 - ❌ **Delegating strategy reads**: Delegating CLAUDE.md or handoff file reading (SP must internalize)
 - ❌ **Delegating memory reads**: Delegating memory content reading (SP reasons from full content)
 - ❌ **Delegating matrix build**: Having an agent build the routing matrix (costs as much to review)
-- ❌ **Waiting on fire-and-forget**: Waiting for dashboard fix or gitignore agents (spawn and move on)
+- ❌ **Waiting on fire-and-forget**: Waiting for non-blocking scan agents (spawn and move on)
 - ❌ **Opus for parallel workers**: Using Opus for constrained subtasks in parallel spawns (Sonnet handles scoped work)
 - ❌ **Sonnet for synthesis**: Using Sonnet to combine outputs from multiple parallel agents (Opus reasons across inputs)
 - ❌ **Parallel on shared files**: Spawning parallel agents that edit the same file (guaranteed merge conflicts)

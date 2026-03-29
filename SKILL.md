@@ -167,8 +167,7 @@ File path passed as $ARGUMENTS?
 ```
 
 → **Load `references/startup-checklist.md`** for the full multi-step startup protocol
-  including identity commands, environment setup, permission pre-flight, fire-and-verify
-  agents, and orientation.
+  including identity commands, environment setup, fire-and-verify agents, and orientation.
 
 ---
 
@@ -178,11 +177,56 @@ File path passed as $ARGUMENTS?
 Maintain big-picture awareness. Spot drift from the roadmap. Identify when a "quick fix"
 is actually an architectural decision. Track open questions, risks, and trade-offs.
 
-### 2. CLAUDE.md Ownership
+### 2. Memory Architecture
+
+Own all 4 persistence layers. The SP doesn't build new memory systems — it
+stewards existing ones: ensuring they're functional, properly utilized, not
+duplicated, and not bloated.
+
+**The 4 Layers** (each follows Claude Code's documented purpose):
+
+| Layer | Purpose | SP Role | Frequency |
+|---|---|---|---|
+| **CLAUDE.md** | Rules that constrain all sessions | Propose edits, commit immediately | Rare (new convention, lesson learned) |
+| **.claude/rules/** | Path-specific rules (load on-demand) | Recommend when rules are path-scoped | Occasional (new domain-specific rule) |
+| **Auto-memory** | Claude's notebook (user prefs, corrections) | Verify enabled, don't interfere | Passive (Claude handles natively) |
+| **Serena** | Structured project knowledge (codebase, decisions) | Full management (onboard, read, write) | Frequent (after decisions, discoveries) |
+
+**Persistence Router** (where does new information go?):
+
+| Information Type | Layer | Why |
+|---|---|---|
+| Process rule, guardrail, convention | CLAUDE.md | Constrains every session |
+| Rule for specific file paths | .claude/rules/ | Loads only when relevant |
+| User preference or correction | Auto-memory | Claude handles natively |
+| Codebase structure, architecture | Serena (codebase_structure) | Cross-session knowledge |
+| Code convention or pattern | Serena (code_style_and_conventions) | Cross-session knowledge |
+| Decision with rationale | Serena (decision_log) | Structured, searchable |
+| Known gotcha or failure | Serena (known_gotchas) | Cross-session warning |
+| External resource pointer | Auto-memory (reference) | Personal, machine-local |
+| Ephemeral task context | Don't persist | Conversation-only |
+
+**Trigger Protocol** (when to persist — proactive, not on-demand):
+
+After EVERY exchange, check: did this exchange produce information that should
+survive the session? If yes, route it immediately per the table above.
+
+Specific triggers:
+- Decision confirmed via AskUserQuestion → Serena decision_log (automatic)
+- New convention or process agreed → CLAUDE.md (propose via AskUserQuestion)
+- Path-specific rule identified → .claude/rules/ (propose via AskUserQuestion)
+- Codebase fact discovered → Serena (automatic if updating existing, ask if new)
+- User corrects SP's approach → auto-memory handles this natively
+- Lesson learned from implementation → CLAUDE.md OR Serena (choose based on scope)
+- Repeated rule violation → CLAUDE.md (suggests missing guardrail)
+- Threshold or value calibrated → Serena (persist the number)
+
+#### CLAUDE.md Protocol
+
 CLAUDE.md is the most powerful file in the project — it enforces conventions across
 every session. Monitor it **proactively** — don't wait for the user to ask.
 
-**Triggers for update** (check these continuously during the session):
+**Triggers for update** (check continuously during session):
 - New convention or process agreed upon in conversation
 - "Lessons learned" emerges from an implementation report
 - Architectural decision that should constrain future sessions
@@ -194,13 +238,15 @@ what to add, which section, exact proposed text, and rationale. On confirmation,
 
 **Proactive monitoring**: After every major decision point or implementation report,
 ask yourself: "Does CLAUDE.md need to know about this?" If yes, propose the update
-without waiting to be asked. This is a core SP responsibility, not an on-demand service.
+without waiting to be asked.
 
-### 3. Serena Memory Management
-Own cross-session knowledge. This is one of the most valuable things you do.
+If CLAUDE.md exceeds ~200 lines, propose splitting path-specific rules
+into `.claude/rules/` files.
 
-**Boundaries:** Serena → architectural decisions, codebase structure, conventions,
-known gotchas. CLAUDE.md → process rules, guardrails. `.handoffs/` → session state.
+#### Serena Protocol
+
+Own cross-session knowledge — architectural decisions, codebase structure, conventions,
+known gotchas. `.handoffs/` → session state (separate concern).
 
 **Session-start protocol:**
 ```
@@ -260,7 +306,7 @@ primary log.
 
 | Problem | Resolution |
 |---|---|
-| Dashboard opens every session | Discover Serena config location: try `get_current_config` MCP tool first, then check `~/.serena/serena_config.yml` and `~/.config/serena/serena_config.yml`. Set `web_dashboard_open_on_launch: false`. (fire-and-verify agent) |
+| Dashboard opens every session | Not managed by the SP. User should configure Serena directly. |
 | Onboarding fails | Proceed with Grep/Glob exploration. Note issue in orientation. Don't block. |
 | `find_symbol` returns nothing | Verify language server configured in `project.yml`. Fall back to Grep/Glob. |
 | `replace_symbol_body` fails | Use `replace_content` (regex) or Edit tool as fallback. |
@@ -271,7 +317,39 @@ primary log.
 
 **Never block on Serena failures.** Always have a fallback path to keep work moving.
 
-### 4. Git Custody
+#### .claude/rules/ Protocol
+
+When a rule applies to specific file paths, propose creating a rule file.
+
+**Format:** Markdown file with optional `paths:` YAML frontmatter for scoping:
+```yaml
+---
+paths:
+  - "src/api/**/*.ts"
+---
+# API Rules
+...
+```
+
+**Protocol:**
+- Ask via `AskUserQuestion` before creating (decision, not hygiene)
+- Migration: if CLAUDE.md has rules that should be path-scoped, propose moving them
+- Project-level (`./.claude/rules/`) for team rules, user-level (`~/.claude/rules/`) for personal
+
+#### Auto-memory Protocol
+
+The SP does NOT manage auto-memory files directly. Auto-memory is Claude Code's
+native system — it captures user preferences, corrections, project context, and
+external references automatically.
+
+**SP responsibility:** Verify auto-memory is enabled at startup (it is by default).
+If disabled, recommend enabling via "suggest the user check `/memory` status."
+
+The SP understands auto-memory types (user, feedback, project, reference) so it can
+route information correctly — "this is a user preference → auto-memory will capture
+it natively, no explicit save needed."
+
+### 3. Git Custody
 Own the repository's hygiene and commit discipline. Git is the SP's responsibility.
 **Keep the worktree clean** — don't leave uncommitted advisory files sitting around.
 
@@ -307,10 +385,10 @@ User reports back
 ```
 
 **Worktree hygiene:** `.handoffs/`, `.prompts/`, `.scripts/` must all be in
-`.gitignore`. Verified at startup via fire-and-verify agent. If gitignore fix
-fails → **warn user immediately** (security concern for public repos).
+`.gitignore`. Verified at startup. If missing → **warn user immediately**
+(security concern for public repos).
 
-### 5. Implementation Prompt Crafting
+### 4. Implementation Prompt Crafting
 **Primary deliverable.** Every prompt must meet these standards:
 
 **Pre-Craft Discovery (before routing):**
@@ -481,7 +559,7 @@ SP identifies files → Agent (Explore): read, summarize (~500 tokens)
 → **Load `references/prompt-crafting-guide.md`** for full format standards,
   parallelization check, routing decision tree, and quality gates.
 
-### 6. Context Handoff Management
+### 5. Context Handoff Management
 Own the handoff trigger and quality. Monitor context pressure. Execute split writes
 to `.handoffs/`, `.prompts/`, `.scripts/` when threshold reached.
 
@@ -498,9 +576,8 @@ indication the user is finishing work.
 the user winding down?" Check for decreasing request complexity, wrap-up language,
 or shorter messages. This catches signals the keyword list misses.
 
-**Structural fix available**: Implementing the Stop hook (see
-`references/hooks-integration.md` Phase 1) would provide L1 runtime enforcement.
-Until implemented, the periodic check and keyword detection are the backstops.
+The periodic check and keyword detection are the primary mechanisms for
+detecting session-end signals.
 
 **When detected:** Execute the complete handoff protocol — write the handoff file,
 save to Serena memory, display the continuation prompt in `══` fences. This is the
@@ -541,11 +618,11 @@ already strained at handoff time and reference file instructions may be diluted)
 
 → **Load `references/context-handoff.md`** for full protocol, thresholds, and template.
 
-### 7. Version Bump Ownership
+### 6. Version Bump Ownership
 Own the question of when and how the project version changes. Never bump autonomously.
 → **Load `references/partner-protocols.md`** for the full protocol.
 
-### 8. Update Management
+### 7. Update Management
 Own version awareness for users and commands distribution. Three mechanisms:
 
 **Passive — startup version check (Agent E):**
@@ -584,10 +661,10 @@ Silent degradation: if GitHub API is unreachable, skip. Never block startup.
 
 This is a self-maintenance operation (like Git Custody) — the SP executes it directly.
 
-**Commands self-install (Agent C, startup):**
-Bundled subcommand files in `commands/` are auto-linked to `~/.claude/commands/`
-on first run. This ensures every user who installs the skill gets working
-subcommands without manual setup. See startup-checklist.md Agent C.
+**Commands registration (`setup` script):**
+Bundled subcommand files in `commands/` are registered to `~/.claude/commands/`
+by the `setup` script at install/update time. After updating, the update
+subcommand re-runs `./setup` to refresh command registrations.
 
 ---
 
@@ -600,9 +677,7 @@ Strategic operations stay in main context.
 - Staleness spot-checks (file paths, convention verification)
 - docs/ and architecture file scanning
 - Serena onboarding (when needed)
-- Dashboard config fix + .gitignore check (fire-and-verify)
 - Version check (Agent E — returns one version string, not raw API output)
-- Commands symlink check (Agent C — config guardrail, returns status)
 - Pre-prompt file reading (3+ files → agent summary → craft from summary)
 
 **Never delegate** (must be in main context for reasoning):
@@ -625,7 +700,7 @@ the work directly. Delegation is an optimization, not a dependency.
 
 | Component | Fallback |
 |---|---|
-| **Serena unavailable** | **Firm recommendation**: display a one-time block in orientation explaining what the SP loses without Serena (cross-session memory, semantic navigation, codebase structure model, convention tracking, symbolic editing). Include install link: `https://github.com/serena-ai/serena`. Fall back to Grep/Glob for navigation, auto-memory files for persistence. This is not a silent degradation — the user should understand the trade-off. |
+| **Serena unavailable** | **Firm recommendation**: display a one-time block in orientation explaining what the SP loses without Serena. Auto-memory (Claude Code's built-in system) handles user preferences and session learnings natively. CLAUDE.md ownership continues as normal. The SP loses Serena-specific capabilities: structured project knowledge, codebase analysis, convention tracking, semantic navigation, and the decision log. These cannot be replicated by other layers. Fall back to Grep/Glob for navigation. Include install link: `https://github.com/serena-ai/serena`. This is not a silent degradation — the user should understand the trade-off. |
 | **User declines separate sessions** | Acknowledge trade-off. Still craft prompts as documentation. If user explicitly overrides for a specific task, proceed **one time only** with `## Advisory` / `## Implementation` markers, then snap back to advisory mode. |
 | **Minimal skill inventory** | Route using universal layer (Agent subtypes + MCP rules). |
 

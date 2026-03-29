@@ -77,25 +77,16 @@ Done. End interaction.
    ✅ Updated to v{remote}.
    ```
 
-### Step 4 — Re-link Commands (after update)
+### Step 4 — Run Setup (after update)
 
-After updating, check if the `commands/` directory has new or updated files.
-Re-run the commands symlink check:
+After updating, re-run the setup script to refresh command registrations:
 
-1. Get the skill directory path (where SKILL.md lives)
-2. For each `.md` file in `{skill-dir}/commands/`:
-   - Discover Claude commands dir (check `~/.claude/commands/` or `$CLAUDE_CONFIG_DIR/commands/`)
-   - Target: `{commands-dir}/strategic-partner/{filename}`
-   - If target doesn't exist or isn't a symlink → create symlink
-3. Report any new commands installed:
-   ```
-   🔗 Commands updated: [list of new/updated command files]
-   ```
-
-4. Final message:
-   ```
-   Start a new session to use the updated skill.
-   ```
+1. Determine the skill directory path (where SKILL.md lives)
+2. Run: `bash {skill-dir}/setup`
+3. The setup script handles:
+   - Creating/updating command symlinks in ~/.claude/commands/strategic-partner/
+   - Detecting stale legacy installations
+4. Final message: "Start a new session to use the updated skill."
 
 ## Boundaries
 

@@ -21,24 +21,41 @@ for proactive session management. Phased rollout from essential to advanced.
 
 ---
 
-## 🔧 Hook Configuration
+## 🔧 Hook Delivery
 
-Hooks are configured in Claude Code's settings files. Discover the location:
-- **User-global**: typically `~/.claude/settings.json` (check `$CLAUDE_CONFIG_DIR/settings.json` as fallback)
-- **Project-level**: `.claude/settings.json` in the project root The SP should document a recommended configuration and
-offer to auto-install it during startup — but **always ask-before-act**
-for hook installation, since hooks affect the user's global or project settings.
+Hooks are delivered via **SKILL.md frontmatter** (session-scoped). Claude Code reads
+the `hooks:` section at skill load time and registers them for the session. This
+follows the same pattern used by gstack and other well-established skills.
 
-### Configuration Location
+### Why Frontmatter (not settings.json)
 
-| Scope | File | Precedence |
-|---|---|---|
-| 🌐 User-global | `~/.claude/settings.json` (or `$CLAUDE_CONFIG_DIR/settings.json`) | Lower |
-| 📁 Project-level | `.claude/settings.json` (hooks key) | Higher |
+| Approach | Ships with skill? | Scope | Maintenance |
+|---|---|---|---|
+| SKILL.md frontmatter ✅ | Yes — travels with the skill file | Session (active while skill is loaded) | Zero — automatic on skill load |
+| `.claude/settings.json` ❌ | No — gitignored, per-machine | Persistent (all sessions) | Manual install + update |
 
-**💡 Recommendation**: Install SP hooks at the **user-global** level so they apply
-to all SP sessions regardless of project. Project-level hooks should be
-reserved for project-specific behavior.
+Frontmatter hooks are the correct mechanism for skill-owned behavior. Settings.json
+hooks are appropriate for user-owned customizations that should persist independently
+of any skill.
+
+### The `${CLAUDE_SKILL_DIR}` Variable
+
+SKILL.md frontmatter hooks can reference `${CLAUDE_SKILL_DIR}`, which resolves to the
+directory containing SKILL.md at load time. This enables portable script paths:
+
+```yaml
+hooks:
+  Stop:
+    - matcher: ""
+      hooks:
+        - type: command
+          command: "bash ${CLAUDE_SKILL_DIR}/hooks/check-handoff.sh"
+          statusMessage: "Checking for handoff..."
+```
+
+This is how the SP's Stop hook references `hooks/check-handoff.sh` without
+hardcoding an absolute path. The variable works regardless of where the skill
+is installed.
 
 ---
 
@@ -66,25 +83,10 @@ Implement these first.
 └──────────────────────────────────────────────────────┘
 ```
 
-**Configuration** — minimal signal stub (detection only, not a functional hook):
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "type": "command",
-        "command": "echo 'SP session initialized'",
-        "description": "Strategic Partner session startup signal"
-      }
-    ]
-  }
-}
-```
-
-> **📌 This is intentionally a stub.** The SP startup logic lives in the skill's
-> startup sequence (`startup-checklist.md`), not in this hook. This hook signals
-> that a session started — the skill handles the rest. Do not make this hook
-> "functional"; the stub-as-signal design is correct.
+**Delivery**: SessionStart is handled by the skill's startup sequence
+(`startup-checklist.md`), not by a hook. Claude Code loads the skill, which
+triggers the full startup protocol. No separate SessionStart hook is needed
+in the frontmatter — the skill invocation IS the session start signal.
 
 ---
 
@@ -153,24 +155,13 @@ This is the **backstop** — if the SP detected the user's session-end signal ea
 and already wrote the handoff, Step 1 is a no-op. If the SP missed the signal,
 the Stop hook ensures state is preserved before the session closes.
 
-**Configuration** — minimal signal stub (detection only, not a functional hook):
-```json
-{
-  "hooks": {
-    "Stop": [
-      {
-        "type": "command",
-        "command": "echo 'SP session ending - saving state'",
-        "description": "Strategic Partner session cleanup and state preservation"
-      }
-    ]
-  }
-}
-```
+**Delivery**: Via SKILL.md frontmatter (see Hook Delivery above). The frontmatter
+`hooks:` section registers `hooks/check-handoff.sh` to run on Stop. This script
+auto-generates a partial handoff from git state if the SP didn't write a proper one.
 
-> **📌 This is intentionally a stub.** Session cleanup logic (Serena memory writes,
-> file tracking, pending prompt warnings) lives in the SP skill's stop sequence,
-> not in this hook. The hook signals session end — the skill handles cleanup.
+> **📌 Session cleanup logic** (Serena memory writes, file tracking, pending prompt
+> warnings) lives in the SP skill's stop sequence, not in this hook. The hook is
+> a backstop that captures git state when the SP misses the session-end signal.
 
 ---
 
@@ -344,34 +335,17 @@ For SP-specific events that don't map to built-in hook events:
 
 ---
 
-## 💬 Auto-Installation Protocol
+## 💬 Hook Delivery Summary
 
-The SP may offer to install hooks during startup. This is **ask-before-act**:
+The SP's essential hook (Stop) is delivered via SKILL.md frontmatter — no
+installation step is needed. Claude Code registers it automatically when the
+skill is loaded.
 
-```
-════════════════════ HOOK INSTALLATION PROMPT ════════════════════
-"I'd like to set up Claude Code hooks for this session to enable:
-  • Automatic context monitoring at 70% (PreCompact)
-  • Session state preservation on exit (Stop)
-  • File modification tracking for handoffs (PostToolUse)
-
-This would modify ~/.claude/hooks.json. Shall I install these hooks?
-
-Options: [Yes, install all]
-         [Essential only (PreCompact + Stop)]
-         [No, skip hooks]"
-══════════════════════════════════════════════════════════════════
-```
-
-🚨 **Never install hooks silently.** Hooks modify the user's shell environment
-and persist across sessions. The user must consent.
-
-### ✅ Verifying Hook Installation
-
-After installation, verify hooks are active:
-1. Check that the hooks file exists and is valid JSON
-2. Confirm the hook events are registered
-3. Test one hook (e.g., write to the turn counter) to verify execution
+Phase 2 and 3 hooks (monitoring and advanced) are **optional user-level
+configurations**. If a user wants to add PreCompact logging, SubagentStart
+tracking, or other monitoring hooks, they would add those to their
+`~/.claude/settings.json` manually. The SP does not auto-install hooks
+into user settings.
 
 ---
 

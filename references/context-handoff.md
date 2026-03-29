@@ -243,9 +243,8 @@ We're working on [project name and one-line description].
 
 ### Step 5: 🛡️ Ensure Gitignore Coverage (Auto-Add)
 
-`.gitignore` coverage for `.handoffs/`, `.prompts/`, and `.scripts/` is handled
-automatically as a fire-and-verify operation during startup (see `startup-checklist.md`,
-Step 4, Agent C). By the time a handoff occurs, coverage should already be in place.
+`.gitignore` coverage for `.handoffs/`, `.prompts/`, and `.scripts/` should be
+verified at startup. By the time a handoff occurs, coverage should already be in place.
 
 If for any reason it wasn't done at startup, add all three entries **without asking**:
 - `.handoffs/`

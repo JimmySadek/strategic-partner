@@ -8,18 +8,16 @@ Do not display to user.
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  SP Startup Flow                                                          │
 │                                                                           │
-│  Step 1        Step 1.5       Step 2          Step 3       Step 4       │
-│  Env Vars  →  Permission  → Spawn Agents  → Read State → Verify        │
-│  AUTOCOMPACT   Pre-flight     ┌─ Agent A     $ARGUMENTS    ✅ Agent C   │
-│  _PCT=70      WebFetch       ├─ Agent B     Serena        ✅ Agent D   │
-│               ln -s          ├─ Agent C     CLAUDE.md      ⚡ Agent E  │
-│               mkdir -p       ├─ Agent D          │              │      │
-│                              └─ Agent E          │              │      │
-│                                🗺️ Matrix          │              │      │
-│                                   │              │              ▼      │
-│                                   └──────────────┘         Step 5      │
-│                                                            📋 Orient   │
-│                                                            + Setup recs│
+│  Step 1          Step 2          Step 3       Step 4                    │
+│  Env Vars  →  Spawn Agents  → Read State → Verify                      │
+│  AUTOCOMPACT    ┌─ Agent A     $ARGUMENTS    ✅ Agent D                 │
+│  _PCT=70       ├─ Agent B     Serena         ⚡ Agent E                │
+│                ├─ Agent D     CLAUDE.md           │                     │
+│                └─ Agent E          │              │                     │
+│                  🗺️ Matrix          │              ▼                     │
+│                     │              │         Step 5                     │
+│                     └──────────────┘         📋 Orient                  │
+│                                              + Setup recs               │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -53,65 +51,55 @@ guessing its own context consumption.
 
 ---
 
-## 🔑 Step 1.5: Permission Pre-flight
+## 🔧 Step 1.5: Self-Repair Check
 
-Ensure background agents have the permissions they need before spawning them.
-This is a one-time setup — permissions persist in `settings.json` across all sessions.
+Before spawning agents, verify command registration is intact. This is a count-based
+inline Bash check (not an agent) — it runs in ~15ms when everything is in sync.
 
 ```
-┌─ Permission Pre-flight Flow ──────────────────────────────────────────────┐
-│                                                                            │
-│  1. 📂 Discover settings file                                              │
-│     ├─ Check ~/.claude/settings.json                                       │
-│     ├─ If not found → check $CLAUDE_CONFIG_DIR/settings.json               │
-│     └─ If neither exists → create ~/.claude/settings.json with {}          │
-│                                                                            │
-│  2. 📖 Read current permissions.allow array (may not exist)                │
-│                                                                            │
-│  3. ✅ Check for required entries:                                          │
-│     ├─ "WebFetch *"      — Agent E needs this for version checks           │
-│     ├─ "Bash(ln -s *)"   — Agent C needs this for command symlinks         │
-│     └─ "Bash(mkdir -p *)" — Agent C needs this for creating directories    │
-│                                                                            │
-│  4. All present?                                                            │
-│     ├─ YES → proceed silently (no user interaction)                        │
-│     └─ NO  → AskUserQuestion (see below)                                   │
-│                                                                            │
-│  5. If user approves:                                                       │
-│     ├─ Read settings.json                                                  │
-│     ├─ Merge missing entries into permissions.allow (preserve existing)     │
-│     └─ Write back                                                          │
-│                                                                            │
-│  6. If user declines:                                                       │
-│     └─ Note in orientation that some agents may fail silently              │
-│                                                                            │
-└────────────────────────────────────────────────────────────────────────────┘
+CMD_COUNT=$(ls "${CLAUDE_SKILL_DIR}/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
+LINK_COUNT=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | wc -l | tr -d ' ')
+[ "$CMD_COUNT" = "$LINK_COUNT" ] || bash "${CLAUDE_SKILL_DIR}/setup"
 ```
 
-**When permissions are missing**, ask via `AskUserQuestion`:
+The count-based check catches first install (no symlinks), updates that add new
+commands, and removed commands — not just the existence of a single symlink.
 
-> "The Strategic Partner's startup agents need these permissions:
->
-> - `WebFetch *` — version check agent fetches GitHub API
-> - `Bash(ln -s *)` — config agent symlinks subcommands to `~/.claude/commands/`
-> - `Bash(mkdir -p *)` — config agent creates the commands directory if needed
->
-> This is a one-time setup — permissions persist in `settings.json` across all sessions."
->
-> Options: `[Yes, add them]` `[Skip — agents will run with reduced capability]`
+If the check triggers setup, note it briefly in orientation:
+"🔧 First-run setup complete — subcommands registered."
 
-If the user approves, read `settings.json`, merge only the missing entries into
-`permissions.allow` (preserve all existing entries), and write back. If the user
-declines, proceed normally but note in orientation that some agents may fail silently.
+This replaces the old Agent C approach (removed in v4.9). The setup script is
+idempotent and handles its own legacy cleanup warnings.
+
+### Memory Health Check (inline, not an agent)
+
+Quick checks run inline during startup. No agents needed — these are observations.
+
+1. **Auto-memory**: Check if auto-memory is enabled (it is by default).
+   If the user has disabled it, note in orientation:
+   "⚠️ Auto-memory is disabled. User preferences and corrections won't persist
+   across sessions. Consider enabling via /memory."
+   Detection: the SP can observe whether auto-memory writes are happening
+   during the session. No settings file check needed — if Claude isn't
+   saving memories, it's likely disabled.
+
+2. **Serena**: Existing check (`check_onboarding_performed`). Already in Step 2.
+
+3. **.claude/rules/**: Check if `.claude/rules/` directory exists in the project.
+   If it exists, note in orientation: "{N} path-scoped rule files found."
+   If it doesn't exist, don't mention it — it's optional.
+
+4. **CLAUDE.md size**: If CLAUDE.md exceeds ~200 lines, note in orientation:
+   "⚠️ CLAUDE.md is {N} lines (recommended: under 200). Consider splitting
+   path-specific rules into .claude/rules/ files."
 
 ---
 
 ## 🤖 Step 2: Spawn Background Agents (Fire-and-Verify)
 
-Spawn these agents **in parallel**. Agents A, B, D, E are read-only and use
-`mode: "auto"`. Agent C writes config files and uses `mode: "acceptEdits"`.
-Background agents **cannot prompt the user for permissions**, so explicit mode
-selection is required to auto-approve operations without blocking.
+Spawn these agents **in parallel**. All agents are read-only and use
+`mode: "auto"`. Background agents **cannot prompt the user for permissions**,
+so explicit mode selection is required to auto-approve operations without blocking.
 
 ### Agent A: 🔍 Staleness Check (mode: "auto")
 
@@ -126,57 +114,11 @@ Validates that Serena memories match the actual codebase.
 
 Quick scan for major structural changes since last session.
 
-### Agent C: 🛡️ Dashboard Fix + Gitignore Check (mode: "acceptEdits", Combined)
+### Agent C: Removed
 
-Combines two previously separate fire-and-forget operations into a **single
-verifiable agent**.
-
-**What it does:**
-
-```
-┌─ 1. Serena Dashboard Fix ───────────────────────────────────────┐
-│  Discover Serena config location (discovery chain):              │
-│    1. Try get_current_config MCP tool → extract config path     │
-│    2. If unavailable, check ~/.serena/serena_config.yml          │
-│    3. If not found, check ~/.config/serena/serena_config.yml     │
-│    4. If none found → Serena likely not installed                │
-│  If config found:                                                │
-│    Read config → if web_dashboard_open_on_launch = true          │
-│    → use Edit tool to set false (NOT Bash)                       │
-│  Report:                                                         │
-│    ✅ success | ✅ already_off | ❌ config_not_writable           │
-│    ⚠️ serena_not_detected (no config found anywhere)             │
-└──────────────────────────────────────────────────────────────────┘
-┌─ 2. Gitignore Check ────────────────────────────────────────────┐
-│  Read .gitignore for required entries:                            │
-│    • .handoffs/                                                  │
-│    • .prompts/                                                   │
-│    • .scripts/                                                   │
-│  If any missing → use Edit or Write tool to add them (NOT Bash) │
-│  Report: ✅ success | ✅ already_covered | ❌ failed              │
-└──────────────────────────────────────────────────────────────────┘
-┌─ 3. Commands Symlink Check ─────────────────────────────────────┐
-│  Determine skill directory (where SKILL.md lives)                │
-│  Check if {skill-dir}/commands/ directory exists                  │
-│  If exists:                                                       │
-│    Discover Claude commands dir:                                  │
-│      Check ~/.claude/commands/ (standard location)               │
-│      If not found, check $CLAUDE_CONFIG_DIR/commands/            │
-│    Target: {commands-dir}/strategic-partner/                      │
-│    Use Bash for mkdir -p and ln -s (covered by permission        │
-│    pre-flight in Step 1.5)                                       │
-│    For each .md file in {skill-dir}/commands/:                   │
-│      If target missing or not a symlink → create symlink         │
-│  Report: ✅ success | ✅ already_linked | ❌ failed               │
-│          + list of any newly linked commands                      │
-└──────────────────────────────────────────────────────────────────┘
-┌─ 4. Return ─────────────────────────────────────────┐
-│  { dashboard_fix, gitignore_fix, commands_fix }      │
-└─────────────────────────────────────────────────────┘
-```
-
-**Why combined**: Both are config guardrails (not discretionary). Combining
-reduces agent overhead while keeping verification in a single checkpoint.
+**Command registration** is handled by the `setup` script at install/update time,
+not at runtime. See `setup` in the skill root. The self-repair check in Step 1.5
+ensures commands are registered even if setup was never run manually.
 
 ### Agent D: 🗺️ Environment Discovery + Routing Matrix (mode: "auto", MANDATORY)
 
@@ -245,7 +187,7 @@ Lightweight background check for skill updates.
 │  2. Use the WebFetch tool to fetch the URL:                         │
 │     https://api.github.com/repos/{repo}/releases/latest             │
 │     Do NOT use Bash, curl, or any shell command for HTTP requests.  │
-│     WebFetch is covered by the permission pre-flight (Step 1.5).   │
+│     Use WebFetch — do NOT fall back to Bash/curl.                  │
 │  3. Extract tag_name → strip leading "v" if present                 │
 │  4. Return: { latest_version: "X.Y.Z" }                             │
 │     OR:     { error: "unreachable" }                                 │
@@ -295,24 +237,9 @@ Agent D (Step 2). The SP reads state here while Agent D works in parallel.
 
 ## ✅ Step 4: Verify Agent Results (Gate)
 
-Before presenting orientation, verify **Agent C** and **Agent D** completed successfully.
-These are **blocking verifications** — Agents A and B provide useful context
+Before presenting orientation, verify **Agent D** completed successfully.
+This is a **blocking verification** — Agents A and B provide useful context
 but are not security-critical.
-
-### 🛡️ Agent C Verification (Required)
-
-| Result | Action |
-|---|---|
-| ✅ `gitignore_fix = success` | Proceed normally |
-| ✅ `gitignore_fix = already_covered` | Proceed normally |
-| 🚨 `gitignore_fix = failed` | **WARN USER IMMEDIATELY**: "`.gitignore` update failed. `.handoffs/` and `.prompts/` may not be excluded from git. **This is a security concern** if this repo is shared or public. Please add these entries manually." |
-| ⚠️ `dashboard_fix = failed` | Note in orientation: "Could not disable Serena dashboard auto-open. You may see a browser tab." **Do not block.** |
-| ✅ `dashboard_fix = success` or `already_off` | No mention needed |
-| ⚠️ `dashboard_fix = serena_not_detected` | **Include Serena recommendation in orientation** (see below). Do not block. |
-| ✅ `commands_fix = success` | Note in orientation: "N command(s) linked — subcommands now available" |
-| ✅ `commands_fix = already_linked` | Proceed normally |
-| ⚠️ `commands_fix = failed` | Note in orientation: "Subcommand linking failed. `/strategic-partner:help` and other subcommands may not work. Run manually: see README." |
-| ⚠️ No `commands/` directory | Skip silently — older version without bundled commands |
 
 ### 🗺️ Agent D Verification (Required)
 
@@ -356,7 +283,7 @@ and ask what the user wants to work on.
 - 🌿 Current branch and git state
 - 🗺️ Environment summary from Agent D: skills (base + delta), custom agents, active MCP servers
 - ⚡ Update available (from Agent E): one-liner with version diff and update command
-- 🔌 **Serena not detected** (from Agent C): If `serena_not_detected`, display this block:
+- 🔌 **Serena not detected**: If Serena MCP is unavailable, display this block:
 
 > **Serena MCP is not detected.** The Strategic Partner works without it but operates
 > in degraded mode — losing cross-session memory, semantic code navigation, codebase
