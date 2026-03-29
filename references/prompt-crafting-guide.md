@@ -279,11 +279,66 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 8 | Prompt is fully self-contained | References "our earlier discussion" or "current approach" |
 | 9 | Format matches provider guide (see references/provider-guides/) | Claude prompt uses Markdown, GPT-5.4 uses Claude tags, or Gemini uses XML |
 | 10 | Inline prompt is copy-safe (no markdown formatting inside ══ fences) | Uses bold, `-` bullets, or tables inside an inline prompt |
-| 11 | `<not-in-scope>` present for multi-file prompts with specific exclusions | Missing for multi-file prompt, or contains vague platitudes ("keep changes minimal") instead of naming specific adjacent temptations |
+| 11 | `<not-in-scope>` present for multi-file prompts with specific exclusions (see NOT-in-Scope Sections) | Missing for multi-file prompt, or contains vague platitudes ("keep changes minimal") instead of naming specific files, functions, or patterns to leave alone |
 | 12 | Recommendations within the prompt are labeled SAFE or RISK where applicable | Opinionated recommendation presented as fact without signaling confidence level |
 
 **🚨 If any row fails**: Fix the prompt before presenting. Do not present with
 a note saying "you might want to add..." — the prompt must be complete.
+
+---
+
+## NOT-in-Scope Sections
+
+`<not-in-scope>` sections name specific files, features, or patterns the executor
+must NOT touch, even if they seem related. Without explicit exclusions, executors
+fill silence with scope creep — refactoring adjacent code, updating tangential tests,
+or "improving" things that weren't asked for. This section prevents that.
+
+### When required
+
+| Prompt type | Requirement |
+|---|---|
+| Multi-file (2+ files modified) | **Mandatory** — prompt FAILS verification without it |
+| Single-file changes | Optional — include if adjacent temptations are obvious |
+
+### What makes a good exclusion
+
+Each exclusion must name a **specific temptation** — a concrete file, function, module,
+or pattern the executor will encounter and might be tempted to change. Generic warnings
+("keep changes minimal") do nothing because the executor doesn't know what "minimal" means
+in this codebase.
+
+**Good — specific and actionable:**
+
+```xml
+<not-in-scope>
+  1. Do NOT refactor the existing UserService class — only add the new method
+  2. Do NOT update the migration files — schema changes are a separate PR
+  3. Do NOT add error handling to the legacy endpoints in routes/v1/
+  4. Do NOT convert existing tests to the new test helper pattern
+</not-in-scope>
+```
+
+**Bad — vague platitudes that provide no guidance:**
+
+```
+Do NOT in scope:
+- Don't make unnecessary changes
+- Keep the scope focused
+- Avoid breaking things
+- Only change what's needed
+```
+
+### How to identify exclusions
+
+When crafting a multi-file prompt, ask: "What adjacent changes will the executor see
+an opportunity for and be tempted to make?" Common categories:
+
+- **Refactoring neighbors**: Files the executor must read but must not refactor
+- **Pattern migration**: Existing code using an old pattern that the new code replaces — don't migrate the old code in this prompt
+- **Test expansion**: Existing tests that could be updated to use the new feature but shouldn't be touched here
+- **Dependency upgrades**: Libraries that could be bumped while making the change
+- **Style fixes**: Linting or formatting issues the executor will notice in files they're reading
 
 ---
 

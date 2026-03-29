@@ -146,10 +146,10 @@ identical to context-pressure handoffs. There is no separate "session end" flow.
 > A summary is NOT a handoff. Without the handoff file and continuation prompt,
 > all session state is lost when the session closes.
 
-**Backstop:** The Stop hook (`hooks-integration.md`) fires when the session ends
-and will trigger the handoff protocol if the SP missed the user's signal. This is
-a safety net — the SP should catch session-end signals proactively, not rely on
-the hook.
+**No automated backstop:** Session-end detection relies entirely on the SP's
+behavioral protocol — keyword detection for session-end signals and periodic
+checks every 5th exchange (see SKILL.md). There is no automated hook fallback.
+The SP must catch session-end signals proactively.
 
 ---
 

@@ -11,7 +11,7 @@ for proactive session management. Phased rollout from essential to advanced.
 │  ┌──────────────────┐   ┌──────────────────┐    ┌────────────────┐  │
 │  │ 🚀 SessionStart  │   │ 🤖 SubagentStart │    │ 🔧 ConfigChange│  │
 │  │ 🚨 PreCompact    │   │ 🤖 SubagentStop  │    │ ❌ PostToolUse │  │
-│  │ 🛑 Stop          │   │ 📝 PostToolUse   │    │    Failure     │  │
+│  │ 🛑 Stop (removed)│   │ 📝 PostToolUse   │    │    Failure     │  │
 │  │                  │   │ 💬 UserPrompt    │    │ 🔌 Custom      │  │
 │  └──────────────────┘   │    Submit        │    └────────────────┘  │
 │                         └──────────────────┘                        │
@@ -45,17 +45,19 @@ directory containing SKILL.md at load time. This enables portable script paths:
 
 ```yaml
 hooks:
-  Stop:
+  PreCompact:
     - matcher: ""
       hooks:
         - type: command
-          command: "bash ${CLAUDE_SKILL_DIR}/hooks/check-handoff.sh"
-          statusMessage: "Checking for handoff..."
+          command: "bash ${CLAUDE_SKILL_DIR}/hooks/some-script.sh"
+          statusMessage: "Running hook..."
 ```
 
-This is how the SP's Stop hook references `hooks/check-handoff.sh` without
-hardcoding an absolute path. The variable works regardless of where the skill
-is installed.
+The variable works regardless of where the skill is installed.
+
+> **Note:** The SP previously used this mechanism for a Stop hook
+> (`hooks/check-handoff.sh`), but that hook was removed in v5.0.0.
+> The example above illustrates the general pattern.
 
 ---
 
@@ -130,38 +132,20 @@ still allowing aggressive context usage.
 
 ---
 
-### 🛑 Stop
+### 🛑 Stop — REMOVED in v5.0.0
 
-**Event**: Fires when the session is ending (user exits or session terminates).
+The Stop hook was removed in v5.0.0. The implementation script (`hooks/check-handoff.sh`)
+was deleted and the `hooks:` section was removed from SKILL.md frontmatter.
 
-**SP Behavior:**
-```
-┌─ Stop Sequence ───────────────────────────────────────────────────┐
-│  1. 🔄 Trigger full handoff protocol if not already done          │
-│     • Write handoff file + continuation prompt (══ fences)       │
-│     • This is the PRIMARY action — session state preservation    │
-│     • Skip only if handoff was already written this session      │
-│  2. 🧠 Write session summary to Serena memory                    │
-│     • Key decisions made                                         │
-│     • Files modified                                             │
-│     • Open issues and next steps                                 │
-│  3. ⚠️ Warn if pending prompts exist                            │
-│  4. 🧹 Clean up temporary session files                          │
-└───────────────────────────────────────────────────────────────────┘
-```
+**Why it was removed:** Hooks fire on every turn, not specifically at session end.
+The Stop hook could not reliably detect the difference between a mid-session pause
+and an actual session termination, making it an unreliable backstop.
 
-The handoff protocol (Step 1) follows the same Steps 1-6 from `context-handoff.md`.
-This is the **backstop** — if the SP detected the user's session-end signal earlier
-and already wrote the handoff, Step 1 is a no-op. If the SP missed the signal,
-the Stop hook ensures state is preserved before the session closes.
-
-**Delivery**: Via SKILL.md frontmatter (see Hook Delivery above). The frontmatter
-`hooks:` section registers `hooks/check-handoff.sh` to run on Stop. This script
-auto-generates a partial handoff from git state if the SP didn't write a proper one.
-
-> **📌 Session cleanup logic** (Serena memory writes, file tracking, pending prompt
-> warnings) lives in the SP skill's stop sequence, not in this hook. The hook is
-> a backstop that captures git state when the SP misses the session-end signal.
+**What replaced it:** Session-end detection is now handled entirely by the SP's
+behavioral protocol in SKILL.md — keyword detection for session-end signals
+(e.g., "done", "wrapping up", "closing") combined with a periodic check every
+5th exchange. There is no automated fallback; the SP must catch session-end
+signals proactively through its behavioral rules.
 
 ---
 
@@ -337,9 +321,9 @@ For SP-specific events that don't map to built-in hook events:
 
 ## 💬 Hook Delivery Summary
 
-The SP's essential hook (Stop) is delivered via SKILL.md frontmatter — no
-installation step is needed. Claude Code registers it automatically when the
-skill is loaded.
+The SP's essential hooks (SessionStart, PreCompact) are handled via the skill's
+startup sequence and environment configuration — no manual installation step
+is needed. The Stop hook was removed in v5.0.0 (see Phase 1 section above).
 
 Phase 2 and 3 hooks (monitoring and advanced) are **optional user-level
 configurations**. If a user wants to add PreCompact logging, SubagentStart
