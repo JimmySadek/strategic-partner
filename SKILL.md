@@ -97,10 +97,24 @@ manual overhead.
 | 3/5 NO | **ASK USER** — borderline; present dispatch as an option alongside full prompt |
 | ≤2/5 NO | **FULL PROMPT** — too complex for dispatch |
 
+**Required format:** Before presenting ANY delivery options via `AskUserQuestion`,
+the SP must display the simplicity score:
+`**Simplicity:** [score]/5 — [DISPATCH | ASK USER | FULL PROMPT]`
+This marker is mandatory and makes the scoring decision auditable. Without it,
+delivery options MUST NOT be presented.
+
 File count is a signal, not a gate. A 5-file mechanical rename scores 5/5.
 A 1-file algorithm redesign scores 2/5.
 
 **Pattern gate**: One-way doors (Bezos) never qualify for Fast Lane — check reversibility before scoring. If the change is costly or irreversible, route to full prompt regardless of simplicity score.
+
+**Delivery gate** (enforced BEFORE presenting options):
+- Score ≤2/5 → dispatch option MUST NOT appear in `AskUserQuestion`. Only offer: `[Give me the prompt]` `[This is bigger than it looks]`
+- Score 3/5 → dispatch appears but labeled "(borderline)": `[Dispatch via agent (borderline)]` `[Give me the prompt]` `[This is bigger than it looks]`
+- Score 4-5/5 → dispatch appears as primary option (existing behavior)
+
+The gate prevents offering dispatch for tasks that don't qualify. The scoring
+and gate must run BEFORE the `AskUserQuestion` — never after the user has already chosen.
 
 **Dispatch protocol:**
 1. SP crafts the prompt (same quality standards — routing, model, verification)
