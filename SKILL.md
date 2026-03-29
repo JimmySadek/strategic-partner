@@ -983,6 +983,7 @@ Browser automation needed?                → Playwright
 | `/strategic-partner:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
+| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI |
 
 ---
 

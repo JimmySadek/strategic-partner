@@ -93,6 +93,18 @@ Quick checks run inline during startup. No agents needed — these are observati
    "⚠️ CLAUDE.md is {N} lines (recommended: under 200). Consider splitting
    path-specific rules into .claude/rules/ files."
 
+### Codex CLI Detection (inline, not an agent)
+
+```
+which codex >/dev/null 2>&1
+  ├─ Found → Set internal flag: codex_available = true
+  │         Do NOT mention in orientation output
+  │         SP may offer reviews at trigger points (see /strategic-partner:codex-feedback)
+  └─ Not found → codex_available = false
+                 Feature never surfaces. Totally silent.
+                 Only educates if user explicitly invokes the subcommand.
+```
+
 ---
 
 ## 🤖 Step 2: Spawn Background Agents (Fire-and-Verify)
