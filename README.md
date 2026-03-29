@@ -125,6 +125,17 @@ npx skillshare install https://github.com/JimmySadek/strategic-partner
 git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/strategic-partner
 ```
 
+### Setup
+
+After installing (via skillshare or git clone), run the setup script:
+
+```bash
+cd /path/to/strategic-partner
+./setup
+```
+
+This registers subcommands with Claude Code. The `/strategic-partner:update` subcommand re-runs setup automatically after each update.
+
 ### Run
 
 ```
@@ -151,7 +162,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 
 - **Strategic advisory and prompt crafting** — the core loop: think, plan, route, craft, review
 - **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
-- **Cross-session memory** — uses Serena to persist decisions, conventions, and codebase knowledge across sessions
+- **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure project knowledge, decisions, and conventions survive across sessions
 - **Context handoff management** — monitors context pressure and preserves full session state before it degrades
 - **Anti-sycophancy and cognitive patterns** — direct communication style with named thinking heuristics for architecture and trade-off decisions
 - **Provider-specific prompt formatting** — adapts prompt structure for Claude, OpenAI, and Gemini targets
@@ -191,7 +202,7 @@ strategic-partner/
 
 </details>
 
-The `commands/` directory is auto-linked to `~/.claude/commands/strategic-partner/` on first run — no manual setup needed.
+Run `./setup` after installation to register subcommands. The update subcommand re-runs this automatically.
 
 ---
 
@@ -231,7 +242,7 @@ Every SP session checks for updates in the background. If a newer version exists
 /strategic-partner:update
 ```
 
-Checks the latest version, shows what changed, and runs the update. Detects whether you installed via skillshare or git clone and uses the right method. After updating, it re-links any new subcommand files automatically.
+Checks the latest version, shows what changed, and runs the update. Detects whether you installed via skillshare or git clone and uses the right method. After updating, it re-runs `./setup` to refresh command registrations.
 
 ### GitHub notifications
 
@@ -249,7 +260,7 @@ For release announcements with full changelogs:
 | **Serena MCP unavailable** | Cross-session memory and semantic navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
 | **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
 | **Hooks not configured** | Context monitoring relies on self-assessment only | SP uses self-assessed thresholds instead of the PreCompact hook backstop. Consider adding hooks for reliability. |
-| **Sub-agents hit permission walls** | Background agents can't prompt for approval — WebFetch, Bash, and cross-directory reads fail silently | SP runs a permission pre-flight on startup that detects missing permissions and proposes adding them. One-time fix. |
+| **Sub-agents hit permission walls** | Background agents can't prompt for approval — some tool calls fail silently | Specify `mode` on every agent spawn (see orchestration-playbook.md). Pre-approve `WebFetch` and `WebSearch` in `~/.claude/settings.json` for research agents. |
 | **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
 
 ---
@@ -258,7 +269,7 @@ For release announcements with full changelogs:
 
 - Not an **orchestrator** — it can dispatch small tasks to sub-agents, but its primary role is deciding what to build and routing to the right tool.
 - Not a **skill catalogue**. It knows when to use the skills you already have.
-- Not a **memory system**. It uses Serena for storage, but the point is knowing what to remember and when to bring it back.
+- Not a **memory system**. It stewards Claude Code's existing persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) — the point is knowing what to persist, where, and when to bring it back.
 - Doesn't **replace** your implementation skills. Just gives them better prompts.
 
 ---
