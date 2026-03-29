@@ -1,5 +1,22 @@
 # Changelog
 
+## [5.1.0] - 2026-03-29
+
+### Added
+- **`/strategic-partner:codex-feedback` subcommand** — Cross-model adversarial review via Codex CLI (GPT-5.4). Two modes: Decision Review (attack assumptions on a curated brief) and Evidence Audit (repo-aware claim verification with file:line citations). Includes trigger gate, anti-injection rule, three-way synthesis (User | SP | Codex), and 6-scenario failure handling
+- **Codex CLI detection** — silent inline check at startup (Step 1.5); feature surfaces only when Codex is installed, never mentioned in orientation
+
+### Fixed
+- **Implementation Boundary renamed** — "Firewall" → "Boundary" for honest framing; boundary allows documented single-use override
+- **AskUserQuestion contradiction resolved** — fresh sessions MUST use AskUserQuestion for Q1/Q4; continuation sessions verify from handoff
+- **Auditable artifact markers** — mandatory grep-able format markers (`**Triggers:**`, `**Position:**`, `**Simplicity:**`) make protocol compliance verifiable in session transcripts
+- **Mandatory simplicity scoring gate** — score marker required BEFORE presenting delivery options; delivery gate enforced by threshold (score ≤2/5 blocks dispatch)
+- **Stop hook documentation cleaned** — removed false safety claims; replaced with "no automated backstop" in handoff reference
+- **NOT-in-scope full specification** — definition, when-required rules, good/bad examples, identification guide added to prompt-crafting-guide.md
+
+### Changed
+- **README rewritten** — driven by cross-model evidence audit (Codex CLI / GPT-5.4); added executive summary, "Who is this for" section, accessible context dilution framing, all v5.0.0 features represented, file tree and subcommands updated for 6 commands
+
 ## [5.0.0] - 2026-03-29
 
 ### Changed (Breaking)

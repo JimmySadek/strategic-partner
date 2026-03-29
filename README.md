@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.0.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.1.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
