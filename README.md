@@ -6,19 +6,29 @@
 
 # strategic-partner
 
-> Every other tool executes. This one decides **what** to execute.
-
-A strategic advisory skill for Claude Code. It sits between you and your implementation tools — asking the right questions, crafting scoped prompts, routing tasks to the right skill, and tracking decisions across sessions. You think with it. Other tools build what it specifies.
+A strategic advisory skill for Claude Code that separates planning from execution. It thinks with you in one session — asking the right questions, challenging assumptions, crafting scoped prompts — then routes implementation to fresh sessions where the full context window is available for building. Decisions persist. Context stays clean.
 
 ---
 
-## The problem: context dilution
+## The problem
 
-Claude's instruction-following quality degrades as context fills up. The more tool results, file reads, and back-and-forth accumulate in a single session, the less reliably Claude follows its original instructions. This is called **context dilution**.
+AI coding assistants degrade as conversations grow. Every tool call, file read, and back-and-forth exchange pushes the original instructions further from the model's attention. By the time you're deep into implementation, the careful thinking from earlier has been diluted by hundreds of intermediate results.
 
-Most workflows ignore this. You open one session, plan and build in the same window, and by the time you're deep into implementation, the careful thinking from earlier has been pushed out by hundreds of tool calls. Decisions get made mid-build, often too late. When context fills, everything is lost.
+Think of it like a meeting that started with a clear agenda but kept going for six hours. By hour four, decisions are being made on autopilot — not because anyone stopped caring, but because the original focus got buried under everything that came after.
 
-The strategic partner solves this by splitting planning and execution into separate sessions — persistent advisory context where decisions accumulate, and ephemeral execution context where clean context matters most.
+Most workflows ignore this. You open one session, plan and build in the same window, and by the time you're in the weeds, decisions are being made mid-build with degraded instruction-following. When context fills up completely, everything is lost.
+
+The strategic partner fixes this by enforcing a separation: persistent advisory context where decisions accumulate, and disposable execution context where clean context matters most.
+
+---
+
+## Who is this for
+
+**Solo developers** — A second brain that interrogates your assumptions before you build, routes to the right tool, and remembers decisions across sessions so you don't re-litigate them.
+
+**Team leads** — Consistent prompt quality across implementation sessions, with a decision log that survives context resets. Your architectural intent carries forward even when execution happens in fresh windows.
+
+**Non-technical PMs** — You can describe what you need in plain language. The SP handles the translation into technical prompts, breaks large features into phased delivery, and reports back in terms you can act on. You never need to know which skill or model is best for a task.
 
 ---
 
@@ -27,36 +37,52 @@ The strategic partner solves this by splitting planning and execution into separ
 ### Two sessions, one loop
 
 ```
-┌─────────────────────────────────┐     ┌─────────────────────────────────┐
-│  SESSION 1: ADVISOR (persistent) │     │  SESSION 2: EXECUTOR (ephemeral) │
-│                                  │     │                                  │
-│  /strategic-partner              │     │  /feature-dev                    │
-│                                  │     │  (or whatever skill SP chose)    │
-│  • Thinks with you               │     │  • Builds what SP specified      │
-│  • Asks the right questions      │     │  • Follows the prompt exactly    │
-│  • Crafts implementation prompts │     │  • Commits when done             │
-│  • Routes to the right skill     │     │  • You close this when finished  │
-│  • Tracks decisions & state      │     │                                  │
-│  • Stays open across phases      │     │  Opens fresh for each prompt.    │
-│                                  │     │  No accumulated context.         │
-│  YOU KEEP THIS ONE OPEN.         │     │  DISPOSABLE.                     │
-└──────────────┬───────────────────┘     └──────────────┬───────────────────┘
-               │                                        │
-               │  1. SP crafts prompt ──────────────►   │
-               │                                        │  2. You paste & run
-               │                                        │
-               │  4. SP reviews, plans next  ◄──────    │  3. You report back
-               │                                        │     what happened
-               └────────────────────────────────────────┘
++---------------------------------+     +---------------------------------+
+|  SESSION 1: ADVISOR (persistent) |     |  SESSION 2: EXECUTOR (ephemeral) |
+|                                  |     |                                  |
+|  /strategic-partner              |     |  /feature-dev                    |
+|                                  |     |  (or whatever skill SP chose)    |
+|  - Thinks with you               |     |  - Builds what SP specified      |
+|  - Challenges your assumptions   |     |  - Follows the prompt exactly    |
+|  - Crafts implementation prompts |     |  - Commits when done             |
+|  - Routes to the right skill     |     |  - You close this when finished  |
+|  - Tracks decisions and state    |     |                                  |
+|  - Stays open across phases      |     |  Opens fresh for each prompt.    |
+|                                  |     |  No accumulated context.         |
+|  YOU KEEP THIS ONE OPEN.         |     |  DISPOSABLE.                     |
++----------------+-----------------+     +----------------+-----------------+
+                 |                                        |
+                 |  1. SP crafts prompt ----------------> |
+                 |                                        |  2. You paste & run
+                 |                                        |
+                 |  4. SP reviews, plans next  <--------- |  3. You report back
+                 |                                        |     what happened
+                 +----------------------------------------+
 ```
 
-You describe what you need. The SP asks clarifying questions, then delivers a self-contained prompt targeting the right skill with the right model. You paste that prompt into a fresh session — full context window, zero baggage. When it finishes, you report back. The SP reviews what landed, extracts lessons, and crafts the next prompt.
+You describe what you need. The SP asks clarifying questions, then delivers a self-contained prompt targeting the right skill with the right model. You paste that prompt into a fresh session — full context window, zero accumulated baggage. When it finishes, you report back. The SP reviews what landed, extracts lessons, and crafts the next prompt.
 
-**The SP never builds. The executor never decides.** That separation is what makes both sessions effective.
+**The SP never builds. The executor never decides.** That separation is what makes both work.
 
 ### Fast lane for small tasks
 
-Not every task needs the full cycle. When a task passes a 5-question simplicity assessment (no design judgment, no ambiguity, no cross-cutting concerns), the SP can dispatch it to a sub-agent directly — same fresh context, without the copy-paste overhead. The SP still crafts the prompt, still reviews the result.
+Not every task needs the full cycle. When a task passes a mandatory simplicity assessment (5 disqualifying factors scored — no design judgment, no ambiguity, no cross-cutting concerns), the SP can dispatch it to a sub-agent directly. Same fresh context, without the copy-paste overhead. The simplicity score is always displayed before delivery options are presented, making the routing decision auditable.
+
+---
+
+## What the SP does before any work starts
+
+This is where the value is. Before routing a single task, the SP runs several checks that prevent wasted effort:
+
+**Premise challenge** — Every request is evaluated against 4 trigger conditions: does it name a technology before stating a problem? Describe how before why? Assume a root cause without evidence? Frame a solution instead of a problem? When triggers fire, the SP pushes back with pointed questions before any work begins.
+
+**Forced alternatives** — For non-trivial tasks, the SP presents 3 distinct approaches before routing: Path A (minimal — smallest change), Path B (recommended — the SP's best judgment with rationale), and Path C (lateral — a reframing that might unlock a better outcome). You pick. Then it routes.
+
+**Confidence labels** — Recommendations within prompts carry SAFE or RISK labels so the executor knows which suggestions are well-supported and which involve judgment calls.
+
+**Simplicity scoring** — Before offering Fast Lane dispatch, the SP scores the task on 5 disqualifying factors. The score determines whether dispatch is offered, borderline, or blocked. This gate is mandatory and visible.
+
+**Cross-model review** — For high-stakes decisions (irreversible changes, large blast radius, unresolved disagreements), the SP can dispatch a curated brief to OpenAI's Codex CLI for independent adversarial review, then synthesize a three-way perspective: your position, the SP's position, and Codex's position. Optional — requires Codex CLI installed.
 
 ---
 
@@ -74,39 +100,42 @@ Then say: *"We need to build an onboarding flow"*
 
 **Strategic Partner responds:**
 
-> Before we build — a few things:
-> - This touches **auth**, **UI**, **backend state**, and **email triggers**. That's 4 concern areas.
-> - Your **CLAUDE.md** says you're using React + Tailwind. No component library for modals yet.
-> - Is this for **new signups only**, or also re-onboarding existing users?
+> **Triggers:** #4 fired (solution-shaped — "onboarding flow" describes a feature, not a problem).
 >
-> Options: **Single big session** / **Break into 3 phases** / **Start with just the UI skeleton first**
+> Before we scope this — what user problem does onboarding solve? Are new users dropping off? Confused by the setup? Missing a key activation step?
 
-You say: *"3 phases, new signups only"*
+You clarify: *"New signups aren't completing setup — 60% drop off before connecting their first data source."*
 
-**SP delivers 3 ready-to-paste prompts:**
+> Good. This touches **auth**, **UI**, **backend state**, and **email triggers** — 4 concern areas. Your CLAUDE.md says React + Tailwind, no component library for modals yet.
+>
+> **Path A (Minimal):** 3-step inline wizard, no modal, connects existing setup flow. Ships fast, might need rework later.
+> **Path B (Recommended):** Dedicated onboarding route with progress tracking, broken into 3 phases. Solid foundation.
+> **Path C (Lateral):** Skip the wizard — auto-detect the user's intent from their first actions and surface contextual setup prompts. Higher effort, potentially higher activation.
+>
+> I'd go with **Path B** — it balances speed with a foundation that won't need rework. Path C is interesting but unproven for your user volume.
 
-| Phase | Prompt | What it does |
-|-------|--------|-------------|
-| **1 — Research** | *[research skill from routing matrix]* | Read these 5 files. Map existing **auth flow**. Identify where **onboarding state** should live. |
-| **2 — Build UI** | *[feature skill from routing matrix]* | Build **WelcomeScreen** + 3-step wizard components. Use mock data only. **No backend calls yet.** |
-| **3 — Wire It Up** | *[execution skill from routing matrix]* | Connect wizard to **user state**. Trigger **welcome email** on step 3 completion. |
+You pick Path B. The SP delivers 3 ready-to-paste prompts:
 
-*Skill names are never hardcoded — the SP builds a routing matrix from your actual installed skills and picks the best match for each task.*
+| Phase | Target skill | What it does |
+|-------|-------------|-------------|
+| **1 — Research** | *[from routing matrix]* | Read 5 files, map existing auth flow, identify where onboarding state should live |
+| **2 — Build UI** | *[from routing matrix]* | WelcomeScreen + 3-step wizard, mock data only, no backend calls yet |
+| **3 — Wire up** | *[from routing matrix]* | Connect wizard to user state, trigger welcome email on step 3 completion |
 
-Each prompt has: **files to read first**, **constraints from CLAUDE.md**, **verification checklist**, **expected commit message**.
+Each prompt includes: files to read first, constraints from CLAUDE.md, verification checklist, SAFE/RISK labels on key recommendations, expected commit message, and explicit NOT-in-scope exclusions.
 
-You paste Phase 1 into a **new terminal tab** — it runs — you come back and say "done." SP reviews the git log, then gives you Phase 2. Repeat until the feature ships.
+You paste Phase 1 into a **new terminal tab**. It runs. You come back and say "done." The SP reviews the git log, then gives you Phase 2. Repeat until the feature ships.
 
 ### The key difference
 
-| Aspect | Normal session | `/strategic-partner` session |
-|--------|---------------|------------------------------|
-| **How it works** | You ask, Claude builds | You ask, SP **plans**, writes the brief, the right tool executes |
-| **Big tasks** | One session does everything, falls apart at scale | Work **broken into focused phases**, each scoped and self-contained |
-| **Decisions** | Discovered mid-build, often too late | **Surfaced before any work starts** |
-| **Knowledge** | Dies when the session ends | **Carries forward** via Serena memory and handoffs |
-| **Tool selection** | You pick the tool | SP **routes to the right tool** based on what the task needs |
-| **Context** | Fills up silently, progress lost | SP **monitors context** and preserves state before it degrades |
+| Aspect | Normal session | With the SP |
+|--------|---------------|-------------|
+| **Planning** | Discovered mid-build | Surfaced before any work starts |
+| **Assumptions** | Unchallenged | Premise-checked, alternatives explored |
+| **Big tasks** | One session, degrades at scale | Phased prompts, each with full context |
+| **Knowledge** | Dies with the session | Persists via Serena memory and handoffs |
+| **Tool selection** | You pick | SP routes from an audited matrix |
+| **Confidence** | Implicit | SAFE/RISK labels on recommendations |
 
 ---
 
@@ -160,11 +189,17 @@ The skill loads an advisory persona, scans your project, and asks what you're wo
 
 The SP operates through a lean core (SKILL.md) that loads reference material on demand:
 
-- **Strategic advisory and prompt crafting** — the core loop: think, plan, route, craft, review
+- **Strategic advisory and prompt crafting** — the core loop: discover, challenge premises, present alternatives, route, craft, review
+- **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
+- **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
-- **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure project knowledge, decisions, and conventions survive across sessions
+- **Implementation boundary** — the SP never writes source code in its own session, with a single-use override mechanism for explicit user requests
+- **Simplicity scoring and Fast Lane** — mandatory 5-factor assessment gates agent dispatch, with auditable scoring
+- **SAFE/RISK confidence labels** — recommendations carry explicit confidence signals for executors
+- **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.4) for independent review on high-stakes decisions
+- **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure decisions survive across sessions
 - **Context handoff management** — monitors context pressure and preserves full session state before it degrades
-- **Anti-sycophancy and cognitive patterns** — direct communication style with named thinking heuristics for architecture and trade-off decisions
+- **Cognitive patterns** — named thinking heuristics (Inversion Reflex, Scope Iceberg, Focus as Subtraction) for architecture and trade-off decisions
 - **Provider-specific prompt formatting** — adapts prompt structure for Claude, OpenAI, and Gemini targets
 
 <details>
@@ -180,6 +215,7 @@ strategic-partner/
     handoff.md                          # Context handoff trigger
     status.md                           # Status briefing
     update.md                           # Version check + self-update
+    codex-feedback.md                   # Cross-model adversarial review via Codex CLI
   references/
     startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
     prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
@@ -212,10 +248,11 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 | Command | What it does |
 |---------|-------------|
 | `/strategic-partner:help` | List all subcommands |
-| `/strategic-partner:sync-skills` | Rebuild **routing matrix** from system context, show diff against previous |
-| `/strategic-partner:handoff` | Trigger a **context handoff** with split writes |
+| `/strategic-partner:sync-skills` | Rebuild routing matrix from system context, show diff against previous |
+| `/strategic-partner:handoff` | Trigger a context handoff with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
-| `/strategic-partner:update` | Check for **updates** and self-update to latest version |
+| `/strategic-partner:update` | Check for updates and self-update to latest version |
+| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.4) |
 
 ---
 
@@ -224,8 +261,9 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 - **Claude Code** — the skill runs inside Claude Code sessions
 - **Serena MCP** (recommended) — for cross-session memory and semantic code navigation
 - **Context7 MCP** (optional) — for library documentation lookup
+- **Codex CLI** (optional) — for cross-model adversarial review via `/strategic-partner:codex-feedback`
 
-The skill works without Serena, but loses cross-session memory and semantic code navigation. CLAUDE.md ownership and prompt crafting work regardless.
+The skill works without Serena, but loses cross-session memory and semantic code navigation. CLAUDE.md ownership and prompt crafting work regardless. Codex CLI is only needed if you want independent cross-model review of high-stakes decisions.
 
 ---
 
@@ -261,17 +299,17 @@ For release announcements with full changelogs:
 | **Serena MCP unavailable** | Cross-session memory and semantic navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
 | **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
 | **Context pressure undetected** | No PreCompact hook configured | SP uses self-assessed thresholds and periodic checks. Consider adding a PreCompact hook for earlier detection. |
-| **Sub-agents hit permission walls** | Background agents can't prompt for approval — some tool calls fail silently | Specify `mode` on every agent spawn (see orchestration-playbook.md). Pre-approve `WebFetch` and `WebSearch` in `~/.claude/settings.json` for research agents. |
+| **Sub-agents hit permission walls** | Background agents can't prompt for approval | Specify `mode` on every agent spawn (see orchestration-playbook.md). Pre-approve `WebFetch` and `WebSearch` in `~/.claude/settings.json` for research agents. |
 | **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
+| **Codex CLI not found** | Cross-model review unavailable | Install from [github.com/openai/codex](https://github.com/openai/codex) and run `codex login`. Feature is optional. |
 
 ---
 
 ## What this is not
 
-- Not an **orchestrator** — it can dispatch small tasks to sub-agents, but its primary role is deciding what to build and routing to the right tool.
 - Not a **skill catalogue**. It knows when to use the skills you already have.
-- Not a **memory system**. It stewards Claude Code's existing persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) — the point is knowing what to persist, where, and when to bring it back.
-- Doesn't **replace** your implementation skills. Just gives them better prompts.
+- Not a **memory system**. It stewards Claude Code's existing persistence layers — the point is knowing what to persist, where, and when to bring it back.
+- Doesn't **replace** your implementation skills. It gives them better prompts, cleaner context, and challenged assumptions.
 
 ---
 
