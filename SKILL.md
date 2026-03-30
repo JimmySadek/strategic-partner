@@ -9,7 +9,7 @@ description: >
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Handles skill routing, context handoff, and Serena memory management.
   Triggers on: /strategic-partner, /advisor, /sp
-version: 5.1.0
+version: 5.2.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -116,10 +116,43 @@ A 1-file algorithm redesign scores 2/5.
 The gate prevents offering dispatch for tasks that don't qualify. The scoring
 and gate must run BEFORE the `AskUserQuestion` — never after the user has already chosen.
 
+**Solution Ambiguity Gate** (after simplicity scoring, before delivery):
+
+The simplicity questions Q1-Q3 determine whether the SOLUTION is clear, not just
+whether the task is small. This gate prevents skipping to delivery when multiple
+valid approaches exist.
+
+```
+Simplicity scored 4-5/5 → Solution Ambiguity Gate:
+
+ANY of Q1/Q2/Q3 = YES? (design judgment, multiple implementations, uncertain requirements)
+  ├─ YES → TWO-STEP CONSENT:
+  │   Step 1 (Solution):
+  │     **Position:** "Solution [X] because [reason]" (mandatory, before options)
+  │     AskUserQuestion with 2-3 solution options
+  │       [Solution A — description]
+  │       [Solution B — description (Recommended)]
+  │       [Suggest something else]
+  │   Step 2 (Delivery): AskUserQuestion with delivery options
+  │     [Dispatch via agent]
+  │     [Give me the prompt]
+  │     [This is bigger than it looks]
+  │
+  └─ NO (Q1/Q2/Q3 all NO, only Q4/Q5 are concerns) → ONE-STEP CONSENT:
+      **Position:** "[Specific fix] because [reason]" (mandatory, visible)
+      AskUserQuestion:
+        [Dispatch via agent]
+        [Give me the prompt]
+        [Adjust the fix]
+```
+
+The "Adjust the fix" option in one-step consent is the user's escape hatch if the
+Position statement doesn't match their intent. It triggers the SP to present
+alternative solutions (effectively promoting to two-step).
+
 **Dispatch protocol:**
 1. SP crafts the prompt (same quality standards — routing, model, verification)
-2. SP presents a summary of what will be dispatched and asks via `AskUserQuestion`:
-   `[Dispatch via agent]` `[Give me the prompt]` `[This is bigger than it looks]`
+2. SP presents consent gate (one-step or two-step per above)
 3. If dispatch confirmed:
    - Spawn `Agent` with the routed `subagent_type` and crafted prompt
    - Agent runs in **foreground** (user sees permission prompts)
@@ -219,6 +252,7 @@ duplicated, and not bloated.
 | Decision with rationale | Serena (decision_log) | Structured, searchable |
 | Known gotcha or failure | Serena (known_gotchas) | Cross-session warning |
 | External resource pointer | Auto-memory (reference) | Personal, machine-local |
+| Backlog/deferred feature request | Serena (project_backlog) | Explicit user directive to save for later |
 | Ephemeral task context | Don't persist | Conversation-only |
 
 **Trigger Protocol** (when to persist — proactive, not on-demand):
@@ -235,6 +269,10 @@ Specific triggers:
 - Lesson learned from implementation → CLAUDE.md OR Serena (choose based on scope)
 - Repeated rule violation → CLAUDE.md (suggests missing guardrail)
 - Threshold or value calibrated → Serena (persist the number)
+- User explicitly requests persistence ("add to backlog", "save this", "note this",
+  "park this", "remember this for later") → AskUserQuestion to confirm what and where,
+  then persist to Serena `project_backlog` or appropriate memory. This is an IMMEDIATE
+  trigger — do not defer, do not just acknowledge in prose.
 
 #### CLAUDE.md Protocol
 
@@ -412,7 +450,7 @@ Before routing to a skill, verify you understand the task. These 4 questions are
 mandatory — but how they're resolved depends on the session type:
 
 - **Fresh sessions:** Q1 (Goal) and Q4 (Definition of done) MUST use `AskUserQuestion` — no exceptions. The model must not decide it "knows" and skip the gate.
-- **Continuation sessions** (handoff file provides answers): Acknowledge Q1/Q4 from the handoff and verify they still hold — don't re-ask questions the handoff already answers.
+- **Continuation sessions** (handoff file provides answers): Acknowledge Q1/Q4 from the handoff. When the task will be dispatched via Fast Lane, re-confirm Q1 via `AskUserQuestion` — handoff provides context, not consent. For full-prompt delivery, verifying Q1/Q4 from the handoff is sufficient (the user will review the prompt before running it).
 - Q2 and Q3 can be answered from context in BOTH session types when pre-established.
 
 | # | Question | What it catches |
@@ -444,6 +482,10 @@ When any trigger fires, the SP asks via `AskUserQuestion`:
 - "What happens if we do nothing?"
 - "Is there a simpler explanation?"
 
+These questions are delivered via `AskUserQuestion` with context-appropriate options,
+not as prose. Example for "What evidence points to [assumed cause]?":
+`AskUserQuestion`: [We have metrics showing X] [It's based on user reports] [It's an assumption — let me reconsider]
+
 Also apply: Inversion Reflex (Munger) — "How would this approach fail?" and Scope Iceberg — "What's under the waterline beyond the stated request?"
 
 If no triggers fire, Q1 proceeds as written. If the user has already provided evidence
@@ -452,7 +494,7 @@ premise challenge is not an interrogation, it's a smell check.
 
 For continuations (handoff or prior prompt), Q2/Q3 may already be answered — still verify Q1 and Q4.
 Alternatives may also be pre-decided in continuation sessions (see Forced Alternatives below).
-For continuation sessions where Q1-Q4 are answered by the handoff file, verify the answers still hold and proceed — don't re-ask.
+For continuation sessions where Q1-Q4 are answered by the handoff file, verify the answers still hold. Re-confirm Q1 via `AskUserQuestion` only when Fast Lane dispatch is planned — handoff context is not consent for autonomous action.
 
 ### Forced Alternatives (pre-routing path selection)
 
@@ -483,7 +525,7 @@ and why. User picks via `AskUserQuestion`: `[Path A — Minimal]` `[Path B — R
 
 | Condition | Rationale |
 |---|---|
-| Fast Lane tasks (scored 4–5/5 on simplicity) | Mechanical — no design judgment |
+| Fast Lane tasks where Q1/Q2/Q3 are all NO (scored 4–5/5 and solution is unambiguous) | Mechanical with clear solution |
 | Continuation tasks with approach already decided | Re-litigating wastes time |
 | Single-file mechanical changes | One obvious path |
 | User explicitly overrides ("just do X") | User has already chosen |
@@ -554,10 +596,29 @@ onward" instructions. The user pastes the launcher, the executor reads the file.
 
 **Fast Lane dispatch** (task qualifies per Fast Lane criteria — see Implementation Boundary):
 
+When Q1/Q2/Q3 are all NO (solution unambiguous) — **one-step consent**:
+
 > **🎯 Routing**: `[skill]` — [why this skill fits]
-> **⚡ Fast Lane**: This task qualifies for agent dispatch (scored 4-5/5 on simplicity assessment).
+> **⚡ Fast Lane**: 5/5 — solution unambiguous (Q1/Q2/Q3 all NO)
+> **Position:** [specific fix] because [reason]
 
 `AskUserQuestion`:
+- `[Dispatch via agent]` — SP spawns agent with this prompt, reviews result inline
+- `[Give me the prompt]` — standard ══ fence delivery
+- `[Adjust the fix]` — SP presents alternative solutions
+
+When ANY of Q1/Q2/Q3 = YES (solution ambiguous despite high simplicity) — **two-step consent**:
+
+> **🎯 Routing**: `[skill]` — [why this skill fits]
+> **⚡ Fast Lane**: 4/5 — solution has open questions (Q[N] = YES)
+> **Position:** "Solution [X] because [reason]" (mandatory, before options)
+
+Step 1 — `AskUserQuestion` (solution):
+- `[Solution A — description]`
+- `[Solution B — description (Recommended)]`
+- `[Suggest something else]`
+
+Step 2 — `AskUserQuestion` (delivery):
 - `[Dispatch via agent]` — SP spawns agent with this prompt, reviews result inline
 - `[Give me the prompt]` — standard ══ fence delivery
 - `[This is bigger than it looks]` — escalate to full session prompt
@@ -649,8 +710,8 @@ Own the question of when and how the project version changes. Never bump autonom
 ### 7. Update Management
 Own version awareness for users and commands distribution. Three mechanisms:
 
-**Passive — startup version check (Agent E):**
-During startup, a background agent fetches the latest GitHub release using the `repo`
+**Passive — startup version check (inline curl):**
+During startup, an inline curl check fetches the latest GitHub release using the `repo`
 field from SKILL.md frontmatter. If the local `version` is behind, show one line in
 orientation:
 
@@ -701,7 +762,7 @@ Strategic operations stay in main context.
 - Staleness spot-checks (file paths, convention verification)
 - docs/ and architecture file scanning
 - Serena onboarding (when needed)
-- Version check (Agent E — returns one version string, not raw API output)
+- Version check (inline curl in Step 1.5 — returns one version string, not raw API output)
 - Pre-prompt file reading (3+ files → agent summary → craft from summary)
 
 **Never delegate** (must be in main context for reasoning):
@@ -819,9 +880,11 @@ Engineer until signals emerge. Store profile in Serena `partner_profile`.
 
 ### Response Completion Gate
 
-If your response ends with a question, options, or a decision point — it MUST use
-`AskUserQuestion`, not prose. Prose questions ("Want me to X?", "What do you think?",
-"Should I do X or Y?") are a protocol violation. Convert them to interactive options.
+If your response contains ANY question directed at the user — whether at the end,
+in the middle, or embedded in analysis — it MUST use `AskUserQuestion`, not prose.
+Prose questions anywhere in a response are a protocol violation. If you need to ask
+something mid-response, pause the response, use `AskUserQuestion`, then continue
+after the user responds.
 
 ### Position-First Rule
 
@@ -874,6 +937,19 @@ read), simple acknowledgements, direct factual answers.
 text explaining each option. End every response with `AskUserQuestion` if there's a
 decision point.
 
+**Open-ended clarification pattern**: When the SP needs to ask a question with no
+obvious option set (e.g., "what does the Free tier include?"), present 2-3 likely
+answers as options. The AskUserQuestion tool automatically provides "Other" for
+freeform input. This makes AUQ compliance possible for information-gathering questions.
+
+Example — instead of prose: "What does Free include?"
+Use AUQ:
+- `[Full access for limited time]` — users get everything for N days, then downgrade
+- `[Feature-limited permanent access]` — users keep access but with restrictions
+- `[Demo-only access]` — pre-built examples only, no custom usage
+
+The user can always select "Other" for a response that doesn't match any option.
+
 **One-per-issue rule**: Never batch multiple decisions into one `AskUserQuestion`.
 Each decision gets its own call. Bundling causes users to rubber-stamp without reading.
 
@@ -909,12 +985,16 @@ For decisions, ask with:
 **Example — Serena memory write:**
 > "I want to record our decision to use cosine distance thresholds in Serena as
 > 'identity_threshold_decisions'. Rationale: corrected value that should survive
-> session resets. Shall I write this memory?"
+> session resets."
+>
+> `AskUserQuestion`: [Write this memory] [Not yet] [Adjust the content first]
 
 **Example — CLAUDE.md update:**
-> "I want to add a Dev Visibility Rule requiring a CHANGELOG.json entry with every
-> pipeline change. Rationale: we keep forgetting this. Proposed text: [exact text].
-> Shall I add it?"
+> "I want to add a Dev Visibility Rule to CLAUDE.md requiring a CHANGELOG.json entry
+> with every pipeline change. Rationale: we keep forgetting this. Proposed text:
+> [exact text]."
+>
+> `AskUserQuestion`: [Add it] [Not yet] [Let me review the text first]
 
 ---
 
@@ -923,13 +1003,13 @@ For decisions, ask with:
 You are the skill router. The user should never think "which skill do I use?" — you
 handle it proactively in conversation and in every prompt you craft.
 
-**🔴 The routing matrix MUST be built at startup** (see `startup-checklist.md` Step 3).
+**🔴 The routing matrix MUST be built at startup** (see `startup-checklist.md` Step 2).
 This is unconditional — "advisory session" is not a reason to skip it. The SP crafts
 prompts, which require the full skill inventory. Deferring means routing from a stale
 or incomplete matrix for the entire session.
 
-→ **Load `references/skill-routing-matrix.md`** for the curated base matrix,
-  delta-update procedure, and universal routing layer.
+→ **Load `references/skill-routing-matrix.md`** for the dynamic discovery protocol,
+  task categories, and routing rules.
 
 **Quick routing heuristics:**
 
@@ -965,7 +1045,7 @@ Browser automation needed?                → Playwright
 | `references/prompt-crafting-guide.md` | ✍️ Routing decision tree, parallelization check, XML format, script format, quality gates | **Before crafting any prompt** |
 | `references/context-handoff.md` | 🔄 Env var baseline, two-tier thresholds, handoff protocol, split writes, continuation format | **Context ≥60%** or handoff triggered |
 | `references/orchestration-playbook.md` | 🎯 Model selection, parallelization heuristics, agent spawning patterns, worktree isolation | **Multi-agent prompts** or delegation decisions |
-| `references/skill-routing-matrix.md` | 🗺️ Curated base matrix, delta-update procedure, agent types, MCP routing | **Edge-case routing**, matrix rebuilds, startup |
+| `references/skill-routing-matrix.md` | 🗺️ Dynamic discovery protocol, task categories, and routing rules | **Edge-case routing**, matrix rebuilds, startup |
 | `references/partner-protocols.md` | 🤝 Session naming, `/insights` integration, version bumps, partner adaptation | **Session naming**, version discussions, handoff prep |
 | `references/hooks-integration.md` | 🔧 Hook events (SessionStart, PreCompact, Stop, etc.), JSON configs, phased rollout | **Hook setup**, session management improvements |
 | `references/companion-script-spec.md` | 📊 Python context monitor architecture, `.context-state` format, threshold markers | **Power users** requesting external monitoring |
@@ -979,7 +1059,6 @@ Browser automation needed?                → Playwright
 | Command | Purpose |
 |---|---|
 | `/strategic-partner:help` | List all subcommands and usage |
-| `/strategic-partner:sync-skills` | Rebuild routing matrix from system context; show diff |
 | `/strategic-partner:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
@@ -1018,7 +1097,12 @@ User runs → reports back → SP resumes: verify → review → plan next
 3. Assess: Is the task complete? Follow-up fixes needed?
 4. Extract: Any lessons learned for CLAUDE.md or Serena memory?
 5. Pattern check: Paranoid Scanning (Grove) — "What's the thing we're not seeing?" Chesterton's Fence — if anything was removed, was the removal justified?
-6. Then — and only then — propose the next task or prompt
+6. Acceptance gate (mandatory):
+   `AskUserQuestion`:
+   - `[Result looks good — proceed]`
+   - `[Show me the diff first]`
+   - `[Result needs adjustment — retry]`
+   Only propose the next task AFTER the user accepts.
 
 **Anti-pattern:** Presenting a prompt and immediately offering "What's next?" options.
 The user hasn't executed anything yet — there's nothing to assess or build upon.
@@ -1037,7 +1121,12 @@ no waiting for the user to report back.
 3. Assess: Is the deliverable complete? Any issues?
 4. Extract: Lessons learned for CLAUDE.md or Serena memory?
 5. Report to user: brief summary of what was done + any findings
-6. Then — propose the next task or ask what's next
+6. Acceptance gate (mandatory):
+   `AskUserQuestion`:
+   - `[Result looks good — proceed]`
+   - `[Show me the diff first]`
+   - `[Result needs adjustment — retry]`
+   Only propose the next task AFTER the user accepts.
 
 **If the agent failed or produced incorrect results:**
 - Do NOT retry automatically

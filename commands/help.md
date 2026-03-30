@@ -27,7 +27,6 @@ Key behaviors:
 |---|---|
 | `/strategic-partner` | Full advisor persona with startup sequence (no colon) |
 | `/strategic-partner:help` | List all subcommands and usage (this command) |
-| `/strategic-partner:sync-skills` | Scan live skills vs routing matrix, flag gaps |
 | `/strategic-partner:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
@@ -39,7 +38,6 @@ Key behaviors:
 /strategic-partner                          → Full advisor session (startup sequence)
 /strategic-partner .handoffs/file.md        → Continuation mode (load specific handoff)
 /strategic-partner:help                     → This reference
-/strategic-partner:sync-skills              → Refresh skill inventory mid-session
 /strategic-partner:handoff                  → Save session state + continuation prompt
 /strategic-partner:status                   → "Where do we stand?" briefing
 /strategic-partner:update                  → Check + update to latest version
