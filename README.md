@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.3.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.4.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -197,7 +197,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
-- **Implementation boundary** — the SP is not allowed to implement in its own session, with 3 behavioral gates (Advisory Completion, Advisory Reset, Post-Dispatch Recovery) enforcing the separation
+- **Implementation boundary** — the SP is not allowed to implement in its own session, enforced structurally via a PreToolUse hook (exit code 2 blocks Edit/Write/Bash mutations on source files) and 3 behavioral gates (Advisory Completion, Advisory Reset, Post-Dispatch Recovery)
 - **Fast Lane dispatch** — subordinate delivery mechanism for small, reversible tasks; requires Advisory Completion Gate to pass first; detailed mechanics loaded on demand from reference file
 - **SAFE/RISK confidence labels** — recommendations carry explicit confidence signals for executors
 - **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.4) for independent review on high-stakes decisions
@@ -213,6 +213,8 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 strategic-partner/
   SKILL.md                              # Lean hub — identity, core behaviors, routing dispatch
   setup                                 # Command registration script (run after install/update)
+  hooks/
+    guard-impl.sh                       # PreToolUse hook — blocks source edits in SP sessions
   commands/
     help.md                             # Subcommand reference
     handoff.md                          # Context handoff trigger

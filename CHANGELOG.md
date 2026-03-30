@@ -1,5 +1,25 @@
 # Changelog
 
+## [5.4.0] - 2026-03-30
+
+### Added
+- **PreToolUse structural enforcement** — `hooks/guard-impl.sh` blocks Edit, Write, MultiEdit, and Bash file mutations on source files via harness-enforced exit code 2. Allowed paths: `.prompts/`, `.handoffs/`, `.scripts/`, `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `SKILL.md`, `.claude/`, `.gitignore`
+- **Immediate Reframe Rule** — when user provides implementation-shaped feedback, SP's first response is to craft a prompt or ask a clarifying question, not investigate the code
+- **Guard 3 (Serena writes)** — blocks Serena code-editing tools (`replace_content`, `replace_symbol_body`, etc.) on source files while preserving full memory layer access
+- **Debug mode** — set `SP_HOOK_DEBUG=1` to log hook decisions to `/tmp/sp-hook-debug.log`
+
+### Changed
+- **Override rewritten** — "implement yourself" → "dispatch to executor"; resolves the fundamental contradiction between "never implement" and "just do it yourself on small tasks"
+- **Checkpoint expansion** — Checkpoint 1 (REQUEST) now catches implicit implementation triggers (bug reports, visual complaints, "looks wrong")
+
+### Fixed
+- **Hook tool name extraction** — was reading `CLAUDE_TOOL_NAME` env var (not set by Claude Code); now parses `tool_name` from stdin JSON payload
+- **Hook path resolution** — `${CLAUDE_SKILL_DIR}` fallback added for environments where the variable isn't expanded
+
+### Removed
+- **"Trivial — Just run [X] directly" branch** — was the biggest identity escape hatch; all tasks now go through prompt crafting or agent dispatch
+- **Self-waiver in prompt-crafting-guide** — "proceed directly" option replaced with prompt-only paths
+
 ## [5.3.0] - 2026-03-30
 
 ### Changed
