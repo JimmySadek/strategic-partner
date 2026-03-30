@@ -11,10 +11,10 @@ Do not display to user.
 │  Step 1          Step 2          Step 3       Step 4                    │
 │  Env Vars  →  Spawn Agents  → Read State → Verify                      │
 │  AUTOCOMPACT    ┌─ Agent A     $ARGUMENTS    ✅ Agent D                 │
-│  _PCT=70       ├─ Agent B     Serena         ⚡ Agent E                │
-│                ├─ Agent D     CLAUDE.md           │                     │
-│                └─ Agent E          │              │                     │
-│                  🗺️ Matrix          │              ▼                     │
+│  _PCT=70       ├─ Agent B     Serena              │                     │
+│  Version ✓     └─ Agent D     CLAUDE.md           │                     │
+│  (inline)        🗺️ Matrix          │              │                     │
+│                     │              │              ▼                     │
 │                     │              │         Step 5                     │
 │                     └──────────────┘         📋 Orient                  │
 │                                              + Setup recs               │
@@ -105,6 +105,28 @@ which codex >/dev/null 2>&1
                  Only educates if user explicitly invokes the subcommand.
 ```
 
+### Version Check (inline, not an agent)
+
+Quick check against GitHub releases. Runs inline because it's a single curl
+returning one version string — agent overhead adds fragility with no benefit.
+
+```
+REMOTE_VERSION=$(curl -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
+LOCAL_VERSION=$(grep '^version:' "${CLAUDE_SKILL_DIR}/SKILL.md" | head -1 | awk '{print $2}')
+
+if [ -n "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
+  echo "UPDATE_AVAILABLE:${REMOTE_VERSION}"
+else
+  echo "UP_TO_DATE"
+fi
+```
+
+- If curl fails or GitHub is unreachable: `REMOTE_VERSION` is empty → treated as up-to-date (silent skip)
+- If versions differ: orientation shows update notice
+- Timeout: curl -sf has a default timeout; no retries needed
+
+This replaces Agent E entirely. No WebFetch, no ToolSearch, no background agent.
+
 ---
 
 ## 🤖 Step 2: Spawn Background Agents (Fire-and-Verify)
@@ -132,6 +154,11 @@ Quick scan for major structural changes since last session.
 not at runtime. See `setup` in the skill root. The self-repair check in Step 1.5
 ensures commands are registered even if setup was never run manually.
 
+### Agent E: Removed
+
+**Version check** is handled inline in Step 1.5 via a single curl command.
+See the "Version Check (inline, not an agent)" section above.
+
 ### Agent D: 🗺️ Environment Discovery + Routing Matrix (mode: "auto", MANDATORY)
 
 Full environment scan: skills, custom agents, MCP servers/plugins, and routing
@@ -145,13 +172,15 @@ matrix build. This is mechanical work — exactly what agents should handle.
 │                                                                │
 │  1. 📋 Skill inventory                                         │
 │     ├─ Read system context's available skills list             │
-│     ├─ Load base matrix from skill-routing-matrix.md           │
-│     ├─ Compare: skills in base → skip, NOT in base → delta    │
-│     └─ Count: total available, base covered, new/delta        │
+│     ├─ Load task categories from skill-routing-matrix.md       │
+│     ├─ Match each skill to a task category by description      │
+│     └─ Count: total available, new since cache, removed        │
 │                                                                │
 │  2. 🤖 Custom agent discovery                                  │
 │     ├─ Scan .claude/agents/ (project-level)                   │
+│     │   └─ On failure → record "project_level_scan_failed"    │
 │     ├─ Scan ~/.claude/agents/ (user-level)                    │
+│     │   └─ On failure → record "user_level_scan_failed"       │
 │     └─ Build routing entries for each custom agent found       │
 │                                                                │
 │  3. 🔌 MCP server / plugin inventory                           │
@@ -161,60 +190,53 @@ matrix build. This is mechanical work — exactly what agents should handle.
 │     └─ Note which servers are available vs configured but off  │
 │                                                                │
 │  4. 🔀 Build routing matrix                                    │
-│     ├─ Merge: base + delta skills + custom agents              │
+│     ├─ Map discovered skills to task categories                │
+│     ├─ Merge with built-in Agent types (always available)      │
 │     └─ Annotate with MCP tool availability                     │
 │                                                                │
 │  5. 💾 Return: full environment summary                        │
-│                                                                │
-│  ⚡ ~80% cheaper than full matrix build from scratch           │
 └────────────────────────────────────────────────────────────────┘
 ```
 
 **Return format:**
 ```
 {
-  skills: { total: N, base: 30, delta: N, new: ["skill-a", ...] },
-  custom_agents: { count: N, agents: ["agent-a", ...] },
-  mcp_servers: { active: ["serena", "context7", ...], available_tools: N },
-  routing_matrix: { total_entries: N }
+  skills: { total: N, new_since_cache: N, removed_since_cache: N },
+  agents: { user_level: N, project_level: N, errors: [] },
+  mcp_servers: { active: ["serena", ...], tool_count: N },
+  routing_status: "built" | "cached" | "fallback"
 }
 ```
+
+The `errors` array captures scan failures without masking them as zero counts.
+Examples: `["user_level_scan_failed"]`, `["project_level_scan_failed"]`.
+The `routing_status` indicates how the matrix was constructed:
+- `"built"` — full discovery succeeded (errors may still exist for non-critical scans)
+- `"cached"` — discovery failed, using Serena cached matrix
+- `"fallback"` — no cache available, routing from system context + task categories only
 
 **Why an agent**: The SP operates at the decision layer. Scanning skills lists,
 file system directories, and MCP tool inventories is mechanical — delegate it.
 The SP should reason from the environment summary, not spend context building it.
 
-**If Agent D fails**: Fall back to the base matrix from `skill-routing-matrix.md`
-plus real-time matching from system context. Note limitation in orientation.
-
-### Agent E: ⚡ Version Check (mode: "auto")
-
-Lightweight background check for skill updates.
-
-**What it does:**
-
+**Failure handling (fallback chain):**
 ```
-┌─ Version Check ────────────────────────────────────────────────────┐
-│  1. Read SKILL.md frontmatter → extract repo field                  │
-│  2. Use the WebFetch tool to fetch the URL:                         │
-│     https://api.github.com/repos/{repo}/releases/latest             │
-│     Do NOT use Bash, curl, or any shell command for HTTP requests.  │
-│     Use WebFetch — do NOT fall back to Bash/curl.                  │
-│  3. Extract tag_name → strip leading "v" if present                 │
-│  4. Return: { latest_version: "X.Y.Z" }                             │
-│     OR:     { error: "unreachable" }                                 │
-│                                                                      │
-│  ⚠️  Timeout: 5 seconds. No retries.                                │
-│  ⚠️  If no Releases exist, try /tags?per_page=1 (also via WebFetch)│
-│  ⚠️  If both fail → { error: "no_releases" }.                       │
-│  ⚠️  If WebFetch is unavailable or denied →                         │
-│       return { error: "webfetch_unavailable" }                       │
-│       Do NOT fall back to Bash/curl.                                 │
-└────────────────────────────────────────────────────────────────────┘
-```
+Agent D succeeds fully
+  └─ routing_status: "built"
+     Store matrix in Serena as skill_routing_matrix
 
-**Why an agent**: Network call output should not consume main context.
-Agent returns a clean one-field result.
+Agent D partial failure (e.g., agent scan fails, skills readable)
+  └─ routing_status: "built" (with errors noted in agents.errors)
+     Use what succeeded + note gaps in orientation
+
+Agent D total failure
+  └─ Read Serena cached matrix (skill_routing_matrix)
+     routing_status: "cached"
+
+No Serena cache exists
+  └─ Match system-reminder skills to task categories + built-in Agent types
+     routing_status: "fallback"
+```
 
 ---
 
@@ -257,8 +279,10 @@ but are not security-critical.
 
 | Result | Action |
 |---|---|
-| ✅ Environment scanned + matrix built | Store matrix in Serena as `skill_routing_matrix`. Report environment summary in orientation: N skills (M new), K custom agents, MCP servers active. |
-| ⚠️ Agent D timed out / failed | **Fall back to base matrix** from `skill-routing-matrix.md` + real-time matching. Note limitation in orientation: "Routing from base matrix only — environment scan failed." |
+| ✅ `routing_status: "built"` (no errors) | Store matrix in Serena as `skill_routing_matrix`. Report: "N skills available, M agents detected. Routing matrix built." |
+| ✅ `routing_status: "built"` (with errors) | Store matrix, note gaps. Report: "N skills available, M agents detected (scan had issues — count may be incomplete)." |
+| ⚠️ `routing_status: "cached"` | Using Serena cached matrix. Report: "Using cached routing matrix (environment scan failed). N skills in cache." |
+| ⚠️ `routing_status: "fallback"` | No cache available. Report: "Limited routing — no cache available. Routing from system context only." |
 
 ### 🔍 Agents A/B Integration (Non-blocking)
 
@@ -269,13 +293,12 @@ but are not security-critical.
 | 🏗️ Architecture scan results | Incorporate into orientation context |
 | ⚠️ Agent timed out / failed | Note limitation in orientation, proceed without that data |
 
-### ⚡ Agent E Integration (Non-blocking)
+### ⚡ Version Check Integration (from Step 1.5 inline check)
 
 | Result | Action |
 |---|---|
-| ✅ Remote version = local version | No mention to user |
-| ⚡ Remote version > local version | Show in orientation: "⚡ v{remote} available (you have v{local}). Run `/strategic-partner:update`" |
-| ⚠️ Agent failed / timed out | Skip silently — no mention |
+| UP_TO_DATE or check failed silently | No mention to user |
+| UPDATE_AVAILABLE:{version} | Show in orientation: "⚡ v{remote} available (you have v{local}). Run `/strategic-partner:update`" |
 
 ---
 
@@ -293,8 +316,8 @@ and ask what the user wants to work on.
 - ⚠️ Any agent warnings from Step 4
 - ❌ Staleness check results (if FAIL)
 - 🌿 Current branch and git state
-- 🗺️ Environment summary from Agent D: skills (base + delta), custom agents, active MCP servers
-- ⚡ Update available (from Agent E): one-liner with version diff and update command
+- 🗺️ Environment summary from Agent D: skill count, agent count (with any scan errors noted), active MCP servers
+- ⚡ Update available (from inline version check in Step 1.5): one-liner with version diff and update command
 - 🔌 **Serena not detected**: If Serena MCP is unavailable, display this block:
 
 > **Serena MCP is not detected.** The Strategic Partner works without it but operates

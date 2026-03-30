@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.1.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.2.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -66,7 +66,7 @@ You describe what you need. The SP asks clarifying questions, then delivers a se
 
 ### Fast lane for small tasks
 
-Not every task needs the full cycle. When a task passes a mandatory simplicity assessment (5 disqualifying factors scored — no design judgment, no ambiguity, no cross-cutting concerns), the SP can dispatch it to a sub-agent directly. Same fresh context, without the copy-paste overhead. The simplicity score is always displayed before delivery options are presented, making the routing decision auditable.
+Not every task needs the full cycle. When a task passes a mandatory simplicity assessment (5 disqualifying factors scored), the SP checks whether the solution is also unambiguous. If it is — no design judgment needed, no competing approaches — the SP states its position and offers direct dispatch. If multiple valid solutions exist, you see solution options first, then delivery options. Same fresh context, without the copy-paste overhead. The simplicity score and solution ambiguity gate are always displayed, making the routing decision auditable.
 
 ---
 
@@ -80,7 +80,7 @@ This is where the value is. Before routing a single task, the SP runs several ch
 
 **Confidence labels** — Recommendations within prompts carry SAFE or RISK labels so the executor knows which suggestions are well-supported and which involve judgment calls.
 
-**Simplicity scoring** — Before offering Fast Lane dispatch, the SP scores the task on 5 disqualifying factors. The score determines whether dispatch is offered, borderline, or blocked. This gate is mandatory and visible.
+**Simplicity scoring + Solution Ambiguity Gate** — Before offering Fast Lane dispatch, the SP scores the task on 5 disqualifying factors. Questions Q1-Q3 (design judgment, multiple implementations, uncertain requirements) then determine whether you see a single position statement with dispatch options (solution clear) or solution options first (solution ambiguous). The score and gate are mandatory and visible.
 
 **Cross-model review** — For high-stakes decisions (irreversible changes, large blast radius, unresolved disagreements), the SP can dispatch a curated brief to OpenAI's Codex CLI for independent adversarial review, then synthesize a three-way perspective: your position, the SP's position, and Codex's position. Optional — requires Codex CLI installed.
 
@@ -134,7 +134,7 @@ You paste Phase 1 into a **new terminal tab**. It runs. You come back and say "d
 | **Assumptions** | Unchallenged | Premise-checked, alternatives explored |
 | **Big tasks** | One session, degrades at scale | Phased prompts, each with full context |
 | **Knowledge** | Dies with the session | Persists via Serena memory and handoffs |
-| **Tool selection** | You pick | SP routes from an audited matrix |
+| **Tool selection** | You pick | SP routes dynamically from your installed tools |
 | **Confidence** | Implicit | SAFE/RISK labels on recommendations |
 
 ---
@@ -194,7 +194,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
 - **Implementation boundary** — the SP never writes source code in its own session, with a single-use override mechanism for explicit user requests
-- **Simplicity scoring and Fast Lane** — mandatory 5-factor assessment gates agent dispatch, with auditable scoring
+- **Simplicity scoring, Solution Ambiguity Gate, and Fast Lane** — mandatory 5-factor assessment plus Q1/Q2/Q3 solution check gates agent dispatch; Position statement shown before delivery options
 - **SAFE/RISK confidence labels** — recommendations carry explicit confidence signals for executors
 - **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.4) for independent review on high-stakes decisions
 - **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure decisions survive across sessions
@@ -211,7 +211,6 @@ strategic-partner/
   setup                                 # Command registration script (run after install/update)
   commands/
     help.md                             # Subcommand reference
-    sync-skills.md                      # Skill inventory sync
     handoff.md                          # Context handoff trigger
     status.md                           # Status briefing
     update.md                           # Version check + self-update
@@ -221,7 +220,7 @@ strategic-partner/
     prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
     context-handoff.md                  # Env var baseline, two-tier thresholds, split writes
     orchestration-playbook.md           # Model selection, parallelization heuristics, worktree isolation
-    skill-routing-matrix.md             # Curated base matrix + delta-update procedure
+    skill-routing-matrix.md             # Dynamic discovery protocol, task categories, and routing rules
     partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
     hooks-integration.md                # Hook event reference and integration patterns
     companion-script-spec.md            # Python context monitor architecture (spec only)
@@ -248,7 +247,6 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 | Command | What it does |
 |---------|-------------|
 | `/strategic-partner:help` | List all subcommands |
-| `/strategic-partner:sync-skills` | Rebuild routing matrix from system context, show diff against previous |
 | `/strategic-partner:handoff` | Trigger a context handoff with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |

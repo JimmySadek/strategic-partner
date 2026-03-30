@@ -1,11 +1,11 @@
-# Skill Routing Matrix — Base Matrix & Delta Procedure
+# Skill Routing Matrix — Dynamic Routing Rules
 
-Reference file for the strategic-partner advisor. Ships a comprehensive base matrix
-of skills, agent types, and behavioral modes, with a delta-update procedure for
-discovering new or custom skills at runtime.
+Reference file for the strategic-partner advisor. Defines task categories, dynamic
+discovery protocol, and routing rules. Agent D builds the actual matrix at runtime
+from each user's installed skills and agents.
 
 ```
-Load Base Matrix → Scan for NEW Skills → Build Delta Entries → Merge → Store in Serena → Diff on Continuation
+Task Categories (static) + Discovered Skills (dynamic) → Routing Matrix → Store in Serena → Delta on Continuation
 ```
 
 ---
@@ -17,264 +17,221 @@ Each entry in the routing matrix follows this schema:
 | Field | Description | Example |
 |---|---|---|
 | Task | Natural-language description of what the user wants | "Implement a focused feature" |
-| Primary Skill | Exact invocation (slash command or Agent type) | `/feature-dev:feature-dev` or `⚙️ Agent:code-explorer` |
+| Primary Skill | Exact invocation (slash command or Agent type) | `[resolved at runtime]` or `Agent:code-explorer` |
 | Model | Recommended model for the task | Opus, Sonnet, or Haiku |
-| When to Use Instead | Alternative skill for edge cases | "/sc:implement for simpler scope" |
+| When to Use Instead | Alternative skill for edge cases | "Agent:Plan for lighter scope" |
 
 ---
 
-## 📦 Curated Base Matrix
+## Task Category Taxonomy
 
-These are the commonly available skills and built-in Agent types pre-mapped. Load
-this table at startup instead of building from scratch — covers the majority of routing needs.
+These categories define WHAT kinds of tasks exist. Agent D maps discovered skills
+into these categories at runtime using keyword matching and skill descriptions.
 
-### 🔧 Implementation & Feature Development
+### 1. Implementation
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Quick single-file fix or change | `/gsd:quick` | Sonnet | Direct Edit tool for trivial changes |
-| Focused feature (1-3 files, clear spec) | `/feature-dev:feature-dev` | Sonnet | `/sc:implement` for simpler scope |
-| Complex feature with design phase | `/gsd:feature` | Opus→Sonnet | `/feature-dev` if no design phase needed |
-| Implement from existing spec/plan | `/sc:implement` | Sonnet | `/feature-dev` for broader scope |
-| Full-stack feature (frontend + backend) | `/gsd:fullstack` | Sonnet | Split into separate frontend/backend prompts |
+**Description:** Building new features, making code changes, executing from specs.
+**Keywords:** build, implement, create, add, feature, develop, code, write, make
+**Built-in Agents:** `Agent:general-purpose`, `Agent:Plan`
+**Model Heuristic:** Sonnet (Opus if design-heavy or full-stack)
 
-### 🔍 Debugging & Investigation
+### 2. Debugging & Investigation
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Debug a complex bug | `/gsd:debug` | Opus | `⚙️ Agent:root-cause-analyst` for deep investigation |
-| Root cause analysis | `⚙️ Agent:root-cause-analyst` | Opus | `/gsd:debug` for simpler bugs |
-| Performance investigation | `⚙️ Agent:performance-engineer` | Sonnet | `/gsd:debug` if perf issue is a bug |
+**Description:** Finding and fixing bugs, root cause analysis, performance issues.
+**Keywords:** debug, fix, bug, broken, error, investigate, crash, failing, slow, diagnose
+**Built-in Agents:** `Agent:root-cause-analyst`, `Agent:performance-engineer`
+**Model Heuristic:** Opus (deep reasoning needed for root cause)
 
-### ✅ Code Quality & Review
+### 3. Code Quality & Review
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Review PR or changeset | `/code-review:code-review` | Sonnet | `⚙️ Agent:feature-dev:code-reviewer` for deeper review |
-| Code cleanup and simplification | `/code-simplifier:code-simplifier` | Sonnet | `⚙️ Agent:refactoring-expert` for larger refactors |
-| Large-scale refactoring | `⚙️ Agent:refactoring-expert` | Sonnet | `/code-simplifier` for single-file cleanup |
-| Security audit | `⚙️ Agent:security-engineer` | Opus | `/code-review` if just checking for obvious issues |
-| Comprehensive multi-domain code analysis | `/sc:analyze` | Sonnet | `⚙️ Agent:security-engineer` for security focus |
-| Systematic code improvement | `/sc:improve` | Sonnet | `/code-simplifier` for single-file cleanup |
-| Dead code removal, structure cleanup | `/sc:cleanup` | Sonnet | `/sc:improve` for quality-focused changes |
-| Diagnose and resolve build/deploy issues | `/sc:troubleshoot` | Sonnet | `/gsd:debug` for complex code bugs |
+**Description:** Code review, refactoring, cleanup, security audits, style enforcement.
+**Keywords:** review, refactor, clean, simplify, audit, lint, quality, improve, dead code
+**Built-in Agents:** `Agent:refactoring-expert`, `Agent:security-engineer`, `Agent:code-simplifier`
+**Model Heuristic:** Sonnet (Opus for security audits)
 
-### 🏗️ Architecture & Design
+### 4. Architecture & Design
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Design a new feature's architecture | `⚙️ Agent:feature-dev:code-architect` | Opus | `/sc:design` for API-level specs |
-| Backend system design | `⚙️ Agent:backend-architect` | Opus | `⚙️ Agent:system-architect` for distributed systems |
-| Scalable system architecture | `⚙️ Agent:system-architect` | Opus | `⚙️ Agent:backend-architect` for single-service scope |
-| Frontend/UI architecture | `⚙️ Agent:frontend-architect` | Sonnet | `/frontend-design` for component-level work |
-| DevOps and infrastructure design | `⚙️ Agent:devops-architect` | Opus | — |
+**Description:** System design, API design, component architecture, infrastructure planning.
+**Keywords:** architect, design, structure, plan, scale, API, schema, infrastructure, devops
+**Built-in Agents:** `Agent:backend-architect`, `Agent:system-architect`, `Agent:frontend-architect`, `Agent:devops-architect`
+**Model Heuristic:** Opus (architectural decisions need deep reasoning)
 
-### 🔍 Research & Exploration
+### 5. Research & Exploration
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Explore existing code before building | `⚙️ Agent:Explore` | Sonnet | Quick Grep/Glob for single-file lookups |
-| Deep feature analysis, execution tracing | `⚙️ Agent:feature-dev:code-explorer` | Sonnet | `⚙️ Agent:Explore` for broad discovery |
-| Deep research with multiple sources | `⚙️ Agent:deep-research-agent` | Opus | `⚙️ Agent:Explore` for codebase-only research |
-| Requirements discovery | `⚙️ Agent:requirements-analyst` | Opus | Brainstorming mode for less formal discovery |
-| Implementation planning | `⚙️ Agent:Plan` | Sonnet | `⚙️ Agent:feature-dev:code-architect` for design-heavy planning |
+**Description:** Codebase exploration, deep research, requirements discovery, planning.
+**Keywords:** explore, research, understand, discover, analyze, investigate, plan, requirements
+**Built-in Agents:** `Agent:Explore`, `Agent:Plan`, `Agent:deep-research-agent`, `Agent:requirements-analyst`
+**Model Heuristic:** Sonnet for exploration, Opus for deep research
 
-### 📝 Documentation & Teaching
+### 6. Documentation & Teaching
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Technical documentation | `⚙️ Agent:technical-writer` | Sonnet | Direct writing for simple docs |
-| Explain code or concepts | `⚙️ Agent:learning-guide` | Sonnet | `⚙️ Agent:socratic-mentor` for guided learning |
-| Educational guidance (Socratic) | `⚙️ Agent:socratic-mentor` | Sonnet | `⚙️ Agent:learning-guide` for direct explanation |
-| Generate component, API, or feature docs | `/sc:document` | Sonnet | `⚙️ Agent:technical-writer` for comprehensive docs |
-| Explain code, concepts, or system behavior | `/sc:explain` | Sonnet | `⚙️ Agent:learning-guide` for educational depth |
+**Description:** Writing docs, explaining code, educational guidance, knowledge transfer.
+**Keywords:** document, explain, teach, guide, readme, changelog, comment, describe
+**Built-in Agents:** `Agent:technical-writer`, `Agent:learning-guide`, `Agent:socratic-mentor`
+**Model Heuristic:** Sonnet
 
-### 🧪 Testing & Quality Engineering
+### 7. Testing & Quality Engineering
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Testing strategy, edge case detection | `⚙️ Agent:quality-engineer` | Sonnet | `/gsd:test` for straightforward test writing |
-| Write tests for existing code | `/gsd:test` | Sonnet | `⚙️ Agent:quality-engineer` for strategy-level work |
+**Description:** Test writing, test strategy, coverage analysis, edge case detection.
+**Keywords:** test, coverage, spec, assert, edge case, regression, integration, e2e, QA
+**Built-in Agents:** `Agent:quality-engineer`
+**Model Heuristic:** Sonnet
 
-### 🎯 Multi-Expert & Strategic
+### 8. UI & Frontend
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Multi-expert business strategy | `⚙️ Agent:business-panel-experts` | Opus | Single-domain agent for focused questions |
+**Description:** Building UI components, frontend architecture, styling, accessibility.
+**Keywords:** UI, frontend, component, CSS, Tailwind, React, page, layout, responsive, design system
+**Built-in Agents:** `Agent:frontend-architect`
+**Model Heuristic:** Sonnet
 
-### 🚀 Project Lifecycle
+### 9. Workflow & Process
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Start a new project from scratch | `/gsd:new-project` | Opus | — |
-| Start a new milestone/version cycle | `/gsd:new-milestone` | Opus | — |
-| Plan a project phase | `/gsd:plan-phase` | Sonnet | `/superpowers:writing-plans` for non-GSD projects |
-| Execute a planned phase | `/gsd:execute-phase` | Sonnet | `/superpowers:executing-plans` for non-GSD |
-| Check project progress, route next action | `/gsd:progress` | Sonnet | `/strategic-partner:status` for advisory context |
-| Validate built features (UAT) | `/gsd:verify-work` | Sonnet | — |
-| Audit milestone before archiving | `/gsd:audit-milestone` | Opus | — |
-| Analyze codebase structure in parallel | `/gsd:map-codebase` | Sonnet | `⚙️ Agent:Explore` for lighter scan |
-| Gather phase context before planning | `/gsd:discuss-phase` | Sonnet | — |
-| Resume work from previous session | `/gsd:resume-work` | Sonnet | `/strategic-partner:handoff` in advisory sessions |
-| Pause work and create context handoff | `/gsd:pause-work` | Sonnet | `/strategic-partner:handoff` in advisory sessions |
+**Description:** Git operations, CI/CD, deployment, scheduling, project lifecycle management.
+**Keywords:** git, deploy, CI, pipeline, ship, merge, PR, release, schedule, workflow
+**Built-in Agents:** `Agent:devops-architect`
+**Model Heuristic:** Sonnet
 
-### 🎨 UI/Frontend
+### 10. Configuration & Meta
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Full UI/UX design with styling guidance | `/ui-ux-pro-max` | Sonnet | `/frontend-design` for component-level work |
-| Create polished frontend interfaces | `/frontend-design` | Sonnet | `/ui-ux-pro-max` for full design system |
-| Review UI against Web Interface Guidelines | `/web-design-guidelines` | Sonnet | `/code-review` for non-UI review |
-| React composition and component patterns | `/composition-patterns` | Sonnet | `/react-best-practices` for performance focus |
-| React/Next.js performance optimization | `/react-best-practices` | Sonnet | `/sc:improve` for non-React optimization |
+**Description:** Tool configuration, skill management, environment setup, settings.
+**Keywords:** configure, setup, settings, install, hook, keybinding, sync, skill, plugin
+**Built-in Agents:** `Agent:general-purpose`
+**Model Heuristic:** Sonnet (Haiku for trivial lookups)
 
-### 🔄 Workflow & Process
+---
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Interactive requirements discovery | `/sc:brainstorm` | Opus | `/superpowers:brainstorming` as behavioral wrapper |
-| Generate implementation workflow from PRD | `/sc:workflow` | Sonnet | `/gsd:plan-phase` for phase-level planning |
-| Provide development time/effort estimates | `/sc:estimate` | Sonnet | — |
-| Multi-expert specification review | `/sc:spec-panel` | Opus | `/sc:business-panel` for business-focused review |
-| Multi-expert business strategy analysis | `/sc:business-panel` | Opus | `/sc:spec-panel` for technical focus |
+## Dynamic Discovery Protocol
 
-### 🔧 Git & DevOps
+Agent D builds the routing matrix at runtime. The system-reminder message is the
+**authoritative source** for each user's installed skills — it lists every available
+skill with its description.
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Git operations with smart commit messages | `/sc:git` | Sonnet | Direct git commands for trivial operations |
-| GitHub PRs, issues, workflows, API queries | `/github-ops` | Sonnet | Direct `gh` CLI for quick one-liners |
-| Build, compile, and package projects | `/sc:build` | Sonnet | Direct build commands if straightforward |
+### Initialization (Fresh Session)
 
-### 📄 Content & Publishing
+```
+Step 1: Read skill inventory from system-reminder
+  ├─ Extract each skill name and its one-line description
+  ├─ Count total available skills
+  └─ Note any skill families (shared prefix, e.g., "gsd:*", "sc:*")
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Extract YouTube video transcripts | `/youtube-fetcher` | Haiku | — |
-| Remove AI writing patterns from text | `/humanizer` | Sonnet | Manual editing for short passages |
-| Publish files or sites to web instantly | `/here-now` | Sonnet | — |
-| PDF extraction, creation, or manipulation | `/pdf` | Sonnet | — |
+Step 2: Read custom agent definitions
+  ├─ Scan .claude/agents/ (project-level)
+  │   ├─ Success → count agents, read descriptions from frontmatter
+  │   └─ Failure → record error: "project_level_scan_failed"
+  ├─ Scan ~/.claude/agents/ (user-level)
+  │   ├─ Success → count agents, read descriptions from frontmatter
+  │   └─ Failure → record error: "user_level_scan_failed"
+  └─ Note: Agent definition files enhance built-in subagent_types with
+     skills, effort, tools, etc. — Claude Code picks them up automatically
 
-### ⚙️ Configuration & Meta
+Step 3: Read MCP server inventory from system-reminder
+  ├─ Identify active servers (Serena, Context7, Playwright, etc.)
+  └─ Count available MCP tools
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Configure Claude Code settings or hooks | `/update-config` | Sonnet | Direct settings.json edit if trivial |
-| Customize keyboard shortcuts | `/keybindings-help` | Sonnet | — |
-| Sync skills across AI CLI tools | `/skillshare` | Sonnet | — |
-| Discover and install new skills | `/find-skills` | Haiku | — |
-| Audit or improve CLAUDE.md files | `/claude-md-management:claude-md-improver` | Sonnet | `/claude-md-management:revise-claude-md` for targeted updates |
-| Create, modify, or test AI skills | `/skill-creator:skill-creator` | Opus | `/superpowers:writing-skills` for behavioral guidance |
-| Build apps with Claude API or Anthropic SDK | `/claude-api` | Sonnet | — |
+Step 4: Map skills to task categories
+  ├─ For each discovered skill:
+  │   ├─ Read its description from system-reminder
+  │   ├─ Match keywords against the Task Category Taxonomy above
+  │   ├─ Assign a model heuristic using the Model Selection rules below
+  │   └─ Build a routing entry (Task, Primary Skill, Model, When to Use Instead)
+  ├─ For each custom agent:
+  │   ├─ Read its description from frontmatter
+  │   ├─ Match to task category
+  │   └─ Build routing entry
+  └─ Merge with built-in Agent types (always available)
 
-### 🤖 Behavioral Modes (Superpowers)
+Step 5: Store the complete matrix in Serena as `skill_routing_matrix`
+```
 
-NOTE: These are behavioral wrappers that modify HOW a session operates, not standalone
-task skills. They're typically invoked at the START of a session alongside a task skill.
+### Continuation (Returning Session)
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Creative exploration before building | `/superpowers:brainstorming` | Opus | `/sc:brainstorm` for structured requirements |
-| Write multi-step implementation plans | `/superpowers:writing-plans` | Opus | `/gsd:plan-phase` for GSD-managed projects |
-| Execute a written plan with checkpoints | `/superpowers:executing-plans` | Sonnet | `/gsd:execute-phase` for GSD workflows |
-| TDD workflow (tests first) | `/superpowers:test-driven-development` | Sonnet | `/gsd:test` for standalone test writing |
-| Systematic debugging with evidence | `/superpowers:systematic-debugging` | Opus | `/gsd:debug` for persistent debug sessions |
-| Verify work before claiming done | `/superpowers:verification-before-completion` | Sonnet | — |
-| Request formal code review | `/superpowers:requesting-code-review` | Sonnet | `/code-review` for PR-level review |
-| Handle incoming review feedback | `/superpowers:receiving-code-review` | Sonnet | — |
-| Complete and integrate a dev branch | `/superpowers:finishing-a-development-branch` | Sonnet | — |
-| Isolate work in a git worktree | `/superpowers:using-git-worktrees` | Sonnet | — |
-| Dispatch parallel independent agents | `/superpowers:dispatching-parallel-agents` | Sonnet | — |
-| Agent-driven plan execution | `/superpowers:subagent-driven-development` | Sonnet | `/superpowers:executing-plans` if sequential |
+```
+Step 1: Read cached matrix from Serena (`skill_routing_matrix`)
 
-### ⏱️ Recurring & Scheduled Tasks
+Step 2: Compare against current system context
+  ├─ Skills in cache but NOT in system-reminder → mark as removed
+  ├─ Skills in system-reminder but NOT in cache → mark as new
+  └─ Skills in both → keep existing entry
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Run a prompt on a recurring interval | `/loop` | Sonnet | `/schedule` for cron-based remote scheduling |
-| Schedule recurring remote agents (cron) | `/schedule` | Sonnet | `/loop` for in-session polling |
-| Process queued work items | `/do-work` | Sonnet | — |
+Step 3: If changes detected
+  ├─ Build entries for new skills
+  ├─ Remove stale entries
+  └─ Update Serena with revised matrix
 
-### 🏠 Personal Automation (JARVIS)
+Step 4: If no changes → use cached matrix (zero rebuild cost)
+```
 
-NOTE: These are user-specific personal automation skills. Include in the matrix
-for completeness but note they may not be present in all environments.
+### Fallback Chain
 
-| Task | Primary Skill | Model | When to Use Instead |
-|---|---|---|---|
-| Morning briefing and vault synthesis | `/JARVIS:morning-briefing` | Sonnet | — |
-| Scan folders into Obsidian vault | `/JARVIS:vault-seeder` | Sonnet | — |
-| Process pending feedback items | `/JARVIS:jarvis-reactor` | Sonnet | — |
+When things fail, degrade gracefully:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Fallback Chain                                                  │
+│                                                                  │
+│  1. Full discovery succeeds                                      │
+│     └─ routing_status: "built"                                   │
+│        Complete matrix stored in Serena                          │
+│                                                                  │
+│  2. Partial failure (e.g., agent scan fails, skills readable)    │
+│     └─ routing_status: "built" (with errors noted)               │
+│        Use what succeeded + note gaps                            │
+│                                                                  │
+│  3. Full discovery fails, Serena cache exists                    │
+│     └─ routing_status: "cached"                                  │
+│        Read skill_routing_matrix from Serena                     │
+│                                                                  │
+│  4. No Serena cache, system context available                    │
+│     └─ routing_status: "fallback"                                │
+│        Match system-reminder skills to task categories           │
+│        + built-in Agent types (always available)                 │
+│                                                                  │
+│  5. Absolute minimum (no system context, no cache)               │
+│     └─ Built-in Agent types only (see table below)               │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Agent Type Routing (Always Available)
 
 These are built-in Agent subtypes — available in every environment regardless of
-installed skills. Always include these in the routing matrix.
+installed skills. Claude Code defines these internally; agent definition files in
+`~/.claude/agents/` or `.claude/agents/` can enhance them with skills, effort,
+tools, etc., but the base types always exist.
 
 | Agent Type | Model | Use For |
 |---|---|---|
-| `⚙️ Agent:Explore` | Sonnet | Quick codebase exploration, file discovery |
-| `⚙️ Agent:Plan` | Sonnet | Implementation planning |
-| `⚙️ Agent:general-purpose` | Sonnet | Multi-step research, code search |
-| `⚙️ Agent:deep-research-agent` | Opus | Comprehensive research with multiple sources |
-| `⚙️ Agent:feature-dev:code-explorer` | Sonnet | Deep feature analysis, execution path tracing |
-| `⚙️ Agent:feature-dev:code-architect` | Opus | Feature architecture design |
-| `⚙️ Agent:feature-dev:code-reviewer` | Sonnet | Code review with confidence filtering |
-| `⚙️ Agent:quality-engineer` | Sonnet | Testing strategy, edge case detection |
-| `⚙️ Agent:security-engineer` | Opus | Security audit, vulnerability analysis |
-| `⚙️ Agent:backend-architect` | Opus | Backend system design |
-| `⚙️ Agent:system-architect` | Opus | Scalable system architecture |
-| `⚙️ Agent:python-expert` | Sonnet | Python implementation |
-| `⚙️ Agent:refactoring-expert` | Sonnet | Code cleanup, technical debt |
-| `⚙️ Agent:performance-engineer` | Sonnet | Performance optimization |
-| `⚙️ Agent:root-cause-analyst` | Opus | Complex bug investigation |
-| `⚙️ Agent:technical-writer` | Sonnet | Documentation |
-| `⚙️ Agent:frontend-architect` | Sonnet | Frontend UI design |
-| `⚙️ Agent:business-panel-experts` | Opus | Multi-expert business strategy |
-| `⚙️ Agent:code-simplifier` | Sonnet | Code clarity, consistency |
-| `⚙️ Agent:learning-guide` | Sonnet | Teaching, explanation |
-| `⚙️ Agent:requirements-analyst` | Opus | Requirements discovery |
-| `⚙️ Agent:socratic-mentor` | Sonnet | Educational guidance |
-| `⚙️ Agent:devops-architect` | Opus | Infrastructure, deployment |
+| `Agent:Explore` | Sonnet | Quick codebase exploration, file discovery |
+| `Agent:Plan` | Sonnet | Implementation planning |
+| `Agent:general-purpose` | Sonnet | Multi-step research, code search |
+| `Agent:deep-research-agent` | Opus | Comprehensive research with multiple sources |
+| `Agent:feature-dev:code-explorer` | Sonnet | Deep feature analysis, execution path tracing |
+| `Agent:feature-dev:code-architect` | Opus | Feature architecture design |
+| `Agent:feature-dev:code-reviewer` | Sonnet | Code review with confidence filtering |
+| `Agent:quality-engineer` | Sonnet | Testing strategy, edge case detection |
+| `Agent:security-engineer` | Opus | Security audit, vulnerability analysis |
+| `Agent:backend-architect` | Opus | Backend system design |
+| `Agent:system-architect` | Opus | Scalable system architecture |
+| `Agent:python-expert` | Sonnet | Python implementation |
+| `Agent:refactoring-expert` | Sonnet | Code cleanup, technical debt |
+| `Agent:performance-engineer` | Sonnet | Performance optimization |
+| `Agent:root-cause-analyst` | Opus | Complex bug investigation |
+| `Agent:technical-writer` | Sonnet | Documentation |
+| `Agent:frontend-architect` | Sonnet | Frontend UI design |
+| `Agent:business-panel-experts` | Opus | Multi-expert business strategy |
+| `Agent:code-simplifier` | Sonnet | Code clarity, consistency |
+| `Agent:learning-guide` | Sonnet | Teaching, explanation |
+| `Agent:requirements-analyst` | Opus | Requirements discovery |
+| `Agent:socratic-mentor` | Sonnet | Educational guidance |
+| `Agent:devops-architect` | Opus | Infrastructure, deployment |
 
-**📎 Mode selection**: See `orchestration-playbook.md` § Agent Permission Modes for the mode decision tree. Background agents require `mode: "auto"`.
+**Note**: These are always available regardless of whether definition files exist.
+Agent definition files in `~/.claude/agents/` enhance them with skills, effort, tools,
+etc. — Claude Code picks up definition files automatically when `subagent_type` matches.
 
----
-
-## 🔄 Delta-Update Procedure
-
-The base matrix above covers the majority of routing needs. The delta procedure handles
-any environment-specific or newly installed skills — custom skills, new installations, and environment-specific tools.
-
-### At Startup (Initialization Mode)
-
-1. **Load the base matrix** from this file (already in context when this reference is read)
-2. **Scan for NEW skills** in the system context's available skills list:
-   - Compare each available skill against the base matrix entries
-   - Skills already in the base matrix → skip (no work needed)
-   - Skills NOT in the base matrix → build a routing entry (see format above)
-3. **Scan for custom agents** in:
-   - `.claude/agents/` (project-level custom agents)
-   - `~/.claude/agents/` (user-level custom agents)
-   - Build routing entries for any discovered custom agents
-4. **Merge**: base matrix + new skill entries + custom agent entries = full matrix
-5. **Store** the full merged matrix in Serena memory as `skill_routing_matrix`
-
-### On Subsequent Sessions (Continuation Mode)
-
-1. Read `skill_routing_matrix` from Serena memory
-2. Compare against the current session's available skills list
-3. If new skills found → build entries for NEW skills only, merge, update Serena
-4. If skills removed → prune stale entries, update Serena
-5. If unchanged → use cached matrix (zero rebuild cost)
-
-### If Serena Unavailable
-
-- Use the base matrix from this file + the Agent Type table (always available)
-- Build delta entries for unknown skills in real-time from system context descriptions
-- No persistent caching — delta rebuild each session (still cheaper than full rebuild)
+**Mode selection**: See `orchestration-playbook.md` § Agent Permission Modes for the
+mode decision tree. Background agents require `mode: "auto"`.
 
 ---
 
@@ -307,42 +264,42 @@ concrete skills from the routing matrix at runtime.
 ### Standard Feature
 
 ```
-Explore existing code   → understand what exists
-Design the approach     → architecture decisions
-Implement               → build it
-Review                  → validate before commit
+Explore existing code   -> understand what exists
+Design the approach     -> architecture decisions
+Implement               -> build it
+Review                  -> validate before commit
 ```
 
 ### Complex / Multi-Phase Feature
 
 ```
-Research                → gather context and options
-Plan                    → create structured plan with verification
-Execute                 → implement with parallelization
-Verify                  → UAT and quality check
+Research                -> gather context and options
+Plan                    -> create structured plan with verification
+Execute                 -> implement with parallelization
+Verify                  -> UAT and quality check
 ```
 
 ### Large Architectural Change
 
 ```
-Map codebase            → parallel analysis of current state
-Design                  → spec the change
-Expert review           → multi-expert validation of spec
-Plan + Execute          → phased implementation
+Map codebase            -> parallel analysis of current state
+Design                  -> spec the change
+Expert review           -> multi-expert validation of spec
+Plan + Execute          -> phased implementation
 ```
 
 ### Code Quality Pass
 
 ```
-Analyze                 → identify issues
-Improve                 → fix systematically
-Test                    → verify nothing broke
+Analyze                 -> identify issues
+Improve                 -> fix systematically
+Test                    -> verify nothing broke
 ```
 
 ### Bug Investigation
 
 ```
-Debug                   → systematic, persistent state
+Debug                   -> systematic, persistent state
 ```
 
 ---
@@ -360,15 +317,15 @@ Debug                   → systematic, persistent state
 | Look up library or framework documentation | `context7 resolve-library-id` + `query-docs` | Web search |
 | API reference (React, Next.js, FastAPI, etc.) | `context7` | Hallucinating from training data |
 | Browser automation or E2E testing | `playwright browser_*` tools | Unit tests alone |
-| Visual UI validation (does it look right?) | `playwright browser_snapshot` / `take_screenshot` | — |
+| Visual UI validation (does it look right?) | `playwright browser_snapshot` / `take_screenshot` | --- |
 
 ### Native-vs-MCP Decision Rule
 
 ```
-Can a simple Glob or Grep answer it in one shot?  → use native
-Is this about a named symbol in a code file?       → use Serena
-Is this about documented library behaviour?        → use Context7
-Does this require a browser or visual check?       → use Playwright
+Can a simple Glob or Grep answer it in one shot?  -> use native
+Is this about a named symbol in a code file?       -> use Serena
+Is this about documented library behaviour?        -> use Context7
+Does this require a browser or visual check?       -> use Playwright
 ```
 
 ### Fallback Chains
@@ -387,13 +344,13 @@ When crafting an implementation prompt, specify:
 1. Which MCPs the session should use (by tool name, not category)
 2. The specific tool calls most relevant
 3. When to fall back to native tools if an MCP fails
-4. Use conditional triggers: "IF looking up a named symbol → use Serena" (not "always use Serena")
+4. Use conditional triggers: "IF looking up a named symbol -> use Serena" (not "always use Serena")
 
 ---
 
 ## Invocation Convention
 
-- `/skill-name` → invoke via **Skill tool** (slash commands)
-- `⚙️ Agent:subagent-type` → invoke via **Agent tool** with `subagent_type` parameter
+- `/skill-name` -> invoke via **Skill tool** (slash commands)
+- `Agent:subagent-type` -> invoke via **Agent tool** with `subagent_type` parameter
 - The `feature-dev:code-explorer`, `feature-dev:code-architect`, and `feature-dev:code-reviewer`
-  entries are **Agent subagent_types**, not slash commands — route accordingly
+  entries are **Agent subagent_types**, not slash commands -- route accordingly

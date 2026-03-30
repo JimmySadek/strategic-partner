@@ -89,7 +89,6 @@ Show the full briefing in the question description.
 - [Yes, let's continue from here] — Proceed with the identified next action
 - [I need to correct something] — User will clarify what's different
 - [Let's reprioritize] — Shift focus to a different goal or phase
-- [Run /strategic-partner:sync-skills too] — Also refresh the skill inventory
 
 ## Key Differences from Startup
 
@@ -97,7 +96,7 @@ Show the full briefing in the question description.
 |---|---|---|
 | **Trigger** | Automatic at session start | Manual, mid-session |
 | **Mode detection** | Yes (continuation vs init) | No — pure state read |
-| **Skill catalog** | Yes (built at startup) | No (use sync-skills separately) |
+| **Skill catalog** | Yes (built at startup) | No — routing is built at startup only |
 | **Purpose** | Orient a fresh session | Recenter an active session |
 
 ## Boundaries

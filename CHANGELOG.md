@@ -1,5 +1,27 @@
 # Changelog
 
+## [5.2.0] - 2026-03-30
+
+### Changed
+- **Dynamic routing architecture** — removed ~200 lines of hardcoded author-local skill mappings from routing matrix; replaced with dynamic discovery protocol that builds from each user's actual installed skills and agents at startup
+- **Two-step consent model** — Fast Lane now uses Solution Ambiguity Gate: when Q1/Q2/Q3 indicate open solutions, SP presents solution options before delivery options; when solution is unambiguous, mandatory Position statement shows WHAT before asking HOW
+- **Agent D return format** — now includes errors array and routing_status field for transparent partial-failure handling; orientation uses user-friendly language instead of "base + delta" jargon
+- **Continuation re-confirmation** — when dispatch is planned in a continuation session, Q1 is re-confirmed via AskUserQuestion (handoff provides context, not consent)
+
+### Added
+- **Post-dispatch acceptance gate** — mandatory AskUserQuestion after both user-run and agent-run prompts before proposing next task
+- **Solution Ambiguity Gate** — uses existing simplicity scoring Q1/Q2/Q3 to determine one-step vs two-step consent, proportional to solution openness
+- **Fallback chain** for routing — Serena cached matrix → system context + task categories → built-in agents only
+
+### Fixed
+- **Orientation clarity** — removed internal "base/delta" jargon; environment summary now shows actionable status (built/cached/fallback)
+- **Agent detection** — partial scan failures now reported with specific error context instead of silently returning 0
+- **Version check reliability** — replaced background Agent E (WebFetch, intermittently blocked by sandbox permissions) with inline curl check that always works
+
+### Removed
+- **`/strategic-partner:sync-skills` subcommand** — redundant after dynamic routing architecture replaced the static skill matrix; Agent D now builds routing dynamically at startup from each user's environment
+- **Agent E (background version check)** — replaced by inline curl in Step 1.5; agent overhead added fragility with no benefit for a single API call
+
 ## [5.1.0] - 2026-03-29
 
 ### Added
