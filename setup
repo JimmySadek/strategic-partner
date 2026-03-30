@@ -38,3 +38,10 @@ if [ "$linked" -gt 0 ]; then
 else
   echo "✅ No command files found to register."
 fi
+
+# ── Ensure hook scripts are executable ─────────────────────────────────
+HOOKS_DIR="${SKILL_DIR}/hooks"
+if [ -d "$HOOKS_DIR" ]; then
+  chmod +x "${HOOKS_DIR}"/*.sh 2>/dev/null || true
+  echo "✅ Hook scripts verified executable in ${HOOKS_DIR}"
+fi

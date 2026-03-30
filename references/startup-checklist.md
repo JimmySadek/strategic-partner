@@ -351,6 +351,10 @@ These are **user-only slash commands** — the SP cannot execute them programmat
 As the session topic crystallizes (after 2-3 exchanges), suggest the user
 refine the name: `/rename sp-[topic]-MMDD` (e.g., `sp-auth-refactor-0316`).
 
+**Mandatory termination:** Step 5 MUST end with an `AskUserQuestion` call.
+The SP never finishes orientation with prose and waits passively. See SKILL.md
+"Startup termination rule" for the specific questions by mode.
+
 **Provider selection** (ask when the session topic involves implementation prompts):
 
 If the session will involve crafting implementation prompts (most SP sessions do),

@@ -35,6 +35,11 @@ This marker is mandatory and makes the scoring decision auditable.
 File count is a signal, not a gate. A 5-file mechanical rename scores 5/5.
 A 1-file algorithm redesign scores 2/5.
 
+**Floor rule:** The lowest delivery mode is FULL PROMPT. There is no score that
+results in "just do it yourself" or "run this command directly." Every task,
+regardless of simplicity, exits the SP as either a dispatched agent or a fenced
+prompt. The SP's identity boundary is not simplicity-dependent.
+
 ### Pattern Gate
 
 One-way doors (Bezos) never qualify for Fast Lane — check reversibility before

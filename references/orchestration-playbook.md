@@ -256,19 +256,22 @@ Agent (Opus 4.6, mode: "auto", subagent_type=business-panel-experts): [analysis 
 ## Agent Failure & Timeout Handling
 
 Delegation is an optimization, not a dependency. If an agent fails, the SP falls
-back to doing the work directly. Never block on agent failures.
+back to doing the advisory work directly (reading, analysis, re-crafting the prompt).
+Implementation work gets a new prompt or agent dispatch, not direct execution.
+Never block on agent failures.
 
 | Scenario | Detection | Response |
 |----------|-----------|----------|
-| **Agent times out** | No response within expected window | Other parallel agents continue. Mark timed-out agent's results as incomplete. Fall back to doing that work in main context. |
+| **Agent times out** | No response within expected window | Other parallel agents continue. Mark timed-out agent's results as incomplete. Do the advisory work directly (reading, analysis, re-crafting the prompt). Implementation work gets a new prompt or agent dispatch, not direct execution. |
 | **Agent returns error** | Error message in result | Assess: retry once if transient (permission denied, network). If structural (wrong tool, bad prompt), fix the prompt and re-delegate. |
 | **Agent returns garbled/partial output** | Result doesn't match expected format | Extract what's usable. Fill gaps from main context. Note limitation in orientation. |
-| **Agent permission denied** | Tool call denied by user | Do the work directly in main context. Delegation is an optimization, not a dependency. **Prevention**: specify `mode` parameter on every agent spawn (see Agent Permission Modes above). |
+| **Agent permission denied** | Tool call denied by user | Do the advisory work directly (reading, analysis, re-crafting the prompt). Implementation work gets a new prompt or agent dispatch, not direct execution. **Prevention**: specify `mode` parameter on every agent spawn (see Agent Permission Modes above). |
 
 ### Applying This to Spawn Patterns
 
 - **Parallel Implementation (Pattern 1)**: If one of N agents fails, the others'
-  results remain valid. Complete the failed agent's work in main context.
+  results remain valid. Do the advisory work directly (reading, analysis, re-crafting the prompt).
+  Implementation work gets a new prompt or agent dispatch, not direct execution.
 - **Research → Synthesis (Pattern 2)**: If a research agent fails, synthesis proceeds
   with reduced inputs. Note the gap in the synthesis prompt.
 - **Explore → Design → Build → Review (Pattern 3)**: If the Explore agent fails,

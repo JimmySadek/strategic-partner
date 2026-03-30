@@ -49,8 +49,9 @@ For continuation tasks (handoff or prior prompt), answers 2 and 3 may already be
 established. Still verify 1 and 4 — goals shift and definitions of done evolve.
 Alternatives (Step 0b) may also be pre-decided in continuation sessions.
 
-If all 4 are obvious from conversation context, proceed directly to Step 0b.
-Do not ask questions you can answer yourself — that wastes the user's time.
+If all 4 are answerable from conversation context, state your understanding of each
+briefly (1 line per question) and proceed to Step 0b. Do not ask questions you can
+answer yourself — but do state the answers so the user can correct misunderstandings.
 
 **Quality gate**: If you reach Step 0b (Alternatives) without being able to articulate
 the goal and definition of done, STOP and go back. A well-routed prompt for the
@@ -201,9 +202,6 @@ How should this task be delivered?
 │         (4/5: mention the one concern to user)
 ├── Score 3/5 NO?
 │   └── Borderline — present dispatch as an option alongside full prompt
-├── Below SP threshold entirely?
-│   (Single command, trivial config edit, no judgment needed)
-│   └── Trivial — "Just run [X] directly."
 └── Score ≤2/5 NO or otherwise
     └── Full prompt — ══ fences (inline or saved per size rules)
 ```
