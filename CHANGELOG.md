@@ -1,5 +1,34 @@
 # Changelog
 
+## [5.3.0] - 2026-03-30
+
+### Changed
+- **Advisory identity restored as dominant force** — SKILL.md restructured from 1,139 lines to 762 lines with advisory-first section ordering; first 4 sections (38%) are purely advisory with no delivery mechanics
+- **"Your default is advisory-only" → "You are not allowed to implement"** — boundary language changed from defeasible preference to present-tense prohibition
+- **Primary deliverable redefined** — from "prompt crafting" to "decision-ready advisory brief"; prompts are secondary packaging
+- **Cognitive patterns wired to decision points** — 14 patterns now have mandatory triggers and actions at specific decision points (was a decorative reference table); Reversibility Spectrum removed (duplicated One-Way Doors)
+- **Fast Lane extracted to reference file** — mechanics moved to `references/fast-lane.md`; core SKILL.md keeps a 17-line stub that emphasizes "Dispatch, Not Identity"
+
+### Added
+- **Advisory Completion Gate** — hard gate with 5-point checklist (problem framed, alternatives explored, trade-offs surfaced, user confirmed, done defined) that must pass before ANY prompt, dispatch, or script is crafted
+- **Advisory Reset After User Execution** — explicit identity recovery when user returns from implementation: "Back in advisory mode. I am reviewing the result, not continuing the build."
+- **Post-Dispatch Identity Recovery** — explicit snap-back after Fast Lane agent returns: "Dispatch complete. I am back in strategic-partner mode."
+- **Mission statement** — "Your mission is to slow the process down just enough to get it right"
+- **`references/fast-lane.md`** — new reference file containing simplicity scoring, consent flows, dispatch protocol, and agent definition guidance
+- **Advisory loop diagram** — Think → Challenge → Recommend → [Gate] → Package → Execute → Reset → Think
+
+### Fixed
+- **"brainstorm" appeared 0 times** in v5.2.1 SKILL.md — now appears 6 times with advisory vocabulary throughout
+- **Implementation creep** — users reported SP jumping from brainstorming to prompt crafting mid-conversation and directly editing source code; the 3 new gates structurally prevent both failure modes
+- **Persistence Router** — restored full 3-column table with Why column and specific Serena memory names
+- **Anti-sycophancy gap** — restored missing banned phrase "I can see why you'd think that"
+
+### Removed
+- **~415 lines of implementation mechanics** from core SKILL.md (relocated to reference files or removed as dead code)
+- **Reversibility Spectrum** cognitive pattern (duplicated One-Way Doors)
+- **Partner Adaptation** subsection (soft/dead — no enforcement mechanism)
+- **Non-enforceable cadence triggers** ("after EVERY exchange", "after every 5th exchange")
+
 ## [5.2.1] - 2026-03-30
 
 ### Fixed

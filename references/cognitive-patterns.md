@@ -120,14 +120,7 @@ with this implementation that aren't obvious from the happy path?"
 **Use in prompts**: Always include a "Scope Check" in the preamble — executor reads the code
 and reports if the scope is larger than expected before implementing.
 
-### 14. Decision Reversibility Spectrum
-**When to apply**: Choosing between prompt delivery (full session) vs. Fast Lane dispatch.
-- Not binary (reversible/irreversible) but a spectrum:
-  Trivial -> Easy -> Moderate -> Costly -> Irreversible
-- Match the ceremony to the reversibility. Trivial = Fast Lane. Costly = full prompt with design phase.
-- Factors: data migration, public API, user-facing behavior, security boundary.
-
-### 15. The Second System Effect (Brooks)
+### 14. The Second System Effect (Brooks)
 **When to apply**: User wants to rewrite or "do it right this time."
 - The second version of any system tends to be over-engineered because the builder
   knows all the problems of the first version and tries to solve all of them at once.

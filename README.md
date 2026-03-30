@@ -2,11 +2,11 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.2.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.3.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
-A strategic advisory skill for Claude Code that separates planning from execution. It thinks with you in one session — asking the right questions, challenging assumptions, crafting scoped prompts — then routes implementation to fresh sessions where the full context window is available for building. Decisions persist. Context stays clean.
+A strategic advisory skill for Claude Code that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
 ---
 
@@ -66,7 +66,7 @@ You describe what you need. The SP asks clarifying questions, then delivers a se
 
 ### Fast lane for small tasks
 
-Not every task needs the full cycle. When a task passes a mandatory simplicity assessment (5 disqualifying factors scored), the SP checks whether the solution is also unambiguous. If it is — no design judgment needed, no competing approaches — the SP states its position and offers direct dispatch. If multiple valid solutions exist, you see solution options first, then delivery options. Same fresh context, without the copy-paste overhead. The simplicity score and solution ambiguity gate are always displayed, making the routing decision auditable.
+Not every task needs the full cycle. After the Advisory Completion Gate confirms you're done thinking, small mechanical tasks can be dispatched directly via agent — same fresh context, without the copy-paste overhead. Fast Lane is a delivery shortcut, not a personality change: the SP still thinks first, recommends a path, and gets your consent before dispatching. The simplicity score and solution ambiguity gate are always displayed, making the routing decision auditable.
 
 ---
 
@@ -80,7 +80,11 @@ This is where the value is. Before routing a single task, the SP runs several ch
 
 **Confidence labels** — Recommendations within prompts carry SAFE or RISK labels so the executor knows which suggestions are well-supported and which involve judgment calls.
 
-**Simplicity scoring + Solution Ambiguity Gate** — Before offering Fast Lane dispatch, the SP scores the task on 5 disqualifying factors. Questions Q1-Q3 (design judgment, multiple implementations, uncertain requirements) then determine whether you see a single position statement with dispatch options (solution clear) or solution options first (solution ambiguous). The score and gate are mandatory and visible.
+**Advisory Completion Gate** — Before any prompt, dispatch, or script is crafted, the SP verifies 5 hard conditions: problem is framed, alternatives explored, trade-offs surfaced, user confirmed direction, and definition of done established. If any condition is unmet, the SP stays in advisory mode. This prevents the most common failure: jumping from brainstorming to implementation before thinking is done.
+
+**Advisory Reset** — After every implementation cycle (user runs a prompt, or an agent completes a dispatch), the SP explicitly resets to advisory mode. "Back in advisory mode. I am reviewing the result, not continuing the build." This prevents implementation momentum from carrying into the next decision.
+
+**Wired cognitive patterns** — 14 named thinking heuristics (Bezos one-way doors, Munger inversion, Jobs focus-as-subtraction, and 11 more) are wired to specific decision points with mandatory triggers and actions. They fire automatically at the right moments — not a decorative reference table.
 
 **Cross-model review** — For high-stakes decisions (irreversible changes, large blast radius, unresolved disagreements), the SP can dispatch a curated brief to OpenAI's Codex CLI for independent adversarial review, then synthesize a three-way perspective: your position, the SP's position, and Codex's position. Optional — requires Codex CLI installed.
 
@@ -193,13 +197,13 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
-- **Implementation boundary** — the SP never writes source code in its own session, with a single-use override mechanism for explicit user requests
-- **Simplicity scoring, Solution Ambiguity Gate, and Fast Lane** — mandatory 5-factor assessment plus Q1/Q2/Q3 solution check gates agent dispatch; Position statement shown before delivery options
+- **Implementation boundary** — the SP is not allowed to implement in its own session, with 3 behavioral gates (Advisory Completion, Advisory Reset, Post-Dispatch Recovery) enforcing the separation
+- **Fast Lane dispatch** — subordinate delivery mechanism for small, reversible tasks; requires Advisory Completion Gate to pass first; detailed mechanics loaded on demand from reference file
 - **SAFE/RISK confidence labels** — recommendations carry explicit confidence signals for executors
 - **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.4) for independent review on high-stakes decisions
 - **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure decisions survive across sessions
 - **Context handoff management** — monitors context pressure and preserves full session state before it degrades
-- **Cognitive patterns** — named thinking heuristics (Inversion Reflex, Scope Iceberg, Focus as Subtraction) for architecture and trade-off decisions
+- **Cognitive patterns** — 14 named thinking heuristics wired to specific decision points with mandatory triggers (not a decorative table — they fire at the right moments)
 - **Provider-specific prompt formatting** — adapts prompt structure for Claude, OpenAI, and Gemini targets
 
 <details>
@@ -218,6 +222,7 @@ strategic-partner/
   references/
     startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
     prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
+    fast-lane.md                        # Simplicity scoring, consent flows, dispatch protocol
     context-handoff.md                  # Env var baseline, two-tier thresholds, split writes
     orchestration-playbook.md           # Model selection, parallelization heuristics, worktree isolation
     skill-routing-matrix.md             # Dynamic discovery protocol, task categories, and routing rules
