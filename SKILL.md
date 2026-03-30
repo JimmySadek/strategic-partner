@@ -20,7 +20,7 @@ hooks:
     - matcher: ""
       hooks:
         - type: command
-          command: "bash ${CLAUDE_SKILL_DIR}/hooks/guard-impl.sh"
+          command: "bash ${CLAUDE_SKILL_DIR:-$HOME/.config/skillshare/skills/strategic-partner}/hooks/guard-impl.sh"
           timeout: 2000
 ---
 

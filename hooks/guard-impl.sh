@@ -12,8 +12,24 @@
 # Read the tool input JSON from stdin
 INPUT=$(cat)
 
-# Extract tool name from the hook environment variable
-TOOL_NAME="${CLAUDE_TOOL_NAME:-}"
+# Extract tool name from stdin JSON (Claude Code passes tool_name in the JSON payload)
+TOOL_NAME=$(echo "$INPUT" | grep -o '"tool_name":"[^"]*"' | head -1 | cut -d'"' -f4)
+if [ -z "$TOOL_NAME" ]; then
+  TOOL_NAME=$(echo "$INPUT" | grep -o '"tool_name": "[^"]*"' | head -1 | cut -d'"' -f4)
+fi
+
+# Debug mode: set SP_HOOK_DEBUG=1 to log decisions to /tmp/sp-hook-debug.log
+debug_log() {
+  [ "${SP_HOOK_DEBUG:-0}" = "1" ] && echo "[$(date '+%H:%M:%S')] $*" >> /tmp/sp-hook-debug.log
+}
+
+debug_log "tool=$TOOL_NAME input=$INPUT"
+
+# If we couldn't parse a tool name, allow (fail open to avoid breaking the session)
+if [ -z "$TOOL_NAME" ]; then
+  debug_log "decision=allow reason='no tool name parsed'"
+  exit 0
+fi
 
 # --- Guard 1: Block Edit/Write/MultiEdit on disallowed paths ---
 if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "MultiEdit" ] || [ "$TOOL_NAME" = "NotebookEdit" ]; then
@@ -24,18 +40,19 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
 
   # Allowed paths (SP's own workspace)
   case "$FILE_PATH" in
-    */.prompts/*|*/.prompts)     exit 0 ;;
-    */.handoffs/*|*/.handoffs)   exit 0 ;;
-    */.scripts/*|*/.scripts)     exit 0 ;;
-    */CLAUDE.md)                 exit 0 ;;
-    */CHANGELOG.md)              exit 0 ;;
-    */README.md)                 exit 0 ;;
-    */SKILL.md)                  exit 0 ;;
-    */.claude/*)                 exit 0 ;;
-    */.gitignore)                exit 0 ;;
+    */.prompts/*|*/.prompts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    */.handoffs/*|*/.handoffs)   debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    */.scripts/*|*/.scripts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    */CLAUDE.md)                 debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    */CHANGELOG.md)              debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    */README.md)                 debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    */SKILL.md)                  debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    */.claude/*)                 debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    */.gitignore)                debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
   esac
 
   # Everything else is blocked
+  debug_log "decision=BLOCK tool=$TOOL_NAME path=$FILE_PATH"
   echo "BLOCKED: Strategic Partner does not edit source files. Craft a prompt instead, or dispatch an agent. (Tool: $TOOL_NAME, Path: $FILE_PATH)" >&2
   exit 2
 fi
@@ -56,8 +73,11 @@ if [ "$TOOL_NAME" = "Bash" ]; then
       fi
     done
     if [ "$ALLOWED" = false ]; then
+      debug_log "decision=BLOCK tool=Bash command=$COMMAND"
       echo "BLOCKED: Strategic Partner does not mutate source files via shell. Craft a prompt instead. (Command pattern detected)" >&2
       exit 2
+    else
+      debug_log "decision=allow tool=Bash (allowed path in command)"
     fi
   fi
 fi
@@ -71,8 +91,12 @@ if echo "$TOOL_NAME" | grep -q "^mcp__plugin_serena_serena__"; then
         REL_PATH=$(echo "$INPUT" | grep -o '"relative_path": "[^"]*"' | head -1 | cut -d'"' -f4)
       fi
       case "$REL_PATH" in
-        .prompts/*|.handoffs/*|.scripts/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore) exit 0 ;;
+        .prompts/*|.handoffs/*|.scripts/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore)
+          debug_log "decision=allow tool=$TOOL_NAME path=$REL_PATH"
+          exit 0
+          ;;
       esac
+      debug_log "decision=BLOCK tool=$TOOL_NAME path=$REL_PATH"
       echo "BLOCKED: Strategic Partner does not modify source code via Serena. Craft a prompt instead. (Tool: $TOOL_NAME, Path: $REL_PATH)" >&2
       exit 2
       ;;
@@ -80,4 +104,5 @@ if echo "$TOOL_NAME" | grep -q "^mcp__plugin_serena_serena__"; then
 fi
 
 # All other tools — allow
+debug_log "decision=allow tool=$TOOL_NAME (no guard matched)"
 exit 0
