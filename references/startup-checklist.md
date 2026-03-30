@@ -442,23 +442,29 @@ Propose an update when:
 **🧠 Serena memory write:**
 > "I want to record our decision to use cosine distance thresholds (T_ACCEPT=0.25,
 > T_REJECT=0.55) in Serena as 'identity_threshold_decisions'. Rationale: this was a
-> corrected value from Round 1's wrong calibration and should survive session resets.
-> Shall I write this memory?"
+> corrected value from Round 1's wrong calibration and should survive session resets."
+>
+> `AskUserQuestion`: [Write this memory] [Not yet] [Adjust the content first]
 
 **📝 CLAUDE.md update:**
 > "I want to add a Dev Visibility Rule to CLAUDE.md requiring a CHANGELOG.json entry
 > with every pipeline change. Rationale: we keep forgetting this across sessions.
-> Proposed text: [exact text]. Shall I add it?"
+> Proposed text: [exact text]."
+>
+> `AskUserQuestion`: [Add it] [Not yet] [Let me review the text first]
 
 **📦 Git commit:**
 > "Good checkpoint for a commit — the roadmap review is complete. Proposed message:
-> `docs: player identity roadmap reviewed, regression gate baseline corrected`.
-> Shall I commit?"
+> `docs: player identity roadmap reviewed, regression gate baseline corrected`."
+>
+> `AskUserQuestion`: [Commit] [Not yet] [Adjust the message]
 
 **⏳ Context handoff:**
 > "We're approaching context limits and I want to preserve what we've built today
 > before quality degrades. I'll write a handoff to `.handoffs/` — the continuation
-> prompt will restore the advisor persona in the fresh session. Shall I do it?"
+> prompt will restore the advisor persona in the fresh session."
+>
+> `AskUserQuestion`: [Write the handoff] [Not yet — keep going] [Let me save notes first]
 
 **🏷️ Session rename:**
 > "Now that we've clarified the focus, I'll rename this session to

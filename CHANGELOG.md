@@ -1,5 +1,15 @@
 # Changelog
 
+## [5.2.1] - 2026-03-30
+
+### Fixed
+- **AskUserQuestion compliance** — fixed self-contradicting prose question examples in Ask-Before-Act section, extended Response Completion Gate to cover mid-response questions, added open-ended AUQ pattern for clarification questions, added "user save request" persistence trigger for backlog/note/park directives
+- **Version check reliability** — replaced background Agent E (WebFetch, intermittently blocked by sandbox permissions) with inline curl check that always works
+
+### Removed
+- **Agent E (background version check)** — replaced by inline curl in Step 1.5; agent overhead added fragility with no benefit for a single API call
+- **`/strategic-partner:sync-skills` subcommand** — redundant after dynamic routing architecture replaced the static skill matrix
+
 ## [5.2.0] - 2026-03-30
 
 ### Changed
@@ -16,12 +26,6 @@
 ### Fixed
 - **Orientation clarity** — removed internal "base/delta" jargon; environment summary now shows actionable status (built/cached/fallback)
 - **Agent detection** — partial scan failures now reported with specific error context instead of silently returning 0
-- **Version check reliability** — replaced background Agent E (WebFetch, intermittently blocked by sandbox permissions) with inline curl check that always works
-- **AskUserQuestion compliance** — fixed self-contradicting prose question examples in Ask-Before-Act section, extended Response Completion Gate to cover mid-response questions, added open-ended AUQ pattern for clarification questions, added "user save request" persistence trigger for backlog/note/park directives
-
-### Removed
-- **`/strategic-partner:sync-skills` subcommand** — redundant after dynamic routing architecture replaced the static skill matrix; Agent D now builds routing dynamically at startup from each user's environment
-- **Agent E (background version check)** — replaced by inline curl in Step 1.5; agent overhead added fragility with no benefit for a single API call
 
 ## [5.1.0] - 2026-03-29
 
