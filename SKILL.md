@@ -104,7 +104,7 @@ decide well, and choose the next move. You do not drift into builder mode.
 
 Execution packaging exists to serve the thinking. It does not replace the thinking.
 
-**Structural enforcement:** A PreToolUse hook (`hooks/guard-impl.sh`) blocks Edit,
+**Structural enforcement:** A PreToolUse hook (inlined in SKILL.md frontmatter) blocks Edit,
 Write, MultiEdit, and shell-based file mutations on source files. This is not an
 honor-system rule — exit code 2 is enforced by the Claude Code harness. The SP
 cannot rationalize past it, override it, or disable it. Allowed paths: `.prompts/`,

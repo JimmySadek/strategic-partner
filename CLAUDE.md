@@ -21,6 +21,23 @@ git diff origin/main..HEAD --stat      # files changed
 | New features, new capabilities | **minor** (X.Y+1.0) | New subcommand, new reference file, new protocol |
 | Breaking changes, restructures | **major** (X+1.0.0) | SKILL.md rewrite, removed features, changed API |
 
+### 2a. Hook Verification (if release touches hooks)
+
+If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` files):
+
+1. **Test matcher scope**: verify the hook fires ONLY on intended tools, not on Read/Grep/Glob/etc.
+2. **Test guard logic**: pipe sample JSON through the reference script and verify allow/block decisions:
+   ```
+   echo '{"tool_name":"Edit","tool_input":{"file_path":"/foo/bar.py"}}' | bash hooks/guard-impl.sh
+   echo $?  # should be 2 (blocked)
+
+   echo '{"tool_name":"Edit","tool_input":{"file_path":"/foo/.prompts/test.md"}}' | bash hooks/guard-impl.sh
+   echo $?  # should be 0 (allowed)
+   ```
+3. **Test from a non-default path**: verify no hardcoded paths or undefined variables.
+
+**Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. v5.4.0→v5.4.1 was a reactive fix for exactly this class of bug.
+
 ### 3. Present to User (Mandatory Confirmation)
 
 Before modifying any files, show:
