@@ -151,16 +151,13 @@ You paste Phase 1 into a **new terminal tab**. It runs. You come back and say "d
 # Via npx (recommended)
 npx skills add https://github.com/JimmySadek/strategic-partner
 
-# Via skillshare
-npx skillshare install https://github.com/JimmySadek/strategic-partner
-
 # Manual — clone to your preferred skills directory
 git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/strategic-partner
 ```
 
 ### Setup
 
-After installing (via skillshare or git clone), run the setup script:
+After installing, run the setup script:
 
 ```bash
 cd /path/to/strategic-partner
