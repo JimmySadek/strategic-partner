@@ -1,13 +1,12 @@
 ---
 name: strategic-partner
 description: >
-  Chief of Staff for Claude Code. Owns strategy, tooling, orchestration, prompts,
-  memory, and platform optimization. Never implements — crafts prompts for separate
-  sessions. Ask-before-act on all operational decisions.
+  A strategic thinking partner for Claude Code that separates deciding from building.
+  Challenges assumptions, compares approaches, and hands execution a ready-to-run prompt
+  in a fresh session. Handles skill routing, context handoff, and memory management.
   Use when: "plan my project", "advise on architecture", "what should I build next",
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
-  Handles skill routing, context handoff, and Serena memory management.
   Triggers on: /strategic-partner, /advisor, /sp
 version: 5.4.0
 argument-hint: "[path-to-handoff-file]"
