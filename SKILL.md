@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 5.4.0
+version: 5.4.1
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -16,10 +16,64 @@ mcp-servers: [serena, context7]
 repo: JimmySadek/strategic-partner
 hooks:
   PreToolUse:
-    - matcher: ""
+    - matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__plugin_serena_serena__"
       hooks:
         - type: command
-          command: "bash ${CLAUDE_SKILL_DIR:-$HOME/.config/skillshare/skills/strategic-partner}/hooks/guard-impl.sh"
+          command: |
+            INPUT=$(cat)
+            TOOL=$(echo "$INPUT" | grep -o '"tool_name":"[^"]*"' | head -1 | cut -d'"' -f4)
+            if [ -z "$TOOL" ]; then
+              TOOL=$(echo "$INPUT" | grep -o '"tool_name": "[^"]*"' | head -1 | cut -d'"' -f4)
+            fi
+            [ -z "$TOOL" ] && exit 0
+            # Guard 1: Edit/Write/MultiEdit/NotebookEdit — block disallowed paths
+            if [ "$TOOL" = "Edit" ] || [ "$TOOL" = "Write" ] || [ "$TOOL" = "MultiEdit" ] || [ "$TOOL" = "NotebookEdit" ]; then
+              FP=$(echo "$INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)
+              [ -z "$FP" ] && FP=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
+              case "$FP" in
+                */.prompts/*|*/.prompts) exit 0 ;;
+                */.handoffs/*|*/.handoffs) exit 0 ;;
+                */.scripts/*|*/.scripts) exit 0 ;;
+                */CLAUDE.md) exit 0 ;;
+                */CHANGELOG.md) exit 0 ;;
+                */README.md) exit 0 ;;
+                */SKILL.md) exit 0 ;;
+                */.claude/*) exit 0 ;;
+                */.gitignore) exit 0 ;;
+              esac
+              echo "BLOCKED: Strategic Partner does not edit source files. Craft a prompt instead, or dispatch an agent. (Tool: $TOOL, Path: $FP)" >&2
+              exit 2
+            fi
+            # Guard 2: Bash — block file-mutation patterns
+            if [ "$TOOL" = "Bash" ]; then
+              CMD=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4)
+              [ -z "$CMD" ] && CMD=$(echo "$INPUT" | grep -o '"command": "[^"]*"' | head -1 | cut -d'"' -f4)
+              if echo "$CMD" | grep -qE '(sed\s+-i|>\s|>>|tee\s|perl\s+-i|git\s+apply|git\s+cherry-pick)'; then
+                ALLOWED=false
+                for p in ".prompts" ".handoffs" ".scripts" "CLAUDE.md" "CHANGELOG.md" "README.md" "SKILL.md" ".claude/" ".gitignore"; do
+                  echo "$CMD" | grep -q "$p" && ALLOWED=true && break
+                done
+                if [ "$ALLOWED" = false ]; then
+                  echo "BLOCKED: Strategic Partner does not mutate source files via shell. Craft a prompt instead. (Command pattern detected)" >&2
+                  exit 2
+                fi
+              fi
+            fi
+            # Guard 3: Serena write tools — block source file modifications
+            if echo "$TOOL" | grep -q "^mcp__plugin_serena_serena__"; then
+              case "$TOOL" in
+                *replace_content|*replace_symbol_body|*insert_after_symbol|*insert_before_symbol|*create_text_file|*rename_symbol|*execute_shell_command)
+                  RP=$(echo "$INPUT" | grep -o '"relative_path":"[^"]*"' | head -1 | cut -d'"' -f4)
+                  [ -z "$RP" ] && RP=$(echo "$INPUT" | grep -o '"relative_path": "[^"]*"' | head -1 | cut -d'"' -f4)
+                  case "$RP" in
+                    .prompts/*|.handoffs/*|.scripts/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore) exit 0 ;;
+                  esac
+                  echo "BLOCKED: Strategic Partner does not modify source code via Serena. Craft a prompt instead. (Tool: $TOOL, Path: $RP)" >&2
+                  exit 2
+                  ;;
+              esac
+            fi
+            exit 0
           timeout: 2000
 ---
 

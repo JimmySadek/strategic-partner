@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.4.1] - 2026-03-31
+
+### Fixed
+- **Hook fires on every tool call** — matcher `""` changed to targeted `Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__plugin_serena_serena__`. Hook no longer executes on Read, Glob, Grep, Skill, and other non-guarded tools.
+- **Hook errors on non-default install paths** — guard logic inlined directly in SKILL.md frontmatter. Eliminates dependency on external `hooks/guard-impl.sh` path resolution. Works on any install path (skillshare default, git clone, alternate directories). `CLAUDE_SKILL_DIR` was not a real Claude Code variable; fallback path was fragile for distributed users.
+
 ## [5.4.0] - 2026-03-30
 
 ### Added

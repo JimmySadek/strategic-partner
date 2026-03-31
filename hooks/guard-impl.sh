@@ -9,6 +9,12 @@
 # session-scoped — active only when the SP skill is loaded.
 # No flag file needed.
 
+# NOTE (v5.4.1): This script is the reference implementation.
+# The active guard logic is inlined directly in SKILL.md frontmatter
+# to eliminate external file path dependencies for distributed installs.
+# Use SP_HOOK_DEBUG=1 with this script for local debugging:
+#   echo '{"tool_name":"Edit","tool_input":{"file_path":"/foo/bar.py"}}' | SP_HOOK_DEBUG=1 bash hooks/guard-impl.sh
+
 # Read the tool input JSON from stdin
 INPUT=$(cat)
 
