@@ -2,7 +2,13 @@
 
 ## Release Process (Mandatory Before Push)
 
-Every push to remote MUST go through this process. No exceptions.
+Every push to remote MUST go through this process.
+
+**Exception — docs-only pushes:** If ALL commits since last push are documentation-only
+(README, CLAUDE.md, comments, internal references — no functional changes to SKILL.md
+behavior, hooks, commands, or references that affect runtime), the push may skip version
+bump, tag, and GitHub Release. Users receive the fixes silently on next update.
+This avoids notification noise for trivial changes.
 
 ### 1. Fetch & Compare
 
