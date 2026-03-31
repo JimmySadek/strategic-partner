@@ -54,12 +54,10 @@ Done. End interaction.
 2. Fetch release body from the GitHub API response → display as changelog highlights.
    If release body is empty, show: "See CHANGELOG.md in the repo for details."
 
-3. Detect install method by reading `.skillshare-meta.json` in the skill directory:
-   - If file exists AND `type` is `"github-subdir"` or `"github"`:
-     → Update command: `skillshare update strategic-partner && skillshare sync`
-   - If file exists AND `type` is `"local"`:
-     → Update command: `cd {skill-directory} && git pull`
-   - If no `.skillshare-meta.json` found:
+3. Detect install method:
+   - Run `npx skills ls 2>/dev/null` and check if `strategic-partner` appears in output:
+     → If listed: Update command: `npx skills update`
+   - If not listed (manual git clone install):
      → Update command: `cd {skill-directory} && git pull`
 
 4. Present via `AskUserQuestion`:
@@ -93,7 +91,7 @@ After updating, re-run the setup script to refresh command registrations:
 **Will:**
 - Check versions against GitHub releases/tags
 - Display changelog highlights from release notes
-- Execute update commands (skillshare update or git pull)
+- Execute update commands (npx skills update or git pull)
 - Re-link command files after update
 
 **Will Not:**

@@ -283,7 +283,7 @@ Every SP session checks for updates in the background. If a newer version exists
 /strategic-partner:update
 ```
 
-Checks the latest version, shows what changed, and runs the update. Detects whether you installed via skillshare or git clone and uses the right method. After updating, it re-runs `./setup` to refresh command registrations.
+Checks the latest version, shows what changed, and runs the update. Detects whether you installed via skills or git clone and uses the right method. After updating, it re-runs `./setup` to refresh command registrations.
 
 ### GitHub notifications
 
