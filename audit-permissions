@@ -1,0 +1,545 @@
+#!/usr/bin/env python3
+"""Strategic Partner — Permission Audit
+
+Checks ~/.claude/settings.json for SP-required permissions,
+detects redundancies, and recommends deny-list entries.
+
+Usage:
+  bash setup --audit-permissions [--dry-run] [--verbose]
+"""
+
+import json
+import os
+import sys
+import fnmatch
+from pathlib import Path
+from datetime import datetime
+from shutil import copy2
+
+# ── Flags ──────────────────────────────────────────────────────────────
+
+DRY_RUN = "--dry-run" in sys.argv
+VERBOSE = "--verbose" in sys.argv
+
+# ── Constants ──────────────────────────────────────────────────────────
+
+SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
+
+MANDATORY = [
+    "Read()",
+    "mcp__plugin_serena_serena__",
+    "mcp__plugin_context7_context7__*",
+]
+
+RECOMMENDED = [
+    "Bash(git *)",
+    "Bash(curl *)",
+    "Bash(ls *)",
+    "Bash(which *)",
+    "Bash(wc *)",
+    "Bash(bash )",
+    "Bash(tail )",
+    "WebFetch()",
+    "WebSearch()",
+]
+
+RECOMMENDED_DESCRIPTIONS = {
+    "Bash(git *)": "enables git operations without prompts",
+    "Bash(curl *)": "enables version check without prompts",
+    "Bash(ls *)": "enables directory listing without prompts",
+    "Bash(which *)": "enables tool detection without prompts",
+    "Bash(wc *)": "enables word/line counting without prompts",
+    "Bash(bash )": "enables setup script execution without prompts",
+    "Bash(tail )": "enables log tailing without prompts",
+    "WebFetch()": "enables web fetching without prompts",
+    "WebSearch()": "enables web search without prompts",
+}
+
+UNIVERSAL_DENY = [
+    "Bash(rm -rf )",
+    "Bash(rm -r )",
+    "Bash(git push --force)",
+    "Bash(git push -f )",
+    "Bash(git reset --hard)",
+    "Bash(git clean -f)",
+    "Bash(sudo *)",
+    "Bash(> *)",
+    "Bash(find * -delete)",
+    "Bash(curl * | sh)",
+    "Bash(curl * | bash)",
+    "Bash(wget * | sh)",
+    "Bash(wget * | bash)",
+]
+
+TECH_DENY_MAP = {
+    # (file_patterns, deny_entries, label)
+    "docker": (
+        ["Dockerfile", "docker-compose.yml", "docker-compose.yaml"],
+        [
+            "Bash(docker volume rm *)",
+            "Bash(docker system prune )",
+            "Bash(docker-compose down -v)",
+        ],
+        "Docker",
+    ),
+    "vercel": (
+        [".vercel", "vercel.json"],
+        ["Bash(vercel rm *)"],
+        "Vercel",
+    ),
+    "netlify": (
+        ["netlify.toml"],
+        ["Bash(netlify sites:delete *)"],
+        "Netlify",
+    ),
+    "supabase": (
+        ["supabase"],
+        ["Bash(supabase db reset *)"],
+        "Supabase",
+    ),
+    "npm": (
+        ["package.json"],
+        ["Bash(npm unpublish *)"],
+        "npm",
+    ),
+    "github": (
+        [".github"],
+        ["Bash(gh repo delete *)"],
+        "GitHub",
+    ),
+}
+
+MAX_SCAN_DEPTH = 3
+MAX_DIR_ENTRIES = 10000
+
+
+# ── Helpers ────────────────────────────────────────────────────────────
+
+def load_settings():
+    """Load and return settings dict, or None on error."""
+    if not SETTINGS_PATH.exists():
+        print("No ~/.claude/settings.json found. Nothing to audit.")
+        return None
+    try:
+        with open(str(SETTINGS_PATH), "r") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print("Error: Malformed JSON in settings.json: %s" % e)
+        sys.exit(1)
+
+
+def get_allow_list(settings):
+    """Extract permissions.allow list."""
+    perms = settings.get("permissions", {})
+    return perms.get("allow", [])
+
+
+def get_deny_list(settings):
+    """Extract permissions.deny list."""
+    perms = settings.get("permissions", {})
+    return perms.get("deny", [])
+
+
+def parse_tool_entry(entry):
+    """Parse 'Tool(arg)' into (tool, arg) or (entry, None) for bare entries."""
+    if "(" in entry and entry.endswith(")"):
+        paren = entry.index("(")
+        tool = entry[:paren]
+        arg = entry[paren + 1:-1]
+        return tool, arg
+    return entry, None
+
+
+def is_covered_by(entry, allow_list):
+    """Check if entry is covered by a broader pattern in allow_list.
+
+    Returns the covering entry string, or None.
+    """
+    tool, arg = parse_tool_entry(entry)
+
+    for existing in allow_list:
+        if existing == entry:
+            return None  # exact match, not "covered by"
+
+        ex_tool, ex_arg = parse_tool_entry(existing)
+
+        # Same tool family?
+        if ex_tool != tool:
+            # Check prefix-based MCP patterns:
+            # mcp__server__ covers mcp__server__specific
+            if entry.startswith(ex_tool) or existing.rstrip("*").rstrip("_") == entry.rstrip("*").rstrip("_"):
+                pass  # fall through to more checks
+            else:
+                continue
+
+        # Tool(*) or Tool() covers Tool(any)
+        if ex_tool == tool:
+            if ex_arg == "" or ex_arg == "*":
+                return existing
+
+        # MCP wildcard: mcp__server__* covers mcp__server__specific_tool
+        if existing.endswith("*"):
+            prefix = existing[:-1]
+            if entry.startswith(prefix):
+                return existing
+
+        # Bare MCP entry: mcp__server covers mcp__server__tool
+        if ex_arg is None and arg is None:
+            if entry.startswith(existing) and entry != existing:
+                return existing
+
+    return None
+
+
+def entry_exists(entry, allow_list):
+    """Check if entry exists exactly in allow_list."""
+    return entry in allow_list
+
+
+def find_redundancies(allow_list):
+    """Find entries shadowed by broader patterns in the same list."""
+    redundancies = []
+    for entry in allow_list:
+        tool, arg = parse_tool_entry(entry)
+
+        for other in allow_list:
+            if other == entry:
+                continue
+            other_tool, other_arg = parse_tool_entry(other)
+
+            # Bash() shadows Bash(specific)
+            if other_tool == tool and tool == "Bash":
+                if other_arg in ("", "*") and arg not in ("", "*", None):
+                    redundancies.append((entry, other))
+                    break
+
+            # WebFetch() shadows WebFetch(domain:x)
+            if other_tool == tool and tool == "WebFetch":
+                if other_arg in ("", "*") and arg not in ("", "*", None):
+                    redundancies.append((entry, other))
+                    break
+
+            # WebSearch() shadows WebSearch (bare)
+            if other_tool == tool and tool == "WebSearch":
+                if other_arg in ("", "*") and arg is None:
+                    redundancies.append((entry, other))
+                    break
+                if other_arg is None and arg in ("", "*"):
+                    redundancies.append((entry, other))
+                    break
+
+            # mcp__server__ shadows mcp__server__specific
+            if other.endswith("*"):
+                prefix = other[:-1]
+                if entry.startswith(prefix) and entry != other:
+                    redundancies.append((entry, other))
+                    break
+
+            # mcp__server (bare) + mcp__server__* = bare is redundant
+            if entry.endswith("__*") or entry.endswith("__"):
+                bare = entry.rstrip("*").rstrip("_")
+                if other == bare:
+                    redundancies.append((other, entry))
+
+    # Deduplicate
+    seen = set()
+    unique = []
+    for item, covers in redundancies:
+        key = (item, covers)
+        if key not in seen:
+            seen.add(key)
+            unique.append((item, covers))
+    return unique
+
+
+def scan_for_tech(directories):
+    """Scan directories for tech-specific files/dirs, respecting depth limits."""
+    detected = {}
+
+    for scan_dir in directories:
+        scan_path = Path(scan_dir)
+        if not scan_path.exists() or not scan_path.is_dir():
+            continue
+
+        for tech_key, (patterns, deny_entries, label) in TECH_DENY_MAP.items():
+            if tech_key in detected:
+                continue
+            if _scan_dir_for_patterns(scan_path, patterns, 0):
+                detected[tech_key] = (deny_entries, label)
+
+    return detected
+
+
+def _scan_dir_for_patterns(directory, patterns, depth):
+    """Recursively scan for file patterns up to MAX_SCAN_DEPTH."""
+    if depth > MAX_SCAN_DEPTH:
+        return False
+
+    try:
+        entries = list(directory.iterdir())
+    except PermissionError:
+        return False
+
+    if len(entries) > MAX_DIR_ENTRIES:
+        return False
+
+    for entry in entries:
+        for pattern in patterns:
+            if entry.name == pattern:
+                return True
+
+    if depth < MAX_SCAN_DEPTH:
+        for entry in entries:
+            if entry.is_dir() and not entry.name.startswith("."):
+                if _scan_dir_for_patterns(entry, patterns, depth + 1):
+                    return True
+
+    return False
+
+
+def backup_settings():
+    """Create timestamped backup of settings.json."""
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_path = SETTINGS_PATH.parent / ("settings.json.bak.%s" % timestamp)
+    copy2(str(SETTINGS_PATH), str(backup_path))
+    return backup_path
+
+
+def write_settings(settings):
+    """Write settings back with indent=2, preserving key ordering."""
+    with open(str(SETTINGS_PATH), "w") as f:
+        json.dump(settings, f, indent=2)
+        f.write("\n")
+
+
+# ── Module 1: SP Requirements Check ───────────────────────────────────
+
+def check_requirements(settings):
+    """Check mandatory and recommended permissions. Returns missing lists."""
+    allow_list = get_allow_list(settings)
+    missing_mandatory = []
+    missing_recommended = []
+    results = []
+
+    # Check mandatory
+    for entry in MANDATORY:
+        if entry_exists(entry, allow_list):
+            results.append(("ok", entry, "found"))
+        else:
+            cover = is_covered_by(entry, allow_list)
+            if cover:
+                results.append(("ok", entry, "covered by %s" % cover))
+            else:
+                results.append(("missing", entry, "MISSING (required)"))
+                missing_mandatory.append(entry)
+
+    # Check recommended
+    for entry in RECOMMENDED:
+        if entry_exists(entry, allow_list):
+            results.append(("ok", entry, "found"))
+        else:
+            cover = is_covered_by(entry, allow_list)
+            if cover:
+                results.append(("ok", entry, "covered by %s" % cover))
+            else:
+                desc = RECOMMENDED_DESCRIPTIONS.get(entry, "recommended")
+                results.append(("hint", entry, "not found (%s)" % desc))
+                missing_recommended.append(entry)
+
+    # Check defaultMode
+    perms = settings.get("permissions", {})
+    default_mode = perms.get("defaultMode", None)
+    if default_mode == "acceptEdits":
+        results.append(("ok", 'defaultMode: "acceptEdits"', "set"))
+    else:
+        current = '"%s"' % default_mode if default_mode else "not set"
+        results.append(("hint", 'defaultMode: "acceptEdits"',
+                        "%s (SP writes to .prompts/ will prompt)" % current))
+
+    return results, missing_mandatory, missing_recommended
+
+
+# ── Module 2: Bash Approach Choice ─────────────────────────────────────
+
+def choose_bash_approach(missing_recommended):
+    """If Bash entries are missing, ask user for approach preference."""
+    bash_missing = [e for e in missing_recommended if e.startswith("Bash(")]
+    if not bash_missing:
+        return 1, []  # no bash entries missing
+
+    # Check if already covered by Bash()
+    # (would have been caught in check_requirements, but double-check)
+
+    print("")
+    print("Bash permissions approach:")
+    print("  [1] Specific patterns (default) -- add only the %d SP-specific Bash patterns" % len(bash_missing))
+    print("  [2] All Bash + deny list -- add Bash() and recommend comprehensive deny list")
+
+    try:
+        choice = input("Choice [1]: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        choice = ""
+
+    if choice == "2":
+        # Replace individual bash entries with blanket Bash()
+        non_bash = [e for e in missing_recommended if not e.startswith("Bash(")]
+        return 2, non_bash + ["Bash()"]
+    else:
+        return 1, missing_recommended
+
+
+# ── Module 3: Redundancy Detection ─────────────────────────────────────
+
+def detect_redundancies(settings):
+    """Find and report redundant allow-list entries."""
+    allow_list = get_allow_list(settings)
+    redundancies = find_redundancies(allow_list)
+    return redundancies
+
+
+# ── Module 4: Deny List Recommendations ────────────────────────────────
+
+def check_deny_gaps(settings):
+    """Check for missing deny-list entries (universal + tech-specific)."""
+    deny_list = get_deny_list(settings)
+    missing_deny = []
+
+    # Universal entries
+    for entry in UNIVERSAL_DENY:
+        if entry not in deny_list:
+            missing_deny.append((entry, "universal"))
+
+    # Tech-specific scan
+    scan_dirs = [os.getcwd()]
+    developer_dir = Path.home() / "Developer"
+    if developer_dir.exists():
+        scan_dirs.append(str(developer_dir))
+
+    detected_tech = scan_for_tech(scan_dirs)
+    for tech_key, (deny_entries, label) in detected_tech.items():
+        for entry in deny_entries:
+            if entry not in deny_list:
+                missing_deny.append((entry, "%s detected" % label))
+
+    return missing_deny
+
+
+# ── Main ───────────────────────────────────────────────────────────────
+
+def main():
+    settings = load_settings()
+    if settings is None:
+        sys.exit(0)
+
+    print("=== Strategic Partner --- Permission Audit ===")
+    print("")
+
+    # Module 1: Requirements
+    results, missing_mandatory, missing_recommended = check_requirements(settings)
+
+    print("Requirements:")
+    for status, entry, detail in results:
+        if status == "ok":
+            print("  \u2705 %s --- %s" % (entry, detail))
+        elif status == "missing":
+            print("  \u274c %s --- %s" % (entry, detail))
+        elif status == "hint":
+            print("  \U0001f4a1 %s --- %s" % (entry, detail))
+
+    # Module 2: Bash approach
+    all_missing_allow = list(missing_mandatory)
+    if missing_recommended:
+        bash_approach, adjusted_recommended = choose_bash_approach(missing_recommended)
+        all_missing_allow.extend(adjusted_recommended)
+    else:
+        bash_approach = 1
+
+    # Module 3: Redundancies
+    redundancies = detect_redundancies(settings)
+    print("")
+    if redundancies:
+        print("Redundancies: %d found (advisory only)" % len(redundancies))
+        if VERBOSE:
+            for entry, covered_by in redundancies:
+                print("  %s --- covered by %s" % (entry, covered_by))
+        else:
+            # Show first 3
+            shown = min(3, len(redundancies))
+            for entry, covered_by in redundancies[:shown]:
+                print("  %s --- covered by %s" % (entry, covered_by))
+            if len(redundancies) > shown:
+                print("  ... and %d more (use --verbose for full list)" % (len(redundancies) - shown))
+    else:
+        print("Redundancies: none found")
+
+    # Module 4: Deny gaps
+    missing_deny = check_deny_gaps(settings)
+    print("")
+    if missing_deny:
+        print("Deny gaps: %d missing" % len(missing_deny))
+        for entry, reason in missing_deny:
+            print("  %s --- %s" % (entry, reason))
+    else:
+        print("Deny list: complete")
+
+    # Apply offer
+    total_changes = len(all_missing_allow) + len(missing_deny)
+    if total_changes == 0:
+        print("")
+        print("\u2705 All permissions in order. No changes needed.")
+        if redundancies:
+            print("%d redundant entries detected (advisory only). Use --verbose for details." % len(redundancies))
+        return
+
+    if DRY_RUN:
+        print("")
+        print("Dry run: %d allow + %d deny entries would be added." % (
+            len(all_missing_allow), len(missing_deny)))
+        return
+
+    print("")
+    try:
+        answer = input("Apply %d allow + %d deny entries? [y/N] " % (
+            len(all_missing_allow), len(missing_deny))).strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        answer = ""
+
+    if answer != "y":
+        print("No changes made.")
+        return
+
+    # Backup
+    backup_path = backup_settings()
+    print("Backup: %s" % backup_path)
+
+    # Ensure permissions structure exists
+    if "permissions" not in settings:
+        settings["permissions"] = {}
+    if "allow" not in settings["permissions"]:
+        settings["permissions"]["allow"] = []
+    if "deny" not in settings["permissions"]:
+        settings["permissions"]["deny"] = []
+
+    # Merge allow entries
+    added_allow = 0
+    for entry in all_missing_allow:
+        if entry not in settings["permissions"]["allow"]:
+            settings["permissions"]["allow"].append(entry)
+            added_allow += 1
+
+    # Merge deny entries
+    added_deny = 0
+    for entry, _reason in missing_deny:
+        if entry not in settings["permissions"]["deny"]:
+            settings["permissions"]["deny"].append(entry)
+            added_deny += 1
+
+    write_settings(settings)
+    print("\u2705 Applied: %d allow + %d deny entries added." % (added_allow, added_deny))
+
+    if redundancies:
+        print("%d redundant entries detected (advisory only). Use --verbose for details." % len(redundancies))
+
+
+if __name__ == "__main__":
+    main()

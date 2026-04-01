@@ -5,6 +5,13 @@ set -euo pipefail
 # Idempotent. Safe to re-run. Called by install + /strategic-partner:update.
 
 SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# ── Delegate to audit-permissions if requested ─────────────────────────
+if [ "${1:-}" = "--audit-permissions" ]; then
+  shift
+  exec python3 "${SKILL_DIR}/audit-permissions" "$@"
+fi
+
 COMMANDS_SRC="${SKILL_DIR}/commands"
 COMMANDS_DST="${HOME}/.claude/commands/strategic-partner"
 
@@ -44,4 +51,15 @@ HOOKS_DIR="${SKILL_DIR}/hooks"
 if [ -d "$HOOKS_DIR" ]; then
   chmod +x "${HOOKS_DIR}"/*.sh 2>/dev/null || true
   echo "✅ Hook scripts verified executable in ${HOOKS_DIR}"
+fi
+
+# ── Quick permission check ─────────────────────────────────────────────
+SETTINGS_FILE="${HOME}/.claude/settings.json"
+if [ -f "$SETTINGS_FILE" ]; then
+  missing=""
+  grep -q "mcp__plugin_serena_serena__" "$SETTINGS_FILE" || missing="serena"
+  grep -q "mcp__plugin_context7_context7__" "$SETTINGS_FILE" || missing="${missing:+$missing }context7"
+  if [ -n "$missing" ]; then
+    echo "💡 Missing SP permissions. Run: bash ${SKILL_DIR}/setup --audit-permissions"
+  fi
 fi
