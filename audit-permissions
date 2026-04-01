@@ -11,7 +11,6 @@ Usage:
 import json
 import os
 import sys
-import fnmatch
 from pathlib import Path
 from datetime import datetime
 from shutil import copy2
@@ -187,6 +186,10 @@ def is_covered_by(entry, allow_list):
         if ex_arg is None and arg is None:
             if entry.startswith(existing) and entry != existing:
                 return existing
+
+        # Bare tool name covers starred version: WebFetch covers WebFetch(*)
+        if ex_arg is None and arg == "*" and existing == tool:
+            return existing
 
     return None
 
@@ -365,7 +368,7 @@ def choose_bash_approach(missing_recommended):
     """If Bash entries are missing, ask user for approach preference."""
     bash_missing = [e for e in missing_recommended if e.startswith("Bash(")]
     if not bash_missing:
-        return 1, []  # no bash entries missing
+        return 1, missing_recommended  # pass through non-Bash entries unchanged
 
     # Check if already covered by Bash(*)
     # (would have been caught in check_requirements, but double-check)

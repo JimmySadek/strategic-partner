@@ -178,13 +178,13 @@ Is this agent doing read-only work (research, exploration, file reading)?
 
 ### Belt-and-Suspenders: Pre-Approve Common Tools
 
-Even with `mode: "auto"`, recommend users pre-approve `WebFetch` and `WebSearch`
+Even with `mode: "auto"`, recommend users pre-approve `WebFetch(*)` and `WebSearch(*)`
 in `~/.claude/settings.json` to avoid edge cases where research agents stall:
 
 ```json
 {
   "permissions": {
-    "allow": ["WebFetch", "WebSearch"]
+    "allow": ["WebFetch(*)", "WebSearch(*)"]
   }
 }
 ```
