@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.4.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.5.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -78,7 +78,7 @@ This is where the value is. Before routing a single task, the SP runs several ch
 
 **Forced alternatives** — For non-trivial tasks, the SP presents 3 distinct approaches before routing: Path A (minimal — smallest change), Path B (recommended — the SP's best judgment with rationale), and Path C (lateral — a reframing that might unlock a better outcome). You pick. Then it routes.
 
-**Confidence labels** — Recommendations within prompts carry SAFE or RISK labels so the executor knows which suggestions are well-supported and which involve judgment calls.
+**Confidence labels** — Recommendations within prompts carry [✅ SAFE] or [⚠️ RISK] labels so the executor knows which suggestions are well-supported and which involve judgment calls.
 
 **Advisory Completion Gate** — Before any prompt, dispatch, or script is crafted, the SP verifies 5 hard conditions: problem is framed, alternatives explored, trade-offs surfaced, user confirmed direction, and definition of done established. If any condition is unmet, the SP stays in advisory mode. This prevents the most common failure: jumping from brainstorming to implementation before thinking is done.
 
@@ -126,7 +126,7 @@ You pick Path B. The SP delivers 3 ready-to-paste prompts:
 | **2 — Build UI** | *[from routing matrix]* | WelcomeScreen + 3-step wizard, mock data only, no backend calls yet |
 | **3 — Wire up** | *[from routing matrix]* | Connect wizard to user state, trigger welcome email on step 3 completion |
 
-Each prompt includes: files to read first, constraints from CLAUDE.md, verification checklist, SAFE/RISK labels on key recommendations, expected commit message, and explicit NOT-in-scope exclusions.
+Each prompt includes: files to read first, constraints from CLAUDE.md, verification checklist, [✅ SAFE]/[⚠️ RISK] labels on key recommendations, expected commit message, and explicit NOT-in-scope exclusions.
 
 You paste Phase 1 into a **new terminal tab**. It runs. You come back and say "done." The SP reviews the git log, then gives you Phase 2. Repeat until the feature ships.
 
@@ -139,7 +139,7 @@ You paste Phase 1 into a **new terminal tab**. It runs. You come back and say "d
 | **Big tasks** | One session, degrades at scale | Phased prompts, each with full context |
 | **Knowledge** | Dies with the session | Persists via Serena memory and handoffs |
 | **Tool selection** | You pick | SP routes dynamically from your installed tools |
-| **Confidence** | Implicit | SAFE/RISK labels on recommendations |
+| **Confidence** | Implicit | [✅ SAFE]/[⚠️ RISK] labels on recommendations |
 
 ---
 
@@ -165,6 +165,16 @@ cd /path/to/strategic-partner
 ```
 
 This registers subcommands with Claude Code. The `/strategic-partner:update` subcommand re-runs setup automatically after each update.
+
+After running setup, optionally audit your permissions for a frictionless SP experience:
+
+```bash
+# Check and fix permission gaps
+./setup --audit-permissions
+
+# Preview without changes
+./setup --audit-permissions --dry-run
+```
 
 ### Run
 
@@ -196,7 +206,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
 - **Implementation boundary** — the SP is not allowed to implement in its own session, enforced structurally via a PreToolUse hook (exit code 2 blocks Edit/Write/Bash mutations on source files) and 3 behavioral gates (Advisory Completion, Advisory Reset, Post-Dispatch Recovery)
 - **Fast Lane dispatch** — subordinate delivery mechanism for small, reversible tasks; requires Advisory Completion Gate to pass first; detailed mechanics loaded on demand from reference file
-- **SAFE/RISK confidence labels** — recommendations carry explicit confidence signals for executors
+- **[✅ SAFE]/[⚠️ RISK] confidence labels** — recommendations carry explicit confidence signals for executors
 - **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.4) for independent review on high-stakes decisions
 - **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure decisions survive across sessions
 - **Context handoff management** — monitors context pressure and preserves full session state before it degrades
@@ -210,6 +220,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 strategic-partner/
   SKILL.md                              # Lean hub — identity, core behaviors, routing dispatch
   setup                                 # Command registration script (run after install/update)
+  audit-permissions                     # Permission audit helper (Python 3.6+)
   hooks/
     guard-impl.sh                       # PreToolUse hook — blocks source edits in SP sessions
   commands/
@@ -301,7 +312,7 @@ For release announcements with full changelogs:
 | **Serena MCP unavailable** | Cross-session memory and semantic navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
 | **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
 | **Context pressure undetected** | No PreCompact hook configured | SP uses self-assessed thresholds and periodic checks. Consider adding a PreCompact hook for earlier detection. |
-| **Sub-agents hit permission walls** | Background agents can't prompt for approval | Specify `mode` on every agent spawn (see orchestration-playbook.md). Pre-approve `WebFetch(*)` and `WebSearch(*)` in `~/.claude/settings.json` for research agents. |
+| **Sub-agents hit permission walls** | Background agents can't prompt for approval | Specify `mode` on every agent spawn (see orchestration-playbook.md). Pre-approve `WebFetch(*)` and `WebSearch(*)` in `~/.claude/settings.json` for research agents. Run `./setup --audit-permissions` to check for missing permissions. |
 | **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
 | **Codex CLI not found** | Cross-model review unavailable | Install from [github.com/openai/codex](https://github.com/openai/codex) and run `codex login`. Feature is optional. |
 

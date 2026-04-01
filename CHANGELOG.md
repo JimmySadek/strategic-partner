@@ -1,5 +1,22 @@
 # Changelog
 
+## [5.5.0] - 2026-04-01
+
+### Added
+- **Permission audit** — `setup --audit-permissions` checks `~/.claude/settings.json` for SP-required permissions (3 mandatory, 9 recommended, defaultMode), detects redundancies, recommends deny entries based on tech stack scanning, and offers to apply with backup. Supports `--dry-run` and `--verbose` flags
+- **Quick permission check** — setup now checks for Serena and Context7 permissions after command registration, with a one-line 💡 hint if missing
+
+### Changed
+- **Emoji severity hierarchy** — standardized three-tier system across all SP files: ❌ (error/failure), ⚠️ (warning/degraded), 💡 (suggestion/informational)
+- **[✅ SAFE]/[⚠️ RISK] labels** — recommendation labels now include emoji for visual consistency. Updated in definitions, examples, and all prose references
+- **WebFetch(*)/WebSearch(*) documentation** — updated to starred form in orchestration-playbook and README for audit consistency
+
+### Fixed
+- **skillshare → skills CLI** — replaced all `skillshare` references with Vercel `skills` CLI. Removed broken `npx skillshare install` from README
+- **Stale hook reference** — SKILL.md line 107 corrected to "inlined in SKILL.md frontmatter"
+- **Hook verification in release process** — CLAUDE.md gains Step 2a for testing matcher scope and guard logic before release
+- **Docs-only push exception** — CLAUDE.md release process allows docs-only pushes to skip version bump and GitHub Release
+
 ## [5.4.1] - 2026-03-31
 
 ### Fixed
@@ -115,7 +132,7 @@
 - **Premise challenge triggers** — 4 trigger conditions on every task request; forced evaluation
 - **Forced alternatives** — 3-path presentation (Minimal/Recommended/Lateral) before routing
 - **NOT-in-scope sections** — explicit exclusions in multi-file prompts
-- **SAFE/RISK labels** — confidence signals on non-trivial recommendations
+- **[✅ SAFE]/[⚠️ RISK] labels** — confidence signals on non-trivial recommendations
 - **Position-first rule** — state position before presenting options
 - **Decision log enforcement** — auto-log after every confirmed AskUserQuestion
 

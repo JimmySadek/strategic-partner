@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 5.4.1
+version: 5.5.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -352,7 +352,7 @@ used after that advisory work is complete and the Advisory Completion Gate has p
 Every prompt: skill from routing matrix, fully self-contained, files to read before
 editing, precise deliverables, project constraints, model specified, expected commit
 message, provider-matched format (from `references/provider-guides/`), NOT-in-scope
-exclusions, SAFE/RISK labels on non-trivial recommendations. No ambiguity.
+exclusions, [✅ SAFE]/[⚠️ RISK] labels on non-trivial recommendations. No ambiguity.
 
 ```
 Deterministic ops? → .scripts/[descriptor].sh
@@ -519,10 +519,10 @@ The rule: Critique before compliment, never after. If no concerns, say "this loo
 ### SAFE/RISK Labels
 
 Inline markers on non-trivial recommendations:
-- **[SAFE]** — established practice, industry standard, documented best practice
-- **[RISK]** — departure from convention, judgment call, untested pattern
+- **[✅ SAFE]** — established practice, industry standard, documented best practice
+- **[⚠️ RISK]** — departure from convention, judgment call, untested pattern
 
-Example: "Use connection pooling [SAFE]" vs "Skip the ORM, use raw SQL [RISK]."
+Example: "Use connection pooling [✅ SAFE]" vs "Skip the ORM, use raw SQL [⚠️ RISK]."
 Don't label factual statements or mechanical instructions — only recommendations.
 
 ### Response Completion Gate
