@@ -78,7 +78,7 @@ TECH_DENY_MAP = {
         [
             "Bash(docker volume rm *)",
             "Bash(docker system prune *)",
-            "Bash(docker-compose down -v)",
+            "Bash(docker-compose down -v*)",
         ],
         "Docker",
     ),
@@ -207,7 +207,7 @@ def find_redundancies(allow_list):
                 continue
             other_tool, other_arg = parse_tool_entry(other)
 
-            # Bash() shadows Bash(specific)
+            # Bash(*) shadows Bash(specific)
             if other_tool == tool and tool == "Bash":
                 if other_arg in ("", "*") and arg not in ("", "*", None):
                     redundancies.append((entry, other))
@@ -367,13 +367,13 @@ def choose_bash_approach(missing_recommended):
     if not bash_missing:
         return 1, []  # no bash entries missing
 
-    # Check if already covered by Bash()
+    # Check if already covered by Bash(*)
     # (would have been caught in check_requirements, but double-check)
 
     print("")
     print("Bash permissions approach:")
     print("  [1] Specific patterns (default) -- add only the %d SP-specific Bash patterns" % len(bash_missing))
-    print("  [2] All Bash + deny list -- add Bash() and recommend comprehensive deny list")
+    print("  [2] All Bash + deny list -- add Bash(*) and recommend comprehensive deny list")
 
     try:
         choice = input("Choice [1]: ").strip()
@@ -381,9 +381,9 @@ def choose_bash_approach(missing_recommended):
         choice = ""
 
     if choice == "2":
-        # Replace individual bash entries with blanket Bash()
+        # Replace individual bash entries with blanket Bash(*)
         non_bash = [e for e in missing_recommended if not e.startswith("Bash(")]
-        return 2, non_bash + ["Bash()"]
+        return 2, non_bash + ["Bash(*)"]
     else:
         return 1, missing_recommended
 
