@@ -90,7 +90,7 @@ Quick checks run inline during startup. No agents needed — these are observati
    If it doesn't exist, don't mention it — it's optional.
 
 4. **CLAUDE.md size**: If CLAUDE.md exceeds ~200 lines, note in orientation:
-   "⚠️ CLAUDE.md is {N} lines (recommended: under 200). Consider splitting
+   "💡 CLAUDE.md is {N} lines (recommended: under 200). Consider splitting
    path-specific rules into .claude/rules/ files."
 
 ### Codex CLI Detection (inline, not an agent)
@@ -282,7 +282,7 @@ but are not security-critical.
 | ✅ `routing_status: "built"` (no errors) | Store matrix in Serena as `skill_routing_matrix`. Report: "N skills available, M agents detected. Routing matrix built." |
 | ✅ `routing_status: "built"` (with errors) | Store matrix, note gaps. Report: "N skills available, M agents detected (scan had issues — count may be incomplete)." |
 | ⚠️ `routing_status: "cached"` | Using Serena cached matrix. Report: "Using cached routing matrix (environment scan failed). N skills in cache." |
-| ⚠️ `routing_status: "fallback"` | No cache available. Report: "Limited routing — no cache available. Routing from system context only." |
+| ❌ `routing_status: "fallback"` | No cache available. Report: "Limited routing — no cache available. Routing from system context only." |
 
 ### 🔍 Agents A/B Integration (Non-blocking)
 

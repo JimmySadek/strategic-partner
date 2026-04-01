@@ -14,7 +14,7 @@ Partner Adapt: Observe signals → Detect profile (Engineer/PM/Founder) → Cali
 
 ## Session Naming Protocol
 
-**⚠️ Limitation**: `/rename` is a user-only slash command — the SP cannot execute it
+**💡 Limitation**: `/rename` is a user-only slash command — the SP cannot execute it
 programmatically. The SP's role is to **recommend** naming at the right moments.
 
 Suggest meaningful session names throughout the session. The name evolves as the

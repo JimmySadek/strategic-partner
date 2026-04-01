@@ -34,7 +34,7 @@ It does not require the full startup sequence.
    ```
    curl -sf "https://api.github.com/repos/{repo}/tags?per_page=1"
    ```
-5. If both fail → "⚠️ Could not reach GitHub to check for updates. Try again later."
+5. If both fail → "❌ Could not reach GitHub to check for updates. Try again later."
 
 ### Step 2 — Compare and Present
 

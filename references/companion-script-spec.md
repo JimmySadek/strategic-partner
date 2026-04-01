@@ -6,7 +6,7 @@ This is the "advanced" recommendation from audit finding F1.
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  ⚠️  Status: SPECIFICATION ONLY — not implemented    │
+│  💡  Status: SPECIFICATION ONLY — not implemented    │
 │  👤 Audience: Power users wanting external monitoring │
 │  📎 Prerequisite: hooks-integration.md               │
 └──────────────────────────────────────────────────────┘
@@ -266,7 +266,7 @@ never be committed.
 
 ---
 
-## ⚠️ Limitations
+## 💡 Limitations
 
 | # | Limitation | Impact |
 |---|---|---|

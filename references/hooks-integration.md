@@ -79,7 +79,7 @@ Implement these first.
 │  2. 🚀 Begin full startup sequence                   │
 │     (see startup-checklist.md)                       │
 │                                                      │
-│  ⚠️ /effort, /color, /rename are user-only commands │
+│  💡 /effort, /color, /rename are user-only commands │
 │     — hooks cannot invoke slash commands. The SP     │
 │     recommends these to the user in orientation.     │
 └──────────────────────────────────────────────────────┘
@@ -281,7 +281,7 @@ These hooks provide deeper integration for **power users** and diagnostics.
 **SP Behavior:**
 - 📝 Log tool failures for diagnostic purposes
 - 🔍 Detect patterns (e.g., repeated Serena failures → language server issue)
-- ⚠️ Surface actionable failure patterns to user proactively
+- 💡 Surface actionable failure patterns to user proactively
 - 🔄 Trigger fallback strategies (see RULES.md, Serena Fallback Strategy)
 
 **Configuration:**

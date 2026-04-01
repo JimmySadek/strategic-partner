@@ -172,7 +172,7 @@ Is this agent doing read-only work (research, exploration, file reading)?
     └─ NO → Does it write/edit source or implementation files?
         ├─ YES → mode: "acceptEdits"
         └─ NO → Does it need unrestricted tool access?
-            ├─ YES → mode: "bypassPermissions" (⚠️ security risk — document why)
+            ├─ YES → mode: "bypassPermissions" (❌ security risk — document why)
             └─ NO → mode: "default" (foreground agents only)
 ```
 

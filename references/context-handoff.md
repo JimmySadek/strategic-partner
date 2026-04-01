@@ -45,7 +45,7 @@ auto-compaction trigger from the default (~95%) to 70%, giving the SP a
 └───────────────────────────────────────────────────────────────┘
 ```
 
-**⚠️ Limitation acknowledged**: Self-assessment is still used for the intermediate
+**💡 Limitation acknowledged**: Self-assessment is still used for the intermediate
 threshold (60-70%) below. This is an **advisory signal**, not a hard gate.
 The PreCompact hook at 70% serves as the **authoritative backstop** — even if
 self-assessment is wrong, the system will trigger handoff preparation at the
