@@ -219,10 +219,12 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 ```
 strategic-partner/
   SKILL.md                              # Lean hub — identity, core behaviors, routing dispatch
-  setup                                 # Command registration script (run after install/update)
+  setup                                 # Command + agent registration script (run after install/update)
   audit-permissions                     # Permission audit helper (Python 3.6+)
   hooks/
     guard-impl.sh                       # PreToolUse hook — blocks source edits in SP sessions
+  agents/
+    sp-prompt-architect.md              # Prompt crafting agent — 7-step verified prompt construction
   commands/
     help.md                             # Subcommand reference
     handoff.md                          # Context handoff trigger

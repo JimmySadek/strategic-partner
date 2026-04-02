@@ -486,6 +486,62 @@ Prompt chain (run in order):
 
 ---
 
+## Architect Dispatch
+
+For complex prompts — multi-agent orchestration, large scope (>5 deliverables), or
+when the user explicitly requests prompt delegation — the SP dispatches to the
+`sp-prompt-architect` agent instead of crafting inline.
+
+### When to dispatch
+
+```
+Prompt complexity?
+├── Simple (single skill, ≤5 deliverables, no orchestration) → Craft inline
+└── Complex (orchestration needed, multi-agent, or user requests it) → Dispatch to architect
+```
+
+### Dispatch brief format
+
+The SP builds a structured brief after the Advisory Completion Gate passes:
+
+```
+TASK: [one-line description]
+GOAL: [from discovery Q1]
+APPROACH: [from alternatives — which path and why]
+CONSTRAINTS: [from discovery Q3 — CLAUDE.md rules, tech stack, patterns]
+DONE WHEN: [from discovery Q4 — concrete deliverables]
+TARGET MODEL: claude | codex | gemini (default: claude)
+BUDGET: default | conservative | premium (default: default)
+SKILL DIR: [absolute path to strategic-partner skill directory]
+```
+
+### What the architect does
+
+The architect executes a mandatory 7-step process:
+1. **Validate** — checks all brief fields are present
+2. **Route** — walks the routing decision tree from this guide + `skill-routing-matrix.md`
+3. **Simplicity assessment** — 5-question scoring (visible to user)
+4. **Parallelization check** — 4-question checklist (visible to user)
+5. **Format selection** — reads the provider guide matching TARGET MODEL
+6. **Craft** — writes the prompt conforming to all quality requirements
+7. **Verify** — runs the 12-item post-craft checklist (visible to user)
+
+All analysis steps (routing, simplicity, parallelization, verification) produce mandatory
+visible output blocks. The architect writes only to `.prompts/` directories.
+
+### Integration with SP delivery flow
+
+```
+Advisory Completion Gate → Delivery mode decision:
+├── Inline craft (simple prompts) → SP crafts directly using this guide
+├── Fast Lane (small, reversible) → SP dispatches implementation agent
+└── Architect dispatch (complex) → SP dispatches sp-prompt-architect
+                                    → Architect returns verified prompt
+                                    → User copies to new session
+```
+
+---
+
 ## Deliverable Type Routing
 
 Before deciding format, determine what kind of deliverable this is:

@@ -412,6 +412,26 @@ When the user explicitly says "just do it" → fast-track to agent dispatch.
 The override skips the delivery-mode AskUserQuestion, not the advisory identity.
 See Implementation Boundary (Checkpoint 3) for full rules and constraints.
 
+### Architect Dispatch (Prompt Delegation)
+
+For complex prompts (multi-agent orchestration, large scope, or when the user asks
+"craft a prompt for this"), delegate prompt construction to the `sp-prompt-architect`
+agent instead of crafting inline:
+
+1. Complete the Advisory Completion Gate as normal (discovery Q1-Q4, premise
+   challenge, alternatives, user selection)
+2. Build a structured dispatch brief with TASK, GOAL, APPROACH, CONSTRAINTS,
+   DONE WHEN, TARGET MODEL, BUDGET, and SKILL DIR fields
+3. Dispatch: `Agent(Opus, sp-prompt-architect)` with the brief as the task message
+
+The architect reads the SP's reference files at runtime (`prompt-crafting-guide.md`,
+`skill-routing-matrix.md`, provider guides) and produces a verified prompt with visible
+routing analysis, simplicity scoring, parallelization check, and 12-item verification.
+It writes only to `.prompts/` directories.
+
+Use the architect when: the prompt needs orchestration sections, multi-agent coordination,
+or the full 7-step craft process. For simple single-skill prompts, inline crafting is fine.
+
 ---
 
 ## 🔁 Review, Acceptance, and Identity Reset

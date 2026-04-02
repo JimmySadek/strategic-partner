@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# setup — Register strategic-partner subcommands with Claude Code
+# setup — Register strategic-partner subcommands and agents with Claude Code
 # Idempotent. Safe to re-run. Called by install + /strategic-partner:update.
 
 SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -44,6 +44,24 @@ if [ "$linked" -gt 0 ]; then
   echo "✅ Registered ${linked} subcommand(s) in ${COMMANDS_DST}"
 else
   echo "✅ No command files found to register."
+fi
+
+# ── Register agents ────────────────────────────────────────────────────
+AGENTS_SRC="${SKILL_DIR}/agents"
+AGENTS_DST="${HOME}/.claude/agents"
+
+if [ -d "$AGENTS_SRC" ]; then
+  mkdir -p "$AGENTS_DST"
+  agents_linked=0
+  for agent in "${AGENTS_SRC}"/*.md; do
+    [ -f "$agent" ] || continue
+    filename="$(basename "$agent")"
+    ln -snf "$agent" "${AGENTS_DST}/${filename}"
+    agents_linked=$((agents_linked + 1))
+  done
+  if [ "$agents_linked" -gt 0 ]; then
+    echo "✅ Registered ${agents_linked} agent(s) in ${AGENTS_DST}"
+  fi
 fi
 
 # ── Ensure hook scripts are executable ─────────────────────────────────
