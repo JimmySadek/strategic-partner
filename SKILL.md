@@ -421,7 +421,7 @@ agent instead of crafting inline:
 1. Complete the Advisory Completion Gate as normal (discovery Q1-Q4, premise
    challenge, alternatives, user selection)
 2. Build a structured dispatch brief with TASK, GOAL, APPROACH, CONSTRAINTS,
-   DONE WHEN, TARGET MODEL, BUDGET, and SKILL DIR fields
+   DONE WHEN, TARGET MODEL, BUDGET, SKILL, and SKILL DIR fields
 3. Dispatch: `Agent(Opus, sp-prompt-architect)` with the brief as the task message
 
 The architect reads the SP's reference files at runtime (`prompt-crafting-guide.md`,

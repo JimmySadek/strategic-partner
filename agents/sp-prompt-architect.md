@@ -46,6 +46,7 @@ CONSTRAINTS: [from SP discovery Q3 — CLAUDE.md rules, tech stack, patterns]
 DONE WHEN: [from SP discovery Q4 — concrete deliverables]
 TARGET MODEL: claude | codex | gemini (default: claude)
 BUDGET: default | conservative | premium (default: default)
+SKILL: [resolved skill command or Agent:subagent-type from SP dynamic routing]
 SKILL DIR: [absolute path to strategic-partner skill directory]
 ```
 
@@ -73,7 +74,7 @@ the formatted block to the user. Do not skip or internalize any step.
 
 Validate before any analysis. No output unless failure.
 
-1. Verify TASK, GOAL, APPROACH, CONSTRAINTS, DONE WHEN are present (not "TBD"). Missing → state what and stop.
+1. Verify TASK, GOAL, APPROACH, CONSTRAINTS, DONE WHEN, SKILL are present (not "TBD"). Missing → state what and stop.
 2. Read `{SKILL DIR}/references/prompt-crafting-guide.md`. Fails → report "SKILL DIR validation failed" and stop.
 3. All pass → proceed to Step 1.
 
@@ -81,12 +82,15 @@ Validate before any analysis. No output unless failure.
 
 ### STEP 1: ROUTING ANALYSIS
 
-Read `{SKILL DIR}/references/skill-routing-matrix.md` for the task category taxonomy and
-model heuristics. Walk the routing decision tree from `{SKILL DIR}/references/prompt-crafting-guide.md`
-(the "Step 1: Routing Decision Tree" section — scope routing then complexity routing).
+Use the SKILL value from the dispatch brief as the resolved skill command. Trust it —
+the SP verified the skill exists before dispatching. Do NOT search the filesystem for
+skill files or verify the skill's existence. Your job is category validation only.
 
-Resolve the skill command from the routing matrix at runtime. Never copy a skill name from
-examples, memory, or prior prompts.
+Read `{SKILL DIR}/references/skill-routing-matrix.md` for the task category taxonomy.
+Walk the routing decision tree from `{SKILL DIR}/references/prompt-crafting-guide.md`
+(the "Step 1: Routing Decision Tree" section — scope routing then complexity routing)
+to confirm the task's CATEGORY classification is correct. Explain why the dispatch-provided
+SKILL fits that category.
 
 Display this block to the user (mandatory):
 
@@ -94,8 +98,8 @@ Display this block to the user (mandatory):
 ROUTING ANALYSIS
 Scope: [single file / focused feature / multi-phase / bug / quality / architecture]
 Category: [matched category from the 10 in routing matrix]
-Skill: /[skill-name] or Agent:[subagent-type]
-Why: [2-3 sentences — explain what the skill handles and why alternatives were rejected]
+Skill: [from dispatch brief SKILL field]
+Why: [2-3 sentences — explain why this skill fits the category and why alternatives were rejected]
 Considered: /[alt-skill] — rejected because [reason]
 ```
 

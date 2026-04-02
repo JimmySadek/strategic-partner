@@ -512,6 +512,7 @@ CONSTRAINTS: [from discovery Q3 — CLAUDE.md rules, tech stack, patterns]
 DONE WHEN: [from discovery Q4 — concrete deliverables]
 TARGET MODEL: claude | codex | gemini (default: claude)
 BUDGET: default | conservative | premium (default: default)
+SKILL: [resolved skill command or Agent:subagent-type from SP routing]
 SKILL DIR: [absolute path to strategic-partner skill directory]
 ```
 
