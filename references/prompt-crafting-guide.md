@@ -516,9 +516,13 @@ SKILL: [resolved skill command or Agent:subagent-type from SP routing]
 SKILL DIR: [absolute path to strategic-partner skill directory]
 ```
 
+The SP also includes a `<files_to_read>` block in the dispatch message listing the
+reference files the architect needs: `prompt-crafting-guide.md`, `skill-routing-matrix.md`,
+and the provider guide matching TARGET MODEL. The architect reads these before any analysis.
+
 ### What the architect does
 
-The architect executes a mandatory 7-step process:
+The architect executes a mandatory 7-step process (plus delivery):
 1. **Validate** — checks all brief fields are present
 2. **Route** — validates the dispatch-provided SKILL against the routing matrix categories
 3. **Simplicity assessment** — 5-question scoring (visible to user)
@@ -526,6 +530,7 @@ The architect executes a mandatory 7-step process:
 5. **Format selection** — reads the provider guide matching TARGET MODEL
 6. **Craft** — writes the prompt conforming to all quality requirements
 7. **Verify** — runs the 12-item post-craft checklist (visible to user)
+8. **Deliver** — presents prompt inline or saves to `.prompts/` based on size
 
 All analysis steps (routing, simplicity, parallelization, verification) produce mandatory
 visible output blocks. The architect writes only to `.prompts/` directories.
@@ -668,6 +673,9 @@ that wastes tokens and looks redundant to the user.
 Is the prompt >250 lines OR >5 deliverables?
   YES → Save to .prompts/[milestone]/[descriptor].md
         AskUserQuestion before saving (ask-before-act applies)
+        Note: When prompts are crafted by the sp-prompt-architect agent (dispatched after the
+        Advisory Completion Gate), the save consent is delegated — the SP obtained user consent
+        before dispatch. The agent may save to `.prompts/` without an additional AskUserQuestion.
         Display: COPY-PASTEABLE LAUNCHER (see Launcher Format below)
   NO  → Present inline WITH ═══ fences — immediately, no confirmation needed
         The ═══ fences ARE the presentation. Do not show the prompt first

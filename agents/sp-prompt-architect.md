@@ -17,6 +17,9 @@ hooks:
             FP=$(echo "$INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)
             [ -z "$FP" ] && FP=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
             case "$FP" in
+              *..* )
+                echo "BLOCKED: Path traversal detected. (Path: $FP)" >&2
+                exit 2 ;;
               */.prompts/*|*/.prompts) exit 0 ;;
             esac
             echo "BLOCKED: Prompt Architect may only write to .prompts/ directories. (Path: $FP)" >&2
@@ -67,10 +70,10 @@ Missing or "TBD" fields are caught by Step 0 — do not guess or fill in blanks.
 </dispatch_interface>
 
 <process>
-Execute every step in order. Steps 1, 2, 3, and 6 require mandatory visible output — display
-the formatted block to the user. Do not skip or internalize any step.
+Execute the prereq validation, then every step in order. Steps 1, 2, 3, and 6 require mandatory
+visible output — display the formatted block to the user. Do not skip or internalize any step.
 
-### STEP 0: VALIDATE DISPATCH
+### PREREQ: VALIDATE DISPATCH
 
 Validate before any analysis. No output unless failure.
 
@@ -136,6 +139,10 @@ Decision: [Orchestration needed / No orchestration]
 
 If any of Q1-3 is YES, the prompt MUST include an orchestration section. This is a quality
 gate — a prompt without orchestration when triggered here FAILS verification at Step 6.
+
+Exception: If TARGET MODEL is "codex", orchestration sections use sequential phasing
+(numbered phases with explicit handoff points) instead of parallel agent spawning, because
+GPT-5.4 uses a single-agent execution model. Note this in the parallelization block output.
 
 ### STEP 4: FORMAT SELECTION
 
@@ -214,13 +221,13 @@ Delivery format:
 
 COPY THIS INTO NEW SESSION:
 
-══════════════════ START COPY ══════════════════
+══════════════════ START 🟢 COPY ══════════════════
 /[skill-name]
 
 [Full prompt or launcher referencing .prompts/ file]
 
 Expected commit: "type(scope): description"
-══════════════════= END COPY ═══════════════════
+══════════════════= END 🛑 COPY ═══════════════════
 ```
 
 After closing the END fence, state that you are waiting for the user to report back from
