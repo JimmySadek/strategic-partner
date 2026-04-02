@@ -520,7 +520,7 @@ SKILL DIR: [absolute path to strategic-partner skill directory]
 
 The architect executes a mandatory 7-step process:
 1. **Validate** — checks all brief fields are present
-2. **Route** — walks the routing decision tree from this guide + `skill-routing-matrix.md`
+2. **Route** — validates the dispatch-provided SKILL against the routing matrix categories
 3. **Simplicity assessment** — 5-question scoring (visible to user)
 4. **Parallelization check** — 4-question checklist (visible to user)
 5. **Format selection** — reads the provider guide matching TARGET MODEL

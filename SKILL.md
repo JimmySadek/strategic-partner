@@ -421,8 +421,15 @@ agent instead of crafting inline:
 1. Complete the Advisory Completion Gate as normal (discovery Q1-Q4, premise
    challenge, alternatives, user selection)
 2. Build a structured dispatch brief with TASK, GOAL, APPROACH, CONSTRAINTS,
-   DONE WHEN, TARGET MODEL, BUDGET, SKILL, and SKILL DIR fields
-3. Dispatch: `Agent(Opus, sp-prompt-architect)` with the brief as the task message
+   DONE WHEN, TARGET MODEL, BUDGET, SKILL, and SKILL DIR fields.
+   Resolve SKILL using the Quick routing heuristics table (§Routing and References)
+   against the dynamic routing matrix built at startup. Use a `/skill-command` if
+   one matches, or `Agent:subagent-type` from the matrix if no installed skill fits.
+3. Dispatch: `Agent(sp-prompt-architect, model: "opus")` with the brief as the task message
+4. Include a `<files_to_read>` block in the dispatch message listing:
+   - `{SKILL DIR}/references/prompt-crafting-guide.md`
+   - `{SKILL DIR}/references/skill-routing-matrix.md`
+   - The provider guide matching TARGET MODEL (`provider-guides/anthropic.md`, etc.)
 
 The architect reads the SP's reference files at runtime (`prompt-crafting-guide.md`,
 `skill-routing-matrix.md`, provider guides) and produces a verified prompt with visible
