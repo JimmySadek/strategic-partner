@@ -389,6 +389,36 @@ Advisor crafts prompt → Delivery decision:
                         └─ SMALL: Dispatch agent → Agent returns → SP reviews
 ```
 
+### Copy-Safe Formatting (Inline Prompts)
+
+Inline prompt content inside fences is rendered as markdown. When copied, markdown
+syntax is stripped. Rule: inline prompt content must use ONLY XML tags, numbered
+lists (1. 2. 3.), and plain text. No bold, no dash bullets, no markdown tables,
+no markdown headers inside fences. Saved prompts (.prompts/) can use any formatting.
+
+### Post-Craft Verification (Mandatory — Run Before Presenting ANY Prompt)
+
+Every prompt must pass all 12 checks. Fix failures before presenting.
+
+| # | Check | Fails if... |
+|---|-------|-------------|
+| 1 | Skill on line 1 from routing tree | Copied from memory or example |
+| 2 | Context lists specific files | Says "read the codebase" |
+| 3 | Numbered deliverables with paths | Vague like "update the tests" |
+| 4 | Orchestration if parallelization triggered | Missing when Q1-3 said YES |
+| 5 | Agent spawns have model + mode | Unspecified model or mode |
+| 6 | Verification has testable commands | Says "verify it works" |
+| 7 | Conventional commit message | Missing or malformed |
+| 8 | Fully self-contained | References "our discussion" |
+| 9 | Format matches provider guide | Wrong tag convention |
+| 10 | Inline is copy-safe | Markdown formatting in fences |
+| 11 | Not-in-scope for multi-file | Missing or vague platitudes |
+| 12 | SAFE/RISK labels on recommendations | Opinions presented as fact |
+
+For the full checklist with detailed failure criteria, load
+references/prompt-crafting-guide.md. This inline version ensures the quality
+bar is always in context.
+
 ### Fast Lane — Dispatch, Not Identity
 
 Fast Lane is a delivery shortcut for small, reversible, low-ambiguity work.
