@@ -34,6 +34,7 @@ hooks:
                 */.prompts/*|*/.prompts) exit 0 ;;
                 */.handoffs/*|*/.handoffs) exit 0 ;;
                 */.scripts/*|*/.scripts) exit 0 ;;
+                */.backlog/*|*/.backlog) exit 0 ;;
                 */CLAUDE.md) exit 0 ;;
                 */CHANGELOG.md) exit 0 ;;
                 */README.md) exit 0 ;;
@@ -50,7 +51,7 @@ hooks:
               [ -z "$CMD" ] && CMD=$(echo "$INPUT" | grep -o '"command": "[^"]*"' | head -1 | cut -d'"' -f4)
               if echo "$CMD" | grep -qE '(sed\s+-i|>\s|>>|tee\s|perl\s+-i|git\s+apply|git\s+cherry-pick)'; then
                 ALLOWED=false
-                for p in ".prompts" ".handoffs" ".scripts" "CLAUDE.md" "CHANGELOG.md" "README.md" "SKILL.md" ".claude/" ".gitignore"; do
+                for p in ".prompts" ".handoffs" ".scripts" ".backlog" "CLAUDE.md" "CHANGELOG.md" "README.md" "SKILL.md" ".claude/" ".gitignore"; do
                   echo "$CMD" | grep -q "$p" && ALLOWED=true && break
                 done
                 if [ "$ALLOWED" = false ]; then
@@ -66,7 +67,7 @@ hooks:
                   RP=$(echo "$INPUT" | grep -o '"relative_path":"[^"]*"' | head -1 | cut -d'"' -f4)
                   [ -z "$RP" ] && RP=$(echo "$INPUT" | grep -o '"relative_path": "[^"]*"' | head -1 | cut -d'"' -f4)
                   case "$RP" in
-                    .prompts/*|.handoffs/*|.scripts/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore) exit 0 ;;
+                    .prompts/*|.handoffs/*|.scripts/*|.backlog/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore) exit 0 ;;
                   esac
                   echo "BLOCKED: Strategic Partner does not modify source code via Serena. Craft a prompt instead. (Tool: $TOOL, Path: $RP)" >&2
                   exit 2
@@ -747,7 +748,7 @@ Own all 4 persistence layers — ensuring functional, properly utilized, not blo
 | Decision with rationale | Serena (decision_log) | Structured, searchable |
 | Known gotcha or failure | Serena (known_gotchas) | Cross-session warning |
 | External resource pointer | Auto-memory (reference) | Personal, machine-local |
-| Backlog/deferred feature request | Serena (project_backlog) | Explicit user directive to save for later |
+| Backlog/deferred feature request | `.backlog/` files (+ Serena index) | Persistent, file-based, cross-session |
 | Ephemeral task context | Don't persist | Conversation-only |
 
 #### CLAUDE.md Protocol
@@ -809,8 +810,51 @@ Never block on Serena failures — always have a fallback path.
 Session-start: `git status`, `git branch`, `git log` as parallel Bash calls.
 Flag unexpected state via `AskUserQuestion`.
 
-Worktree hygiene: `.handoffs/`, `.prompts/`, `.scripts/` in `.gitignore` — verified
-at startup. If missing → warn immediately (security concern for public repos).
+Worktree hygiene: `.handoffs/`, `.prompts/`, `.scripts/`, `.backlog/` in `.gitignore` —
+verified at startup. If missing → warn immediately (security concern for public repos).
+
+### Backlog Stewardship
+
+Park ideas that aren't ready for action. `.backlog/` in the user's project — one
+markdown file per item, no external dependencies.
+
+**Proactive Triggers:**
+
+| Signal | Action |
+|---|---|
+| "park this" / "for later" / "not now" / "someday" | Offer to add via `AskUserQuestion` |
+| Out-of-scope idea surfaces during advisory | "That sounds like a backlog item — want me to park it?" |
+| Session-end / handoff | Scan conversation for unaddressed ideas, offer to park |
+| Post-implementation review | Capture follow-up improvements |
+| Version release / milestone completion | Propose backlog review |
+
+**Item format** (`.backlog/[slug].md`):
+
+```yaml
+---
+title: [descriptive title]
+status: parked | promoted | completed | stale
+priority: high | medium | low
+added: YYYY-MM-DD
+origin: [session name or context]
+trigger: [specific condition for re-engagement]
+---
+
+[Freeform body — context, rationale, scope notes. No length constraint.]
+```
+
+**Orientation integration:** At startup, scan `.backlog/*.md`. Read frontmatter,
+check each trigger against current state (git log, file existence, version numbers).
+Surface items with met triggers by name. If none actionable: one-liner count
+("N backlog items parked, none actionable"). If `.backlog/` doesn't exist: say nothing.
+
+**Review rhythm:** On-demand via `/strategic-partner:backlog`. SP proposes review after
+version releases or roadmap phase completions. More than 10 items triggers a prune
+recommendation.
+
+**Serena enhancement:** When Serena is available, SP may also maintain a compact
+`project_backlog_index` memory for cross-session awareness. When unavailable,
+`.backlog/` files are fully sufficient. SP never blocks on Serena for backlog operations.
 
 ### Context Handoff
 

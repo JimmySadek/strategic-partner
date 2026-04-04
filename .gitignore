@@ -3,6 +3,7 @@
 *.swo
 .env
 .claude/
+.backlog/
 .handoffs/
 .prompts/
 .scripts/

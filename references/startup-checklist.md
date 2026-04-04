@@ -332,6 +332,13 @@ and ask what the user wants to work on.
 This is a **firm, one-time recommendation** — not a nag. Display once in orientation,
 then proceed normally in degraded mode.
 
+- 📋 **Backlog surfacing**: Scan `.backlog/*.md` (Glob). If files exist: read
+  frontmatter, check each item's `trigger` against current state (git log, file
+  existence, version numbers). Surface items with met triggers as callouts:
+  "🔔 **[Title]** — trigger met: [reason]." If none actionable: one-liner count
+  ("N backlog items parked, none actionable"). If `.backlog/` doesn't exist: skip
+  silently — say nothing.
+
 **Session setup recommendations** (include in orientation via `AskUserQuestion`):
 
 Suggest the user run these commands for optimal advisory experience.
