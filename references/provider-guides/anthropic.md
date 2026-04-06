@@ -55,9 +55,11 @@ to Claude and provide the most reliable structure for complex prompts.
 Expected commit: "type(scope): description"
 ```
 
-> **Note**: When this template is used in inline prompts (══ fences), avoid markdown
-> formatting within tags. Use numbered lists and plain text. Saved prompts (`.prompts/`)
-> can use full markdown.
+> **Note**: When this template is used in inline prompts (══ fences), wrap the entire
+> prompt content in a code block (triple backticks) to preserve XML tags — Claude Code's
+> markdown renderer strips XML as HTML without this wrapper. Use numbered lists and plain
+> text within tags. Saved prompts (`.prompts/`) do not need the wrapper — the Read tool
+> returns raw content with tags intact.
 
 ---
 

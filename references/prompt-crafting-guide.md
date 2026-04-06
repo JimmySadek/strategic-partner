@@ -242,7 +242,7 @@ file content via the Read tool).
 
 **Rule**: Inline prompt content inside ══ fences must use ONLY:
 
-1. XML tags for structure (these pass through markdown rendering untouched)
+1. XML tags for structure — wrap the entire prompt content in a code block (triple backticks) so tags survive as literal text. Without the wrapper, Claude Code's markdown renderer strips XML tags as HTML, losing all structural information.
 2. Numbered lists (1. 2. 3.) for ordered items within tags
 3. Plain text for everything else
 4. Indentation for visual hierarchy
@@ -253,7 +253,7 @@ Do NOT use inside inline prompts:
 2. Bullet lists with `-` or `*`
 3. Markdown tables (`| col | col |`)
 4. Markdown headers (`## Header`) — use XML tags instead
-5. Code fences — unless the entire prompt is wrapped in one
+5. Nested code fences inside the prompt — for Anthropic-format prompts, wrap the ENTIRE prompt content in one code block to preserve XML tags. Do not nest additional code fences inside.
 
 This rule applies to inline prompts only. Saved prompts (`.prompts/`) are read
 as raw files and can use any formatting.
@@ -645,12 +645,29 @@ question needed.
 **COPY THIS INTO NEW SESSION:**
 
 ══════════════════ START 🟢 COPY ══════════════════
+````
 /[skill-name]
 
-[Full prompt content — XML-structured, self-contained]
+<context>
+  ...
+</context>
+
+<instructions>
+  ...
+</instructions>
+
+<verification>
+  ...
+</verification>
 
 Expected commit: "type(scope): description"
+````
 ══════════════════= END 🛑 COPY ═══════════════════
+
+> **Note**: The code block wrapper (triple backticks) is required for Anthropic-format
+> prompts (which use XML tags). Claude Code's markdown renderer strips XML as HTML without
+> this wrapper, losing all structural information. Non-Anthropic formats (GPT-5.4, Gemini)
+> that don't use XML tags do not need the wrapper.
 
 ### Saved Prompt Launcher (>250 lines OR >5 deliverables)
 
