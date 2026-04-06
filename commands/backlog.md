@@ -38,6 +38,8 @@ For each `.backlog/*.md` file, extract YAML frontmatter fields:
 | `title` | Yes | Descriptive title |
 | `status` | Yes | `parked` / `promoted` / `completed` / `stale` |
 | `priority` | Yes | `high` / `medium` / `low` |
+| `type` | No | `bug` / `feature` / `idea` (default: `idea`) |
+| `severity` | No | `critical` / `high` / `medium` / `low` (bugs only) |
 | `added` | No | `YYYY-MM-DD` |
 | `origin` | No | Session name or context |
 | `trigger` | Yes | Specific re-engagement condition |
@@ -62,24 +64,47 @@ Mark items with met triggers as **actionable**.
 
 ### Step 4 — Present
 
-Display as a status table:
+**Bug summary line:** When any `type: bug` items exist, display above the table:
+
+> "🐛 N bugs parked (M critical/high)"
+
+Only shown when bug items exist. Omit if no bugs.
+
+**Display as a status table.** When items have mixed types, group by type:
+bugs first (sorted by severity, then priority, then date), then features,
+then ideas. Within each group, sort by priority (high → medium → low),
+then by date added (oldest first). When all items share the same type,
+skip the grouping header.
 
 ```
 ## 📋 Backlog — [project name]
 
+🐛 2 bugs parked (1 critical/high)
+
+### Bugs
+| # | Title | Severity | Status | Priority | Trigger |
+|---|---|---|---|---|---|
+| 1 | [title] | 🔴 critical | 🅿️ parked | 🔴 high | [trigger summary] |
+| 2 | [title] | 🟡 medium | 🅿️ parked | 🟡 medium | [trigger summary] |
+
+### Features
 | # | Title | Status | Priority | Trigger |
 |---|---|---|---|---|
-| 1 | [title] | 🅿️ parked | 🔴 high | [trigger summary] |
-| 2 | [title] | 🅿️ parked | 🟡 medium | [trigger summary] |
-| 3 | [title] | ✅ completed | 🟢 low | — |
+| 3 | [title] | 🅿️ parked | 🟡 medium | [trigger summary] |
+
+### Ideas
+| # | Title | Status | Priority | Trigger |
+|---|---|---|---|---|
+| 4 | [title] | 🅿️ parked | 🟢 low | [trigger summary] |
 
 ### 🔔 Actionable Items
 > **[Title]** — trigger condition met: [explanation of why trigger is satisfied].
 > [1-2 line summary of what the item proposes.]
 ```
 
-Sort order: actionable items first, then by priority (high → medium → low),
-then by date added (oldest first).
+Type column symbols: 🐛 bug, 🎯 feature, 💡 idea.
+
+Actionable items float to the top within their type group.
 
 If Serena is available, also check `project_backlog_index` memory for any items
 not yet migrated to files. Note any found: "ℹ️ N items in Serena memory not yet

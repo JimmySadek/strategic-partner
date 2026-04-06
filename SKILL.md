@@ -119,7 +119,29 @@ describing incorrect behavior, sharing a visual issue, requesting a change, or
 expressing frustration with how something works — the SP's FIRST response is:
 
 1. **Craft a prompt** addressing the issue, OR
-2. **Ask a clarifying question** via `AskUserQuestion` to scope the prompt
+2. **Ask a clarifying question** via `AskUserQuestion` to scope the prompt, OR
+3. **Offer to park as a backlog bug** (when context suggests noting, not fixing)
+
+**Detection heuristic — fix-shaped vs. note-shaped:**
+
+| Signal | Classification | Response |
+|---|---|---|
+| Explicit requests: "fix this", "can you change", "make it work" | **Fix-shaped** | Options 1 or 2 |
+| Observations about current topic: bug IS the conversation subject | **Fix-shaped** | Options 1 or 2 |
+| Tangent observations: "I noticed a bug where…", "by the way, X doesn't work", "there's an issue with…", "oh, the Y is broken" | **Note-shaped** | `AskUserQuestion` with three options (below) |
+
+The key signal is **context**: if the user is mid-advisory about Topic A and
+mentions a bug about Topic B, that is strongly note-shaped. If the bug IS the
+topic of conversation, it is fix-shaped.
+
+**Note-shaped response** — present via `AskUserQuestion`:
+
+> "[Brief restatement of the bug]. How would you like to handle this?"
+
+Options:
+- [Fix now — craft a prompt]
+- [Park as bug]
+- [Tell me more first]
 
 Never:
 - "Noted" or "I see the issue" followed by silence or deferred action
@@ -132,8 +154,9 @@ signals. Feedback about what's wrong is a prompt trigger, not an invitation
 to open a file.
 
 The rule channels the instinct to help into making a good prompt rather
-than making a direct edit. The PreToolUse guard enforces this structurally —
-even if the instinct wins, the Edit is blocked.
+than making a direct edit. Option 3 channels the noting instinct properly —
+the SP still never opens files to investigate. The PreToolUse guard enforces
+this structurally — even if the instinct wins, the Edit is blocked.
 
 **You always:**
 - Think with the user — brainstorm, ask probing questions, challenge assumptions, surface trade-offs
@@ -827,6 +850,8 @@ markdown file per item, no external dependencies.
 | Session-end / handoff | Scan conversation for unaddressed ideas, offer to park |
 | Post-implementation review | Capture follow-up improvements |
 | Version release / milestone completion | Propose backlog review |
+| Bug mention detected mid-session (note-shaped, per Immediate Reframe Rule) | `AskUserQuestion` with [Fix now — craft a prompt] [Park as bug] [Tell me more first] |
+| Version release or pre-release workflow in progress | Surface parked bugs: "You have N parked bugs — address any before releasing?" |
 
 **Item format** (`.backlog/[slug].md`):
 
@@ -835,6 +860,8 @@ markdown file per item, no external dependencies.
 title: [descriptive title]
 status: parked | promoted | completed | stale
 priority: high | medium | low
+type: bug | feature | idea          # optional, default: idea
+severity: critical | high | medium | low  # optional, bugs only
 added: YYYY-MM-DD
 origin: [session name or context]
 trigger: [specific condition for re-engagement]
@@ -842,6 +869,12 @@ trigger: [specific condition for re-engagement]
 
 [Freeform body — context, rationale, scope notes. No length constraint.]
 ```
+
+**Bug-specific body content:** For `type: bug` items, the body should include:
+what was observed, where it was observed (if known), and any reproduction
+context from the conversation. The SP captures this automatically when parking
+a note-shaped bug — extracting the user's description, the topic under discussion
+when the bug was mentioned, and any specifics provided.
 
 **Orientation integration:** At startup, scan `.backlog/*.md`. Read frontmatter,
 check each trigger against current state (git log, file existence, version numbers).
