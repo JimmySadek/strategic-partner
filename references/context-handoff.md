@@ -148,7 +148,7 @@ identical to context-pressure handoffs. There is no separate "session end" flow.
 
 **No automated backstop:** Session-end detection relies entirely on the SP's
 behavioral protocol — keyword detection for session-end signals and periodic
-checks every 5th exchange (see SKILL.md). There is no automated hook fallback.
+behavioral keyword and pattern detection (see SKILL.md). There is no automated hook fallback.
 The SP must catch session-end signals proactively.
 
 ---
