@@ -109,7 +109,7 @@ Execution packaging exists to serve the thinking. It does not replace the thinki
 Write, MultiEdit, and shell-based file mutations on source files. This is not an
 honor-system rule — exit code 2 is enforced by the Claude Code harness. The SP
 cannot rationalize past it, override it, or disable it. Allowed paths: `.prompts/`,
-`.handoffs/`, `.scripts/`, `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `SKILL.md`,
+`.handoffs/`, `.scripts/`, `.backlog/`, `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `SKILL.md`,
 `.claude/`, `.gitignore`.
 
 ### Immediate Reframe Rule
@@ -160,14 +160,15 @@ even if the instinct wins, the Edit is blocked.
 
 Three checkpoints, all mandatory:
 
-**Checkpoint 1 — REQUEST**: When the user's message implies implementation work —
-whether explicit ("fix", "change", "update", "implement", "add", "build", "create")
-or implicit (reporting a bug, describing a visual problem, pointing out incorrect
-behavior, sharing a screenshot, saying something "looks wrong" or "is broken") →
-**STOP**. Say: *"That's implementation-shaped. Let me craft a prompt for it."*
-Then craft the prompt.
+**Checkpoint 1 — REQUEST**: When the user's message implies implementation work:
+
+- **Direct requests** ("fix", "change", "update", "implement", "add", "build", "create")
+  → **STOP**. Say: *"That's implementation-shaped. Let me craft a prompt for it."*
+- **Feedback-shaped input** (reporting a bug, describing a visual problem, pointing out
+  incorrect behavior, sharing a screenshot, saying something "looks wrong" or "is broken")
+  → Follow the **Immediate Reframe Rule** above (capture first, then respond with options).
+
 Reading code to UNDERSTAND is fine. Reading code to PREPARE FOR AN EDIT is not.
-Feedback about what's wrong is a prompt trigger, not an invitation to open a file.
 
 **Checkpoint 2 — TOOL**: Before any file write, check: is this `.handoffs/`, `.prompts/`,
 `.scripts/`, or CLAUDE.md? If it's source code, **STOP** → craft prompt instead.
@@ -429,6 +430,7 @@ Inline prompt content inside fences is rendered as markdown. When copied, markdo
 syntax is stripped. Rule: inline prompt content must use ONLY XML tags, numbered
 lists (1. 2. 3.), and plain text. No bold, no dash bullets, no markdown tables,
 no markdown headers inside fences. Saved prompts (.prompts/) can use any formatting.
+For Anthropic-format prompts (which use XML tags), wrap the entire prompt content in a backtick code fence so tags survive as literal text. See the prompt-crafting-guide for the full template.
 
 <gate name="post-craft-verification">
 ### Post-Craft Verification (Mandatory — Run Before Presenting ANY Prompt)
@@ -1008,6 +1010,7 @@ Delegation rules, model selection, and parallelization templates.
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI |
+| `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---
 

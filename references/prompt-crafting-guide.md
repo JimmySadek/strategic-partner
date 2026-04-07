@@ -242,7 +242,7 @@ file content via the Read tool).
 
 **Rule**: Inline prompt content inside ══ fences must use ONLY:
 
-1. XML tags for structure — wrap the entire prompt content in a code block (triple backticks) so tags survive as literal text. Without the wrapper, Claude Code's markdown renderer strips XML tags as HTML, losing all structural information.
+1. XML tags for structure — wrap the entire prompt content in a backtick code fence so tags survive as literal text. Without the wrapper, Claude Code's markdown renderer strips XML tags as HTML, losing all structural information.
 2. Numbered lists (1. 2. 3.) for ordered items within tags
 3. Plain text for everything else
 4. Indentation for visual hierarchy
@@ -664,7 +664,7 @@ Expected commit: "type(scope): description"
 ````
 ══════════════════= END 🛑 COPY ═══════════════════
 
-> **Note**: The code block wrapper (triple backticks) is required for Anthropic-format
+> **Note**: The backtick code fence wrapper is required for Anthropic-format
 > prompts (which use XML tags). Claude Code's markdown renderer strips XML as HTML without
 > this wrapper, losing all structural information. Non-Anthropic formats (GPT-5.4, Gemini)
 > that don't use XML tags do not need the wrapper.

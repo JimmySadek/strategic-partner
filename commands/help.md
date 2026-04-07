@@ -31,6 +31,7 @@ Key behaviors:
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.4) |
+| `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work |
 
 ## Usage
 
@@ -42,6 +43,7 @@ Key behaviors:
 /strategic-partner:status                   → "Where do we stand?" briefing
 /strategic-partner:update                  → Check + update to latest version
 /strategic-partner:codex-feedback          → Trigger cross-model review of current decision
+/strategic-partner:backlog                → Surface and review parked backlog items
 ```
 
 ## Notes

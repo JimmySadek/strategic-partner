@@ -342,7 +342,7 @@ then proceed normally in degraded mode.
 - 📝 **Session findings surfacing**: Scan `.handoffs/findings-*.md` (Glob). If
   files exist from a previous session: count unresolved items (entries in `## Issues`
   not listed under `## Promoted`). Surface as: "N unresolved findings from [date].
-  Review with `/strategic-partner:backlog` or continue — they will carry forward."
+  Promote any to backlog, or continue — they carry forward."
   If no findings files exist: skip silently.
 
 **Session setup recommendations** (include in orientation via `AskUserQuestion`):
