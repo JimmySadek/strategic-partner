@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.5.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.6.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -87,6 +87,8 @@ This is where the value is. Before routing a single task, the SP runs several ch
 **Wired cognitive patterns** — 14 named thinking heuristics (Bezos one-way doors, Munger inversion, Jobs focus-as-subtraction, and 11 more) are wired to specific decision points with mandatory triggers and actions. They fire automatically at the right moments — not a decorative reference table.
 
 **Cross-model review** — For high-stakes decisions (irreversible changes, large blast radius, unresolved disagreements), the SP can dispatch a curated brief to OpenAI's Codex CLI for independent adversarial review, then synthesize a three-way perspective: your position, the SP's position, and Codex's position. Optional — requires Codex CLI installed.
+
+**Session findings and backlog** — Feedback captured during sessions is automatically logged to session findings. At natural boundaries, the SP offers to promote findings to a persistent backlog with trigger-based re-engagement. Items surface at startup when their triggers are met.
 
 ---
 
@@ -210,6 +212,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.4) for independent review on high-stakes decisions
 - **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure decisions survive across sessions
 - **Context handoff management** — monitors context pressure and preserves full session state before it degrades
+- **Session findings and backlog stewardship** — automatic capture of feedback during advisory sessions, with two-layer persistence: lightweight session findings and curated backlog items with trigger-based surfacing at startup
 - **Cognitive patterns** — 14 named thinking heuristics wired to specific decision points with mandatory triggers (not a decorative table — they fire at the right moments)
 - **Provider-specific prompt formatting** — adapts prompt structure for Claude, OpenAI, and Gemini targets
 
@@ -229,6 +232,7 @@ strategic-partner/
     status.md                           # Status briefing
     update.md                           # Version check + self-update
     codex-feedback.md                   # Cross-model adversarial review via Codex CLI
+    backlog.md                          # Backlog review — parked items with trigger evaluation
   references/
     startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
     prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
@@ -266,6 +270,7 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.4) |
+| `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---
 

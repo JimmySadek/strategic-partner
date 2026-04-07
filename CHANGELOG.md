@@ -1,5 +1,24 @@
 # Changelog
 
+## [5.6.0] - 2026-04-08
+
+### Added
+- **Backlog stewardship** — two-layer system: lightweight session findings (.handoffs/findings-*.md) with automatic capture, and curated backlog (.backlog/*.md) with trigger-based surfacing at startup
+- **Backlog subcommand** — `/strategic-partner:backlog` for reviewing parked items with type-grouped display and trigger evaluation
+- **Bug awareness in backlog** — backlog items support `type: bug` with severity field and bug summary line in display
+
+### Changed
+- **Auto-capture redesign** — replaced language-detection heuristic with unconditional capture-first, triage-at-boundaries approach (Codex-recommended)
+- **XML structural tags** — reference loading uses `<reference_files>`, `<gate>`, and `<load_reference>` tags for machine-parseability
+- **Checkpoint 1 reconciled** — direct requests trigger "craft prompt"; feedback-shaped input routes to Immediate Reframe Rule
+
+### Fixed
+- **Inline XML prompts** — Anthropic-format prompts wrapped in backtick code fence to prevent Claude Code's markdown renderer from stripping XML tags
+- **Codex CLI hangs** — `codex exec` now disables MCP servers (`-c 'mcp_servers={}'`) to prevent startup stalls
+- **Cross-reference consistency** — 5 gaps resolved via Codex pre-release audit: allowed-paths prose, subcommand table, findings-to-backlog directive, wrapper terminology, Checkpoint 1 tension
+- **Stale cadence reference** — removed "every 5th exchange" from context-handoff.md
+- **Fence marker verification** — Post-Craft check #10 now catches missing 🟢/🛑 markers
+
 ## [5.5.0] - 2026-04-01
 
 ### Added
