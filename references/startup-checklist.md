@@ -339,6 +339,12 @@ then proceed normally in degraded mode.
   ("N backlog items parked, none actionable"). If `.backlog/` doesn't exist: skip
   silently — say nothing.
 
+- 📝 **Session findings surfacing**: Scan `.handoffs/findings-*.md` (Glob). If
+  files exist from a previous session: count unresolved items (entries in `## Issues`
+  not listed under `## Promoted`). Surface as: "N unresolved findings from [date].
+  Review with `/strategic-partner:backlog` or continue — they will carry forward."
+  If no findings files exist: skip silently.
+
 **Session setup recommendations** (include in orientation via `AskUserQuestion`):
 
 Suggest the user run these commands for optimal advisory experience.

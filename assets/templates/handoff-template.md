@@ -65,6 +65,12 @@ Run `/insights` before writing this file, then extract relevant items below.
 ## Open Questions / Blockers
 - [anything unresolved or needing follow-up]
 
+## Session Findings
+- **Findings file**: `.handoffs/findings-MMDD.md` (or "None — no issues identified")
+- **Unresolved**: N items not yet promoted to backlog
+- **Promoted**: N items moved to `.backlog/`
+- **Action needed**: [describe any findings requiring attention in next session]
+
 ## Context Level
 [Approximate context usage when handoff triggered, e.g., "~75% — hard trigger"]
 
