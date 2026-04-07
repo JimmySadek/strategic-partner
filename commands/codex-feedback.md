@@ -103,8 +103,10 @@ The SP does NOT run Codex — it dispatches via Agent.
 Canonical invocation (no exceptions, no variations):
 
 ```
-codex exec --sandbox read-only -C <project-dir> "<prompt>"
+codex exec --sandbox read-only -c 'mcp_servers={}' -C <project-dir> "<prompt>"
 ```
+
+**Why `-c 'mcp_servers={}'`**: Disables MCP server startup during `codex exec`. MCP servers (playwright, serena, etc.) add startup latency and can hang — they provide zero benefit for evidence audits since Codex reads files via its sandbox, not MCPs.
 
 Rules:
 - **No `--model` flag.** The user's Codex CLI configuration determines the model.
