@@ -448,7 +448,7 @@ Every prompt must pass all 12 checks. Fix failures before presenting.
 | 7 | Conventional commit message | Missing or malformed |
 | 8 | Fully self-contained | References "our discussion" |
 | 9 | Format matches provider guide | Wrong tag convention |
-| 10 | Inline is copy-safe | Markdown formatting in fences |
+| 10 | Inline is copy-safe | Markdown formatting in fences, or 🟢/🛑 fence markers missing |
 | 11 | Not-in-scope for multi-file | Missing or vague platitudes |
 | 12 | SAFE/RISK labels on recommendations | Opinions presented as fact |
 
