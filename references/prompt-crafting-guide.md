@@ -284,6 +284,7 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 10 | Inline prompt is copy-safe (no markdown formatting inside ══ fences) | Uses bold, `-` bullets, or tables inside an inline prompt |
 | 11 | `<not-in-scope>` present for multi-file prompts with specific exclusions (see NOT-in-Scope Sections) | Missing for multi-file prompt, or contains vague platitudes ("keep changes minimal") instead of naming specific files, functions, or patterns to leave alone |
 | 12 | Recommendations within the prompt are labeled [✅ SAFE] or [⚠️ RISK] where applicable | Opinionated recommendation presented as fact without signaling confidence level |
+| 13 | Relevant blocks included for target model/task (see Reusable Prompt Blocks) | Missing blocks when task shape or target model clearly warrants them (e.g., multi-file refactor without `<subagent_usage>`, pattern-application task without `<scope_explicit>`, long agentic task without `<context_awareness>`) |
 
 **🚨 If any row fails**: Fix the prompt before presenting. Do not present with
 a note saying "you might want to add..." — the prompt must be complete.
@@ -740,7 +741,7 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Skipped parallelization check**: Writing prompt without answering the 4-question checklist → ALWAYS complete the parallelization check before writing
 - ❌ **Missing orchestration when genuinely parallel**: Q1-3 indicated independent subtasks with no shared state, but no `<orchestration>` section → add one. Conversely, don't force `<orchestration>` when Q1-3 fires on incidental parallelism — an unnecessary block adds noise
 - ❌ **Skipped routing decision tree**: Picking a skill from memory instead of walking the scope + complexity tree → ALWAYS route through the decision tree
-- ❌ **Skipped post-craft verification**: Presenting prompt without running the 12-item checklist → ALWAYS verify before presenting
+- ❌ **Skipped post-craft verification**: Presenting prompt without running the 13-item checklist → ALWAYS verify before presenting
 - ❌ **Intuitive routing**: "This feels like a quick-task" without walking the tree → trust the tree, not intuition
 - ❌ **Markdown in inline prompts**: Using bold, `-` bullets, or `| tables |` inside ══ fences — stripped on copy-paste → use XML tags + numbered plain text instead
 - ❌ **Missing not-in-scope**: Multi-file prompt without a `<not-in-scope>` section → executors fill silence with features; name the specific adjacent changes to leave alone

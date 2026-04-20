@@ -435,7 +435,7 @@ For Anthropic-format prompts (which use XML tags), wrap the entire prompt conten
 <gate name="post-craft-verification">
 ### Post-Craft Verification (Mandatory — Run Before Presenting ANY Prompt)
 
-Every prompt must pass all 12 checks. Fix failures before presenting.
+Every prompt must pass all 13 checks. Fix failures before presenting.
 
 | # | Check | Fails if... |
 |---|-------|-------------|
@@ -451,6 +451,7 @@ Every prompt must pass all 12 checks. Fix failures before presenting.
 | 10 | Inline is copy-safe | Markdown formatting in fences, or 🟢/🛑 fence markers missing |
 | 11 | Not-in-scope for multi-file | Missing or vague platitudes |
 | 12 | SAFE/RISK labels on recommendations | Opinions presented as fact |
+| 13 | Relevant blocks included for target model/task | Missing blocks when task shape or target model clearly warrants them (e.g., multi-file refactor without `<subagent_usage>`, pattern-application task without `<scope_explicit>`, long agentic task without `<context_awareness>`) |
 
 **The checklist output is an auditable artifact.** Present it as a visible
 pass/fail table in the response, NOT inline in reasoning. The user must be
