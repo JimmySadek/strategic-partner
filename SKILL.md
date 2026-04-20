@@ -995,6 +995,13 @@ Dynamic discovery protocol and task category taxonomy.
 - **Sonnet**: implementation, review, testing, documentation, code quality (default)
 - **Haiku**: quick lookups, transcript fetching, low-depth tasks
 
+**Target model override**: SP detects the current Claude model at startup and
+uses it as the default target for crafted prompts. To override for a specific
+prompt (e.g., the executor will run on Sonnet 4.6 while SP is on Opus 4.7),
+state the target explicitly in the crafting context: "Target executor: Sonnet 4.6".
+SP adjusts block selection (see `references/prompt-crafting-guide.md` §
+Model-Aware Block Selection) and effort recommendations accordingly.
+
 **MCP decision rule:**
 ```
 Simple Glob/Grep answers it?              → native tools

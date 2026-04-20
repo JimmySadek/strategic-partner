@@ -864,3 +864,21 @@ Your context window will be automatically compacted as it approaches its limit, 
 - Multiple blocks stack — they're independent and don't conflict
 - Blocks go in the `<task>` or `<context>` section of the prompt, adjacent to instructions
 - Place blocks AFTER the main `<task>` declaration so they act as constraints on task interpretation
+
+### Model-Aware Block Selection
+
+When crafting a prompt, consider which blocks the TARGET model benefits from most:
+
+| Target Model | Essential Blocks | Useful Blocks | Skip |
+|---|---|---|---|
+| Opus 4.7 | investigate_before_answering, avoid_over_engineering, subagent_usage, scope_explicit | use_parallel_tool_calls, conservative_actions, context_awareness | — |
+| Sonnet 4.6 | investigate_before_answering, avoid_over_engineering, use_parallel_tool_calls | conservative_actions, context_awareness | subagent_usage (less critical — Sonnet orchestrates well) |
+| Haiku 4.5 | investigate_before_answering | avoid_over_engineering | subagent_usage, context_awareness (Haiku is for narrow tasks) |
+
+Effort recommendations also differ:
+- **Opus 4.7**: xhigh (Claude Code default) for coding/agentic; high minimum for intelligence-sensitive
+- **Sonnet 4.6**: high (API default); medium for latency-sensitive
+- **Haiku 4.5**: low to medium depending on task
+
+If target model is unknown or mixed, default to Opus 4.7's essential blocks —
+they work on all 4.x models.

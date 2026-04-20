@@ -93,6 +93,25 @@ Quick checks run inline during startup. No agents needed — these are observati
    "💡 CLAUDE.md is {N} lines (recommended: under 200). Consider splitting
    path-specific rules into .claude/rules/ files."
 
+### Target Model Detection (inline, not an agent)
+
+The SP detects the currently active Claude model from the environment to inform
+prompt crafting. Default assumption: the executor running SP's crafted prompts
+will be on the same model unless the user specifies otherwise.
+
+Detection:
+- Parse environment for "Opus 4.7", "Sonnet 4.6", "Haiku 4.5" in the runtime declaration
+- If detected: store as session-active target model
+- If multiple models mentioned or unclear: default to Opus 4.7 (current GA) with a note
+
+Report in orientation ONLY if target model differs from Opus 4.7 default OR
+user explicitly asked:
+"📌 Target model for crafted prompts: [detected model]. Override per prompt if
+executor will run on a different model."
+
+The detection feeds `prompt-crafting-guide.md` § Model-Aware Block Selection —
+the SP uses this to decide which reusable blocks to embed in crafted prompts.
+
 ### Context Window Sanity Check (inline, one-time per session)
 
 Claude Code's `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` percentage (set to 70 in Step 1)
