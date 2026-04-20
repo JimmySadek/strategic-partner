@@ -1,5 +1,40 @@
 # Changelog
 
+## [5.8.0] - 2026-04-20
+
+### Added
+- **Reusable Prompt Block Library** — 7 Anthropic-authored XML blocks (`<investigate_before_answering>`, `<avoid_over_engineering>`, `<subagent_usage>`, `<use_parallel_tool_calls>`, `<conservative_actions>`, `<scope_explicit>`, `<context_awareness>`) codified in `references/prompt-crafting-guide.md`. Each block has a trigger condition and target-model note.
+- **Template default blocks** — `assets/templates/prompt-template.md` now includes `<investigate_before_answering>` and `<avoid_over_engineering>` by default so every crafted prompt inherits hallucination prevention and scope discipline.
+- **Model-aware block selection** — SP detects the currently active Claude model at startup and picks blocks + effort recommendations per target model (Opus 4.7 / Sonnet 4.6 / Haiku 4.5). Target can be overridden per prompt.
+- **Opus 4.7 patterns subsection** — `references/provider-guides/anthropic.md` now documents Opus 4.7-specific patterns with pointers to relevant blocks.
+- **13th Post-Craft Verification check** — "Relevant blocks included for target model/task." Ensures block coverage alongside existing quality gates.
+- **Haiku 4.5 model ID** — `claude-haiku-4-5-20251001` now documented in the routing matrix.
+- **Visible Post-Craft Checklist directive** — The checklist must be shown as a pass/fail table before the fence block, not inlined as invisible reasoning (Opus 4.7's "reasons more, tools less" tendency created audit risk). Fixed placement: checklist → 🎯 Routing blockquote → fenced prompt(s).
+- **Mandatory git verification after dispatch** — `git log --oneline -3` and `git diff HEAD~1` are now explicitly mandatory Bash calls, not optional or inferred from commit messages.
+- **`/context` sanity check note** — Startup flags known autocompact-on-1M-context bugs (anthropics/claude-code#34332, #18843, #27189) and recommends `/context` verification on Opus 4.7 sessions.
+
+### Changed
+- **Opus 4.6 → Opus 4.7 references** — Updated across `references/orchestration-playbook.md`, `references/prompt-crafting-guide.md`, `references/provider-guides/anthropic.md`, `assets/templates/prompt-template.md`, and `SKILL.md`. Sonnet 4.6 references preserved (still current GA).
+- **Removed obsolete `/effort high` startup recommendation** — `/effort xhigh` is now Claude Code's default on Opus 4.7 plans, and Sonnet 4.6 defaults to `high` at the API level. Explicit recommendation was redundant.
+- **Relabeled "Claude 3.x workarounds" → "pre-4.x holdovers"** — Anti-sycophancy rule is still relevant (more so on 4.7's direct tone); only the version label was outdated.
+- **Renamed "Self-check verification blocks" → "Executor verification contract"** — Reflects what `<verification>` actually is (testable commands for the executor), not model self-reflection scaffolding.
+
+### Demoted (not removed)
+- **`<orchestration>` tag — mandatory → conditional** — Required only when subtasks are clearly independent, user explicitly requested multi-agent decomposition, or latency-hiding is primary goal. Opus 4.7's "fewer subagents by default" and "more literal instruction following" invalidated the always-on mandate.
+- **Parallelization check — hard gate → thinking tool** — The 4-question check stays as a design-time thinking aid, but prompts no longer FAIL solely for lacking an `<orchestration>` section.
+
+### Fixed
+- **Orchestration-playbook consistency** — `references/orchestration-playbook.md` still described the parallelization check as "🔴 mandatory" after the v5.8.0 demotion. Now aligned with the thinking-tool framing and conditional `<orchestration>` criteria used in `prompt-crafting-guide.md` and the Anthropic provider guide.
+- **Block-placement guidance** — `references/prompt-crafting-guide.md` "How to use this library" incorrectly pointed block authors to a nonexistent `<task>` section. Updated to match `<instructions>` (the actual template section) with BEFORE-instructions placement.
+- **Visible-checklist placement rule** — Resolved contradiction between SKILL.md's "visible pass/fail table in the response" mandate and the crafting guide's "nothing outside the fences" rule. Explicit pre-fence order is now specified in both files: checklist table → 🎯 Routing blockquote → fenced prompt(s).
+
+### Context
+This release was produced via full audit (24 findings in `.handoffs/opus47-audit-0420.md`) + three-way synthesis (SP + Codex GPT-5.4 adversarial review + Anthropic primary-source research) in response to the Claude Opus 4.7 release on 2026-04-16.
+
+The v5.7.0 tag was skipped intentionally — mid-audit the user correctly flagged that SP's crafting guide had drifted from Anthropic's published 4.x prompting guidance; expanding scope to address that gap produced v5.8.0. A final Codex adversarial review before tagging caught three internal inconsistencies that were fixed in the same release window (see Fixed section).
+
+Kept intact: all identity gates (Position mandate, AskUserQuestion protocol, Premise Challenge, Advisory Completion Gate, cognitive patterns) and belt-and-suspenders rules (explicit model+mode on agent spawns). These are SP's product, not model compensation.
+
 ## [5.6.0] - 2026-04-08
 
 ### Added
