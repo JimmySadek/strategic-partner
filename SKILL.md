@@ -459,6 +459,10 @@ able to see each check resolved before accepting the prompt. Opus 4.7 uses
 reasoning more and calls fewer tools by default — without an explicit visible
 table, the checklist runs invisibly and the quality bar becomes unverifiable.
 
+**Placement is fixed**: the checklist table renders FIRST, then the
+`> 🎯 Routing:` blockquote, then the fenced prompt(s). This is the only
+permitted pre-fence content — see `prompt-crafting-guide.md` fence rules.
+
 For the full checklist with detailed failure criteria, load
 references/prompt-crafting-guide.md. This inline version ensures the quality
 bar is always in context.

@@ -47,9 +47,12 @@ Reserve Opus for:
 
 ## ⚡ Parallelization Heuristics
 
-These heuristics align with the **🔴 mandatory parallelization check** in
-`prompt-crafting-guide.md`. When that check triggers YES on questions 1-3,
-use these patterns to design the `<orchestration>` section.
+These heuristics align with the **parallelization thinking tool** in
+`prompt-crafting-guide.md`. When that check indicates genuine parallelism
+(YES on questions 1-3 — independent subtasks, no shared state, latency-hiding
+matters), use these patterns to design an optional `<orchestration>` section.
+Opus 4.7 plans parallelism well by default; skip `<orchestration>` when the
+executor can plan coordination alone.
 
 ### Decision Tree
 

@@ -693,9 +693,11 @@ Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execu
 ### Requirements (both formats)
 - Label ("COPY THIS INTO NEW SESSION") is always outside the ═══ fence
 - First line inside fence: bare skill command (no backticks) — dynamic per task
-- Nothing else outside the fences — no headers, no summaries, no backticks around commands
+- Nothing else outside the fences EXCEPT the two mandatory pre-fence artifacts below — no headers, no summaries, no backticks around commands
 - When multiple prompts exist, each gets its own START/END block
-- **Routing rationale is mandatory BEFORE the fences** — a `> 🎯 Routing:` blockquote explaining why this skill was chosen (or why no skill was needed). This educates the user on SP routing decisions
+- **Post-Craft Verification Checklist is mandatory FIRST** — a visible pass/fail table rendering all 13 checks (see SKILL.md Post-Craft Verification gate). Renders as the very first output element before anything else.
+- **Routing rationale is mandatory AFTER the checklist, BEFORE the fences** — a `> 🎯 Routing:` blockquote explaining why this skill was chosen (or why no skill was needed). This educates the user on SP routing decisions
+- **Required order**: checklist table → routing blockquote → fenced prompt(s) → wait-for-report-back message (outside fences)
 
 ### Post-Prompt Protocol: Wait for Report Back
 
@@ -862,8 +864,8 @@ Your context window will be automatically compacted as it approaches its limit, 
 - Include blocks that match the task shape (see each block's **Trigger**)
 - Blocks with model-specific value (Block 3, Block 6) are more important when that model is the target
 - Multiple blocks stack — they're independent and don't conflict
-- Blocks go in the `<task>` or `<context>` section of the prompt, adjacent to instructions
-- Place blocks AFTER the main `<task>` declaration so they act as constraints on task interpretation
+- Blocks go between `<context>` and `<instructions>` (see `assets/templates/prompt-template.md` for default placement), adjacent to the task directives they constrain
+- Place blocks BEFORE the `<instructions>` declaration so they act as constraints on task interpretation
 
 ### Model-Aware Block Selection
 
