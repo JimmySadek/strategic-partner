@@ -250,9 +250,19 @@ Apply these rules when assigning a model to a routing entry:
 | Code review, quality checks | **Sonnet** | Pattern matching over deep reasoning |
 | Testing, coverage analysis | **Sonnet** | Systematic but not architecturally complex |
 | Documentation, explanation | **Sonnet** | Clear communication, less novel reasoning |
-| Quick lookups, transcript fetching | **Haiku** | Speed matters, depth doesn't |
+| Quick lookups, transcript fetching | **Haiku 4.5** | Speed matters, depth doesn't |
 
 **Default**: Sonnet unless the task clearly matches an Opus or Haiku pattern.
+
+### Model IDs
+
+When crafting prompts or routing to specific models, use these exact IDs:
+
+| Model | ID | Use For |
+|---|---|---|
+| Opus 4.7 | `claude-opus-4-7` | Architecture, system design, debugging, deep research, security, multi-expert |
+| Sonnet 4.6 | `claude-sonnet-4-6` | Implementation, review, testing, documentation, code quality (default) |
+| Haiku 4.5 | `claude-haiku-4-5-20251001` | Quick lookups, transcript fetching, low-depth narrow tasks |
 
 ---
 
