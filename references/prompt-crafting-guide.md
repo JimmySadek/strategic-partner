@@ -746,3 +746,120 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Missing not-in-scope**: Multi-file prompt without a `<not-in-scope>` section → executors fill silence with features; name the specific adjacent changes to leave alone
 - ❌ **Vague scope exclusions**: "Don't change unrelated code" or "keep changes minimal" → name the exact files, modules, or patterns the executor should not touch (e.g., "Do NOT migrate existing tests to the new pattern")
 - ❌ **Unlabeled opinionated recommendations**: Presenting a judgment call as if it were established practice → label with [⚠️ RISK] so the user/executor can calibrate trust. Factual statements don't need labels
+
+---
+
+## Reusable Prompt Blocks
+
+Blocks are copy-paste XML snippets that encode Anthropic-published prompting
+patterns for Claude 4.x executors. The SP includes relevant blocks in a crafted
+prompt based on task shape and target model. Each block has a **Trigger** (when
+to include it) and a **Models** note (which models benefit most).
+
+### Block 1: `<investigate_before_answering>`
+
+**XML snippet** (exact text, verbatim):
+```xml
+<investigate_before_answering>
+Never speculate about code you have not opened. If the user references a specific file, you MUST read the file before answering. Make sure to investigate and read relevant files BEFORE answering questions about the codebase. Never make any claims about code before investigating unless you are certain of the correct answer — give grounded and hallucination-free answers.
+</investigate_before_answering>
+```
+**Trigger**: Any prompt where the executor will make claims about existing code (investigation, review, refactoring, implementation touching existing files).
+**Models**: Universal — applies to Opus 4.7, Sonnet 4.6, Haiku 4.5. Particularly valuable for hallucination-prone workloads.
+**Source**: Anthropic official Opus 4.7 prompting guide.
+
+### Block 2: `<avoid_over_engineering>`
+
+**XML snippet**:
+```xml
+<avoid_over_engineering>
+Only make changes that are directly requested or clearly necessary. Keep solutions simple and focused:
+
+- Scope: Don't add features, refactor code, or make "improvements" beyond what was asked. A bug fix doesn't need surrounding code cleanup. A simple feature doesn't need extra configurability.
+- Documentation: Don't add docstrings, comments, or type annotations to code you didn't change. Only add comments where the logic isn't self-evident.
+- Defensive coding: Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs).
+- Abstractions: Don't create helpers, utilities, or abstractions for one-time operations. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
+</avoid_over_engineering>
+```
+**Trigger**: Any implementation prompt (bug fix, feature add, refactor). Especially important on Opus 4.5+ which has an overengineering tendency.
+**Models**: Universal, most relevant for Opus 4.5/4.6/4.7.
+**Source**: Anthropic official guide "Overeagerness" section.
+
+### Block 3: `<subagent_usage>`
+
+**XML snippet**:
+```xml
+<subagent_usage>
+Use subagents when tasks can run in parallel, require isolated context, or involve independent workstreams that don't need to share state. For simple tasks, sequential operations, single-file edits, or tasks where you need to maintain context across steps, work directly rather than delegating.
+
+Do not spawn a subagent for work you can complete directly in a single response (e.g., refactoring a function you can already see).
+Spawn multiple subagents in the same turn when fanning out across items or reading multiple files.
+</subagent_usage>
+```
+**Trigger**: Any prompt where the executor may spawn agents. Multi-file refactors, research tasks, fan-out work.
+**Models**: Most valuable on Opus 4.7 (spawns fewer subagents by default — needs explicit guidance when fan-out IS warranted). Also useful on Opus 4.6 (overuses subagents — needs restraint).
+**Source**: Anthropic official Opus 4.7 guide, Subagent orchestration section.
+
+### Block 4: `<use_parallel_tool_calls>`
+
+**XML snippet**:
+```xml
+<use_parallel_tool_calls>
+If you intend to call multiple tools and there are no dependencies between the tool calls, make all of the independent tool calls in parallel. Prioritize calling tools simultaneously whenever the actions can be done in parallel rather than sequentially. For example, when reading 3 files, run 3 tool calls in parallel to read all 3 files into context at the same time. Maximize use of parallel tool calls where possible to increase speed and efficiency. However, if some tool calls depend on previous calls to inform dependent values like the parameters, do NOT call these tools in parallel and instead call them sequentially. Never use placeholders or guess missing parameters in tool calls.
+</use_parallel_tool_calls>
+```
+**Trigger**: Any tool-heavy prompt (investigation, multi-file reads, research).
+**Models**: Universal; boosts parallel call rate to ~100% across all 4.x models.
+**Source**: Anthropic official guide, "Optimize parallel tool calling" section.
+
+### Block 5: `<conservative_actions>`
+
+**XML snippet**:
+```xml
+<conservative_actions>
+Consider the reversibility and potential impact of your actions. Take local, reversible actions like editing files or running tests freely, but for actions that are hard to reverse, affect shared systems, or could be destructive, ask the user before proceeding.
+
+Examples of actions that warrant confirmation:
+- Destructive operations: deleting files or branches, dropping database tables, rm -rf
+- Hard to reverse operations: git push --force, git reset --hard, amending published commits
+- Operations visible to others: pushing code, commenting on PRs/issues, sending messages, modifying shared infrastructure
+
+When encountering obstacles, do not use destructive actions as a shortcut. Do not bypass safety checks (e.g., --no-verify) or discard unfamiliar files that may be in-progress work.
+</conservative_actions>
+```
+**Trigger**: Any prompt that could touch shared state — migrations, git push, PR creation, deployment, external service calls.
+**Models**: Universal. Particularly important on Opus 4.6 which is action-eager.
+**Source**: Anthropic official guide, "Balancing autonomy and safety" section.
+
+### Block 6: `<scope_explicit>`
+
+**XML snippet** (template — customize the directive per task):
+```xml
+<scope_explicit>
+Apply [DIRECTIVE] to [SCOPE]. [COUNTER-EXAMPLE if useful: "not just the first section" / "every file matching this pattern" / etc.].
+</scope_explicit>
+```
+**Trigger**: Pattern-application prompts where scope could be ambiguous ("format all headings", "update every example in this file"). Required on Opus 4.7 because literal instruction following means the model won't generalize silently.
+**Models**: Critical on Opus 4.7 (literal interpretation). Helpful on all 4.x models.
+**Source**: Anthropic official guide, "More literal instruction following" section.
+
+### Block 7: `<context_awareness>`
+
+**XML snippet**:
+```xml
+<context_awareness>
+Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Do not stop tasks early due to token budget concerns. As you approach your token budget limit, save your current progress and state to memory before the context window refreshes. Be persistent and complete tasks fully, even if the end of your budget is approaching. Never artificially stop any task early regardless of the context remaining.
+</context_awareness>
+```
+**Trigger**: Long-horizon agentic tasks that may span multiple context windows. Implementation plans with 5+ deliverables, multi-day refactors, large migrations.
+**Models**: Opus 4.7, Sonnet 4.6, Haiku 4.5 (all context-aware). NOT for single-task prompts that fit comfortably in one context.
+**Source**: Anthropic official guide, "Context awareness and multi-window workflows" section.
+
+### How to use this library
+
+- Blocks are optional scaffolding; not every prompt needs every block
+- Include blocks that match the task shape (see each block's **Trigger**)
+- Blocks with model-specific value (Block 3, Block 6) are more important when that model is the target
+- Multiple blocks stack — they're independent and don't conflict
+- Blocks go in the `<task>` or `<context>` section of the prompt, adjacent to instructions
+- Place blocks AFTER the main `<task>` declaration so they act as constraints on task interpretation
