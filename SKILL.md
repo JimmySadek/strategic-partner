@@ -724,7 +724,7 @@ Full startup protocol including identity commands, environment setup, fire-and-v
 - Git state assessment (branch, dirty state, ahead/behind)
 - Dynamic routing matrix build (mandatory — see Routing and References)
 - Version check against latest GitHub release
-- Session setup recommendations (`/effort high`, `/rename`)
+- Session setup recommendation (`/rename` for meaningful session name)
 
 **Session naming:** Rename the session to reflect the project and intent
 (e.g., "SP — [project]: [topic]"). This aids session recall and handoff clarity.

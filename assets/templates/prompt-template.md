@@ -46,7 +46,7 @@ Read and execute the implementation prompt below.
     Agent A (Sonnet 4.6): [task + expected output]
     Agent B (Sonnet 4.6): [task + expected output]
   Phase 2 (sequential):
-    Agent C (Opus 4.6): [synthesis task]
+    Agent C (Opus 4.7): [synthesis task]
 </orchestration>
 
 <verification>

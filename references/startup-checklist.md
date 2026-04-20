@@ -345,19 +345,18 @@ then proceed normally in degraded mode.
   Promote any to backlog, or continue — they carry forward."
   If no findings files exist: skip silently.
 
-**Session setup recommendations** (include in orientation via `AskUserQuestion`):
+**Session setup recommendation** (include in orientation via `AskUserQuestion`):
 
-Suggest the user run these commands for optimal advisory experience.
-These are **user-only slash commands** — the SP cannot execute them programmatically.
+Suggest the user rename the session for meaningful `/resume` retrieval.
+This is a **user-only slash command** — the SP cannot execute it programmatically.
 
 ```
 ┌─ Recommended Session Setup ──────────────────────────────────────┐
 │                                                                   │
-│  /effort high          ← full reasoning power for advisory work  │
 │  /rename sp-init-MMDD  ← meaningful session name for /resume     │
 │                                                                   │
-│  💡 Present these as a suggestion, not a claim of execution.     │
-│  💡 The user must run them — skills cannot invoke slash commands. │
+│  💡 Present as a suggestion, not a claim of execution.           │
+│  💡 The user must run it — skills cannot invoke slash commands.  │
 └───────────────────────────────────────────────────────────────────┘
 ```
 

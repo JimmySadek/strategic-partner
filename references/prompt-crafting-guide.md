@@ -479,7 +479,7 @@ Example (resolve each skill from the routing matrix — see `references/skill-ro
 ```
 Prompt chain (run in order):
   1. Explore — Agent(Sonnet 4.6, [explorer-agent]) → produces architecture notes
-  2. Design — Agent(Opus 4.6, [architect-agent]) → produces component spec
+  2. Design — Agent(Opus 4.7, [architect-agent]) → produces component spec
   3. Build — /[implementation skill] → implements from spec
   4. Review — /[review skill] → validates before merge
 ```

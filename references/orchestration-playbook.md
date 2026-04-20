@@ -13,14 +13,14 @@ Model Selection → Parallelization Decision → Spawn Pattern (A/B/C/D/E) → S
 
 | Model | Use For | Avoid For |
 |-------|---------|-----------|
-| Opus 4.6 | Architecture, complex debugging, research, coordination, multi-expert analysis, synthesis of parallel results | Simple implementation, routine tasks, parallel worker agents |
+| Opus 4.7 | Architecture, complex debugging, research, coordination, multi-expert analysis, synthesis of parallel results | Simple implementation, routine tasks, parallel worker agents |
 | Sonnet 4.6 | Implementation, code review, testing, exploration, standard work, parallel worker agents | Critical architecture decisions, complex reasoning chains |
 
 ### Decision Rule
 
 ```
 Is this task architectural, complex debugging, deep research, or coordination?
-├─ Yes → Opus 4.6
+├─ Yes → Opus 4.7
 └─ No  → Sonnet 4.6
 
 Is this a parallel worker agent (one of N doing independent work)?
@@ -28,7 +28,7 @@ Is this a parallel worker agent (one of N doing independent work)?
 └─ No  → Apply the rule above
 
 Is this a synthesis step (combining outputs from parallel agents)?
-├─ Yes → Opus 4.6 (needs to reason across multiple inputs)
+├─ Yes → Opus 4.7 (needs to reason across multiple inputs)
 └─ No  → Apply the rule above
 ```
 
@@ -93,7 +93,7 @@ Task: "Evaluate 3 auth libraries and implement the best one"
     Agent 2 (Sonnet 4.6): Evaluate lucia-auth — API, maintenance, bundle size
     Agent 3 (Sonnet 4.6): Evaluate next-auth — API, maintenance, bundle size
   Phase 2 (sequential):
-    Agent 4 (Opus 4.6): Compare findings, select library, implement
+    Agent 4 (Opus 4.7): Compare findings, select library, implement
 </orchestration>
 ```
 Why: Research targets are independent. Synthesis requires all research complete.
@@ -218,7 +218,7 @@ Phase 1 (parallel):
   Agent 2 (Sonnet 4.6, mode: "auto"): Research [topic B] — produce findings summary
 
 Phase 2 (sequential):
-  Agent 3 (Opus 4.6, mode: "acceptEdits"): Synthesize Agent 1+2 outputs → produce recommendation
+  Agent 3 (Opus 4.7, mode: "acceptEdits"): Synthesize Agent 1+2 outputs → produce recommendation
 ```
 
 ---
@@ -230,7 +230,7 @@ the skill names below are placeholders, not defaults.
 
 ```
 Step 1: Agent (Sonnet 4.6, mode: "auto", subagent_type=Explore) → understand existing code
-Step 2: Agent (Opus 4.6, mode: "acceptEdits", subagent_type=[architect-agent]) → design approach
+Step 2: Agent (Opus 4.7, mode: "acceptEdits", subagent_type=[architect-agent]) → design approach
 Step 3: /[best implementation skill from routing matrix] → implement
 Step 4: /[best review skill from routing matrix] → validate
 ```
@@ -246,7 +246,7 @@ Before writing this chain into a prompt, look up the routing matrix for:
 For strategic analysis requiring diverse perspectives:
 
 ```
-Agent (Opus 4.6, mode: "auto", subagent_type=business-panel-experts): [analysis question]
+Agent (Opus 4.7, mode: "auto", subagent_type=business-panel-experts): [analysis question]
   or
 /[best spec-review skill from routing matrix] → multi-expert specification review
 ```

@@ -43,7 +43,7 @@ to Claude and provide the most reliable structure for complex prompts.
     Agent A (Sonnet 4.6, mode: "auto"): [task + expected output]
     Agent B (Sonnet 4.6, mode: "auto"): [task + expected output]
   Phase 2 (sequential):
-    Agent C (Opus 4.6, mode: "acceptEdits"): [synthesis task]
+    Agent C (Opus 4.7, mode: "acceptEdits"): [synthesis task]
 </orchestration>
 
 <verification>
@@ -91,7 +91,7 @@ Only include when the parallelization check (see prompt-crafting-guide.md)
 indicates multi-agent work is needed. Structure as phases:
 - **Parallel phases**: agents that can run simultaneously
 - **Sequential phases**: agents that depend on prior phase output
-- Each agent spawn requires explicit **model** (Sonnet 4.6, Opus 4.6) and **mode** parameter
+- Each agent spawn requires explicit **model** (Sonnet 4.6, Opus 4.7) and **mode** parameter
 
 ### `<verification>`
 
