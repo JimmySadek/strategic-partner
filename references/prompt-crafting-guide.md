@@ -167,20 +167,25 @@ What is the complexity?
 **After routing**: The skill command on line 1 of the prompt MUST match the
 decision tree output. If it doesn't, re-route — don't rationalize a mismatch.
 
-### Step 2: Mandatory Parallelization Check
+### Step 2: Parallelization Check (Thinking Tool)
 
 Answer all four questions before writing the prompt body. Record answers explicitly.
+Use this as a thinking tool to decide whether `<orchestration>` adds value — not as
+a hard fail gate. Opus 4.7 plans parallelism well by default; `<orchestration>` is
+for cases where the executor needs explicit coordination instructions.
 
 | # | Question | If YES → | If NO → |
 |---|----------|----------|---------|
-| 1 | Can this task be split into 2+ independent file changes? | Add `<orchestration>` with parallel agents | Continue |
-| 2 | Does this task have a research phase and a build phase? | Sequential phases, parallel within each | Continue |
-| 3 | Are there 3+ deliverables that don't depend on each other? | Parallel agent per deliverable group | Continue |
+| 1 | Can this task be split into 2+ independent file changes? | Consider `<orchestration>` with parallel agents | Continue |
+| 2 | Does this task have a research phase and a build phase? | Consider sequential phases, parallel within each | Continue |
+| 3 | Are there 3+ deliverables that don't depend on each other? | Consider parallel agent per deliverable group | Continue |
 | 4 | Is this a single-file, single-concern change? | No orchestration needed, single skill | Re-evaluate Q1-3 |
 
-**🔴 Quality gate**: If the answer to ANY of Q1-3 is **YES** and the prompt
-lacks an `<orchestration>` section, **the prompt FAILS**. Go back and add
-orchestration before proceeding.
+**Recommendation**: If YES answers on Q1-3 indicate **genuine parallelism**
+(independent subtasks, no shared state, latency-hiding matters), add an
+`<orchestration>` section. If the parallelism is incidental or the executor
+can plan it alone, skip the section — an unnecessary `<orchestration>` block
+adds noise without value.
 
 ### Step 3: Delivery Routing
 
@@ -270,7 +275,7 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 1 | Skill command on line 1 matches routing decision tree | Copied from memory or example |
 | 2 | `<context>` lists specific files with what to look for | Says "read the codebase" or "see relevant files" |
 | 3 | `<instructions>` has numbered deliverables with file paths | Vague like "update the tests" |
-| 4 | `<orchestration>` present if parallelization check triggered | Q1-3 answered YES but no orchestration section |
+| 4 | `<orchestration>` present if genuine parallelism warrants it | Q1-3 indicated independent subtasks with no shared state but no orchestration section |
 | 5 | Each agent spawn has explicit model AND mode | Unspecified model or missing mode parameter |
 | 6 | `<verification>` has testable checkboxes with commands/outcomes | Says "verify it works" without specifying HOW |
 | 7 | Expected commit uses conventional-commit format | Missing or malformed `type(scope): description` |
@@ -725,7 +730,7 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Missing mode on agent spawns**: Background agents fail silently without mode specification → always include `mode` parameter
 - ❌ **Format mismatch**: Using Claude XML tags for GPT-5.4 or Gemini targets, or GPT-5.4 tags for Claude → match the format from Format Selection to the target model
 - ❌ **Over-prompting**: "Always use Serena for every search" → use conditional triggers
-- ❌ **Claude 3.x workarounds**: Excessive repetition, sycophancy-bait phrasing
+- ❌ **Pre-4.x holdovers**: Excessive repetition, sycophancy-bait phrasing
 - ❌ **Prompt for config edits**: Writing a Claude prompt to edit JSON configs → generate a `.scripts/` bash script instead
 - ❌ **Manual steps in markdown**: "Run these commands: 1. cd ... 2. npm install ..." → wrap in an executable script
 - ❌ **Script without pre-flight**: Missing directory/tool checks → always validate prerequisites
@@ -733,7 +738,7 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Missing routing rationale**: Presenting fenced prompt without the `> 🎯 Routing:` line → always explain the skill choice (or no-skill choice) before the fences
 - ❌ **Premature "what's next?"**: Offering follow-up options immediately after a prompt → STOP and wait for user to report back from execution
 - ❌ **Skipped parallelization check**: Writing prompt without answering the 4-question checklist → ALWAYS complete the parallelization check before writing
-- ❌ **Missing orchestration when required**: Parallelization check answered YES to Q1-3 but no `<orchestration>` section → prompt FAILS quality gate
+- ❌ **Missing orchestration when genuinely parallel**: Q1-3 indicated independent subtasks with no shared state, but no `<orchestration>` section → add one. Conversely, don't force `<orchestration>` when Q1-3 fires on incidental parallelism — an unnecessary block adds noise
 - ❌ **Skipped routing decision tree**: Picking a skill from memory instead of walking the scope + complexity tree → ALWAYS route through the decision tree
 - ❌ **Skipped post-craft verification**: Presenting prompt without running the 12-item checklist → ALWAYS verify before presenting
 - ❌ **Intuitive routing**: "This feels like a quick-task" without walking the tree → trust the tree, not intuition

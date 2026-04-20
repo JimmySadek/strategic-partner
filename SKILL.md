@@ -442,7 +442,7 @@ Every prompt must pass all 12 checks. Fix failures before presenting.
 | 1 | Skill on line 1 from routing tree | Copied from memory or example |
 | 2 | Context lists specific files | Says "read the codebase" |
 | 3 | Numbered deliverables with paths | Vague like "update the tests" |
-| 4 | Orchestration if parallelization triggered | Missing when Q1-3 said YES |
+| 4 | Orchestration when genuine parallelism warrants it | Missing when Q1-3 indicated independent subtasks with no shared state |
 | 5 | Agent spawns have model + mode | Unspecified model or mode |
 | 6 | Verification has testable commands | Says "verify it works" |
 | 7 | Conventional commit message | Missing or malformed |

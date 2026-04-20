@@ -40,7 +40,10 @@ Read and execute the implementation prompt below.
   3. [...]
 </not-in-scope>
 
-<!-- Include <orchestration> only for multi-agent tasks -->
+<!-- Include <orchestration> ONLY when (a) subtasks are clearly independent with
+     no shared state, (b) user explicitly requested multi-agent decomposition,
+     or (c) latency-hiding is the primary goal. Skip otherwise — Opus 4.7 plans
+     parallelism well by default. -->
 <orchestration>
   Phase 1 (parallel):
     Agent A (Sonnet 4.6): [task + expected output]

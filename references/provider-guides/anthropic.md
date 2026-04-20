@@ -38,7 +38,10 @@ to Claude and provide the most reliable structure for complex prompts.
 </instructions>
 
 <orchestration>
-  [Only include if multi-agent work needed]
+  [Include ONLY when (a) subtasks are clearly independent with no shared state,
+   (b) user explicitly requested multi-agent decomposition, or
+   (c) latency-hiding is the primary goal. Skip otherwise — Opus 4.7 plans
+   parallelism well by default.]
   Phase 1 (parallel):
     Agent A (Sonnet 4.6, mode: "auto"): [task + expected output]
     Agent B (Sonnet 4.6, mode: "auto"): [task + expected output]
@@ -69,7 +72,7 @@ Expected commit: "type(scope): description"
 |---|---|---|
 | `<context>` | Files to read (ordered) + project conventions | Yes |
 | `<instructions>` | Task description, numbered deliverables, constraints | Yes |
-| `<orchestration>` | Multi-agent coordination — phases, models, modes | Only if parallelization check triggered |
+| `<orchestration>` | Multi-agent coordination — phases, models, modes | Only if subtasks are clearly independent, user requested decomposition, or latency-hiding matters |
 | `<verification>` | Testable checkboxes with commands and expected outcomes | Yes |
 
 ### `<context>`
@@ -87,8 +90,13 @@ The core task. Structured as:
 
 ### `<orchestration>`
 
-Only include when the parallelization check (see prompt-crafting-guide.md)
-indicates multi-agent work is needed. Structure as phases:
+Conditional section — include ONLY when one of these conditions applies:
+1. Subtasks are clearly independent with no shared state
+2. User explicitly requested multi-agent decomposition
+3. Latency-hiding via parallel work is the primary goal
+
+Skip otherwise. Opus 4.7 plans parallelism well by default; an unnecessary
+`<orchestration>` block adds noise without value. When included, structure as phases:
 - **Parallel phases**: agents that can run simultaneously
 - **Sequential phases**: agents that depend on prior phase output
 - Each agent spawn requires explicit **model** (Sonnet 4.6, Opus 4.7) and **mode** parameter
@@ -105,8 +113,8 @@ Never say "verify it works" — specify the concrete check.
 
 1. **No blanket tool instructions** — conditional triggers only ("use Serena find_symbol IF looking up a named symbol")
 2. **XML tags are native** — Claude is trained on XML-structured data, use them for structure
-3. **Self-check verification blocks** — Anthropic-recommended pattern for quality
-4. **Remove 3.x workarounds** — no excessive repetition, no sycophancy-bait phrasing
+3. **Executor verification contract** — `<verification>` holds concrete testable checks for the human/next-session executor (not a model self-reflection scaffold)
+4. **Remove pre-4.x holdovers** — no excessive repetition, no sycophancy-bait phrasing
 5. **Frame questions neutrally** — reduced sycophancy in 4.x, leverage it
 6. **No prefill tricks** — use explicit format instructions instead
 7. **Examples in `<example>` tags** — 3-5 diverse examples yield best results when needed
@@ -124,7 +132,7 @@ prompts should be structured:
 | List style | Nested bullets OK — Claude handles hierarchy well |
 | Verification | `<verification>` checklist with specific commands |
 | Context | `<context>` with ordered file list + project conventions |
-| Orchestration | `<orchestration>` for multi-agent coordination (phases, models, modes) |
+| Orchestration | `<orchestration>` for multi-agent coordination — only when subtasks are genuinely independent, user requested decomposition, or latency-hiding matters |
 | Tag parsing | Native XML understanding — tags provide reliable structure |
 
 ---
