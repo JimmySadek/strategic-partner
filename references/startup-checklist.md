@@ -93,6 +93,25 @@ Quick checks run inline during startup. No agents needed — these are observati
    "💡 CLAUDE.md is {N} lines (recommended: under 200). Consider splitting
    path-specific rules into .claude/rules/ files."
 
+### Context Window Sanity Check (inline, one-time per session)
+
+Claude Code's `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` percentage (set to 70 in Step 1)
+may compute against the detected context window. On Opus 4.7 with 1M-token
+context, 70% of 1M = 700k — well past the reliability cliff (~256k) where
+model performance degrades noticeably. Known bugs: anthropics/claude-code#34332,
+#18843, #27189.
+
+**Action** (one-time orientation note, non-blocking):
+
+If the user is on Opus 4.7 with 1M context AND the startup orientation runs
+cleanly, suggest once: "Consider running `/context` to verify the autocompact
+trigger fires at a reasonable point (< 250k tokens). If it shows a trigger
+above 300k, lower `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` or verify via a live test."
+
+This is orientation-time only — not a recurring check. Do NOT lower the env
+var value autonomously; changing it blindly without the user's /context output
+is riskier than flagging the verification step.
+
 ### Codex CLI Detection (inline, not an agent)
 
 ```

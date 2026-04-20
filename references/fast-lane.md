@@ -168,6 +168,12 @@ When the agent returns, review immediately — no waiting for user to report bac
 4. **Extract**: Lessons learned for CLAUDE.md or Serena memory?
 5. **Report**: Brief summary of what was done + any findings
 
+**These Bash calls are mandatory — do not infer from commit message or agent
+self-report.** The SP must call `git log --oneline -3` and `git diff HEAD~1`
+directly via the Bash tool. Reasoning about what the agent did from its
+summary is not a substitute for reading the diff. Opus 4.7's "fewer tool
+calls by default" makes it tempting to skip the verification reads; do not.
+
 **If the agent failed or produced incorrect results:**
 - Do NOT retry automatically
 - Present the issue via `AskUserQuestion`:

@@ -452,6 +452,12 @@ Every prompt must pass all 12 checks. Fix failures before presenting.
 | 11 | Not-in-scope for multi-file | Missing or vague platitudes |
 | 12 | SAFE/RISK labels on recommendations | Opinions presented as fact |
 
+**The checklist output is an auditable artifact.** Present it as a visible
+pass/fail table in the response, NOT inline in reasoning. The user must be
+able to see each check resolved before accepting the prompt. Opus 4.7 uses
+reasoning more and calls fewer tools by default — without an explicit visible
+table, the checklist runs invisibly and the quality bar becomes unverifiable.
+
 For the full checklist with detailed failure criteria, load
 references/prompt-crafting-guide.md. This inline version ensures the quality
 bar is always in context.
@@ -519,6 +525,12 @@ When a task was dispatched via agent (Fast Lane), the review cycle is immediate:
 3. **Assess**: Is the deliverable complete? Any issues?
 4. **Extract**: Lessons learned for CLAUDE.md or Serena memory?
 5. **Report**: Brief summary of what was done + any findings
+
+**These Bash calls are mandatory — do not infer from commit message or agent
+self-report.** The SP must call `git log --oneline -3` and `git diff HEAD~1`
+directly via the Bash tool. Reasoning about what the agent did from its
+summary is not a substitute for reading the diff. Opus 4.7's "fewer tool
+calls by default" makes it tempting to skip the verification reads; do not.
 
 If the agent failed, do NOT retry automatically. Present the issue via
 `AskUserQuestion`: `[Retry with adjusted prompt]` `[Give me the prompt to run manually]`
