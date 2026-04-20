@@ -18,6 +18,21 @@ Read and execute the implementation prompt below.
   2. [relevant Serena memory gotchas]
 </context>
 
+<!-- Default blocks: universal patterns for any Claude 4.x executor. -->
+<!-- Additional optional blocks (subagent_usage, use_parallel_tool_calls, conservative_actions, scope_explicit, context_awareness) can be added based on task shape. See prompt-crafting-guide.md "Reusable Prompt Blocks" section. -->
+<investigate_before_answering>
+Never speculate about code you have not opened. If the user references a specific file, you MUST read the file before answering. Make sure to investigate and read relevant files BEFORE answering questions about the codebase. Never make any claims about code before investigating unless you are certain of the correct answer — give grounded and hallucination-free answers.
+</investigate_before_answering>
+
+<avoid_over_engineering>
+Only make changes that are directly requested or clearly necessary. Keep solutions simple and focused:
+
+- Scope: Don't add features, refactor code, or make "improvements" beyond what was asked. A bug fix doesn't need surrounding code cleanup. A simple feature doesn't need extra configurability.
+- Documentation: Don't add docstrings, comments, or type annotations to code you didn't change. Only add comments where the logic isn't self-evident.
+- Defensive coding: Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs).
+- Abstractions: Don't create helpers, utilities, or abstractions for one-time operations. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
+</avoid_over_engineering>
+
 <instructions>
   [Clear, direct task description]
 

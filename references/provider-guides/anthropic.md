@@ -135,6 +135,25 @@ prompts should be structured:
 | Orchestration | `<orchestration>` for multi-agent coordination — only when subtasks are genuinely independent, user requested decomposition, or latency-hiding matters |
 | Tag parsing | Native XML understanding — tags provide reliable structure |
 
+### Opus 4.7 Specific Patterns
+
+Opus 4.7 (released 2026-04-16) has behavior changes that benefit from specific
+prompt patterns. These patterns are codified as reusable blocks — see
+`references/prompt-crafting-guide.md` § Reusable Prompt Blocks for the full
+library with verbatim XML.
+
+| Behavior | Recommended block(s) | Why |
+|---|---|---|
+| More literal instruction following | `<scope_explicit>` | Model won't infer generalization |
+| Fewer subagents by default | `<subagent_usage>` | Explicit guidance when fan-out IS warranted |
+| Overengineering tendency | `<avoid_over_engineering>` | Constrain scope expansion |
+| Potential hallucinations on unopened code | `<investigate_before_answering>` | Require investigation before claims |
+| Conservative mode for shared state | `<conservative_actions>` | Reversibility gate |
+| Context-aware long tasks | `<context_awareness>` | Enable compaction continuity |
+
+Block XML is not duplicated here — load the main crafting guide section for
+the verbatim snippets and per-model selection heuristics.
+
 ---
 
 ## Examples
@@ -153,6 +172,10 @@ prompts should be structured:
   - Credentials stored as email\ntoken (chmod 600)
   - Environment-scoped: cmrad_credentials.dev / cmrad_credentials.prod
 </context>
+
+<investigate_before_answering>
+Never speculate about code you have not opened. If the user references a specific file, you MUST read the file before answering. Make sure to investigate and read relevant files BEFORE answering questions about the codebase. Never make any claims about code before investigating unless you are certain of the correct answer — give grounded and hallucination-free answers.
+</investigate_before_answering>
 
 <instructions>
   Fix token validation failing silently when the research API returns HTTP 500.
@@ -208,6 +231,13 @@ Expected commit: "fix(auth): retry token validation on HTTP 500 with backoff"
   - Follow existing wizard patterns (see docker/cli/credentials.py as reference)
   - Handle auth errors gracefully (token expired → redirect to login)
 </instructions>
+
+<subagent_usage>
+Use subagents when tasks can run in parallel, require isolated context, or involve independent workstreams that don't need to share state. For simple tasks, sequential operations, single-file edits, or tasks where you need to maintain context across steps, work directly rather than delegating.
+
+Do not spawn a subagent for work you can complete directly in a single response (e.g., refactoring a function you can already see).
+Spawn multiple subagents in the same turn when fanning out across items or reading multiple files.
+</subagent_usage>
 
 <orchestration>
   Spawn 2 agents in parallel:
