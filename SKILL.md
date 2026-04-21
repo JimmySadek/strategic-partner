@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 5.8.0
+version: 5.9.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -211,7 +211,6 @@ Never skip a load — these contain critical protocol details not inlined here.
 | `provider-guides/` | Before crafting any prompt (match target provider) |
 | `hooks-integration.md` | Hook setup discussions |
 | `cognitive-patterns.md` | Deep dives into named patterns |
-| `companion-script-spec.md` | Power users — Python context monitor |
 </reference_files>
 
 ---
@@ -934,6 +933,27 @@ recommendation.
 `project_backlog_index` memory for cross-session awareness. When unavailable,
 `.backlog/` files are fully sufficient. SP never blocks on Serena for backlog operations.
 
+### Closure Checklist — Required on Session-End Signals
+
+When a session-end signal fires (see Context Handoff triggers below), the SP
+MUST display a visible pass/fail checklist verifying every persistence layer
+before the handoff file is written. Items marked "action needed" get
+addressed via `AskUserQuestion` before the handoff is finalized.
+
+| Layer | Check | Action if incomplete |
+|---|---|---|
+| 🧠 Serena memories | New decisions/architectural insights logged? | Propose writes via AskUserQuestion — `decision_log`, `codebase_structure`, `code_style_and_conventions`, `known_gotchas` |
+| 📝 CLAUDE.md | Rules or conventions agreed this session not yet added? | Propose edit with exact text via AskUserQuestion |
+| 📋 Session findings | All reported issues captured in `.handoffs/findings-MMDD.md`? | Append missing items automatically |
+| 📦 Backlog | Findings ready for promotion? Parked ideas captured? | Promote via AskUserQuestion or file new `.backlog/` items |
+| 📄 `.prompts/` | Implementation prompts drafted but not saved? | Save to appropriate milestone folder |
+| 🔧 `.scripts/` | Operational scripts discussed but not saved? | Save for future use |
+| 🔀 Git state | Decision-point commits proposed but not made? Dirty working tree? | Propose commits via AskUserQuestion; never auto-commit source files |
+| 📂 `.handoffs/` | Handoff file written for this session topic? | Write it as the FINAL step, after all other items addressed |
+
+The checklist output is auditable — the user must see each row resolved
+before the handoff is finalized. Do not skip items silently.
+
 ### Context Handoff
 
 **🔴 Session-end signals are a MANDATORY handoff trigger** ("done", "closing",
@@ -941,6 +961,23 @@ recommendation.
 
 **Periodic awareness:** If the conversation shifts to shorter messages, wrap-up language,
 or decreasing complexity, treat it as a session-end signal. Don't wait for explicit keywords.
+
+**Auto-dispatch on session-end signals.** When any of the triggers above fire
+(explicit keywords, periodic-awareness signals, or user invoking
+`/strategic-partner:handoff`), the SP proactively moves from advisory mode to
+closure mode. The sequence:
+
+1. Run the **Closure Checklist** (see above) — display as a visible
+   pass/fail table
+2. Address each "action needed" row via `AskUserQuestion`
+3. When the checklist is clean, invoke the handoff protocol (5 mandatory
+   rules below)
+4. Run the **Post-Handoff Verification** (see below) after the handoff
+   file is written
+
+The SP does NOT wait for a separate user request once a session-end signal
+fires. The checklist + handoff is the response. User can decline any individual
+item via `AskUserQuestion`, but the flow itself is auto-dispatched.
 
 **5 mandatory rules:**
 1. Run `/insights` before writing
@@ -955,6 +992,23 @@ or decreasing complexity, treat it as a session-end signal. Don't wait for expli
 
 4. State: "Open a new Claude Code session and paste the above to continue."
 5. **STOP** — no commentary after the fence
+
+### Post-Handoff Verification
+
+After the handoff file is written and the continuation prompt is displayed,
+run a verification pass before ending the session:
+
+1. `grep -c "FRESH THREAD STARTING PROMPT" .handoffs/[filename]` → expect 1
+2. `grep -c "/strategic-partner" .handoffs/[filename]` → expect ≥1 (continuation invocation present)
+3. `ls -la .handoffs/findings-*.md` → confirm findings file exists for today
+   (or confirm "no findings this session" was explicitly acknowledged in the checklist)
+4. `grep -E "^\.handoffs/|^\.prompts/|^\.scripts/|^\.backlog/" .gitignore | wc -l` → expect ≥4
+   (all four session-work dirs covered by `.gitignore`)
+5. If any check fails, surface the gap via `AskUserQuestion` before
+   confirming the handoff complete
+
+The verification confirms the handoff actually delivered on the closure
+contract — no silent gaps.
 
 <load_reference file="context-handoff.md">
 Full protocol, thresholds, and template.

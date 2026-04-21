@@ -778,10 +778,10 @@ Never speculate about code you have not opened. If the user references a specifi
 <avoid_over_engineering>
 Only make changes that are directly requested or clearly necessary. Keep solutions simple and focused:
 
-- Scope: Don't add features, refactor code, or make "improvements" beyond what was asked. A bug fix doesn't need surrounding code cleanup. A simple feature doesn't need extra configurability.
-- Documentation: Don't add docstrings, comments, or type annotations to code you didn't change. Only add comments where the logic isn't self-evident.
-- Defensive coding: Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs).
-- Abstractions: Don't create helpers, utilities, or abstractions for one-time operations. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
+1. Scope: Don't add features, refactor code, or make "improvements" beyond what was asked. A bug fix doesn't need surrounding code cleanup. A simple feature doesn't need extra configurability.
+2. Documentation: Don't add docstrings, comments, or type annotations to code you didn't change. Only add comments where the logic isn't self-evident.
+3. Defensive coding: Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs).
+4. Abstractions: Don't create helpers, utilities, or abstractions for one-time operations. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
 </avoid_over_engineering>
 ```
 **Trigger**: Any implementation prompt (bug fix, feature add, refactor). Especially important on Opus 4.5+ which has an overengineering tendency.
@@ -823,9 +823,9 @@ If you intend to call multiple tools and there are no dependencies between the t
 Consider the reversibility and potential impact of your actions. Take local, reversible actions like editing files or running tests freely, but for actions that are hard to reverse, affect shared systems, or could be destructive, ask the user before proceeding.
 
 Examples of actions that warrant confirmation:
-- Destructive operations: deleting files or branches, dropping database tables, rm -rf
-- Hard to reverse operations: git push --force, git reset --hard, amending published commits
-- Operations visible to others: pushing code, commenting on PRs/issues, sending messages, modifying shared infrastructure
+1. Destructive operations: deleting files or branches, dropping database tables, rm -rf
+2. Hard to reverse operations: git push --force, git reset --hard, amending published commits
+3. Operations visible to others: pushing code, commenting on PRs/issues, sending messages, modifying shared infrastructure
 
 When encountering obstacles, do not use destructive actions as a shortcut. Do not bypass safety checks (e.g., --no-verify) or discard unfamiliar files that may be in-progress work.
 </conservative_actions>

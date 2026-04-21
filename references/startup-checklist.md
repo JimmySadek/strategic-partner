@@ -9,45 +9,46 @@ Do not display to user.
 │  SP Startup Flow                                                          │
 │                                                                           │
 │  Step 1          Step 2          Step 3       Step 4                    │
-│  Env Vars  →  Spawn Agents  → Read State → Verify                      │
-│  AUTOCOMPACT    ┌─ Agent A     $ARGUMENTS    ✅ Agent D                 │
-│  _PCT=70       ├─ Agent B     Serena              │                     │
-│  Version ✓     └─ Agent D     CLAUDE.md           │                     │
+│  Checks    →  Spawn Agents  → Read State → Verify                      │
+│  Self-repair    ┌─ Agent A     $ARGUMENTS    ✅ Agent D                 │
+│  Version ✓     ├─ Agent B     Serena              │                     │
+│  Target model  └─ Agent D     CLAUDE.md           │                     │
 │  (inline)        🗺️ Matrix          │              │                     │
 │                     │              │              ▼                     │
 │                     │              │         Step 5                     │
 │                     └──────────────┘         📋 Orient                  │
-│                                              + Setup recs               │
+│                                              + Context advisory         │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔧 Step 1: Environment Configuration
+## 🔧 Step 1: Environment Configuration (SP does not manage autocompact)
 
-Set environment variables that affect session behavior.
+Autocompact is **user-controlled**. The env var `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`
+(https://code.claude.com/docs/en/env-vars.md) is read from the launching shell
+at Claude Code startup; the default threshold is approximately 95% of the
+session's context window. The SP does not set, install, or recommend a value
+for this variable — see `hooks-integration.md` § 🚀 SessionStart for the full
+investigation of why a skill-frontmatter SessionStart hook cannot set it
+programmatically.
 
-```
-CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70
-```
+What the SP **does** do:
 
-**Purpose**: Lowers the auto-compaction trigger from the default (~95%) to 70%.
-This gives the PreCompact hook a **reliable signal** at 70% instead of the SP
-guessing its own context consumption.
+- Detect the active model and its context window at startup (Opus 4.7 → 1M;
+  other current models → 200K by default)
+- On 1M-context sessions, surface an informational advisory in orientation
+  noting the ~256K retrieval reliability cliff — see Step 5 "Context advisory"
+  bullet for the exact copy and trigger rules
+- Let the user decide what to do with that awareness — wrap up earlier,
+  trigger a handoff sooner, or accept the risk on a given run
 
-```
-┌──────────────────────────────────────────────┐
-│  Default:   compaction at ~95% → too late     │
-│  Override:  compaction at  70% → time to act  │
-│                                               │
-│  70% trigger → PreCompact hook fires          │
-│             → SP intercepts for handoff prep  │
-│             → session state preserved         │
-└──────────────────────────────────────────────┘
-```
+The remaining Step 1 work is inline environment checks (self-repair, version,
+target-model detection) — see Step 1.5 below.
 
-📎 See `context-handoff.md` for the full threshold strategy
-📎 See `hooks-integration.md` for PreCompact hook behavior
+📎 See `context-handoff.md` § Environment Baseline for the advisory framing
+📎 See `hooks-integration.md` § 🚀 SessionStart for the lifecycle-incompatibility
+   write-up and why the SP does not ship a calibrator
 
 ---
 
@@ -57,9 +58,16 @@ Before spawning agents, verify command registration is intact. This is a count-b
 inline Bash check (not an agent) — it runs in ~15ms when everything is in sync.
 
 ```
-CMD_COUNT=$(ls "${CLAUDE_SKILL_DIR}/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
-LINK_COUNT=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | wc -l | tr -d ' ')
-[ "$CMD_COUNT" = "$LINK_COUNT" ] || bash "${CLAUDE_SKILL_DIR}/setup"
+# Resolve SP install dir via stable command symlinks (portable across install paths).
+# ${HOME}/.claude/commands/strategic-partner/ is created by setup; each *.md is a
+# symlink back to the source commands/ in the install dir.
+SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+if [ -n "$SP_ANY_CMD" ]; then
+  SP_SKILL_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
+  CMD_COUNT=$(ls "${SP_SKILL_DIR}/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
+  LINK_COUNT=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | wc -l | tr -d ' ')
+  [ "$CMD_COUNT" = "$LINK_COUNT" ] || bash "${SP_SKILL_DIR}/setup"
+fi
 ```
 
 The count-based check catches first install (no symlinks), updates that add new
@@ -99,9 +107,13 @@ The SP detects the currently active Claude model from the environment to inform
 prompt crafting. Default assumption: the executor running SP's crafted prompts
 will be on the same model unless the user specifies otherwise.
 
-Detection:
-- Parse environment for "Opus 4.7", "Sonnet 4.6", "Haiku 4.5" in the runtime declaration
-- If detected: store as session-active target model
+Detection — match any of the following in the runtime declaration (case-insensitive):
+- Friendly names: "Opus 4.7", "Sonnet 4.6", "Haiku 4.5"
+- Exact model IDs:
+  - `claude-opus-4-7` (Opus 4.7)
+  - `claude-sonnet-4-6` (Sonnet 4.6)
+  - `claude-haiku-4-5-20251001` (Haiku 4.5)
+- If detected: store the normalized family (Opus 4.7 / Sonnet 4.6 / Haiku 4.5) as session-active target model
 - If multiple models mentioned or unclear: default to Opus 4.7 (current GA) with a note
 
 Report in orientation ONLY if target model differs from Opus 4.7 default OR
@@ -112,24 +124,29 @@ executor will run on a different model."
 The detection feeds `prompt-crafting-guide.md` § Model-Aware Block Selection —
 the SP uses this to decide which reusable blocks to embed in crafted prompts.
 
+**`/effort` guidance by model** (used when the SP recommends runtime flags,
+not by hook):
+- **Opus 4.7**: `xhigh` is the Claude Code default for all plans — no action
+  needed. `/effort high` only makes sense as a deliberate downgrade for
+  latency-sensitive sessions.
+- **Opus 4.6**: `/effort high` remains a reasonable upgrade for advisory
+  sessions if the user wants maximum reasoning.
+- **Sonnet 4.6**: defaults to `high` at the API level; no explicit
+  recommendation needed.
+- **Haiku 4.5**: `low`-to-`medium` depending on task complexity.
+
+Do NOT surface these as startup-time prompts. They are reference for when
+the user asks "what effort should I use?" or when SP crafts a prompt that
+explicitly calls for a different setting than the default.
+
 ### Context Window Sanity Check (inline, one-time per session)
 
-Claude Code's `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` percentage (set to 70 in Step 1)
-may compute against the detected context window. On Opus 4.7 with 1M-token
-context, 70% of 1M = 700k — well past the reliability cliff (~256k) where
-model performance degrades noticeably. Known bugs: anthropics/claude-code#34332,
-#18843, #27189.
-
-**Action** (one-time orientation note, non-blocking):
-
-If the user is on Opus 4.7 with 1M context AND the startup orientation runs
-cleanly, suggest once: "Consider running `/context` to verify the autocompact
-trigger fires at a reasonable point (< 250k tokens). If it shows a trigger
-above 300k, lower `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` or verify via a live test."
-
-This is orientation-time only — not a recurring check. Do NOT lower the env
-var value autonomously; changing it blindly without the user's /context output
-is riskier than flagging the verification step.
+Known Anthropic-side autocompact bugs on 1M-context sessions remain open
+(anthropics/claude-code#34332, #42375, #43989, #50204). If autocompact is
+observed firing at unexpectedly low context usage, those issues are the first
+place to look. The SP does not ship a calibrator for this; the Step 5
+"Context advisory" bullet surfaces the relevant situational awareness on
+1M-window sessions so the user can plan handoff timing accordingly.
 
 ### Codex CLI Detection (inline, not an agent)
 
@@ -149,13 +166,17 @@ Quick check against GitHub releases. Runs inline because it's a single curl
 returning one version string — agent overhead adds fragility with no benefit.
 
 ```
-REMOTE_VERSION=$(curl -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
-LOCAL_VERSION=$(grep '^version:' "${CLAUDE_SKILL_DIR}/SKILL.md" | head -1 | awk '{print $2}')
-
-if [ -n "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
-  echo "UPDATE_AVAILABLE:${REMOTE_VERSION}"
-else
-  echo "UP_TO_DATE"
+# Resolve SP install dir (same pattern as self-repair check)
+SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+if [ -n "$SP_ANY_CMD" ]; then
+  SP_SKILL_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
+  LOCAL_VERSION=$(grep '^version:' "${SP_SKILL_DIR}/SKILL.md" | head -1 | awk '{print $2}')
+  REMOTE_VERSION=$(curl -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
+  if [ -n "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
+    echo "UPDATE_AVAILABLE:${REMOTE_VERSION}"
+  else
+    echo "UP_TO_DATE"
+  fi
 fi
 ```
 
@@ -356,6 +377,18 @@ and ask what the user wants to work on.
 - 🌿 Current branch and git state
 - 🗺️ Environment summary from Agent D: skill count, agent count (with any scan errors noted), active MCP servers
 - ⚡ Update available (from inline version check in Step 1.5): one-liner with version diff and update command
+- 🔧 **Context advisory** (1M-context sessions only): If the detected model
+  has a 1M context window (Opus 4.7, or any model running with
+  `SP_CONTEXT_WINDOW=1M`), display this informational note in orientation:
+  "📌 **1M context advisory:** Autocompact defaults to ~95% of your window
+  (~950K tokens), and known Anthropic issues (#34332, #42375, #43989,
+  #50204) cause erratic behavior above ~256K. For reliable retrieval and
+  clean handoffs, consider wrapping up or triggering handoff around 250K
+  tokens. The SP will prompt for handoff on session-end signals regardless;
+  this note is just situational awareness. No settings are changed."
+
+  On 200K-context sessions, skip this bullet entirely — the default ~95%
+  threshold is reasonable at that window size.
 - 🔌 **Serena not detected**: If Serena MCP is unavailable, display this block:
 
 > **Serena MCP is not detected.** The Strategic Partner works without it but operates

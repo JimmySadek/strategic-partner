@@ -1,5 +1,34 @@
 # Changelog
 
+## [5.9.0] - 2026-04-21
+
+### Removed
+- **SessionStart hook from SKILL.md frontmatter** — Investigated and removed. The intent was to set `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` adaptively based on detected model. Anthropic's hooks documentation (https://code.claude.com/docs/en/hooks) states skill-frontmatter hooks "are scoped to the component's lifecycle and only run when that component is active" — and SessionStart fires at Claude Code session start, before any skill activates. Empirical test confirmed the hook never fires: a trace-log line added to the hook, a fresh session invoked, and `/tmp/sp-hook-trace.log` never appeared. The architecture is incompatible with the event, not a bug that can be patched.
+- **Standalone `hooks/session-start.sh`** — Deleted. Was reference documentation for the now-removed inline hook; serves no purpose without it.
+
+### Fixed
+- **False precedent claim in `references/hooks-integration.md`** — The documentation previously stated that "gstack and other well-established skills use the same pattern" for SKILL.md frontmatter hooks. Empirically false: an audit of installed skills at `~/.claude/skills/` found that only strategic-partner had a `SessionStart:` block in SKILL.md frontmatter. gstack, the cited precedent, has no `hooks:` section at all. Rewritten to document the architectural incompatibility correctly, citing Anthropic's hooks documentation.
+- **Stale adaptive-PCT claims in `references/context-handoff.md` and `references/startup-checklist.md`** — Both files previously described SP as setting `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` adaptively. Rewritten to reflect the correct reality: autocompact threshold configuration is entirely user-owned; the SP's role is informational only.
+- **PreCompact section in `references/hooks-integration.md`** — Previously coupled to the (removed) SessionStart section with "how they cooperate" language. Rewritten as a standalone description of a user-owned hook users may optionally configure in their own `settings.json`. No user-facing shell commands or configuration walkthroughs.
+
+### Added
+- **Context Advisory for 1M-context sessions** — `startup-checklist.md` Step 5 orientation now surfaces a one-time informational note on 1M-context sessions (Opus 4.7): autocompact defaults to ~95% (~950K), upstream Anthropic 1M autocompact bugs (#34332, #42375, #43989, #50204) cause inconsistent behavior above ~256K, and users can consider wrapping up or triggering handoff around that threshold for reliable retrieval. Pure advisory — no settings changed, no commands recommended.
+- **Closure Checklist (SKILL.md § Continuity Stewardship)** — New 8-row pass/fail table the SP displays before writing any handoff, verifying every persistence layer: Serena memories, CLAUDE.md proposals, session findings, backlog promotions, `.prompts/`, `.scripts/`, git state, `.handoffs/` file. Items marked "action needed" get addressed via `AskUserQuestion` before the handoff is finalized. Makes closure completeness auditable.
+- **Auto-dispatch on session-end signals (SKILL.md § Context Handoff)** — New paragraph formalizing that when the SP detects session-end signals (explicit wrap-up keywords, periodic-awareness signals, or `/strategic-partner:handoff` invocation), it proactively runs the Closure Checklist → addresses gaps via `AskUserQuestion` → invokes the handoff protocol → runs Post-Handoff Verification. The SP does not wait for a separate user request after a session-end signal fires. User can decline any individual item, but the flow is auto-dispatched.
+- **Post-Handoff Verification (SKILL.md § Context Handoff)** — New subsection with grep-based verification commands run after the handoff file is written: confirms the continuation prompt format is present, the `/strategic-partner` invocation is included, findings file exists (or absence was explicitly acknowledged), and all four session-work dirs are in `.gitignore`. If any check fails, surfaces the gap via `AskUserQuestion`.
+
+### Context
+
+This release consolidates v5.7.0 (intentionally skipped), v5.8.0 (Claude 4.x compatibility refresh, reusable prompt block library, model-aware generation — see v5.8.0 entry below), and v5.9.0 (SessionStart investigation + strip + closure hardening) into a single public release. The latest prior public release was v5.6.0 (2026-04-07); users updating from v5.6.0 receive the full delta.
+
+The SessionStart investigation was adversarially reviewed via the `/strategic-partner:codex-feedback` subcommand (GPT-5.4 at xhigh effort) in two focused passes. The Part A review covered the v5.7/v5.8 committed work (Opus 4.7 refresh, block library, target-model detection). The Part B review covered this v5.9.0 uncommitted work (strip + advisory + closure hardening). The strip + advisory decision was informed by authoritative sources: Anthropic's hooks and env-vars documentation, verified lifecycle constraints, empirical testing of the hook, and the user's explicit UX preference that user-facing SP docs contain no shell commands or settings walkthroughs.
+
+### Known limitations documented in release
+
+- Anthropic's open 1M autocompact bugs (#34332, #42375, #43989, #50204) remain outside SP's control — the release documents them as context, not workarounds
+- The `setup` script does not currently prune orphan command symlinks; the self-repair check detects mismatches but relies on `setup` to converge (pre-existing limitation, tracked for future release)
+- Context-window detection for Opus 4.6 / Sonnet 4.6 is plan-dependent (200K default, 1M on Max/Team/Enterprise) — not applicable to current shipping SP paths since SP's advisory surface is 1M-only
+
 ## [5.8.0] - 2026-04-20
 
 ### Added

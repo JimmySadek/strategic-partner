@@ -49,6 +49,7 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
     */.prompts/*|*/.prompts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     */.handoffs/*|*/.handoffs)   debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     */.scripts/*|*/.scripts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    */.backlog/*|*/.backlog)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     */CLAUDE.md)                 debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     */CHANGELOG.md)              debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     */README.md)                 debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
@@ -72,7 +73,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
 
   if echo "$COMMAND" | grep -qE '(sed\s+-i|>\s|>>|tee\s|perl\s+-i|git\s+apply|git\s+cherry-pick)'; then
     ALLOWED=false
-    for pattern in ".prompts" ".handoffs" ".scripts" "CLAUDE.md" "CHANGELOG.md" "README.md" "SKILL.md" ".claude/" ".gitignore"; do
+    for pattern in ".prompts" ".handoffs" ".scripts" ".backlog" "CLAUDE.md" "CHANGELOG.md" "README.md" "SKILL.md" ".claude/" ".gitignore"; do
       if echo "$COMMAND" | grep -q "$pattern"; then
         ALLOWED=true
         break
@@ -97,7 +98,7 @@ if echo "$TOOL_NAME" | grep -q "^mcp__plugin_serena_serena__"; then
         REL_PATH=$(echo "$INPUT" | grep -o '"relative_path": "[^"]*"' | head -1 | cut -d'"' -f4)
       fi
       case "$REL_PATH" in
-        .prompts/*|.handoffs/*|.scripts/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore)
+        .prompts/*|.handoffs/*|.scripts/*|.backlog/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore)
           debug_log "decision=allow tool=$TOOL_NAME path=$REL_PATH"
           exit 0
           ;;

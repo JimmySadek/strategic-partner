@@ -10,8 +10,13 @@ operation       every 2nd       AskUserQuestion
                 exchange
 
 ════════════════════════════════════════════════
-🚨 PreCompact hook fires at 70% (env var override)
-   → Emergency handoff preparation (authoritative signal)
+🚨 If the user has configured a PreCompact hook in
+   their own ~/.claude/settings.json, it fires when
+   Claude Code hits the effective autocompact
+   threshold (default ~95%, or the user's own
+   CLAUDE_AUTOCOMPACT_PCT_OVERRIDE value).
+   → Emergency handoff preparation (backstop signal)
+   The SP does NOT ship or set this value.
 ════════════════════════════════════════════════
 
 Handoff Flow:
@@ -22,40 +27,72 @@ Reflect → Slug → Split Writes → Continuation Prompt → Display
 
 ## 🔧 Environment Baseline
 
-### `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70`
+### Autocompact threshold — an advisory concern, not a managed setting
 
-Set during startup (see `startup-checklist.md`, Step 1). This lowers the
-auto-compaction trigger from the default (~95%) to 70%, giving the SP a
-**reliable system signal** instead of relying on self-assessed context estimates.
+Claude Code's autocompact threshold is controlled by the harness env var
+`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` (documented at
+https://code.claude.com/docs/en/env-vars.md), which is read from the launching
+shell at session start. The default threshold is approximately 95% of the
+session's context window.
 
-```
-┌─ Why This Matters ───────────────────────────────────────────┐
-│                                                               │
-│  ❌ Without env var:                                          │
-│     Claude guesses its own context % → variance is HIGH       │
-│     Session with many file reads: real 80%, estimate 60%      │
-│     Compaction at ~95% = too late for structured handoff      │
-│                                                               │
-│  ✅ With env var:                                             │
-│     Unreliable self-assessment → reliable platform event      │
-│     Context hits 70% → PreCompact hook fires                  │
-│     SP intercepts → handoff preparation begins                │
-│     Ample room for clean state preservation                   │
-│                                                               │
-└───────────────────────────────────────────────────────────────┘
-```
+The SP does NOT set or recommend changes to this value. Changing it globally
+would cause surprise compaction in long sessions users want to keep running.
+The SP's role regarding autocompact is purely informational:
 
-**💡 Limitation acknowledged**: Self-assessment is still used for the intermediate
-threshold (60-70%) below. This is an **advisory signal**, not a hard gate.
-The PreCompact hook at 70% serves as the **authoritative backstop** — even if
-self-assessment is wrong, the system will trigger handoff preparation at the
-real 70% mark.
+- **Detect** the active model and context window at startup (Opus 4.7 → 1M,
+  other current models → 200K by default)
+- **Surface** a session-start advisory on 1M-context sessions noting that
+  retrieval reliability degrades above ~256K tokens — known Anthropic
+  autocompact bugs on 1M make the default ~95% threshold behave
+  inconsistently above that point
+- **Defer** the decision to the user — whether to wrap up a session earlier,
+  to trigger a handoff sooner, or to accept the risk on a given run
+
+The SP's session-end detection and handoff protocol (see SKILL.md §
+Continuity Stewardship) are the mechanisms that translate this awareness
+into action: when the user signals wrap-up — whether driven by the 256K
+advisory or by natural session completion — the SP packages the handoff,
+syncs memory, updates the backlog, and delivers a continuation prompt
+that carries all relevant state into a fresh session.
+
+**💡 Self-assessment threshold**: The SP still uses self-assessment for the
+intermediate 60-70% threshold below — this is a behavioral advisory signal,
+not a hard gate. If the user has independently configured a PreCompact hook
+in their `~/.claude/settings.json`, that hook serves as an additional
+backstop when their configured threshold fires. The SP does not depend on
+that hook being present.
+
+### Known Caveats
+
+Anthropic's Claude Code has open autocompact bugs on 1M-context sessions —
+autocompact has been observed to misfire at ~6% or ~400K of the window
+regardless of the configured threshold. These are Anthropic-side issues,
+outside SP's control:
+
+- https://github.com/anthropics/claude-code/issues/34332
+- https://github.com/anthropics/claude-code/issues/42375
+- https://github.com/anthropics/claude-code/issues/43989
+- https://github.com/anthropics/claude-code/issues/50204
+
+The SP's advisory note at session start (see Environment Baseline above) and
+session-end handoff protocol together mitigate the impact — the user is
+informed about the 1M retrieval cliff, and the SP proactively detects
+session-end signals so handoff happens before upstream autocompact
+inconsistency can strand the session.
+
+If the user notices autocompact firing unexpectedly, the above GH issues are
+the right place to check. Nothing in SP configuration causes this behavior.
 
 ---
 
-## 🚨 PreCompact Hook Integration
+## 🚨 PreCompact Hook Integration (user-owned, if configured)
 
-When the PreCompact hook fires (at the configured 70% threshold):
+PreCompact is a user-owned Claude Code lifecycle hook (not shipped by the SP —
+see `hooks-integration.md` § 🚨 PreCompact). If the user has configured one in
+`~/.claude/settings.json`, it fires when the session hits the effective
+autocompact threshold (default ~95%, or the user's own
+`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` value). When that happens, the SP treats it
+as an emergency handoff signal:
 
 ```
 ┌─ Emergency Handoff Sequence ─────────────────────────────────┐
@@ -70,9 +107,16 @@ When the PreCompact hook fires (at the configured 70% threshold):
 └───────────────────────────────────────────────────────────────┘
 ```
 
-The PreCompact hook is the **last reliable opportunity** to preserve session
-state. The system will compact regardless — the SP's job is to preserve state
-BEFORE that happens. After compaction, earlier context is summarized and detail is lost.
+When a PreCompact hook is present, it is the **last reliable opportunity** to
+preserve session state. The system will compact regardless — the SP's job is
+to preserve state BEFORE that happens. After compaction, earlier context is
+summarized and detail is lost.
+
+Users who have not configured a PreCompact hook rely entirely on the SP's
+behavioral session-end detection (SKILL.md § Continuity Stewardship). On
+1M-context sessions, the orientation context advisory surfaces the
+~256K retrieval cliff so the user can plan handoff timing without waiting for
+an autocompact trigger.
 
 📎 See `hooks-integration.md` for hook configuration details.
 
@@ -95,8 +139,10 @@ after every major deliverable and before starting new analysis, regardless of le
 > lossless and cross-session durable. A clean handoff is always preferable to
 > a degraded session.
 >
-> If auto-compaction fires (PreCompact hook at 70%), the SP treats it as an
-> emergency handoff signal, NOT as an opportunity to extend the session.
+> If auto-compaction fires — whether from the user's configured
+> `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` or the default ~95% threshold — the SP
+> treats it as an emergency handoff signal, NOT as an opportunity to extend
+> the session.
 
 > 💡 The cost of an early handoff offer is one `AskUserQuestion`.
 > The cost of missing it is losing **all session state** including unrun
@@ -299,6 +345,6 @@ backtick wrappers, no markdown headers between the label and the fence.
 
 | Reference | Relationship |
 |---|---|
-| `startup-checklist.md` | Step 3 sets `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70` |
-| `hooks-integration.md` | PreCompact hook configuration and behavior |
-| `companion-script-spec.md` | External monitoring for advanced threshold estimation |
+| `startup-checklist.md` | Step 5 context advisory on 1M-window sessions |
+| `hooks-integration.md` | Hook delivery rules (PreToolUse shipped; SessionStart incompatible; PreCompact user-owned) |
+| `companion-script-spec.md` | Historical spec — deprecated in v5.9.0, retained for reference |

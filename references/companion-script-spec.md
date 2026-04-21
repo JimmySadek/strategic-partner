@@ -1,5 +1,19 @@
 # 📡 Companion Script Specification
 
+---
+
+> ⚠️ **DEPRECATED as of v5.9.0 (2026-04-21)**
+>
+> This specification is retained for reference but is **no longer active guidance**. Its foundational mechanisms are known to be architecturally broken:
+>
+> 1. **SessionStart hook from SKILL.md frontmatter** — Cannot fire at Claude Code session start. Per Anthropic's hooks documentation (https://code.claude.com/docs/en/hooks), skill-frontmatter hooks are scoped to the component's lifecycle and only run while the component is active. SessionStart fires before any skill activates, so a SessionStart hook registered in SKILL.md frontmatter cannot trigger at its event. Empirical testing confirmed this in v5.9.0; see CHANGELOG.md entry for v5.9.0.
+>
+> 2. **`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70` as an authoritative PreCompact signal** — The env var controls autocompact threshold, but its value is entirely user-owned and set at Claude Code startup from the launching shell. The SP does not manage it. The 70% hardcoded assumption no longer holds.
+>
+> The spec below describes an architecture that cannot be realized with Claude Code's current hook surface. Read for historical context only.
+
+---
+
 Reference file for the strategic-partner advisor. Architecture specification
 for an optional external Python script that monitors context consumption.
 This is the "advanced" recommendation from audit finding F1.

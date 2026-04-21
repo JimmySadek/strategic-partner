@@ -27,10 +27,10 @@ Never speculate about code you have not opened. If the user references a specifi
 <avoid_over_engineering>
 Only make changes that are directly requested or clearly necessary. Keep solutions simple and focused:
 
-- Scope: Don't add features, refactor code, or make "improvements" beyond what was asked. A bug fix doesn't need surrounding code cleanup. A simple feature doesn't need extra configurability.
-- Documentation: Don't add docstrings, comments, or type annotations to code you didn't change. Only add comments where the logic isn't self-evident.
-- Defensive coding: Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs).
-- Abstractions: Don't create helpers, utilities, or abstractions for one-time operations. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
+1. Scope: Don't add features, refactor code, or make "improvements" beyond what was asked. A bug fix doesn't need surrounding code cleanup. A simple feature doesn't need extra configurability.
+2. Documentation: Don't add docstrings, comments, or type annotations to code you didn't change. Only add comments where the logic isn't self-evident.
+3. Defensive coding: Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs).
+4. Abstractions: Don't create helpers, utilities, or abstractions for one-time operations. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
 </avoid_over_engineering>
 
 <instructions>
@@ -76,8 +76,8 @@ Only make changes that are directly requested or clearly necessary. Keep solutio
 <!-- Include <rollback> when the change could regress existing behavior -->
 <rollback>
   If this change causes regressions:
-  - Revert: git revert [this commit's hash]
-  - [Additional cleanup: migration rollback, config restore, etc.]
+  1. Revert: git revert [this commit's hash]
+  2. [Additional cleanup: migration rollback, config restore, etc.]
 </rollback>
 
 Expected commit: "[type]([scope]): [description]"

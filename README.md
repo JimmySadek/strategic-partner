@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.8.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.9.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -205,6 +205,9 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Strategic advisory and prompt crafting** — the core loop: discover, challenge premises, present alternatives, route, craft, review
 - **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
+- **Model-aware prompt generation** — SP detects the active Claude model at startup (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, via both friendly names and exact model IDs) and selects reusable XML prompt blocks + effort recommendations per target model. Every crafted prompt inherits hallucination prevention, scope discipline, and model-appropriate patterns.
+- **Reusable prompt block library** — 7 Anthropic-authored XML blocks (`<investigate_before_answering>`, `<avoid_over_engineering>`, `<subagent_usage>`, `<use_parallel_tool_calls>`, `<conservative_actions>`, `<scope_explicit>`, `<context_awareness>`) can be composed into crafted prompts. Copy-safe for inline use. Default blocks auto-included in the template.
+- **Closure rigor** — session-end detection triggers an 8-row pass/fail Closure Checklist (Serena memories, CLAUDE.md proposals, findings, backlog, `.prompts/`, `.scripts/`, git state, `.handoffs/`) before any handoff is written; the handoff is auto-dispatched on session-end signals; post-handoff verification confirms the continuation prompt and `.gitignore` coverage are correct before the session ends.
 - **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
 - **Implementation boundary** — the SP is not allowed to implement in its own session, enforced structurally via a PreToolUse hook (exit code 2 blocks Edit/Write/Bash mutations on source files) and 3 behavioral gates (Advisory Completion, Advisory Reset, Post-Dispatch Recovery)
 - **Fast Lane dispatch** — subordinate delivery mechanism for small, reversible tasks; requires Advisory Completion Gate to pass first; detailed mechanics loaded on demand from reference file
@@ -242,7 +245,6 @@ strategic-partner/
     skill-routing-matrix.md             # Dynamic discovery protocol, task categories, and routing rules
     partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
     hooks-integration.md                # Hook event reference and integration patterns
-    companion-script-spec.md            # Python context monitor architecture (spec only)
     cognitive-patterns.md               # Named thinking heuristics for architecture and trade-offs
     provider-guides/
       anthropic.md                      # Claude XML prompt format template
@@ -291,7 +293,7 @@ The skill works without Serena, but loses cross-session memory and semantic code
 
 Every SP session checks for updates in the background. If a newer version exists:
 
-> Strategic Partner **v5.1.0** available (you have v5.0.0). Run `/strategic-partner:update` to update.
+> Strategic Partner **v{latest}** available (you have v{current}). Run `/strategic-partner:update` to update.
 
 ### Update command
 
@@ -316,7 +318,7 @@ For release announcements with full changelogs:
 |---|---|---|
 | **Serena MCP unavailable** | Cross-session memory and semantic navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
 | **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
-| **Context pressure undetected** | No PreCompact hook configured | SP uses self-assessed thresholds and periodic checks. Consider adding a PreCompact hook for earlier detection. |
+| **Context pressure undetected** | No PreCompact hook configured | SP uses self-assessed thresholds and periodic checks. A user-owned PreCompact hook can serve as an extra backstop if you choose to configure one. |
 | **Sub-agents hit permission walls** | Background agents can't prompt for approval | Specify `mode` on every agent spawn (see orchestration-playbook.md). Pre-approve `WebFetch(*)` and `WebSearch(*)` in `~/.claude/settings.json` for research agents. Run `./setup --audit-permissions` to check for missing permissions. |
 | **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
 | **Codex CLI not found** | Cross-model review unavailable | Install from [github.com/openai/codex](https://github.com/openai/codex) and run `codex login`. Feature is optional. |
