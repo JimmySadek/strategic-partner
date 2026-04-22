@@ -41,6 +41,27 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    echo $?  # should be 0 (allowed)
    ```
 3. **Test from a non-default path**: verify no hardcoded paths or undefined variables.
+4. **Runtime-input fuzzing** (for hooks parsing JSON or env vars): vary
+   whitespace in keys/values, quoting styles, missing optional fields, and
+   non-JSON input. Pipe each through the reference script and confirm
+   graceful handling (allow or block, not abort-on-error):
+   ```
+   echo '{ "tool_name" : "Edit" , "tool_input" : { "file_path" : "/foo/bar.py" } }' | bash hooks/guard-impl.sh
+   echo '{"tool_name":"Edit"}' | bash hooks/guard-impl.sh
+   echo 'not json at all' | bash hooks/guard-impl.sh
+   ```
+   The executor's own test set represents what the AUTHOR thought about; fuzzing
+   represents what the RUNTIME will actually send.
+
+5. **CHANGELOG cross-reference**: before endorsing any hook command that uses
+   `${CLAUDE_*}` env vars or a specific path-resolution pattern, grep
+   CHANGELOG.md for that variable or pattern. Prior release notes are
+   authoritative on "what doesn't work in this harness." Example:
+   ```
+   grep -n 'CLAUDE_SKILL_DIR' CHANGELOG.md
+   ```
+   A historical entry explaining why the pattern failed before is the fastest
+   way to avoid re-introducing the same bug.
 
 **Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. v5.4.0→v5.4.1 was a reactive fix for exactly this class of bug.
 
