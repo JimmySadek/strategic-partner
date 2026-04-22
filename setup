@@ -1,6 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ── Native Windows fail-loud detection ──────────────────────────────────
+# Per OS-compatibility audit (2026-04-22) decision D: SP is WSL-first on
+# Windows. Native Git Bash / MSYS2 / Cygwin can silently downgrade ln -s
+# to file copies, breaking the readlink -f-based install-dir resolution.
+# Require explicit opt-in to avoid silent-failure cascades.
+case "${OSTYPE:-}" in
+    msys*|cygwin*|MINGW*)
+        if [ "${SP_ALLOW_NATIVE_WINDOWS:-}" != "1" ]; then
+            cat >&2 <<'NATIVE_WARN'
+⚠️  Native Windows (Git Bash / MSYS / Cygwin) is experimental / best-effort for Strategic Partner.
+
+Known issues on native Windows Git Bash:
+  • `setup` may create file copies instead of symlinks (breaks command updates)
+  • Self-repair and version-check may return wrong paths
+  • Some features require Python 3 alias configuration
+
+Recommended: use WSL2 for full compatibility.
+
+To proceed anyway (experimental, at your own risk):
+    SP_ALLOW_NATIVE_WINDOWS=1 bash setup
+
+See .handoffs/os-compatibility-audit-0422.md (if repo cloned) for full
+finding details, or https://github.com/JimmySadek/strategic-partner for docs.
+NATIVE_WARN
+            exit 2
+        fi
+        echo "ℹ️  Proceeding on native Windows Git Bash (experimental mode, SP_ALLOW_NATIVE_WINDOWS=1)."
+        ;;
+esac
+
 # setup — Register strategic-partner subcommands with Claude Code
 # Idempotent. Safe to re-run. Called by install + /strategic-partner:update.
 
