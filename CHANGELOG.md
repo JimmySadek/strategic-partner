@@ -1,5 +1,23 @@
 # Changelog
 
+## [5.10.0] - 2026-04-23
+
+### Added
+- **Fail-loud detection for native Windows Git Bash in `setup`** — On `$OSTYPE` matching `msys|cygwin|MINGW`, setup exits 2 with an experimental warning and WSL recommendation unless `SP_ALLOW_NATIVE_WINDOWS=1` is set. **Behavior change for existing Windows Git Bash users**: set `SP_ALLOW_NATIVE_WINDOWS=1` when running `bash setup` to acknowledge the experimental posture. Prevents silent degradation (symlinks → copies, broken install-dir resolution) on native Windows installs. WSL2 is the recommended Windows path.
+- **Supported platforms matrix in README** — Clarifies macOS/Linux/WSL as fully supported; native Windows (Git Bash / MSYS2 / Cygwin) as experimental/best-effort; native cmd/PowerShell as unsupported.
+
+### Fixed
+- **H-3: Hook path normalization (conditional)** — Inline PreToolUse hook in SKILL.md frontmatter and `hooks/guard-impl.sh` normalize backslashes to forward-slashes ONLY for Windows-origin paths (drive-letter `C:\...` or UNC `\\...`). Unix paths, including those with literal backslashes in filenames, pass through unchanged. Preserves v5.9.0 semantics for Unix filenames; defensive against Windows `file_path` formats.
+- **M-1: Python interpreter probe in `setup`** — Setup probes `python3` → `python` (with Python 3 version check) → `py -3` and uses the first that resolves. Allows `audit-permissions` to run on default Windows Python installations without requiring a `python3` alias.
+
+### Changed
+- **CLAUDE.md Step 2a hook verification extended** — Added items 4 (runtime-input fuzzing for hooks parsing JSON / env vars) and 5 (CHANGELOG cross-reference for `${CLAUDE_*}` env vars and path-resolution patterns) to the pre-release hook verification checklist. Codifies two preventive-action lessons from the v5.9.0 release review cycle. Originally landed as docs-only commit `8771c89` between v5.9.0 and this release.
+
+### Context
+Phase 1 of the Windows compatibility work from the 2026-04-22 cross-OS audit (`.handoffs/os-compatibility-audit-0422.md`, gitignored). Decision D (WSL-first + cheap hardening + fail-loud native detection) was selected via three-way synthesis (user + SP + Codex Decision Review on 2026-04-23). Pre-release Codex Evidence Audit + release-worthiness judgment returned CONDITIONAL GO on first pass; fixes applied (commits `a7b055b`, `b754636`); re-audit returned RELEASE-WORTHY + CONDITIONAL GO with conditions reduced to standard release-bump steps.
+
+Deferred pending native-Windows demand evidence: H-1 (setup symlinks → file copies on Git Bash), H-2 (readlink -f cascade), GHA windows-latest CI matrix. Follow-up captured: `.backlog/hook-parser-fail-closed.md` — pre-existing fail-open behavior of the hook tool_name parser on pathological-whitespace JSON (not a regression from this release).
+
 ## [5.9.0] - 2026-04-21
 
 ### Removed
