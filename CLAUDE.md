@@ -65,6 +65,41 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
 
 **Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. v5.4.0→v5.4.1 was a reactive fix for exactly this class of bug.
 
+### 2b. Codex Pre-Release Review (Mandatory for non-docs-only pushes)
+
+Before any non-docs-only push, run an adversarial review via
+`/strategic-partner:codex-feedback` in Evidence Audit mode (Mode B)
+asking three questions:
+
+1. **Diff matches CHANGELOG** — does the proposed CHANGELOG entry
+   accurately describe the full `previous_tag..HEAD` delta? Any
+   undocumented changes?
+2. **No regressions vs last released version** — do all invariants
+   from the prior release still hold? Specifically check hook path
+   patterns, allow-list semantics, and setup behavior on
+   macOS/Linux/WSL.
+3. **Release worthiness from a user point of view** — is this a
+   meaningful/welcomed update for the public? Does it improve,
+   not-impact, or degrade experience for each supported user segment
+   (macOS/Linux, Windows WSL, prospective users)? Would the CHANGELOG
+   entry read as meaningful or as noise?
+
+**Verdict handling:**
+- **GO** — push approved
+- **CONDITIONAL GO** — address the conditions, then re-run the
+  audit. Push only after conditions are met (fixes committed;
+  re-audit returns GO or reduced CONDITIONAL with only release-bump
+  steps remaining)
+- **NO-GO** — fix the release, then re-run
+
+**Skip only for:**
+- Docs-only pushes (covered by the docs-only exception above)
+- Single-line bug fix patches with demonstrably nil blast radius
+  (use judgment — if in doubt, run the review)
+
+Document every Codex cycle in Serena `decision_log` with the
+verdict(s), fixes applied, and final GO.
+
 ### 3. Present to User (Mandatory Confirmation)
 
 Before modifying any files, show:
