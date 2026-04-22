@@ -7,9 +7,29 @@ set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Delegate to audit-permissions if requested ─────────────────────────
+_find_python3() {
+    if command -v python3 >/dev/null 2>&1; then
+        echo "python3"
+        return 0
+    fi
+    if command -v python >/dev/null 2>&1 && python -c 'import sys; sys.exit(0 if sys.version_info[0]==3 else 1)' 2>/dev/null; then
+        echo "python"
+        return 0
+    fi
+    if command -v py >/dev/null 2>&1 && py -3 -c 'pass' 2>/dev/null; then
+        echo "py -3"
+        return 0
+    fi
+    return 1
+}
+
 if [ "${1:-}" = "--audit-permissions" ]; then
   shift
-  exec python3 "${SKILL_DIR}/audit-permissions" "$@"
+  PYTHON_CMD=$(_find_python3) || {
+      echo "❌ audit-permissions requires Python 3. Install from python.org or your package manager, then retry." >&2
+      exit 1
+  }
+  exec $PYTHON_CMD "${SKILL_DIR}/audit-permissions" "$@"
 fi
 
 COMMANDS_SRC="${SKILL_DIR}/commands"
