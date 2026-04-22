@@ -30,7 +30,8 @@ hooks:
             if [ "$TOOL" = "Edit" ] || [ "$TOOL" = "Write" ] || [ "$TOOL" = "MultiEdit" ] || [ "$TOOL" = "NotebookEdit" ]; then
               FP=$(echo "$INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)
               [ -z "$FP" ] && FP=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
-              case "$FP" in
+              FP_NORM=$(echo "$FP" | tr '\\' '/')
+              case "$FP_NORM" in
                 */.prompts/*|*/.prompts) exit 0 ;;
                 */.handoffs/*|*/.handoffs) exit 0 ;;
                 */.scripts/*|*/.scripts) exit 0 ;;
