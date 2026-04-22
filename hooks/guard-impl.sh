@@ -43,7 +43,10 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
   if [ -z "$FILE_PATH" ]; then
     FILE_PATH=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
   fi
-  FILE_PATH_NORM=$(echo "$FILE_PATH" | tr '\\' '/')
+  case "$FILE_PATH" in
+    [A-Za-z]:\\*|\\\\*)  FILE_PATH_NORM=$(echo "$FILE_PATH" | tr '\\' '/') ;;
+    *)                   FILE_PATH_NORM="$FILE_PATH" ;;
+  esac
 
   # Allowed paths (SP's own workspace)
   case "$FILE_PATH_NORM" in
