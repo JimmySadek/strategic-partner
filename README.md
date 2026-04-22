@@ -153,7 +153,7 @@ You paste Phase 1 into a **new terminal tab**. It runs. You come back and say "d
 | Linux (GNU coreutils) | ✅ Fully supported | |
 | Windows WSL2 | ✅ Fully supported | Recommended Windows path — inherits Linux support |
 | Windows WSL1 | ✅ Supported | (Claude Code sandboxing unavailable per Anthropic) |
-| Windows native (Git Bash / MSYS2) | ⚠️ Experimental | Known symlink, interpreter, and install-path limitations — requires `SP_ALLOW_NATIVE_WINDOWS=1` env var to run `setup`. Use WSL2 if possible. |
+| Windows native (Git Bash / MSYS2 / Cygwin) | ⚠️ Experimental | Known symlink, interpreter, and install-path limitations — requires `SP_ALLOW_NATIVE_WINDOWS=1` env var to run `setup`. Use WSL2 if possible. |
 | Windows native (cmd / PowerShell) | ❌ Unsupported | Claude Code itself requires a Bash-compatible shell |
 
 ---
