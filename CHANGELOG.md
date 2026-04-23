@@ -2,9 +2,23 @@
 
 ## [Unreleased]
 
+### Fixed
+- **setup script now prunes stale symlinks** — previously setup only
+  added missing symlinks but never removed orphaned ones. A stale
+  `sync-skills.md` symlink (dating from pre-v5.2.1 removal of
+  sync-skills) masked the self-repair count check and delayed
+  discovery that `/strategic-partner:copy-prompt` had no registered
+  symlink. Setup now prints `🧹 Removed stale symlink: {name}` when
+  pruning.
+
 ### Added
 - **/strategic-partner:copy-prompt subcommand** — copies a recently emitted fenced prompt to the OS clipboard, eliminating mouse-select friction on SP's primary handoff mechanism. Single-prompt direct copy; multi-prompt AskUserQuestion picker. Cross-OS clipboard via `pbcopy` / `xclip` / `xsel` / `clip.exe`.
 - **Fenced Prompt Emission Protocol** (SKILL.md) — SP now writes each fenced prompt to `.handoffs/last-prompts/[N].md` at emission time so `copy-prompt` can retrieve them. Wipe-and-rewrite per response; no history.
+- **Subcommand-Adding Briefs checklist** (references/prompt-crafting-guide.md)
+  — new mandatory checklist for feature briefs that add subcommands:
+  must include setup invocation, symlink verification, restart
+  requirement note, and end-to-end invocation test as acceptance
+  gates. Closes a process gap discovered during copy-prompt delivery.
 
 ## [5.10.0] - 2026-04-23
 

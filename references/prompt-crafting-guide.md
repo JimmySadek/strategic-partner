@@ -291,6 +291,46 @@ a note saying "you might want to add..." — the prompt must be complete.
 
 ---
 
+## Subcommand-Adding Briefs — Mandatory Checklist
+
+When crafting a prompt that creates a new subcommand file in `commands/`,
+the brief MUST include these items in its `<deliverables>` and/or
+`<verification>` blocks. A subcommand that exists in source but is not
+invokable by the CLI is a failed delivery, not a success.
+
+1. **Source file creation** — the new `commands/{name}.md` with
+   frontmatter and body. (Standard.)
+
+2. **Setup invocation** — the brief must include as a deliverable:
+   > Run `bash setup` to register the new subcommand symlink.
+   > Verify `ls -la ~/.claude/commands/strategic-partner/{name}.md`
+   > shows the symlink exists and points to the source file.
+
+3. **Restart requirement note** — the brief's acceptance criteria
+   must state explicitly:
+   > The active Claude Code session will NOT pick up the new slash
+   > command until it restarts. A fresh session (or a `/rename`
+   > that reinitializes) is required to invoke `/strategic-partner:{name}`.
+   > This is a CLI behavior, not a bug in the implementation.
+
+4. **End-to-end test as the final acceptance gate** — not a manual
+   step to run later. The brief must require:
+   > After setup + restart, invoke `/strategic-partner:{name}` on
+   > a representative input and confirm the subcommand runs correctly.
+
+5. **Cross-reference in CHANGELOG** — the CHANGELOG entry must name
+   the subcommand prefixed with the namespace (e.g.
+   `/strategic-partner:{name}`) so users searching the changelog by
+   slash-command invocation can find it.
+
+Lesson source: 2026-04-23, commit 9c65b47 added `copy-prompt.md` to
+source but no symlink was created. User discovered the gap when
+trying to invoke the command mid-session. The brief's verification
+block had tested grep / file-existence but not slash-command
+discoverability. Process gap, now closed.
+
+---
+
 ## NOT-in-Scope Sections
 
 `<not-in-scope>` sections name specific files, features, or patterns the executor

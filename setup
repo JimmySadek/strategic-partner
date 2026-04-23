@@ -96,6 +96,19 @@ else
   echo "✅ No command files found to register."
 fi
 
+# ── Prune stale symlinks ────────────────────────────────────────────────
+if [ -d "${COMMANDS_DST}" ]; then
+  for link in "${COMMANDS_DST}"/*.md; do
+    [ -e "$link" ] || continue      # no matches (glob didn't expand)
+    [ -L "$link" ] || continue      # skip real files (safety)
+    # If the symlink target doesn't exist (broken), remove it
+    if [ ! -e "$link" ]; then
+      rm "$link"
+      echo "🧹 Removed stale symlink: $(basename "$link")"
+    fi
+  done
+fi
+
 # ── Ensure hook scripts are executable ─────────────────────────────────
 HOOKS_DIR="${SKILL_DIR}/hooks"
 if [ -d "$HOOKS_DIR" ]; then
