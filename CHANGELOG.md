@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **/strategic-partner:copy-prompt subcommand** — copies a recently emitted fenced prompt to the OS clipboard, eliminating mouse-select friction on SP's primary handoff mechanism. Single-prompt direct copy; multi-prompt AskUserQuestion picker. Cross-OS clipboard via `pbcopy` / `xclip` / `xsel` / `clip.exe`.
+- **Fenced Prompt Emission Protocol** (SKILL.md) — SP now writes each fenced prompt to `.handoffs/last-prompts/[N].md` at emission time so `copy-prompt` can retrieve them. Wipe-and-rewrite per response; no history.
+
 ## [5.10.0] - 2026-04-23
 
 ### Added

@@ -435,6 +435,28 @@ lists (1. 2. 3.), and plain text. No bold, no dash bullets, no markdown tables,
 no markdown headers inside fences. Saved prompts (.prompts/) can use any formatting.
 For Anthropic-format prompts (which use XML tags), wrap the entire prompt content in a backtick code fence so tags survive as literal text. See the prompt-crafting-guide for the full template.
 
+### Fenced Prompt Emission Protocol
+
+Every response that emits `═══ START 🟢 COPY ═══` / `═══ END 🛑 COPY ═══` fences
+MUST, before the assistant's text response is emitted, write each fence's inner
+content to `.handoffs/last-prompts/[N].md` (1-indexed, starting at `1.md`).
+
+Procedure on each fenced emission:
+1. Remove all existing `.md` files in `.handoffs/last-prompts/` (wipe first).
+2. Write one file per fence in emission order: `1.md`, `2.md`, etc.
+3. The write must happen BEFORE the user sees the fenced content so that
+   `/strategic-partner:copy-prompt` can be invoked immediately after the
+   response completes.
+
+Why: terminal UI mouse-selection of fenced content frequently fails — incomplete
+copies, whitespace loss, truncation at the viewport edge. Writing to the filesystem
+before emitting makes clipboard retrieval reliable. The mouse-select path remains
+as a fallback; the subcommand is the primary path.
+
+Scope: applies to all paths that emit fences — inline prompts, saved-prompt
+references, continuation prompts in handoffs, and Fast Lane dispatches that surface
+a copy block. No history is kept: each response wipes and rewrites the directory.
+
 <gate name="post-craft-verification">
 ### Post-Craft Verification (Mandatory — Run Before Presenting ANY Prompt)
 
@@ -1088,6 +1110,7 @@ Delegation rules, model selection, and parallelization templates.
 | Command | Purpose |
 |---|---|
 | `/strategic-partner:help` | List all subcommands and usage |
+| `/strategic-partner:copy-prompt` | Copy a recently emitted fenced prompt to the clipboard |
 | `/strategic-partner:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |

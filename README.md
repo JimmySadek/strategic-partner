@@ -244,6 +244,7 @@ strategic-partner/
     guard-impl.sh                       # PreToolUse hook — blocks source edits in SP sessions
   commands/
     help.md                             # Subcommand reference
+    copy-prompt.md                      # Clipboard copy for fenced prompts
     handoff.md                          # Context handoff trigger
     status.md                           # Status briefing
     update.md                           # Version check + self-update
@@ -281,6 +282,7 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 | Command | What it does |
 |---------|-------------|
 | `/strategic-partner:help` | List all subcommands |
+| `/strategic-partner:copy-prompt` | Copy a recently emitted fenced prompt to the OS clipboard |
 | `/strategic-partner:handoff` | Trigger a context handoff with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |

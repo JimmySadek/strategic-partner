@@ -27,6 +27,7 @@ Key behaviors:
 |---|---|
 | `/strategic-partner` | Full advisor persona with startup sequence (no colon) |
 | `/strategic-partner:help` | List all subcommands and usage (this command) |
+| `/strategic-partner:copy-prompt` | Copy a recently emitted fenced prompt to the clipboard |
 | `/strategic-partner:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
@@ -39,11 +40,12 @@ Key behaviors:
 /strategic-partner                          → Full advisor session (startup sequence)
 /strategic-partner .handoffs/file.md        → Continuation mode (load specific handoff)
 /strategic-partner:help                     → This reference
+/strategic-partner:copy-prompt              → Copy last fenced prompt to clipboard
 /strategic-partner:handoff                  → Save session state + continuation prompt
 /strategic-partner:status                   → "Where do we stand?" briefing
-/strategic-partner:update                  → Check + update to latest version
-/strategic-partner:codex-feedback          → Trigger cross-model review of current decision
-/strategic-partner:backlog                → Surface and review parked backlog items
+/strategic-partner:update                   → Check + update to latest version
+/strategic-partner:codex-feedback           → Trigger cross-model review of current decision
+/strategic-partner:backlog                  → Surface and review parked backlog items
 ```
 
 ## Notes
