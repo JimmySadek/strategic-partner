@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [5.11.0] - 2026-04-23
 
 ### Fixed
 - **PreToolUse hook allow-list now matches relative paths** (hooks/guard-impl.sh + SKILL.md frontmatter inlined copy) — previously the case patterns required an absolute-path prefix (`*/.handoffs/*`), which blocked Write/Edit tool calls using relative paths against otherwise-allow-listed directories. The Fenced Prompt Emission Protocol (9c65b47) instructs writes to `.handoffs/last-prompts/[N].md` (relative) — the hook now correctly permits those. Added bare-form and relative-form patterns per allow-list entry. Bash and Serena guards were already correct; only Guard 1 needed the fix.
