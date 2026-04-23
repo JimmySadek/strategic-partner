@@ -99,10 +99,8 @@ fi
 # ── Prune stale symlinks ────────────────────────────────────────────────
 if [ -d "${COMMANDS_DST}" ]; then
   for link in "${COMMANDS_DST}"/*.md; do
-    [ -e "$link" ] || continue      # no matches (glob didn't expand)
-    [ -L "$link" ] || continue      # skip real files (safety)
-    # If the symlink target doesn't exist (broken), remove it
-    if [ ! -e "$link" ]; then
+    [ -L "$link" ] || continue      # must be a symlink (filters glob-no-match and real files)
+    if [ ! -e "$link" ]; then       # target missing → broken symlink
       rm "$link"
       echo "🧹 Removed stale symlink: $(basename "$link")"
     fi
