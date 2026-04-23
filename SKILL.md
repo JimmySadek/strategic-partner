@@ -608,11 +608,45 @@ Scope rules:
 - Do NOT notify mid-dispatch (progress streaming is a separate concern,
   see `.backlog/monitor-codex-progress.md`).
 
-Message format:
-- Lead with the verdict or headline the user would act on, not "done".
-- Include the object of the review (commit SHA, subcommand name, agent
-  description) so the user has context.
-- ≤200 chars total. Claude Code guidance.
+Message format (templates):
+
+Use the `[<project>] SP — <event>: <detail>` shape. The bracketed project
+prefix aids multi-project context; `SP —` identifies the source; event and
+detail are scannable.
+
+Derive `<project>` at notification time:
+
+    basename "$(git rev-parse --show-toplevel)"
+
+Templates (pick the one that fits the event):
+
+1. Agent dispatch completion:
+   `[<project>] SP — <agent-name>: <outcome + SHA if relevant>`
+   Example: `[strategic-partner] SP — v5110-copy-prompt: done, commit 9c65b47`
+
+2. Codex review verdict:
+   `[<project>] SP — Codex: <verdict> (<N findings>)`
+   Example: `[strategic-partner] SP — Codex: GO (0 findings)`
+
+3. Release readiness:
+   `[<project>] SP — v<ver> ready for <next step>`
+   Example: `[strategic-partner] SP — v5.11.0 ready for Codex review`
+
+4. Blocker / needs attention:
+   `[<project>] SP — <blocker>: <why>`
+   Example: `[strategic-partner] SP — copy-prompt broken: symlink missing`
+
+Length: target 40–100 chars. 200 is a hard ceiling, not a goal. If you
+find yourself approaching 150, you are listing too much — pick the one
+piece of information the user would act on and cut the rest.
+
+Anti-pattern (do NOT do this):
+
+`v5.11.0 bundle complete: 5 commits (copy-prompt, setup prune + hotfix, notify rule, startup conformance). Ready for Codex Step 2b review + push.`
+
+143 chars, comma-separated list of 5 items. Unscannable on mobile. Structure
+and template conformance beat verbose summary. The user already knows what
+was dispatched — they need to know IT FINISHED, not WHAT IT WAS.
 
 ### Acceptance Gate
 

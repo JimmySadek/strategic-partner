@@ -27,6 +27,8 @@
   (foreground) dispatches explicitly do not notify.
 
 ### Changed
+- **Release process: mandatory Codex pre-release review** (CLAUDE.md Step 2b, commit 8829bb5) — codified as a gate equivalent to hook verification. Every non-docs-only push must pass `/strategic-partner:codex-feedback` Evidence Audit (Mode B) with the three mandatory questions (diff-matches-CHANGELOG, no-regressions-vs-prior-version, release-worthiness-per-user-segment) before the version bump is applied. Previously documented as optional dual-review guidance; now treated as mandatory release step.
+- **Notify on Backgrounded Completion rule tightened** (SKILL.md) — replaced loose "≤200 chars" guidance with 4 explicit templates (`[<project>] SP — <event>: <detail>` shape), a 40–100 char target range, project-name derivation via `basename "$(git rev-parse --show-toplevel)"`, and an anti-pattern showing the failure mode (verbose comma-separated summary). Addresses user feedback that notifications were "messy and verbose" in real-world use.
 - **Startup hygiene rules elevated to SKILL.md** — the no-echo-chain
   rule for git state commands (and similar compound commands) now lives
   in SKILL.md body with a concrete anti-example, not just
