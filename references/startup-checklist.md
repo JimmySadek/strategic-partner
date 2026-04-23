@@ -312,10 +312,31 @@ While agents are running, read session context in parallel:
 ```
 
 1. **Check for continuation**: `$ARGUMENTS` → `.handoffs/` path?
-2. **Read Serena memories**: `list_memories()` → read relevant ones
-   - `project_overview`, `codebase_structure`, `code_style_and_conventions`
-   - `partner_profile` (if exists)
-   - Any task/session memories from prior sessions
+2. **Survey Serena memories, read on demand**: Call `list_memories()` at
+   startup to see what is available — this is fast and populates your
+   awareness of persistent project knowledge. Then read memories ON
+   DEMAND, not eagerly: when a specific decision or advisory question
+   requires their content, read the relevant memory at that moment.
+
+   **Always read at startup** (high-value orientation context):
+   - `project_overview` (what the project is, current state)
+   - Most recent `decision_log` entries (recent commitments, context
+     for current session direction)
+
+   **Read on demand** (content depends on the specific task):
+   - `codebase_structure` — read when exploring architecture or routing
+     tasks to files
+   - `code_style_and_conventions` — read when making recommendations
+     that touch conventions
+   - `partner_profile` (if exists) — read once per session to
+     calibrate communication depth
+   - Task or session memories from prior sessions — read when the
+     current task relates to prior work
+
+   This deferred-read pattern preserves token economy for long sessions
+   and matches the behavior of healthy SP sessions in practice. If a
+   memory is clearly relevant to the conversation's active thread, read
+   it. If not, wait until it is.
 3. **Read CLAUDE.md**: Check for project-level rules, conventions, guardrails
 
 4. **Git state**: Run `git status`, `git branch --show-current`, and

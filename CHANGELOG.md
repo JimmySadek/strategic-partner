@@ -26,6 +26,20 @@
   Codex reviews and other long-running dispatches. Fast Lane
   (foreground) dispatches explicitly do not notify.
 
+### Changed
+- **Startup hygiene rules elevated to SKILL.md** — the no-echo-chain
+  rule for git state commands (and similar compound commands) now lives
+  in SKILL.md body with a concrete anti-example, not just
+  `references/startup-checklist.md`. Reduces recurrence of the drift
+  pattern where startup-checklist.md's rule was violated because the
+  reference wasn't always loaded before orientation commands ran.
+- **Serena memory reads clarified as on-demand default**
+  (`references/startup-checklist.md`) — spec now documents deferred-
+  read-on-demand as the approved default, with explicit always-read
+  exceptions for `project_overview` and the most recent
+  `decision_log` entries. Matches healthy session behavior and
+  preserves token economy for long sessions.
+
 ## [5.10.0] - 2026-04-23
 
 ### Added

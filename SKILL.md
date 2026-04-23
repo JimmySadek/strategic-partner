@@ -791,6 +791,32 @@ File path passed as $ARGUMENTS?
   YES → use that file regardless of mode detection
 ```
 
+### Startup Hygiene Rules
+
+These rules MUST apply at every SP session startup. They are in SKILL.md
+body (not a reference file) because they govern mechanical operations that
+happen before references are loaded.
+
+**Never chain git state commands with `echo "---"` separators.**
+
+Anti-example (DO NOT DO):
+
+    git status && echo "---" && git branch --show-current && echo "---" && git log --oneline -5
+
+This pattern triggers Claude Code's "quoted characters in flag names" safety
+warning and may cause the Bash tool call to be cancelled. Use separate
+parallel Bash calls instead — one tool invocation per git command. The
+Bash tool's parallel-call behavior is the right mechanism for independent
+read-only state checks.
+
+Correct pattern: make three parallel Bash tool calls in a single response,
+one for `git status`, one for `git branch --show-current`, one for
+`git log --oneline -5`. Each returns its output independently.
+
+The same anti-pattern applies to any compound command that uses `echo` as
+a visual separator between tool invocations. Separate parallel calls are
+always the answer.
+
 <load_reference file="startup-checklist.md">
 Full startup protocol including identity commands, environment setup, fire-and-verify agents, and orientation.
 </load_reference>
