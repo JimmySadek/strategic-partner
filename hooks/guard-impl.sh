@@ -43,6 +43,11 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
   if [ -z "$FILE_PATH" ]; then
     FILE_PATH=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
   fi
+  # No file_path in payload — fail open to avoid breaking the session
+  if [ -z "$FILE_PATH" ]; then
+    debug_log "decision=allow reason='no file_path parsed'"
+    exit 0
+  fi
   case "$FILE_PATH" in
     [A-Za-z]:\\*|\\\\*)  FILE_PATH_NORM=$(echo "$FILE_PATH" | tr '\\' '/') ;;
     *)                   FILE_PATH_NORM="$FILE_PATH" ;;
@@ -50,16 +55,16 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
 
   # Allowed paths (SP's own workspace)
   case "$FILE_PATH_NORM" in
-    */.prompts/*|*/.prompts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
-    */.handoffs/*|*/.handoffs)   debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
-    */.scripts/*|*/.scripts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
-    */.backlog/*|*/.backlog)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
-    */CLAUDE.md)                 debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
-    */CHANGELOG.md)              debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
-    */README.md)                 debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
-    */SKILL.md)                  debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
-    */.claude/*)                 debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
-    */.gitignore)                debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    .prompts/*|.prompts|*/.prompts/*|*/.prompts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    .handoffs/*|.handoffs|*/.handoffs/*|*/.handoffs) debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    .scripts/*|.scripts|*/.scripts/*|*/.scripts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    .backlog/*|.backlog|*/.backlog/*|*/.backlog)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    CLAUDE.md|*/CLAUDE.md)                            debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    CHANGELOG.md|*/CHANGELOG.md)                      debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    README.md|*/README.md)                            debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    SKILL.md|*/SKILL.md)                              debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    .claude/*|*/.claude/*)                            debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    .gitignore|*/.gitignore)                          debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
   esac
 
   # Everything else is blocked

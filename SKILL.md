@@ -30,21 +30,22 @@ hooks:
             if [ "$TOOL" = "Edit" ] || [ "$TOOL" = "Write" ] || [ "$TOOL" = "MultiEdit" ] || [ "$TOOL" = "NotebookEdit" ]; then
               FP=$(echo "$INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)
               [ -z "$FP" ] && FP=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
+              [ -z "$FP" ] && exit 0
               case "$FP" in
                 [A-Za-z]:\\*|\\\\*)  FP_NORM=$(echo "$FP" | tr '\\' '/') ;;
                 *)                   FP_NORM="$FP" ;;
               esac
               case "$FP_NORM" in
-                */.prompts/*|*/.prompts) exit 0 ;;
-                */.handoffs/*|*/.handoffs) exit 0 ;;
-                */.scripts/*|*/.scripts) exit 0 ;;
-                */.backlog/*|*/.backlog) exit 0 ;;
-                */CLAUDE.md) exit 0 ;;
-                */CHANGELOG.md) exit 0 ;;
-                */README.md) exit 0 ;;
-                */SKILL.md) exit 0 ;;
-                */.claude/*) exit 0 ;;
-                */.gitignore) exit 0 ;;
+                .prompts/*|.prompts|*/.prompts/*|*/.prompts) exit 0 ;;
+                .handoffs/*|.handoffs|*/.handoffs/*|*/.handoffs) exit 0 ;;
+                .scripts/*|.scripts|*/.scripts/*|*/.scripts) exit 0 ;;
+                .backlog/*|.backlog|*/.backlog/*|*/.backlog) exit 0 ;;
+                CLAUDE.md|*/CLAUDE.md) exit 0 ;;
+                CHANGELOG.md|*/CHANGELOG.md) exit 0 ;;
+                README.md|*/README.md) exit 0 ;;
+                SKILL.md|*/SKILL.md) exit 0 ;;
+                .claude/*|*/.claude/*) exit 0 ;;
+                .gitignore|*/.gitignore) exit 0 ;;
               esac
               echo "BLOCKED: Strategic Partner does not edit source files. Craft a prompt instead, or dispatch an agent. (Tool: $TOOL, Path: $FP)" >&2
               exit 2
@@ -591,12 +592,9 @@ The pattern:
 2. Continue advisory work on independent tasks while the agent runs.
 3. When the completion notification fires, IMMEDIATELY:
    a. Load PushNotification via ToolSearch if not already loaded.
-   b. Fire one PushNotification with a short, action-leading message
-      (≤200 chars). Example formats:
-        "Codex review complete: GO — 0 findings"
-        "Codex review complete: CONDITIONAL GO — 3 findings, see session"
-        "Codex review complete: NO-GO — blocker on auth migration"
-        "Background agent complete: feature build, commit abc1234"
+   b. Fire one PushNotification using the templates from the "Message
+      format (templates)" block below. Target 40-100 chars; lead with
+      action, not process state.
 4. THEN proceed with Post-Dispatch review (git log, git diff, verdict).
 
 Scope rules:
@@ -635,6 +633,24 @@ Templates (pick the one that fits the event):
 4. Blocker / needs attention:
    `[<project>] SP — <blocker>: <why>`
    Example: `[strategic-partner] SP — copy-prompt broken: symlink missing`
+
+Core principle — lead with what the user needs to DO, not what the tool
+DID. Process state (timeouts, retries, tool-internal details, transient
+failures) is noise unless it changes the user's next action. If a review
+effectively concluded but the formal synthesis was cut off, report the
+effective conclusion — not the process failure.
+
+Anti-example (authored in real use, corrected via post-hoc review):
+
+`[strategic-partner] SP — Codex: timed out at verdict synthesis, 3 findings extracted`
+
+Technically accurate but leads with "timed out" — reads as failure. Better:
+
+`[strategic-partner] SP — Codex: CONDITIONAL GO (3 findings, 1 blocker)`
+
+The effective outcome was CONDITIONAL GO; the user needs to know the
+verdict to decide their next step. Whether the synthesis formally
+completed is a tool-internal detail.
 
 Length: target 40–100 chars. 200 is a hard ceiling, not a goal. If you
 find yourself approaching 150, you are listing too much — pick the one

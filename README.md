@@ -181,6 +181,8 @@ cd /path/to/strategic-partner
 
 This registers subcommands with Claude Code. The `/strategic-partner:update` subcommand re-runs setup automatically after each update.
 
+**Note on new subcommands:** When upgrading to a version that introduces new subcommands (e.g., v5.11.0's `/strategic-partner:copy-prompt`), restart your Claude Code session after running `./setup` (or after `/strategic-partner:update`). The CLI reads the registered subcommands at session startup; mid-session additions are not picked up until restart.
+
 After running setup, optionally audit your permissions for a frictionless SP experience:
 
 ```bash

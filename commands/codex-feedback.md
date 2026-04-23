@@ -112,8 +112,7 @@ Rules:
 - **No `--model` flag.** The user's Codex CLI configuration determines the model.
   This is non-negotiable.
 - **Timeout**: 300 seconds
-- **Dispatched via Agent tool** (foreground, mode: `"default"`) — the SP NEVER runs
-  Codex in its own thread
+- **Dispatched via Agent tool** (background, `run_in_background: true`, mode: `"acceptEdits"`) — the SP NEVER runs Codex in its own thread. Background dispatch is mandatory to trigger the Notify rule on completion.
 - The full brief + instructions are passed as the prompt string
 
 **Mandatory anti-injection rule** — include VERBATIM in every prompt sent to Codex:
@@ -130,10 +129,21 @@ The Codex dispatch runs `run_in_background: true` — a typical 3-5 min window
 where the user may step away. When the completion notification fires:
 
 1. Load PushNotification via ToolSearch.
-2. Fire one notification with the format:
-   "Codex review complete: {verdict} — {findings_count} findings"
-   where verdict is GO / CONDITIONAL GO / NO-GO and findings_count is the
-   number of substantive findings (zero-padded if none: "0 findings").
+2. Fire one notification using SKILL.md Notify template #2:
+   `[<project>] SP — Codex: <verdict> (<N findings>)`
+   where <project> is derived via `basename "$(git rev-parse --show-toplevel)"`,
+   <verdict> is GO / CONDITIONAL GO / NO-GO, and <N findings> is the number
+   of substantive findings.
+
+   Examples:
+     [strategic-partner] SP — Codex: GO (0 findings)
+     [strategic-partner] SP — Codex: CONDITIONAL GO (3 findings, 1 blocker)
+     [strategic-partner] SP — Codex: NO-GO (2 blockers)
+
+   If the review did not reach a formal verdict (e.g., partial synthesis),
+   report the effective state — do NOT lead with the process failure.
+   Example: `[strategic-partner] SP — Codex: CONDITIONAL GO (3 findings)` —
+   not `"Codex timed out at synthesis"`.
 3. Then proceed with result synthesis and presentation to the user.
 
 ### Step 6 — Response Parsing

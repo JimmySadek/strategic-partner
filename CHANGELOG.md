@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Fixed
+- **PreToolUse hook allow-list now matches relative paths** (hooks/guard-impl.sh + SKILL.md frontmatter inlined copy) — previously the case patterns required an absolute-path prefix (`*/.handoffs/*`), which blocked Write/Edit tool calls using relative paths against otherwise-allow-listed directories. The Fenced Prompt Emission Protocol (9c65b47) instructs writes to `.handoffs/last-prompts/[N].md` (relative) — the hook now correctly permits those. Added bare-form and relative-form patterns per allow-list entry. Bash and Serena guards were already correct; only Guard 1 needed the fix.
 - **setup script now prunes stale symlinks** — previously setup only
   added missing symlinks but never removed orphaned ones. A stale
   `sync-skills.md` symlink (dating from pre-v5.2.1 removal of
@@ -25,6 +26,7 @@
   finding (≤200 chars). Eliminates the walk-away dead zone during
   Codex reviews and other long-running dispatches. Fast Lane
   (foreground) dispatches explicitly do not notify.
+- **README note on new subcommand discovery** — documents that users must restart their Claude Code session after running `./setup` (or `/strategic-partner:update`) to pick up new subcommands introduced by the release. Prevents confusion when upgrading to a version that adds commands like `/strategic-partner:copy-prompt`.
 
 ### Changed
 - **Release process: mandatory Codex pre-release review** (CLAUDE.md Step 2b, commit 8829bb5) — codified as a gate equivalent to hook verification. Every non-docs-only push must pass `/strategic-partner:codex-feedback` Evidence Audit (Mode B) with the three mandatory questions (diff-matches-CHANGELOG, no-regressions-vs-prior-version, release-worthiness-per-user-segment) before the version bump is applied. Previously documented as optional dual-review guidance; now treated as mandatory release step.
@@ -41,6 +43,10 @@
   exceptions for `project_overview` and the most recent
   `decision_log` entries. Matches healthy session behavior and
   preserves token economy for long sessions.
+- **Notify rule refined with "action, not process" principle** (SKILL.md) — new guidance at the top of the Message format templates block: lead with what the user needs to do, not what the tool did. Partial/timed-out dispatches report the effective outcome (e.g. "CONDITIONAL GO, 3 findings") rather than the process failure ("timed out at synthesis"). Includes a real anti-example from v5.11.0 prep.
+- **commands/codex-feedback.md aligned with new Notify templates** — replaced the legacy "Codex review complete: {verdict} — {findings}" format with SKILL.md template #2 and resolved the foreground/background contradiction (was both; now consistently `run_in_background: true, mode: "acceptEdits"`).
+- **SKILL.md Notify rule Step 3b no longer duplicates examples** — inline legacy examples removed in favor of a pointer to the authoritative "Message format (templates)" block in the same section.
+- **copy-prompt now detects WSL and routes to clip.exe** (commands/copy-prompt.md) — WSL was previously treated as generic Linux (uname -s = Linux) and fell through to xclip/xsel, which are often absent on WSL. New detection: if `uname -r` contains `microsoft` or `WSL` (case-insensitive), use `clip.exe` via WSL interop.
 
 ## [5.10.0] - 2026-04-23
 

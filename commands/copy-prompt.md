@@ -50,13 +50,14 @@ proceed to Step 4 with the selected file.
 Run `uname -s` to detect the OS. Pick the clipboard command:
 
 - `Darwin` → `pbcopy`
-- `Linux` → try `xclip -selection clipboard`; if `xclip` is not found, try
+- WSL detection: `uname -r` contains `microsoft` or `WSL` (case-insensitive grep) → `clip.exe` (the Windows clipboard via WSL interop, not xclip)
+- `Linux` (and not WSL) → try `xclip -selection clipboard`; if `xclip` is not found, try
   `xsel --clipboard --input`; if neither is found, print:
   > "Clipboard copy failed: neither `xclip` nor `xsel` found. Install one with your package manager (e.g. `apt install xclip`) and retry."
   Then exit.
 - `MINGW*`, `MSYS*`, or `CYGWIN*` (glob match against uname output) → `clip.exe`
 - Any other value → print:
-  > "Clipboard copy failed: unsupported OS `{uname output}`. Expected Darwin, Linux, or Windows (MINGW/MSYS/CYGWIN)."
+  > "Clipboard copy failed: unsupported OS `{uname output}`. Expected Darwin, Linux, WSL, or Windows (MINGW/MSYS/CYGWIN)."
   Then exit.
 
 ### Step 5 — Copy and report
