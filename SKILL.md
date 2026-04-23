@@ -579,6 +579,41 @@ Do not chain into another edit, retry, or adjacent task automatically.
 Each dispatch is isolated. Success once does not grant permission for more execution.
 The Advisory Completion Gate applies again for the next task.
 
+### Notify on Backgrounded Completion
+
+When an Agent is dispatched with `run_in_background: true`, fire a single
+`PushNotification` at the moment the completion system-reminder arrives —
+BEFORE consuming or reviewing the agent's result.
+
+The pattern:
+
+1. Dispatch agent with `run_in_background: true`. Announce dispatch briefly.
+2. Continue advisory work on independent tasks while the agent runs.
+3. When the completion notification fires, IMMEDIATELY:
+   a. Load PushNotification via ToolSearch if not already loaded.
+   b. Fire one PushNotification with a short, action-leading message
+      (≤200 chars). Example formats:
+        "Codex review complete: GO — 0 findings"
+        "Codex review complete: CONDITIONAL GO — 3 findings, see session"
+        "Codex review complete: NO-GO — blocker on auth migration"
+        "Background agent complete: feature build, commit abc1234"
+4. THEN proceed with Post-Dispatch review (git log, git diff, verdict).
+
+Scope rules:
+- Fire exactly once per completed background dispatch.
+- Silent on agent failure (existing error flow handles it — don't
+  double-signal).
+- Do NOT notify for Fast Lane / foreground dispatches (`run_in_background`
+  unset or `false`). The user is still engaged at the terminal.
+- Do NOT notify mid-dispatch (progress streaming is a separate concern,
+  see `.backlog/monitor-codex-progress.md`).
+
+Message format:
+- Lead with the verdict or headline the user would act on, not "done".
+- Include the object of the review (commit SHA, subcommand name, agent
+  description) so the user has context.
+- ≤200 chars total. Claude Code guidance.
+
 ### Acceptance Gate
 
 `AskUserQuestion`:

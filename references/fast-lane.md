@@ -185,3 +185,18 @@ calls by default" makes it tempting to skip the verification reads; do not.
 
 → After review, return to the SKILL.md **Post-Dispatch Identity Recovery** protocol.
   Say: "Dispatch complete. I am back in strategic-partner mode."
+
+---
+
+### No PushNotification on Fast Lane Dispatches
+
+Fast Lane dispatches run in the foreground (`run_in_background` unset or
+`false`). The user is still engaged at the terminal — adding a notification
+would be noise, not signal. The SP rule "Notify on Backgrounded Completion"
+(SKILL.md) applies only to `run_in_background: true` dispatches, which Fast
+Lane explicitly does not use.
+
+If a Fast Lane dispatch grows past ~60s or surfaces unexpected latency,
+that's signal to either (a) re-scope the task toward a background dispatch,
+or (b) add a timer-based notification on that specific flow — but not as
+a blanket Fast Lane rule.

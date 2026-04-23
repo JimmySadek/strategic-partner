@@ -19,6 +19,12 @@
   must include setup invocation, symlink verification, restart
   requirement note, and end-to-end invocation test as acceptance
   gates. Closes a process gap discovered during copy-prompt delivery.
+- **Notify on Backgrounded Completion** (SKILL.md rule) — SP now fires a
+  single PushNotification when any agent dispatched with
+  `run_in_background: true` completes. Leads with verdict / headline
+  finding (≤200 chars). Eliminates the walk-away dead zone during
+  Codex reviews and other long-running dispatches. Fast Lane
+  (foreground) dispatches explicitly do not notify.
 
 ## [5.10.0] - 2026-04-23
 
