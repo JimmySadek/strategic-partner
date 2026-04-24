@@ -6,7 +6,7 @@
 
 # strategic-partner
 
-A strategic advisory skill for Claude Code that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
+A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
 ---
 
@@ -106,7 +106,7 @@ Then say: *"We need to build an onboarding flow"*
 
 **Strategic Partner responds:**
 
-> **Triggers:** #4 fired (solution-shaped — "onboarding flow" describes a feature, not a problem).
+> **Premise challenge:** solution-shaped request — "onboarding flow" describes a feature, not a problem.
 >
 > Before we scope this — what user problem does onboarding solve? Are new users dropping off? Confused by the setup? Missing a key activation step?
 
@@ -181,7 +181,7 @@ cd /path/to/strategic-partner
 
 This registers subcommands with Claude Code. The `/strategic-partner:update` subcommand re-runs setup automatically after each update.
 
-**Note on new subcommands:** When upgrading to a version that introduces new subcommands (e.g., v5.11.0's `/strategic-partner:copy-prompt`), restart your Claude Code session after running `./setup` (or after `/strategic-partner:update`). The CLI reads the registered subcommands at session startup; mid-session additions are not picked up until restart.
+**Note on new subcommands:** When upgrading to a version that introduces new subcommands, restart your Claude Code session after running `./setup` (or after `/strategic-partner:update`). The CLI reads the registered subcommands at session startup; mid-session additions are not picked up until restart.
 
 After running setup, optionally audit your permissions for a frictionless SP experience:
 
@@ -217,22 +217,31 @@ The skill loads an advisory persona, scans your project, and asks what you're wo
 
 The SP operates through a lean core (SKILL.md) that loads reference material on demand:
 
+### User-facing capabilities
+
 - **Strategic advisory and prompt crafting** — the core loop: discover, challenge premises, present alternatives, route, craft, review
 - **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Model-aware prompt generation** — SP detects the active Claude model at startup (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, via both friendly names and exact model IDs) and selects reusable XML prompt blocks + effort recommendations per target model. Every crafted prompt inherits hallucination prevention, scope discipline, and model-appropriate patterns.
 - **Reusable prompt block library** — 7 Anthropic-authored XML blocks (`<investigate_before_answering>`, `<avoid_over_engineering>`, `<subagent_usage>`, `<use_parallel_tool_calls>`, `<conservative_actions>`, `<scope_explicit>`, `<context_awareness>`) can be composed into crafted prompts. Copy-safe for inline use. Default blocks auto-included in the template.
-- **Closure rigor** — session-end detection triggers an 8-row pass/fail Closure Checklist (Serena memories, CLAUDE.md proposals, findings, backlog, `.prompts/`, `.scripts/`, git state, `.handoffs/`) before any handoff is written; the handoff is auto-dispatched on session-end signals; post-handoff verification confirms the continuation prompt and `.gitignore` coverage are correct before the session ends.
+- **Fenced prompt emission + /copy-prompt** — every implementation prompt SP emits is written to `.handoffs/last-prompts/[N].md` at emission time. Retrieve the most recent prompt to the OS clipboard with `/strategic-partner:copy-prompt` — eliminates mouse-select friction on the handoff path. Cross-platform: pbcopy / xclip / xsel / clip.exe (with WSL detection).
+- **Notify on Backgrounded Completion** — when SP dispatches an agent with `run_in_background: true` (long-running reviews, multi-file patches), a single desktop notification fires at completion with the verdict or headline finding. Walk away during the 3-5 min window; come back to the conclusion, not a progress monologue. Fast Lane (foreground) dispatches do not notify — the user is still watching.
 - **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
-- **Implementation boundary** — the SP is not allowed to implement in its own session, enforced structurally via a PreToolUse hook (exit code 2 blocks Edit/Write/Bash mutations on source files) and 3 behavioral gates (Advisory Completion, Advisory Reset, Post-Dispatch Recovery)
 - **Fast Lane dispatch** — subordinate delivery mechanism for small, reversible tasks; requires Advisory Completion Gate to pass first; detailed mechanics loaded on demand from reference file
 - **[✅ SAFE]/[⚠️ RISK] confidence labels** — recommendations carry explicit confidence signals for executors
 - **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.5) for independent review on high-stakes decisions
-- **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure decisions survive across sessions
-- **Context handoff management** — monitors context pressure and preserves full session state before it degrades
 - **Session findings and backlog stewardship** — automatic capture of feedback during advisory sessions, with two-layer persistence: lightweight session findings and curated backlog items with trigger-based surfacing at startup
 - **Cognitive patterns** — 14 named thinking heuristics wired to specific decision points with mandatory triggers (not a decorative table — they fire at the right moments)
+- **Context handoff management** — monitors context pressure and preserves full session state before it degrades
+- **Closure rigor** — session-end detection triggers an 8-row pass/fail Closure Checklist (Serena memories, CLAUDE.md proposals, findings, backlog, `.prompts/`, `.scripts/`, git state, `.handoffs/`) before any handoff is written; the handoff is auto-dispatched on session-end signals; post-handoff verification confirms the continuation prompt and `.gitignore` coverage are correct before the session ends.
 - **Provider-specific prompt formatting** — adapts prompt structure for Claude, OpenAI, and Gemini targets
+
+### Under the hood
+
+- **Implementation boundary** — the SP is not allowed to implement in its own session, enforced structurally via a PreToolUse hook (exit code 2 blocks Edit/Write/Bash mutations on source files) and 3 behavioral gates (Advisory Completion, Advisory Reset, Post-Dispatch Recovery)
+- **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure decisions survive across sessions
+- **13-item Post-Craft Verification visible checklist** — every crafted prompt renders a visible pass/fail table of 13 quality checks (skill routing, file context, deliverables, verification commands, commit message, format match, copy-safety, scope exclusions, model-aware blocks, etc.) BEFORE the fenced prompt. The check runs in the response, not in invisible reasoning — you can audit every crafted prompt without trusting hidden cognition.
+- **1M context advisory (Opus 4.7 sessions)** — on 1M-context models, SP surfaces a one-time orientation note: autocompact defaults to ~95% (~950K), known Anthropic issues cause erratic behavior above ~256K, and users can consider wrapping up or triggering handoff around 250K for reliable retrieval. Pure advisory; no settings changed.
 
 <details>
 <summary>Full file tree</summary>
