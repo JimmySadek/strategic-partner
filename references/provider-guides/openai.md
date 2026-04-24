@@ -1,11 +1,13 @@
-# OpenAI / GPT-5.4 — Prompt Format Guide
+# OpenAI / GPT-5.5 — Prompt Format Guide
 
 Provider-specific format reference for the strategic-partner advisor.
 Load this guide when crafting prompts that target OpenAI sessions.
 
 **When to use**: Codex CLI, ChatGPT, OpenAI API sessions.
 
-**Core principle**: GPT-5.4 prioritizes early instructions and benefits from flat,
+> **Note (2026-04-24):** OpenAI has not yet published an official GPT-5.5 prompting guide. Guidance below is carried forward from GPT-5.2 Cookbook (latest authoritative) and GPT-5.4 defaults. Refresh when OpenAI publishes a 5.5-specific guide.
+
+**Core principle**: GPT-5.5 prioritizes early instructions and benefits from flat,
 explicit structure. Critical rules placed first get the strongest adherence.
 Uses XML-based tags but with different tag names and conventions from Claude.
 
@@ -76,14 +78,14 @@ Keep it focused — one goal, not multiple objectives.
 
 ### `<critical_rules>`
 
-Non-negotiable constraints placed at the top of the prompt. GPT-5.4 gives
+Non-negotiable constraints placed at the top of the prompt. GPT-5.5 gives
 stronger adherence to rules encountered early. This is the most important
 structural difference from Claude prompts.
 
 ### `<execution_order>`
 
 A flat numbered list of steps. Never nest bullets — if a step has sub-steps,
-break them into a separate section or separate numbered items. GPT-5.4
+break them into a separate section or separate numbered items. GPT-5.5
 follows flat lists more reliably than hierarchical ones.
 
 ### `<edge_cases>`
@@ -105,7 +107,7 @@ Claude's `<verification>` but named to emphasize the iterative check pattern.
 
 ## Prompt Rules
 
-1. **Critical rules FIRST** — GPT-5.4 prioritizes early instructions more strongly
+1. **Critical rules FIRST** — GPT-5.5 prioritizes early instructions more strongly
 2. **Flat structure** — never nest bullets; if a step has sub-steps, make them a separate section
 3. **One example** — include one correct output example when the expected format isn't obvious
 4. **No ambiguity** — GPT-5.4 mini/nano variants are more literal and make fewer assumptions
@@ -115,13 +117,13 @@ Claude's `<verification>` but named to emphasize the iterative check pattern.
 
 ## Key Differences from Claude
 
-| Aspect | Claude 4.x | GPT-5.4 |
+| Aspect | Claude 4.x | GPT-5.5 |
 |---|---|---|
 | Critical rules placement | Inside `<instructions>` | Dedicated `<critical_rules>` tag, placed FIRST |
 | List style | Nested bullets OK | Flat lists only — split into sections instead |
 | Verification | `<verification>` checklist | `<verification_loop>` with pre-finalization checks |
 | Context | `<context>` with file list + constraints | `<task>` for goal + `<execution_order>` for file reads |
-| Orchestration | `<orchestration>` for multi-agent | Not applicable — GPT-5.4 uses single-agent model |
+| Orchestration | `<orchestration>` for multi-agent | Not applicable — GPT-5.5 uses single-agent model |
 | Mini/nano variants | N/A | Be more explicit about execution order (more literal) |
 
 ---

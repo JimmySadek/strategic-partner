@@ -31,7 +31,7 @@ Key behaviors:
 | `/strategic-partner:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
-| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.4) |
+| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.5) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work |
 
 ## Usage

@@ -1,6 +1,6 @@
 ---
 name: codex-feedback
-description: "Cross-model adversarial review via Codex CLI (GPT-5.4)"
+description: "Cross-model adversarial review via Codex CLI (GPT-5.5)"
 category: advisory
 complexity: advanced
 mcp-servers: []

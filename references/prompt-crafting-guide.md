@@ -4,7 +4,7 @@ Reference file for the strategic-partner advisor. Standards for crafting impleme
 prompts across target models.
 
 ```
-Discovery Protocol → Alternatives Analysis → Routing Decision Tree → Parallelization Check → Quality Check → Format Selection (Claude XML / GPT-5.4 XML / Gemini MD / Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
+Discovery Protocol → Alternatives Analysis → Routing Decision Tree → Parallelization Check → Quality Check → Format Selection (Claude XML / GPT-5.5 XML / Gemini MD / Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
 ```
 
 ---
@@ -21,7 +21,7 @@ Every implementation prompt must:
 6. **Specify the model** — every prompt involving agents must name Opus or Sonnet explicitly
 7. **End with the expected commit message** — conventional-commit format
 8. **Leave no ambiguity** — nothing that would require follow-up questions
-9. **Match format to target model** — Claude: XML tags; GPT-5.4: flat XML tags; Gemini: Markdown headers (see Format Selection)
+9. **Match format to target model** — Claude: XML tags; GPT-5.5: flat XML tags; Gemini: Markdown headers (see Format Selection)
 10. **Specify the target branch** — if the project uses feature branches, name the branch in the prompt's `<context>` section so the implementer works in the right place
 11. **Include NOT-in-scope exclusions** for multi-file prompts — name specific adjacent temptations the executor will face (optional for single-file fixes)
 12. **Label recommendations [✅ SAFE] or [⚠️ RISK]** — signal whether a recommendation is established practice or an opinionated position (skip for factual statements)
@@ -280,7 +280,7 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 6 | `<verification>` has testable checkboxes with commands/outcomes | Says "verify it works" without specifying HOW |
 | 7 | Expected commit uses conventional-commit format | Missing or malformed `type(scope): description` |
 | 8 | Prompt is fully self-contained | References "our earlier discussion" or "current approach" |
-| 9 | Format matches provider guide (see references/provider-guides/) | Claude prompt uses Markdown, GPT-5.4 uses Claude tags, or Gemini uses XML |
+| 9 | Format matches provider guide (see references/provider-guides/) | Claude prompt uses Markdown, GPT-5.5 uses Claude tags, or Gemini uses XML |
 | 10 | Inline prompt is copy-safe (no markdown formatting inside ══ fences) | Uses bold, `-` bullets, or tables inside an inline prompt |
 | 11 | `<not-in-scope>` present for multi-file prompts with specific exclusions (see NOT-in-Scope Sections) | Missing for multi-file prompt, or contains vague platitudes ("keep changes minimal") instead of naming specific files, functions, or patterns to leave alone |
 | 12 | Recommendations within the prompt are labeled [✅ SAFE] or [⚠️ RISK] where applicable | Opinionated recommendation presented as fact without signaling confidence level |
@@ -712,7 +712,7 @@ Expected commit: "type(scope): description"
 
 > **Note**: The backtick code fence wrapper is required for Anthropic-format
 > prompts (which use XML tags). Claude Code's markdown renderer strips XML as HTML without
-> this wrapper, losing all structural information. Non-Anthropic formats (GPT-5.4, Gemini)
+> this wrapper, losing all structural information. Non-Anthropic formats (GPT-5.5, Gemini)
 > that don't use XML tags do not need the wrapper.
 
 ### Saved Prompt Launcher (>250 lines OR >5 deliverables)
@@ -771,7 +771,7 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **No launcher for saved prompts**: "go read .prompts/v1.5/phase1.md" → provide COPY-PASTEABLE LAUNCHER block
 - ❌ **Missing model specification**: "Spawn an agent" without specifying sonnet/opus
 - ❌ **Missing mode on agent spawns**: Background agents fail silently without mode specification → always include `mode` parameter
-- ❌ **Format mismatch**: Using Claude XML tags for GPT-5.4 or Gemini targets, or GPT-5.4 tags for Claude → match the format from Format Selection to the target model
+- ❌ **Format mismatch**: Using Claude XML tags for GPT-5.5 or Gemini targets, or GPT-5.5 tags for Claude → match the format from Format Selection to the target model
 - ❌ **Over-prompting**: "Always use Serena for every search" → use conditional triggers
 - ❌ **Pre-4.x holdovers**: Excessive repetition, sycophancy-bait phrasing
 - ❌ **Prompt for config edits**: Writing a Claude prompt to edit JSON configs → generate a `.scripts/` bash script instead

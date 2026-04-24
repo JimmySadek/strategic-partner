@@ -227,7 +227,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Implementation boundary** — the SP is not allowed to implement in its own session, enforced structurally via a PreToolUse hook (exit code 2 blocks Edit/Write/Bash mutations on source files) and 3 behavioral gates (Advisory Completion, Advisory Reset, Post-Dispatch Recovery)
 - **Fast Lane dispatch** — subordinate delivery mechanism for small, reversible tasks; requires Advisory Completion Gate to pass first; detailed mechanics loaded on demand from reference file
 - **[✅ SAFE]/[⚠️ RISK] confidence labels** — recommendations carry explicit confidence signals for executors
-- **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.4) for independent review on high-stakes decisions
+- **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.5) for independent review on high-stakes decisions
 - **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure decisions survive across sessions
 - **Context handoff management** — monitors context pressure and preserves full session state before it degrades
 - **Session findings and backlog stewardship** — automatic capture of feedback during advisory sessions, with two-layer persistence: lightweight session findings and curated backlog items with trigger-based surfacing at startup
@@ -264,7 +264,7 @@ strategic-partner/
     cognitive-patterns.md               # Named thinking heuristics for architecture and trade-offs
     provider-guides/
       anthropic.md                      # Claude XML prompt format template
-      openai.md                         # GPT-5.4 prompt format template
+      openai.md                         # GPT-5.5 prompt format template
       google.md                         # Gemini Markdown prompt format template
   assets/templates/
     prompt-template.md                  # Implementation prompt skeleton
@@ -288,7 +288,7 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 | `/strategic-partner:handoff` | Trigger a context handoff with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
-| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.4) |
+| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.5) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---
