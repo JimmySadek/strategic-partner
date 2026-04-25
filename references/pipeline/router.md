@@ -13,25 +13,26 @@ in the current turn, Router classifies it into exactly one of four channels.
 Channel selection determines WHO owns the decision — and therefore whether
 the decision flows to Egress for AUQ consideration or terminates silently.
 
-## Scope (Brief 1 minimal)
+## Scope (Brief 2)
 
-The minimal Router is deliberately thin:
+After Brief 2, Router implements:
 
-- 4 channels are defined and selectable.
-- Channel selection is DESCRIPTIVE — the minimal Router does NOT gate on
-  C1 T1/T2/T3 terminality criteria.
-- No standing-rule retrieval. Rules in CLAUDE.md / Serena memory are NOT
-  loaded as precedence constraints.
-- No C4 calendar-native routing prior. `project_type` in CLAUDE.md has no
-  effect on Router classification.
+- 4 channels (defined and selectable).
+- **Standing-rule retrieval** — Router queries CLAUDE.md, Serena memories,
+  and `.claude/rules/` for relevant standing rules at classification time.
+- **Precedence stack (5 tiers)** — see Standing-rule retrieval below.
+- **C1 artifact-authority terminality (T1/T2/T3)** — gates the
+  artifact-authority channel; failure of any criterion escalates to
+  user-channel.
 
-Three behaviors land in later briefs:
+One behavior remains deferred:
 
 | Behavior | Brief | Fixture that exercises it |
 |---|---|---|
-| C1 artifact-authority terminality (T1/T2/T3) | Brief 2 (step 4) | F1 passes without; F2 needs T3 gating |
-| Standing-rule retrieval + precedence | Brief 2 (step 3) | F3, F4 |
-| C4 calendar-native routing prior | Brief 3 (step 6) | F2, F3 |
+| C4 calendar-native routing prior (`project_type` biasing) | Brief 3 (step 6) | F2 |
+
+The deferred prior sits at Tier 5 of the precedence stack — see Standing-
+rule retrieval § Precedence stack below.
 
 ## Channels (4)
 
@@ -60,43 +61,165 @@ Channel descriptions:
   artifact silently and emits a silent-log entry per
   `references/pipeline/silent-log.md`.
 
-## Terminality (Brief 1 behavior)
+## C1 — Artifact-authority terminality (T1, T2, T3)
 
-The minimal Router treats `artifact-authority` as terminal whenever a single
-artifact resolves the decision. There is no gating on canonical clarity
-(T1), no precedence check (T2), and no materiality gate (T3).
+When Router classifies a decision as `artifact-authority`, it evaluates the
+three terminality criteria below. **All three must hold (AND)** for the
+decision to be terminal (silent log only). Failure of any one → escalate
+to user-channel with an attention hint based on which criterion failed.
 
-**This is intentionally permissive.** It allows F1 to pass (α is clearly
-canonical, no overrides, planning-only). It will cause F2 to misroute
-(calendar-bearing decision with coordination signal should escalate, but
-minimal Router will silent-log it).
+**Default on uncertainty: fail.** If any criterion is uncertain (cannot be
+affirmatively confirmed), treat it as failed and escalate. The burden of
+proof is on terminality, not on escalation. Same default-tightening logic
+required for Router uncertainty in earlier cycles.
 
-Full C1 terminality lands in Brief 2 step 4 — adding T1/T2/T3 criteria, each
-of which can fail and escalate to user-channel. Until then, artifact-authority
-is a permissive terminal that passes F1 only.
+**Attention-hint labels:** Brief 2 labels each escalation as `must-ask` (or
+`must-ask` IF / silent-with-log per T2's special case below). The
+depth-modulation MECHANICS for the hint (how it affects Asking Pattern
+depth and Forced Alternatives) land in Brief 3 step 7.
+
+### T1 — Canonical source is clear
+
+A single artifact is unambiguously the source of truth for the decision.
+
+**Tests:**
+
+- One artifact is explicitly designated canonical (e.g.,
+  `MASTER_ROADMAP.md`, project README, `feedback_*.md` Serena memory)
+- OR a user-authored rule designates which artifact wins on conflict
+  (e.g., "Sunday rehearsals are the source — other docs follow")
+- OR there is only one artifact addressing the decision
+
+**Fails when:**
+
+- Multiple artifacts address the decision with no canonical designation
+- Canonical artifact is internally inconsistent (contradictory entries)
+- Canonical designation is itself disputed (e.g., two docs each claim to
+  be the master)
+
+**Escalation hint on T1 failure:** `must-ask` (user picks canonical or
+chooses).
+
+### T2 — No higher-precedence constraint conflicts
+
+The artifact's content does not conflict with any higher-precedence
+constraint. Per the Precedence stack defined in the Standing-rule
+retrieval section below:
+
+```
+1. Current direct instruction
+2. Hard commitments (safety / legal / financial)
+3. User-authored rules (CLAUDE.md, Serena memory, feedback_*.md, .claude/rules/)
+4. Project planning docs
+5. General SP defaults (incl. project_type prior — added Brief 3)
+```
+
+**Tests:**
+
+- Current session contains no direct user instruction overriding the
+  artifact
+- No hard commitment (safety / legal / financial) constrains the decision
+- No user-authored rule (CLAUDE.md / Serena memory / `feedback_*.md` /
+  `.claude/rules/`) overrides
+- No higher-tier project doc contradicts
+
+**Fails when:**
+
+- User said something different in this session
+- A standing rule binds the decision differently
+- A higher-tier doc contradicts the artifact
+
+**Escalation hint on T2 failure:** `must-ask` IF the higher-precedence
+constraint is itself ambiguous; otherwise SP applies the higher constraint
+silently and logs both (the artifact and the override).
+
+### T3 — No unresolved material consequence requires user judgment
+
+Applying the artifact has no material consequence requiring user judgment
+per Egress's 7 materiality signals (`external_commitment` / `quality_bar` /
+`governance_gate` / `coordination` / `money` / `legal` /
+`critical_path_dependency` — see `references/pipeline/egress.md`).
+
+**Tests:**
+
+- The decision touches none of the 7 materiality signals (positive
+  criterion check, not absence-of-evidence)
+- OR the artifact's specification fully resolves the material consequence
+  (e.g., a user-authored standing rule already adjudicates the trade-off)
+
+**Fails when:**
+
+- Applying the artifact would create / break / redirect any material
+  consequence
+- A material consequence exists but the artifact does not fully address it
+
+**Escalation hint on T3 failure:** `must-ask` (the user owns material
+decisions even when an artifact is canonical).
+
+### Silent log on terminal pass
+
+When all three criteria hold, Router emits a silent-log entry per
+`references/pipeline/silent-log.md`. The `reason` field cites which
+T-criteria held:
+
+```
+[YYYY-MM-DD HH:MM] [router] "Decision summary" → applied [artifact source]
+  | reason: artifact-authority terminal (T1 ✓, T2 ✓, T3 ✓)
+```
+
+For T-failure escalations, no artifact-authority log line is emitted —
+escalation produces a user-channel AUQ which logs through the standard
+digest path.
 
 **Full spec:** `.handoffs/v512-spec-addenda-0425.md` § C1.
 
-## Standing-rule retrieval (DEFERRED)
+## Standing-rule retrieval
 
-**Status: stub. Brief 2 step 3 implements.**
+Router queries three sources for relevant standing rules at classification
+time:
 
-When implemented, Router will load user-authored standing rules (CLAUDE.md
-conventions, Serena memories matching `feedback_*.md` shape) at classification
-time. Rules are evaluated as precedence constraints per C4's hierarchy:
+1. **CLAUDE.md content** — project-scoped rules and conventions
+2. **Serena memories** matching the decision domain — typically
+   `feedback_*.md` named patterns, but any memory whose body addresses the
+   decision counts
+3. **`.claude/rules/` path-scoped rules** — rules with `paths:`
+   frontmatter matching the current file or scope
+
+Retrieval is best-effort. Absence of a matching rule is logged but is not
+an error. When Serena is unavailable, Router falls back to file-based
+reads of CLAUDE.md and `.claude/rules/`.
+
+A matching rule can:
+
+- (a) Redirect channel selection (e.g., override the `project_type:
+  calendar-native` routing prior added in Brief 3)
+- (b) Fail C1 T2 terminality — the rule binds the decision differently
+  than the candidate artifact, so artifact-authority is not terminal
+- (c) Be cited in the AUQ framing when escalation fires (e.g., F4: "Your
+  CLAUDE.md rule says to always ask vendors about date changes…")
+
+### Precedence stack
+
+The 5-tier precedence stack determines which constraint wins when two
+sources address the same decision. Verbatim from
+`.handoffs/v512-spec-addenda-0425.md` § C4 § Precedence:
 
 ```
-current direct instruction > hard commitments > user-authored rules >
-project planning docs > general SP defaults (incl. project_type)
+1. Current direct instruction
+2. Hard commitments (safety / legal / financial)
+3. User-authored rules (CLAUDE.md, Serena memory, feedback_*.md, .claude/rules/)
+4. Project planning docs
+5. General SP defaults (incl. project_type prior — added Brief 3)
 ```
 
-A matching rule can (a) redirect channel selection (e.g., override
-`project_type: calendar-native`'s bias), (b) fail C1 T2 terminality (rule
-binds decision differently than artifact), or (c) be cited in the AUQ
-framing when escalation fires.
+Higher tier always overrides lower. Tiers are evaluated top-down: if Tier
+1 binds the decision, Tiers 2-5 are not consulted; if Tier 1 is silent
+and Tier 2 binds, Tiers 3-5 are not consulted; etc.
 
-Brief 1 does NOT retrieve standing rules. Fixtures F3 and F4 document the
-target behavior and are expected to fail until Brief 2 lands.
+When a constraint is itself uncertain (e.g., a rule is found but its
+interpretation is ambiguous for the current case), default to escalate
+rather than silently picking an interpretation. Same default-on-uncertainty
+discipline as C1 terminality.
 
 ## Calendar-native routing prior (DEFERRED)
 
@@ -104,48 +227,62 @@ target behavior and are expected to fail until Brief 2 lands.
 
 When implemented, `project_type: calendar-native` in CLAUDE.md will bias
 Router classification AWAY from artifact-authority for calendar-bearing
-reconciliations (per C3 two-part test), toward user-channel with `likely-
-ask` attention hint.
+reconciliations (per the C3 two-part test in
+`references/pipeline/egress.md`), toward user-channel with `likely-ask`
+attention hint.
 
-The prior sits at the `general SP defaults` precedence tier — below
-current instruction, hard commitments, user-authored rules, and project
-planning docs. Any higher-tier constraint addressing calendar handling
-overrides the prior.
+The prior sits at **Tier 5 — General SP defaults** in the Precedence stack
+above. Any higher-tier constraint addressing calendar handling overrides
+the prior. Brief 2's standing-rule retrieval already loads Tiers 1-4, so
+once the prior lands in Brief 3, the override paths exercised by F3 and
+F4 work without further Router changes.
 
-The prior does NOT raise materiality thresholds, does NOT modify materiality
-signal definitions, and does NOT cause AUQs on every date mentioned.
+The prior does NOT raise materiality thresholds, does NOT modify
+materiality signal definitions, and does NOT cause AUQs on every date
+mentioned.
 
-Brief 1 does NOT implement the prior. Fixture F2 documents target behavior
-and is expected to fail until Brief 3 lands.
+Brief 2 does NOT implement the prior. Fixture F2 documents target
+behavior and is expected to fail until Brief 3 lands.
 
 **Full spec:** `.handoffs/v512-spec-addenda-0425.md` § C4.
 
-## Output (Brief 1)
+## Output
 
 For each decision the turn surfaces, Router emits:
 
-| Field | Values | Brief 1 behavior |
+| Field | Values | Brief 2 behavior |
 |---|---|---|
-| `channel` | `user` \| `SP` \| `executor` \| `artifact-authority` | Descriptive selection |
-| `attention_hint` | `must-ask` \| `likely-ask` \| `no-hint` | Defaults to `no-hint` (hint wiring is Brief 3 step 7) |
-| `artifact_source` | path or memory name | Set when `channel = artifact-authority` |
+| `channel` | `user` \| `SP` \| `executor` \| `artifact-authority` | Selected after Standing-rule retrieval and (for artifact-authority candidates) C1 T1/T2/T3 evaluation |
+| `attention_hint` | `must-ask` \| `likely-ask` \| `no-hint` | Set on T-failure escalations and on `genuine_ambiguity` from Bootstrap B2; depth-modulation MECHANICS land in Brief 3 step 7 |
+| `artifact_source` | path or memory name | Set when `channel = artifact-authority` AND T1/T2/T3 all hold |
 
-Decisions classified as `artifact-authority` are terminal — Router emits the
-silent-log entry and exits. All other channels flow to Egress.
+Decisions classified as `artifact-authority` and passing T1/T2/T3 are
+terminal — Router emits the silent-log entry and exits. All other channels
+(including artifact-authority candidates that fail any T-criterion) flow
+to Egress.
 
 ## Test fixture coverage
 
-- **F1** — PASS. α is clearly the canonical artifact, no overrides, internal
-  planning only. Minimal Router selects `artifact-authority`, terminal,
-  silent log. Fixture passes.
-- **F2** — FAIL (expected). Needs C4 routing prior (Brief 3) + C1 T3
-  terminality (Brief 2) to route correctly to `user` with `likely-ask`.
-- **F3** — FAIL (expected). Needs standing-rule retrieval (Brief 2) to apply
-  `feedback_calendar_vs_quality.md` override.
-- **F4** — FAIL (expected). Needs standing-rule retrieval (Brief 2) + C1 T2
-  terminality (Brief 2) to cite the rule and route via override path.
-- **F5** — Not a Router concern — F5 tests Bootstrap B2. Router runs normally
-  if B2 fires; in Brief 1, B2 is deferred so Router misroutes on preferences.
+- **F1** — PASS. α is the canonical artifact, no overrides, internal
+  planning only. Router selects `artifact-authority`, T1/T2/T3 all hold,
+  terminal, silent log.
+- **F2** — PASS after Brief 2 (with caveat). C1 T3 fails on the
+  `coordination` signal (named participants + downstream sequencing) →
+  escalate to user-channel. Pass criteria 1-4 satisfiable. The
+  `likely-ask` attention-hint MECHANICS land in Brief 3; if reviewer
+  expects a visible `likely-ask` indicator, F2 may PARTIAL-pass with that
+  caveat (assertion satisfied otherwise).
+- **F3** — PASS. Standing-rule retrieval finds
+  `feedback_calendar_vs_quality.md`; the rule overrides any future
+  `project_type: calendar-native` prior. C1 T1/T2/T3 all pass under the
+  override → silent log with override citation.
+- **F4** — PASS. Standing-rule retrieval finds the CLAUDE.md vendor rule.
+  T2 fails because the rule binds the decision differently than the
+  artifact alone → user-channel via override path with the rule cited in
+  framing.
+- **F5** — Not a Router concern — F5 tests Bootstrap B2. After Brief 2,
+  B2 emits `genuine_ambiguity` with `reason`; Router routes to `user`
+  with `must-ask`; Egress satisfies via the `genuine_ambiguity` clause.
 
 ## Downstream stage
 

@@ -20,27 +20,26 @@ The stage exists to prevent two opposite failure modes:
 - SP asks about nothing the user would want to own (under-firing; the
   α/β/γ / calendar-bookkeeping / preference failures).
 
-## Scope (Brief 1 minimal)
+## Scope (Brief 2)
 
-The composite rule STRUCTURE is described and applied, but signal evaluation
-is a placeholder pass-through. Specifically:
+After Brief 2, the composite rule STRUCTURE is fully active:
 
-- `owner` evaluates correctly — channel-derived from Router output.
-- Material signals (`material`, `irreversible`, `high-cost`,
-  `genuine_ambiguity`, `explicit_override`) all evaluate as placeholder
-  pass-through — each returns `false` in the minimal slice (no detection
-  logic is implemented).
+- `owner` evaluates from Router channel selection.
+- `material` evaluates against the **7 materiality signals** detailed
+  below (with C3 sharpening of the `coordination` signal).
+- `genuine_ambiguity` evaluates from Bootstrap B2's flag (with `reason`
+  field carrying the triggering preference category).
+- `irreversible`, `high-cost`, `explicit_override` evaluate via existing
+  pattern gates (Bezos one-way doors, Blast Radius Instinct, session
+  context) and the composite rule reads them.
 
-In the minimal slice, `AUQ_PROCEED` fires only when SP's general advisory
-heuristics (not the Egress composite rule) would compose an AUQ — the
-composite rule itself does not yet gate anything.
+The v5.12.0 minimum for Brief 2 requires `material OR genuine_ambiguity`
+to gate AUQ_PROCEED on user-channel decisions. Full Egress wiring of
+`irreversible` / `high-cost` / `explicit_override` (vs being inherited
+from pattern gates) is not strictly required for Brief 2; pattern gates
+continue to fire those clauses as they do today.
 
-This is intentional. Signal evaluation lands in Brief 2 step 5 (7 materiality
-signals) and Brief 2 (`genuine_ambiguity` from Bootstrap B2). Until those
-land, Egress is a structural placeholder that documents the target form
-without computing it.
-
-## Composite rule (target form)
+## Composite rule (active)
 
 ```
 AUQ_PROCEED iff owner == user AND (
@@ -53,11 +52,11 @@ Readings of each clause:
 | Clause | Meaning | Source |
 |---|---|---|
 | `owner == user` | Router classified channel as `user` | Router output |
-| `material` | Any of the 7 materiality signals fires | Brief 2 step 5 |
-| `irreversible` | Decision is a one-way door (Bezos) | Brief 2 / pattern gate |
-| `high-cost` | Reversing is costly even if technically possible | Brief 2 |
-| `genuine_ambiguity` | Bootstrap B2 emitted the flag (C5) | Brief 2 (B2) |
-| `explicit_override` | User explicitly asked to be consulted | Session context |
+| `material` | Any of the 7 materiality signals fires | The 7 materiality signals section below |
+| `irreversible` | Decision is a one-way door (Bezos) | Pattern gate (Bezos one-way doors / Blast Radius Instinct) |
+| `high-cost` | Reversing is costly even if technically possible | Pattern gate (cost-of-reversal heuristic) |
+| `genuine_ambiguity` | Bootstrap B2 emitted the flag (C5) — `reason` field carries the triggering preference category | Bootstrap output (`references/pipeline/bootstrap.md` § B2) |
+| `explicit_override` | User explicitly asked to be consulted on this decision class | Session context |
 
 The `owner == user` requirement guards against asking on decisions the user
 does not own. The OR-cluster inside the parentheses requires at least one
@@ -65,65 +64,248 @@ substantive reason to ask. Both halves must hold — a user-owned decision
 without any signal does not proceed to AUQ (e.g., a trivial preference the
 user delegated).
 
-## Signal evaluation (DEFERRED)
+## The 7 materiality signals
 
-**Status: placeholder pass-through. Brief 2 step 5 implements.**
+The `material` clause fires when ANY of the 7 signals below fires for the
+decision under evaluation. The signal set is locked at exactly 7 — neither
+more nor fewer. Order: `external_commitment`, `quality_bar`,
+`governance_gate`, `coordination`, `money`, `legal`,
+`critical_path_dependency`.
 
-The 7 materiality signals (per C3's coordination sharpening and v3 spec):
+### 1. external_commitment
 
-| # | Signal | Fires when |
-|---|---|---|
-| 1 | `external_commitment` | Decision creates or modifies an external obligation |
-| 2 | `quality_bar` | Decision affects a stated quality threshold |
-| 3 | `governance_gate` | Decision crosses a sign-off / approval boundary |
-| 4 | `coordination` | Named participants / external comms / sequencing / calendar-bearing deliverable (C3) |
-| 5 | `money` | Spend, revenue, or financial commitment |
-| 6 | `legal` | Compliance, contract, or regulatory exposure |
-| 7 | `critical_path_dependency` | Current execution depends on this decision |
+**Definition:** Decision creates, modifies, or affects an obligation to a
+party outside the SP+user dyad — a customer, vendor, partner, reviewer,
+candidate, or anyone who has set expectations based on it.
 
-In Brief 1, none of these are detected. Egress treats `material` as `false`
-for all decisions. `genuine_ambiguity` is also `false` (Bootstrap B2 is
-deferred).
+**Fires when:**
 
-`irreversible` and `high-cost` are detectable via pattern-gate heuristics
-(Bezos one-way doors, Blast Radius Instinct) — these continue to fire from
-general advisory habits in Brief 1, but are not yet wired into the Egress
-composite rule.
+- A communication has been or will be sent to a third party committing to
+  a date, deliverable, or quality
+- A contract, SLA, or public statement is on the line
+- A counterparty is sequencing their work on the assumption SP+user will
+  deliver
+- The decision changes what was previously communicated externally
+
+**Examples:**
+
+- Vendor delivery date in a roadmap that was shared with the vendor
+- Public launch date on a marketing page
+- Customer-facing API change that breaks integration contracts
+
+### 2. quality_bar
+
+**Definition:** Decision affects a stated quality threshold — a level of
+correctness, polish, performance, or completeness the user has previously
+declared as the bar for "good enough."
+
+**Fires when:**
+
+- The decision lowers a standard the user has explicitly named (e.g.,
+  test coverage threshold, p99 latency, "no shipping with known TODOs")
+- The decision raises a standard in a way that affects scope or schedule
+- A trade-off between speed and quality is on the table and the user has
+  expressed strong preferences in either direction
+- The output crosses an "acceptance bar" the user owns
+
+**Examples:**
+
+- Skipping integration tests on a refactor when the user has a "always
+  green main" rule
+- Shipping a feature with known accessibility gaps
+- Choosing a cheaper algorithm that misses the user's stated p95 target
+
+### 3. governance_gate
+
+**Definition:** Decision crosses a sign-off or approval boundary — review,
+audit, change-management, or any process gate that a defined role owns.
+
+**Fires when:**
+
+- The decision needs a code review, security review, design review, or
+  legal review before merging or shipping
+- A change-management gate (CAB, release manager, on-call lead) must
+  approve
+- The user is not the approver and the decision pre-empts the approver's
+  role
+- The decision sets policy that other contributors will be expected to
+  follow
+
+**Examples:**
+
+- Merging a migration without DBA review when the project requires one
+- Promoting a release candidate to production without the user's "ship"
+  call
+- Adding a new dependency without security review
+
+### 4. coordination
+
+**Definition:** Decision touches the date, time, or sequencing of a
+calendar-bearing deliverable — meaning an artifact whose schedule is
+load-bearing for parties who consume it as coordination truth (per the
+C3 two-part test below).
+
+**Fires when** the decision's date / time / sequencing affects ANY of:
+
+- Participants (named individuals or roles)
+- External comms (sent, scheduled, or planned)
+- Deadline compliance (a stated deadline)
+- Sequencing (current execution depends on date ordering)
+- Venue, vendor, customer, reviewer, candidate, legal, grant, or
+  public-launch commitments
+- A **calendar-bearing deliverable** (per C3 two-part test below)
+
+#### C3 — Calendar-bearing deliverable two-part test (AND)
+
+A "calendar-bearing deliverable" is an artifact for which BOTH hold —
+verbatim from `.handoffs/v512-spec-addenda-0425.md` § C3:
+
+- **P1 — Substance test:** The date / schedule / sequencing is a
+  load-bearing element of the deliverable's coordination function (not
+  metadata about the deliverable). Removing the date changes the
+  deliverable's coordination meaning. The deliverable's primary purpose
+  is communicating schedule, date, or sequencing — or the date is named
+  / cited as a binding element.
+- **P2 — Consumption test:** Other parties or processes consume the date
+  as coordination truth — they make commitments, allocate resources,
+  sequence work, or set expectations based on it.
+
+**Single-question discriminator (operational shortcut):**
+
+> "Would removing this date from the artifact change downstream
+> commitments, sequencing, or resource allocation?"
+
+- **YES** → calendar-bearing deliverable (P1 ✓ AND P2 ✓) → `coordination`
+  signal fires
+- **NO** → not calendar-bearing → the `coordination` signal does not fire
+  on this artifact alone
+
+**Examples (calendar-bearing → fires):**
+
+- Calendar invite (date IS the deliverable; invitees commit time)
+- Project roadmap with milestone dates (team / stakeholders sequence on
+  it)
+- Launch plan with launch date (marketing / eng / legal sequence on it)
+- Slack message confirming rehearsal time (attendees commit time)
+
+**Examples (not calendar-bearing → does NOT fire):**
+
+- Bug report with `reported_on: 2026-04-25` (date is metadata, not
+  consumed for scheduling)
+- README "last updated" timestamp (not a coordination basis)
+- Code review checklist mentioning a date incidentally
+
+### 5. money
+
+**Definition:** Decision involves spend, revenue, or a financial
+commitment — direct cost, opportunity cost beyond a threshold, or a
+budgeted line item.
+
+**Fires when:**
+
+- The decision triggers spend (vendor fees, infrastructure cost, paid
+  service) above an unwritten "small enough to absorb" threshold
+- The decision affects revenue (pricing change, promo, churn risk)
+- The decision allocates a budget the user owns
+- A rush fee, late fee, or penalty is on the table
+
+**Examples:**
+
+- $800 rush fee for compressed mastering turnaround (F4)
+- Switching to a paid tier of a SaaS dependency
+- A refund / credit decision for a customer
+
+### 6. legal
+
+**Definition:** Decision creates compliance, contract, or regulatory
+exposure — anything where the wrong move incurs legal risk.
+
+**Fires when:**
+
+- The decision affects data handling under a regulation (GDPR, HIPAA,
+  CCPA, PCI, etc.)
+- The decision modifies or interprets a contract clause
+- The decision touches IP, licensing, attribution, or terms of service
+- A statutory deadline or notification requirement applies
+
+**Examples:**
+
+- Changing data retention to ship a feature faster
+- Using a library under a license incompatible with the project
+- Sharing user data with a new third-party processor
+
+### 7. critical_path_dependency
+
+**Definition:** Current execution depends on this decision — work
+downstream is blocked, or sequencing of upstream work is locked by it.
+
+**Fires when:**
+
+- A blocking dependency is waiting on the outcome
+- The decision sets a precedent that downstream work is built around
+- Reversing the decision later would invalidate work already in flight
+- The decision is the gate before a parallel team / process can proceed
+
+**Examples:**
+
+- Schema choice that all downstream services will consume
+- API contract that mobile and web clients are about to ship against
+- Branching strategy decision before a major refactor lands
+
+---
+
+The 7 signals collectively cover the materiality space documented in v3
+plus the C3 sharpening. New signals are not added; the set is locked.
+When evaluating a decision, Egress checks each signal in order; the first
+fire is sufficient (`material` is the OR of the 7).
 
 **Full spec:** v3 materiality definitions + `.handoffs/v512-spec-addenda-
 0425.md` § C3 (coordination sharpening).
 
-## Behavior in Brief 1
+## Behavior in Brief 2
 
-Because the composite rule's OR-cluster evaluates as placeholder-false,
-Egress in Brief 1 does NOT actively gate AUQ_PROCEED — instead, AUQs fire
-via SP's general advisory habits (Forced Alternatives pattern, Ask Don't
-Drift, Advisory Completion Gate). This means:
+Egress now actively gates AUQ_PROCEED via the composite rule. The
+OR-cluster substantively evaluates each clause; SP's general advisory
+habits (Forced Alternatives, Ask Don't Drift, Advisory Completion Gate)
+compose the AUQ that the gate authorizes — they do not bypass it.
 
-- Decisions Router classifies as `artifact-authority` silent-log and never
-  reach Egress (F1 works).
-- Decisions Router classifies as `user` reach Egress, the composite rule
-  is a no-op, and SP falls back to advisory habits — which may or may not
-  produce the right AUQ depending on the fixture.
-- Fixtures F2, F3, F4, F5 all depend on signals or flags that Brief 1 does
-  not compute. Their expected Brief 1 failure modes reflect this.
-
-This is the correct minimal-slice behavior — Brief 1 authors the structure
-without the signal detection that makes the structure effective.
+- Decisions Router classifies as `artifact-authority` and passing
+  T1/T2/T3 silent-log at Router and never reach Egress (F1 works as in
+  Brief 1).
+- Decisions Router classifies as `user` (including artifact-authority
+  candidates that fail any T-criterion) reach Egress. The composite rule
+  evaluates `owner == user` AND (`material` OR `irreversible` OR
+  `high-cost` OR `genuine_ambiguity` OR `explicit_override`).
+- Fixtures F2, F3, F4 turn green via the materiality / override paths.
+  F5 turns green via the `genuine_ambiguity` path from Bootstrap B2.
+- Brief 3 layers C4 routing prior on top of Brief 2's gates. F2's
+  `likely-ask` attention-hint depth-modulation lands in Brief 3 step 7.
 
 ## Test fixture coverage
 
-- **F1** — Egress never runs (Router terminates at artifact-authority). F1
-  passes by Router alone.
-- **F2-F4** — Egress runs but signal detection is deferred; composite rule
-  does not fire correctly; fixtures fail as documented.
-- **F5** — Egress's `genuine_ambiguity` clause is the target satisfier, but
-  the flag is not emitted in Brief 1 (B2 deferred). F5 fails as documented.
+- **F1** — Egress never runs (Router terminates at `artifact-authority`
+  with T1/T2/T3 holding). F1 passes by Router alone.
+- **F2** — Egress evaluates the `coordination` signal (named participants
+  + downstream sequencing) → fires → composite rule satisfied →
+  AUQ_PROCEED. F2 passes (modulo the Brief 3 attention-hint depth caveat).
+- **F3** — Standing-rule override applied at Router; T1/T2/T3 all pass
+  under the override → terminal at Router; Egress does not run. F3
+  passes.
+- **F4** — Standing-rule override applied at Router; T2 fails → escalate
+  to Egress. Egress evaluates: `owner == user` ∧ (`coordination` ∨
+  `money`) → AUQ_PROCEED. F4 passes with the rule cited in framing.
+- **F5** — Bootstrap B2 emits `genuine_ambiguity` with `reason`; Router
+  routes to `user` with `must-ask`; Egress satisfies the composite rule
+  via the `genuine_ambiguity` clause → AUQ_PROCEED. F5 passes.
 
 ## Silent log integration
 
-Egress itself does NOT emit silent-log entries in Brief 1. Silent logs are
-produced by Router's `artifact-authority` terminal path. When Brief 2 adds
-signal detection and C1 terminality, additional silent-log entries will fire
-from Egress "proceed without AUQ" outcomes (user-owned but no signal fires).
-See `references/pipeline/silent-log.md`.
+Silent logs fire from two paths after Brief 2:
+
+1. **Router** — `artifact-authority` terminal pass (T1/T2/T3 all hold) →
+   silent log with reason `artifact-authority terminal (T1 ✓, T2 ✓, T3 ✓)`.
+2. **Egress** — user-channel decision with `owner == user` but no clause
+   in the OR-cluster fires (no materiality, no ambiguity, no override) →
+   silent log with reason `egress: user-owned but no signal fired`.
+
+Both paths use `references/pipeline/silent-log.md` for entry format.

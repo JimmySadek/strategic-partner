@@ -99,3 +99,29 @@ from materiality-bias.
 Each fixture's `## Brief 1 expected fail mode` block documents the specific
 failure shape. When re-running fixtures after Brief 2 or Brief 3 lands,
 expect the corresponding fixture(s) to turn green.
+
+---
+
+## Brief 2 expected results
+
+After Brief 2 lands, the following fixture status changes are expected.
+Compare actual results to this table during manual review. Drift from
+"expected" is itself a regression signal.
+
+| Fixture | Brief 2 result | Why |
+|---|---|---|
+| F1 — α/β/γ planning reconciliation | **PASS** (regression check) | Minimal pipeline still handles α/β/γ; T1/T2/T3 added but the F1 case has all three holding |
+| F2 — calendar-native rehearsal coordination | **PASS** (with caveat) | C1 T3 catches the coordination signal → escalate. C4 routing prior absent (Brief 3) — AUQ may not have a `likely-ask` attention hint, but pass criteria 1-4 are satisfiable |
+| F3 — calendar-native internal bookkeeping | **PASS** | Standing-rule retrieval + override applied. C1 T1/T2/T3 all pass under override → silent log |
+| F4 — precedence conflict / direct-rule boundary | **PASS** | Standing-rule retrieval + precedence resolution. T2 fails on user-authored override → user-channel via override path |
+| F5 — Bootstrap fresh-session context shift | **PASS** | Bootstrap B2 detects unknown user-owned preference → `genuine_ambiguity` → user-channel must-ask AUQ. `reason` field populated per Codex note (b) |
+
+**F2 caveat:** F2 may PARTIAL-pass if reviewers expect the `likely-ask`
+attention hint to be visibly cited in SP's response. Without C4 routing
+prior in Brief 2, the hint MECHANICS land in Brief 3. Reviewer judgment:
+if pass criteria 1-4 hold but no `likely-ask` indicator appears, mark
+PARTIAL with note "C4 attention hint deferred to Brief 3 — assertion
+satisfied otherwise."
+
+After Brief 3 lands, F2 should turn fully PASS (the `likely-ask` indicator
+becomes visible and the depth-modulation MECHANICS take effect).
