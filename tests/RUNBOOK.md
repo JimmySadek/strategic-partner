@@ -1,0 +1,101 @@
+# Fixture Runbook — Strategic Partner
+
+**Purpose:** Manual protocol for running the red transcript fixtures that
+validate the v5.12.0 pipeline (Bootstrap → Router → Egress → silent log).
+
+**Scope:** v5.12.0. Fixtures live at `tests/fixtures/v5.12.0/`. Each fixture
+is a markdown file describing input, expected behavior, and pass criteria.
+
+**Why this exists:** SP behavior is produced by a prompt. We cannot unit-test
+a prompt — we can only compare its output against documented expectations.
+This runbook formalizes that comparison so regressions are visible between
+briefs.
+
+---
+
+## How to run a fixture
+
+1. Open a fresh Claude Code session in the strategic-partner project root.
+2. Invoke `/strategic-partner` to load the SP skill (orientation runs).
+3. After SP completes orientation and prompts you, paste the fixture's
+   `## Input transcript` content verbatim as the next user message.
+4. Observe SP's response carefully — read the full response, including any
+   AskUserQuestion options it offers.
+5. Compare SP's response to the fixture's `## Expected behavior` block.
+6. Check SP did not exhibit any item in the fixture's `## Forbidden behavior` block.
+7. Mark pass / fail using the explicit criteria in the fixture's `## Pass criteria` block.
+
+---
+
+## What "pass" means
+
+- **PASS** — SP demonstrates ALL expected behavioral markers AND demonstrates
+  NONE of the forbidden behaviors.
+- **FAIL** — SP misses one or more expected markers OR demonstrates at least
+  one forbidden behavior.
+- **PARTIAL** — Subjective ambiguity (e.g., marker is present but weaker than
+  expected, or phrasing differs in ways that may or may not matter). Capture
+  the exact response text in the run log and flag for review.
+
+Prompt output is stochastic. Minor phrasing variations that preserve the
+behavioral marker are PASS. Only mark PARTIAL when genuinely uncertain
+whether the marker is present.
+
+---
+
+## Run log format
+
+Append each fixture run to `tests/run-log.md` (this file is created on first
+manual run — not authored by Brief 1). One entry per run:
+
+```
+### [YYYY-MM-DD HH:MM] Fixture FN — [verdict]
+
+- Session UUID: [paste from `/resume` or session context]
+- Fixture: FN — [fixture name]
+- Verdict: PASS | FAIL | PARTIAL
+- Notes: [1-3 sentences on what SP did]
+- Divergence from expected: [only if FAIL or PARTIAL — quote exact SP text]
+```
+
+Keep entries chronological. Do not delete old entries — they are the
+regression history.
+
+---
+
+## Why manual review (not automation)
+
+Prompt outputs are stochastic: the same input produces slightly different
+wording across runs. Grep-based assertions ("response contains `AUQ`") are
+brittle — phrasing drift silently breaks them, and a "passing" grep can
+easily miss a failure in behavior that happens to use a synonym.
+
+LLM-judge automation is on the v5.12.0 roadmap (step 7-8) but deferred until
+the fixture assertion patterns stabilize. Brief 1 establishes the fixtures;
+automation comes after we know what we are asserting.
+
+---
+
+## Brief 1 expected results
+
+The v5.12.0 plan lands in three briefs. Brief 1 delivers only the minimal
+vertical slice (Bootstrap B1 + 4-channel Router + composite Egress + silent
+log). Most fixtures are intentionally red — they document expected behavior
+that later briefs will deliver.
+
+| Fixture | Brief 1 result | Why |
+|---|---|---|
+| F1 — α/β/γ planning reconciliation | **PASS** | Minimal pipeline handles artifact-authority silent log correctly |
+| F2 — calendar-native rehearsal coordination | **FAIL** (expected) | Needs C4 routing prior + C1 T3 terminality — land in Brief 2/3 |
+| F3 — calendar-native internal bookkeeping | **FAIL** (expected) | Needs standing-rule retrieval + C1 terminality — land in Brief 2 |
+| F4 — precedence conflict / direct-rule boundary | **FAIL** (expected) | Needs standing-rule retrieval + precedence resolution — land in Brief 2 |
+| F5 — Bootstrap fresh-session context shift | **FAIL** (expected) | Needs Bootstrap B2 (C5 detection) — lands in Brief 2 |
+
+F2 and F3 must be reviewed **together**: they are a discrimination pair
+(same task type, differentiated only by standing-rule override presence).
+A single-fixture read is ambiguous; the pair discriminates routing-bias
+from materiality-bias.
+
+Each fixture's `## Brief 1 expected fail mode` block documents the specific
+failure shape. When re-running fixtures after Brief 2 or Brief 3 lands,
+expect the corresponding fixture(s) to turn green.

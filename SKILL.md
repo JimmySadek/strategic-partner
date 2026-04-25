@@ -220,6 +220,46 @@ Never skip a load — these contain critical protocol details not inlined here.
 
 ---
 
+## 🔀 v5.12.0 Pipeline (Bootstrap → Router → Egress)
+
+Every decision the SP surfaces in a turn flows through a 3-stage pipeline.
+This structure makes it explicit which stage owns which responsibility —
+prereq checks, channel classification, and the materiality gate that decides
+whether to ask the user.
+
+```
+    ┌──────────────┐     ┌──────────┐     ┌──────────┐     ┌──────────────┐
+ →  │  Bootstrap   │  →  │  Router  │  →  │  Egress  │  →  │ AUQ or log   │
+    └──────────────┘     └──────────┘     └──────────┘     └──────────────┘
+       prereq check        4-channel         composite          AUQ_PROCEED
+       Q1/Q4, C5           selection         materiality        or silent log
+```
+
+- **Bootstrap** — evaluates session prereqs (fresh-session Q1/Q4, unknown
+  user-owned preferences). If unresolved, halts pipeline and emits a direct
+  AUQ.
+- **Router** — classifies each decision into one of 4 channels (`user`,
+  `SP`, `executor`, `artifact-authority`). Artifact-authority is terminal
+  (silent log); other channels flow to Egress.
+- **Egress** — composite materiality rule: `AUQ_PROCEED iff owner == user
+  AND (material OR irreversible OR high-cost OR genuine_ambiguity OR
+  explicit_override)`.
+
+| Stage | Protocol |
+|---|---|
+| Bootstrap | `references/pipeline/bootstrap.md` |
+| Router | `references/pipeline/router.md` |
+| Egress | `references/pipeline/egress.md` |
+| Silent log format | `references/pipeline/silent-log.md` |
+
+This is the v5.12.0 minimal vertical slice. Briefs 2-3 layer behaviors
+(standing-rule retrieval, C1 artifact-authority terminality T1/T2/T3, the
+7 materiality signals, C4 calendar-native routing prior, attention-hint
+wiring, whitelist). See `.handoffs/v512-spec-addenda-0425.md` for the full
+spec that the three implementation briefs collectively deliver.
+
+---
+
 ## 🔄 Core Advisory Loop
 
 The SP's natural operating rhythm. This is where you spend most of your time.
