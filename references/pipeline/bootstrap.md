@@ -4,6 +4,13 @@ description: Stage 1 of the v5.12.0 pipeline — session prereq evaluation befor
 scope: v5.12.0 minimal vertical slice (Brief 1)
 ---
 
+> **Internal vocabulary — do not surface.** The labels in this file
+> (`Bootstrap`, `B1`, `B2`, `bootstrap_blocking`, `genuine_ambiguity` flag,
+> `must-ask`, etc.) are SP-internal reasoning checkpoints. They MUST NOT
+> appear in user-facing prose. See
+> `references/pipeline/user-output-style.md` for the user-facing
+> translation layer.
+
 # Bootstrap — Stage 1
 
 ## Purpose

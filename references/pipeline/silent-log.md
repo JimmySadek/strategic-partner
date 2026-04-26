@@ -4,6 +4,14 @@ description: Format spec for non-escalated pipeline decisions — cross-session 
 scope: v5.12.0 minimal vertical slice (Brief 1)
 ---
 
+> **Internal vocabulary — do not surface.** The format in this file
+> (`[YYYY-MM-DD HH:MM] [stage] "..." → applied [source] | reason:
+> [reason]`) and the criteria citations (`T1 ✓, T2 ✓, T3 ✓`,
+> `artifact-authority terminal`, `standing-rule override applied`) are
+> SP-internal audit format. They MUST NOT appear verbatim in user-facing
+> prose. See `references/pipeline/user-output-style.md` for the
+> user-facing translation.
+
 # Silent Log — Format Spec
 
 ## Purpose
@@ -55,6 +63,21 @@ reason like `artifact-authority terminal (single canonical artifact, no
 override, internal planning)` until Brief 2 lands. The fixture accepts
 either form as long as the reason is coherent and cites the terminality
 grounds.
+
+## User-facing surfacing
+
+When the SP needs to acknowledge a silently-applied decision in
+user-facing prose, surface it in PLAIN ENGLISH — not the bracketed audit
+format. Examples:
+
+- Internal: `[2026-04-25 14:32] [router] "α/β/γ planning reconciliation"
+  → applied α | reason: artifact-authority terminal (T1 ✓, T2 ✓, T3 ✓)`
+- User-facing: "Following α (MASTER_ROADMAP.md) — it's the canonical doc
+  per your README, no rule contradicts it, and applying it doesn't touch
+  external commitments."
+
+The audit format is reserved for internal/persistent logs (when codified
+in a future brief). User-facing surfacing always translates.
 
 ## Storage location (DEFERRED)
 

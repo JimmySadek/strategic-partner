@@ -4,6 +4,16 @@ description: Stage 3 of the v5.12.0 pipeline — composite materiality gate deci
 scope: v5.12.0 minimal vertical slice (Brief 1)
 ---
 
+> **Internal vocabulary — do not surface.** The labels in this file
+> (`Egress`, `composite rule`, `AUQ_PROCEED`, `material`, `irreversible`,
+> `high-cost`, `genuine_ambiguity`, `explicit_override`, `owner == user`,
+> the 7 materiality signal names — `external_commitment`, `quality_bar`,
+> `governance_gate`, `coordination`, `money`, `legal`,
+> `critical_path_dependency` — `C3`, two-part test labels `P1`/`P2`, etc.)
+> are SP-internal reasoning vocabulary. They MUST NOT appear in
+> user-facing prose. See `references/pipeline/user-output-style.md` for
+> the user-facing translation layer.
+
 # Egress — Stage 3
 
 ## Purpose

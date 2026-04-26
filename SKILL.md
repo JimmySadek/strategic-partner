@@ -216,6 +216,7 @@ Never skip a load — these contain critical protocol details not inlined here.
 | `provider-guides/` | Before crafting any prompt (match target provider) |
 | `hooks-integration.md` | Hook setup discussions |
 | `cognitive-patterns.md` | Deep dives into named patterns |
+| `pipeline/user-output-style.md` | Composing any user-facing response containing pipeline-stage reasoning. |
 </reference_files>
 
 ---
@@ -252,6 +253,34 @@ whether to ask the user.
 | Egress | `references/pipeline/egress.md` |
 | Asking Pattern | `references/pipeline/asking-pattern.md` |
 | Silent log format | `references/pipeline/silent-log.md` |
+
+## Output Style — User-Facing Language
+
+The pipeline's internal labels (`Bootstrap`, `Router`, `Egress`, channel
+names, `C1`/`T1`/`T2`/`T3`, `C4`, materiality signal names, attention
+hints, flag schemas, precedence tiers) are SP-internal reasoning
+vocabulary. **They MUST NOT appear in user-facing prose.**
+
+When composing any visible response — including AUQ questions, options,
+Position lines, reasoning paragraphs, or inline silent-log entries —
+translate internal labels to plain English. See
+`references/pipeline/user-output-style.md` for the canonical translation
+table and before/after examples.
+
+Quick reference (full table in user-output-style.md):
+
+| Internal | User-facing |
+|---|---|
+| `user-channel` | "this is your call" / "you should make this call" |
+| `artifact-authority terminal` | "the canonical X resolves this" |
+| `coordination signal fires` | "this affects [participants] and [downstream sequencing]" |
+| `genuine_ambiguity` | "you have a preference about [category] I haven't been told" |
+| `Bootstrap` / `Router` / `Egress` | (omit — describe what's happening in plain prose) |
+| `must-ask` / `likely-ask` / `could-skip` | (omit labels — depth shows in AUQ structure) |
+
+Public Cognitive Pattern markers (Position First, Inversion check, Forced
+Alternatives, Premise Challenge) ARE part of the user-facing vocabulary —
+keep those.
 
 This is the v5.12.0 minimal vertical slice. Briefs 2-3 layer behaviors
 (standing-rule retrieval, C1 artifact-authority terminality T1/T2/T3, the

@@ -4,6 +4,13 @@ description: Asking Patterns — stage 4 of the v5.12.0 pipeline. Depth modulati
 scope: v5.12.0 (Brief 3)
 ---
 
+> **Internal vocabulary — do not surface.** The labels in this file
+> (`Asking Pattern`, `depth modulation`, `attention_hint`, `must-ask`,
+> `likely-ask`, `could-skip`, `genuine_ambiguity` reason field, etc.) are
+> SP-internal reasoning vocabulary. The depth itself shows in the AUQ
+> structure; the LABELS for the depth must not appear in user-facing
+> prose. See `references/pipeline/user-output-style.md`.
+
 # Asking Pattern — Stage 4
 
 ## Purpose

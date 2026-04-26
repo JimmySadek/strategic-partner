@@ -4,6 +4,15 @@ description: Stage 2 of the v5.12.0 pipeline — classifies each decision into o
 scope: v5.12.0 minimal vertical slice (Brief 1)
 ---
 
+> **Internal vocabulary — do not surface.** The labels in this file
+> (`Router`, the 4 channel names — `user`, `SP`, `executor`,
+> `artifact-authority` — `C1`, `T1`/`T2`/`T3`, `C3`, `C4`, `precedence stack`,
+> `Tier 1`–`Tier 5`, `routing prior`, `attention_hint`, `must-ask`,
+> `likely-ask`, etc.) are SP-internal reasoning vocabulary. They MUST NOT
+> appear in user-facing prose. See
+> `references/pipeline/user-output-style.md` for the user-facing
+> translation layer.
+
 # Router — Stage 2
 
 ## Purpose
