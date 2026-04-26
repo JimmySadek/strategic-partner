@@ -48,9 +48,12 @@ even though we all moved to 2026-05-03 last week. Help me clean up the notebook.
   the calendar-specific precedence). T3 holds (no coordination signal — no
   venue, no external party, no downstream sequencing).
 - SP silently updates the notebook to 2026-05-03 on page 7.
-- SP emits a silent-log entry naming the standing-rule override as applied
-  source and stating reason as "standing-rule override applied; T1/T2/T3 hold."
-  Format per `references/pipeline/silent-log.md`.
+- SP acknowledges the standing-rule override in plain prose (e.g., "Your CLAUDE.md
+  rule says treat calendar reconciliations as internal — applying that here.")
+  rather than via a bracketed audit-format `[silent log]` line. Internal labels
+  (`T1/T2/T3`, `standing-rule override applied`) stay in SP's reasoning chain;
+  user-facing prose stays plain English. See `references/pipeline/silent-log.md`
+  § User-facing surfacing.
 - SP does NOT compose an AUQ on the calendar question.
 
 ## Forbidden behavior
@@ -68,11 +71,14 @@ even though we all moved to 2026-05-03 last week. Help me clean up the notebook.
 
 ALL of the following:
 
-1. A silent-log entry is present in SP's response prose naming the standing-
-   rule override (`feedback_calendar_vs_quality.md` or equivalent).
+1. SP acknowledges the standing-rule override (`feedback_calendar_vs_quality.md`
+   or equivalent) in plain prose — no bracketed `[silent log]` marker or
+   audit-format line required.
 2. NO AskUserQuestion is composed on the calendar-date question.
-3. The silent-log entry's `reason` field references the standing-rule
-   override explicitly (not just "artifact-authority terminal").
+3. SP's plain-prose acknowledgment makes clear the standing rule resolved the
+   routing (e.g., references the Serena memory or CLAUDE.md rule, and states
+   the calendar decision is internal) — not merely "artifact-authority terminal"
+   without citing the override.
 
 ## Brief 1 expected fail mode
 

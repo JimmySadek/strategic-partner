@@ -1,7 +1,7 @@
 ---
 name: bootstrap
 description: Stage 1 of the v5.12.0 pipeline — session prereq evaluation before Router runs.
-scope: v5.12.0 minimal vertical slice (Brief 1)
+scope: v5.12.0 (complete)
 ---
 
 > **Internal vocabulary — do not surface.** The labels in this file
@@ -41,7 +41,7 @@ Fixture F5 tests B2 and is expected to PASS after Brief 2.
 
 ## B1 — Fresh-session Q1/Q4 resolution
 
-This behavior existed in v3; Brief 1 inherits it unchanged.
+This behavior existed in v3 and is preserved in the v5.12.0 pipeline unchanged.
 
 On every fresh session, Bootstrap evaluates two questions:
 

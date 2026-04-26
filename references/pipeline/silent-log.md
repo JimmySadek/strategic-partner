@@ -1,7 +1,7 @@
 ---
 name: silent-log
 description: Format spec for non-escalated pipeline decisions — cross-session traceability.
-scope: v5.12.0 minimal vertical slice (Brief 1)
+scope: v5.12.0 (complete)
 ---
 
 > **Internal vocabulary — do not surface.** The format in this file
@@ -38,14 +38,14 @@ Fields:
 | Field | Meaning | Notes |
 |---|---|---|
 | `[YYYY-MM-DD HH:MM]` | Timestamp of the decision | Use local time; minute resolution sufficient |
-| `[stage]` | Pipeline stage that emitted the entry | Brief 1: `router` only |
+| `[stage]` | Pipeline stage that emitted the entry | v5.12.0: `router` only |
 | `"Decision summary"` | One-line description of the decision | Quoted, past-tense or noun phrase |
 | `applied [source]` | What was applied | Artifact path, memory name, or rule identifier |
 | `reason: [reason]` | Why this was terminal / non-escalated | References the criteria that held |
 
 ## Examples
 
-Artifact-authority terminal (Brief 1 target — F1):
+Artifact-authority terminal (F1 fixture target):
 
 ```
 [2026-04-25 14:32] [router] "α/β/γ planning reconciliation" → applied α | reason: artifact-authority terminal (T1 ✓, T2 ✓, T3 ✓)
@@ -57,10 +57,9 @@ Standing-rule override (Brief 2 target — F3):
 [2026-04-25 14:35] [router] "Calendar-bearing internal bookkeeping" → applied feedback_calendar_vs_quality.md override | reason: standing-rule override applied
 ```
 
-Note: the T1/T2/T3 citations in F1's example are aspirational for Brief 1 —
-the minimal Router does not actually gate on T1/T2/T3. SP may emit a simpler
-reason like `artifact-authority terminal (single canonical artifact, no
-override, internal planning)` until Brief 2 lands. The fixture accepts
+Note: the T1/T2/T3 citations in F1's example are aspirational —
+SP may emit a simpler reason like `artifact-authority terminal (single
+canonical artifact, no override, internal planning)`. The fixture accepts
 either form as long as the reason is coherent and cites the terminality
 grounds.
 
@@ -93,21 +92,21 @@ in a future brief). User-facing surfacing always translates.
 
 ## Storage location (DEFERRED)
 
-**Status: Brief 1 emits inline. Brief 3 may codify persistent storage.**
+**Status: v5.12.0 emits silent decisions inline as plain prose. Persistent storage deferred.**
 
-In Brief 1, silent-log entries are emitted in SP's response prose as a
-visible `[silent log]` line (prefix or dedicated line). The entry is
-auditable by reading the SP response; it is not persisted to a separate
-file.
+In v5.12.0, silent-channel decisions are surfaced in SP's response as 1-2
+sentences of plain prose (per the User-facing surfacing rules above). They
+are NOT emitted as bracketed `[silent log]` markers in user-visible prose.
+The classification is auditable by reading SP's reasoning chain; it is not
+persisted to a separate file.
 
-Persistent storage to `.handoffs/silent-log-MMDD.md` (or similar) is under
-consideration for Brief 3 — the cross-session audit value increases once
+Persistent storage to `.handoffs/silent-log-MMDD.md` (or similar) remains a
+deferred enhancement candidate — the cross-session audit value increases once
 the pipeline emits more entries and users review them retrospectively.
-Until storage is codified, inline emission is sufficient.
 
 ## When an entry is emitted
 
-Brief 1 emits silent-log entries from exactly one path:
+v5.12.0 emits silent-log entries from exactly one path:
 
 - **Router → artifact-authority terminal** — when Router classifies a
   decision as `artifact-authority` and the minimal slice treats it as
@@ -125,15 +124,17 @@ Each of these lands as the corresponding feature lands.
 
 ## Test fixture coverage
 
-- **F1** — Pass criterion includes "silent-log entry present in SP response
-  prose." Format above.
+- **F1** — Pass criterion: SP cites the canonical source (α / `MASTER_ROADMAP.md`)
+  in plain prose and applies it without composing an AUQ. No bracketed
+  `[silent log]` marker required.
 - **F2** — Silent-log entry MUST NOT be emitted on the coordination question
-  (Forbidden behavior). Brief 1 fails this — it will emit a silent-log
-  entry when it should escalate.
-- **F3** — Pass criterion requires silent-log entry with standing-rule
-  override cited. Brief 1 fails this — standing-rule retrieval not
-  implemented.
+  (Forbidden behavior). v5.12.0 should escalate; if it emits a silent
+  decision instead of escalating, that is the failure shape.
+- **F3** — Pass criterion: SP acknowledges the standing-rule override in plain
+  prose. The override must be cited; the decision must be internal (no AUQ).
 - **F4** — No silent-log entry expected on the vendor-date decision (should
-  escalate). Brief 1 may or may not emit one.
+  escalate). v5.12.0 may emit a plain-prose acknowledgment if it incorrectly
+  treats the decision as terminal.
 - **F5** — No silent-log entry expected for preference decisions (should
-  escalate with must-ask). Brief 1 may or may not emit one.
+  escalate with must-ask). v5.12.0 may emit a plain-prose acknowledgment
+  if it incorrectly treats the preference as resolved.

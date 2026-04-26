@@ -31,6 +31,32 @@ briefs.
 
 ---
 
+## Reviewer vocabulary vs. SP output
+
+Fixture pass criteria use REVIEWER-INTERNAL vocabulary (`must-ask`,
+`genuine_ambiguity`, `T1/T2/T3`, `user-channel`, `artifact-authority terminal`,
+etc.) to describe the behavioral pattern reviewers should look for.
+
+This vocabulary is NOT what SP is supposed to output in user-facing prose. Per
+the v5.12.0 Output Style mandate (`references/pipeline/user-output-style.md`),
+SP's user-facing prose stays plain English — internal pipeline labels remain in
+SP's reasoning chain only.
+
+When evaluating a fixture run:
+- A pass criterion saying "SP routes to user-channel with `must-ask` attention"
+  means the SP's response should have the SHAPE of a substantive partnership AUQ
+  (not a perfunctory likely-ask question), NOT that SP literally outputs the
+  string `must-ask`.
+- A pass criterion saying "silent-log entry naming source X" means SP cites
+  source X in plain prose, NOT that SP outputs a bracketed `[silent log]` marker.
+- A pass criterion saying "T1/T2/T3 hold" means SP's behavior demonstrates the
+  conditions described by T1/T2/T3, NOT that SP literally writes "T1/T2/T3 hold"
+  in its response.
+
+Verify the BEHAVIORAL PATTERN; don't grep for literal labels.
+
+---
+
 ## What "pass" means
 
 - **PASS** — SP demonstrates ALL expected behavioral markers AND demonstrates

@@ -271,6 +271,13 @@ strategic-partner/
     partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
     hooks-integration.md                # Hook event reference and integration patterns
     cognitive-patterns.md               # Named thinking heuristics for architecture and trade-offs
+    pipeline/
+      bootstrap.md                      # Pipeline stage 1 — prereq check (Q1/Q4 fresh-session)
+      router.md                         # Pipeline stage 2 — 4-channel decision classification
+      egress.md                         # Pipeline stage 3 — composite materiality gate
+      asking-pattern.md                 # Pipeline stage 4 — AUQ depth modulation
+      silent-log.md                     # Silent-channel surfacing format + prohibitions
+      user-output-style.md              # Internal-vocabulary → plain-English translation layer
     provider-guides/
       anthropic.md                      # Claude XML prompt format template
       openai.md                         # GPT-5.5 prompt format template
@@ -280,6 +287,15 @@ strategic-partner/
     handoff-template.md                 # Session handoff skeleton (with /insights section)
   docs/
     v4.0-implementation-decisions.md    # Decision log for audit findings F1-F12
+  tests/
+    RUNBOOK.md                          # Manual fixture-review protocol
+    fixtures/
+      v5.12.0/                          # F1-F5 regression fixtures for AUQ Materiality Gate
+        F1-alpha-beta-gamma-planning-reconciliation.md
+        F2-calendar-native-rehearsal-coordination.md
+        F3-calendar-native-internal-bookkeeping.md
+        F4-precedence-conflict-direct-rule-boundary.md
+        F5-bootstrap-fresh-session-context-shift.md
 ```
 
 </details>

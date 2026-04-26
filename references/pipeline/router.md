@@ -46,7 +46,7 @@ hints live in the Asking Pattern stage — see
 
 ## Channels (4)
 
-| Channel | Owner | Meaning | Terminal in Brief 1? |
+| Channel | Owner | Meaning | Terminal? |
 |---|---|---|---|
 | `user` | The user | Decisions the user owns — composes AUQ via Egress | No (flows to Egress) |
 | `SP` | The SP | Decisions in the SP's authority (advisory tactics, framing choices) | Yes (in-role, not user-facing) |
@@ -342,7 +342,7 @@ absent.
 
 For each decision the turn surfaces, Router emits:
 
-| Field | Values | Brief 2 behavior |
+| Field | Values | v5.12.0 behavior |
 |---|---|---|
 | `channel` | `user` \| `SP` \| `executor` \| `artifact-authority` | Selected after Standing-rule retrieval and (for artifact-authority candidates) C1 T1/T2/T3 evaluation |
 | `attention_hint` | `must-ask` \| `likely-ask` \| `no-hint` | Set on T-failure escalations and on `genuine_ambiguity` from Bootstrap B2; depth-modulation MECHANICS land in Brief 3 step 7 |

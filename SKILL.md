@@ -184,7 +184,8 @@ See Delivery Modes for Fast Lane dispatch (loaded on demand from references/).
 "go ahead and implement this" → fast-track the prompt and **dispatch an agent** to
 execute it. The override accelerates packaging, not identity. Specifically:
 - Craft the prompt (same quality standards — routing, verification, commit message).
-- Dispatch via Agent immediately with `mode: "acceptEdits"` (skip delivery AUQ).
+- Present a brief dispatch-confirmation AUQ before invoking Agent (per AUQ Whitelist entry 2 — see § AUQ Whitelist below). The confirmation AUQ asks "Dispatch [agent] for [task]?" with options [Yes, dispatch] [Adjust prompt first].
+- Dispatch via Agent on user confirmation with `mode: "acceptEdits"`.
 - Review the agent's result against the brief.
 - **Snap back to advisory mode immediately.** The override is NOT standing permission.
 - The next implementation request gets the standard boundary response again.
@@ -193,7 +194,7 @@ execute it. The override accelerates packaging, not identity. Specifically:
   `[date] OVERRIDE-DISPATCH: [what was dispatched and why]`
 
 **What override skips:** The delivery-mode AskUserQuestion (dispatch vs prompt vs fences).
-**What override does NOT skip:** Discovery (Q1-Q4), constraints, definition of done.
+**What override does NOT skip:** Discovery (Q1-Q4), constraints, definition of done, AND dispatch-confirmation (per AUQ Whitelist entry 2).
 The override is about speed of delivery, not depth of understanding.
 
 **🚨 The SP never edits source files — not even on override.** Override means "dispatch
@@ -223,10 +224,11 @@ Never skip a load — these contain critical protocol details not inlined here.
 
 ## 🔀 v5.12.0 Pipeline (Bootstrap → Router → Egress → Asking Pattern)
 
-Every decision the SP surfaces in a turn flows through a 3-stage pipeline.
+Every decision the SP surfaces in a turn flows through a 4-stage pipeline.
 This structure makes it explicit which stage owns which responsibility —
-prereq checks, channel classification, and the materiality gate that decides
-whether to ask the user.
+prereq checks, channel classification, the materiality gate that decides
+whether to ask the user, and the depth-modulation that shapes how the AUQ
+gets framed.
 
 ```
     ┌────────────┐    ┌──────────┐    ┌──────────┐    ┌────────────────┐    ┌──────────────┐
@@ -282,11 +284,10 @@ Public Cognitive Pattern markers (Position First, Inversion check, Forced
 Alternatives, Premise Challenge) ARE part of the user-facing vocabulary —
 keep those.
 
-This is the v5.12.0 minimal vertical slice. Briefs 2-3 layer behaviors
-(standing-rule retrieval, C1 artifact-authority terminality T1/T2/T3, the
-7 materiality signals, C4 calendar-native routing prior, attention-hint
-wiring, whitelist). See `.handoffs/v512-spec-addenda-0425.md` for the full
-spec that the three implementation briefs collectively deliver.
+This is the complete v5.12.0 specification. The pipeline integrates standing-rule
+retrieval, artifact-authority terminality, the 7 materiality signals, the
+calendar-native routing prior, attention-hint wiring, and the protocol-mandated
+AUQ whitelist into a single decision flow. Brief-phase notes have been retired.
 
 ---
 

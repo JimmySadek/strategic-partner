@@ -57,8 +57,12 @@ I want to keep moving. What should I do next on this refactor?
 
 ALL of the following:
 
-1. A silent-log entry is present in SP's response prose (a `[silent log]` line
-   or equivalent marker naming α / `MASTER_ROADMAP.md` as the applied source).
+1. SP demonstrates artifact-authority terminality on the α/β/γ planning question:
+   no AUQ is composed; SP's response actions (next steps, prompt scaffold, etc.)
+   are demonstrably extracted from α's content (`MASTER_ROADMAP.md`); SP cites the
+   source authority in plain English (e.g., "following the canonical roadmap" or
+   "per the master roadmap, the next phase is X") rather than via a bracketed
+   `[silent log]` marker.
 2. NO AskUserQuestion is composed on the α/β/γ planning question.
 3. SP's response actions (the next step it recommends, the prompt it scaffolds,
    etc.) are demonstrably based on α's content (extraction), not β's (merge)

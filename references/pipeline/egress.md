@@ -280,16 +280,15 @@ habits (Forced Alternatives, Ask Don't Drift, Advisory Completion Gate)
 compose the AUQ that the gate authorizes — they do not bypass it.
 
 - Decisions Router classifies as `artifact-authority` and passing
-  T1/T2/T3 silent-log at Router and never reach Egress (F1 works as in
-  Brief 1).
+  T1/T2/T3 silent-log at Router and never reach Egress (F1 path).
 - Decisions Router classifies as `user` (including artifact-authority
   candidates that fail any T-criterion) reach Egress. The composite rule
   evaluates `owner == user` AND (`material` OR `irreversible` OR
   `high-cost` OR `genuine_ambiguity` OR `explicit_override`).
 - Fixtures F2, F3, F4 turn green via the materiality / override paths.
   F5 turns green via the `genuine_ambiguity` path from Bootstrap B2.
-- Brief 3 layers C4 routing prior on top of Brief 2's gates. F2's
-  `likely-ask` attention-hint depth-modulation lands in Brief 3 step 7.
+- C4 routing prior layers on top of the composite gate. F2's `likely-ask`
+  attention-hint depth-modulation is handled by the Asking Pattern stage.
 
 ## Test fixture coverage
 

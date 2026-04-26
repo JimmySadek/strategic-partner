@@ -1,12 +1,12 @@
 # Changelog
 
-## [5.12.0] - 2026-04-26
+## [5.12.0] - 2026-04-27
 
 ### Added
-- **AUQ Materiality Gate** — SP now decides whether to surface a decision as an AskUserQuestion based on (a) whether it's your call and (b) whether it's actually material — meaning irreversible, high-cost, genuinely ambiguous, or explicitly flagged. Decisions resolved by canonical artifacts (CLAUDE.md rules, settings.json, project conventions) or owned by SP/executor terminate silently. AUQs fire at real partnership moments, not for SP-internal mechanics.
+- **AUQ Materiality Gate** — SP now decides whether to surface a decision as an AskUserQuestion based on (a) whether it's your call and (b) whether it's actually material — meaning irreversible, high-cost, genuinely ambiguous, or explicitly flagged. Decisions resolved by canonical artifacts (CLAUDE.md rules, Serena memories, `.claude/rules/`) or owned by SP/executor terminate silently. AUQs fire at real partnership moments, not for SP-internal mechanics.
 - **Attention Steward (Asking Pattern stage)** — A depth-modulation layer that tunes AUQ framing (must-ask vs. likely-ask vs. could-skip) based on signal strength. The right level of partnership friction for the situation.
 - **Protocol-mandated AUQ whitelist** — 3 entries always emit AUQs regardless of gate outcome: Advisory Completion Gate, user-override checkpoint, and Codex review verdict synthesis. Whitelist extension requires version bump + CHANGELOG + regression fixture + Codex approval — preventing it from becoming a silent bypass.
-- **Calendar-native routing prior** — When CLAUDE.md declares `project_type: calendar-native`, SP routes calendar-shaped decisions through the calendar artifact channel by default.
+- **Calendar-native routing prior** — When CLAUDE.md declares `project_type: calendar-native`, SP biases calendar-shaped decisions toward user-channel partnership AUQs (likely-ask depth) by default. The prior is overridden by user-authored standing rules in CLAUDE.md, Serena memories, or `.claude/rules/`.
 - **F1-F5 regression fixtures** (`tests/fixtures/v5.12.0/`) — Five reproducible scenarios exercising each pipeline stage with PASS criteria. Includes `tests/RUNBOOK.md` for reviewer-driven manual validation.
 - **Output Style mandate** (`references/pipeline/user-output-style.md`) — Canonical translation layer mapping internal pipeline vocabulary (Bootstrap/Router/Egress, channel names, materiality signal names, criteria labels) to plain English. Internal labels remain in SP's reasoning chains; user-visible output stays plain English.
 
