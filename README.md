@@ -220,6 +220,8 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 ### User-facing capabilities
 
 - **Strategic advisory and prompt crafting** — the core loop: discover, challenge premises, present alternatives, route, craft, review
+- **Asks only when it matters** — SP distinguishes decisions you should make from decisions already resolved by your CLAUDE.md rules, project memory, or canonical project artifacts. Less interruption; partnership questions reserved for real decision points.
+- **Plain English in every response** — SP's internal mechanics stay internal. Whether it asks a question, applies a rule, or proceeds silently, what you see is a plain explanation — not status codes or mechanism labels.
 - **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Model-aware prompt generation** — SP detects the active Claude model at startup (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, via both friendly names and exact model IDs) and selects reusable XML prompt blocks + effort recommendations per target model. Every crafted prompt inherits hallucination prevention, scope discipline, and model-appropriate patterns.
