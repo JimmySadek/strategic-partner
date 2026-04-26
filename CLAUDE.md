@@ -113,15 +113,19 @@ Before modifying any files, show:
 
 ### 4. Review README Content
 
-Before modifying version files, review README.md at TWO levels:
+Before modifying version files, review README.md at TWO levels. **Both
+levels are MANDATORY each release** — there is no "every 3rd minor"
+exception. The README is the only artifact most prospective and existing
+users will read between releases; stale or unclear copy is a real shipped
+defect, not a docs nit.
 
-**Level 1 — Factual accuracy (every release):**
+**Level 1 — Factual accuracy:**
 - File tree descriptions — do they match current state?
 - Version numbers in example text — do they reference current versions?
 - Feature descriptions — any new capabilities missing or removed features still listed?
 - Stale claims — any behavioral descriptions that no longer match reality?
 
-**Level 2 — First-time user test (every 3rd minor release, or on any release with new user-facing features):**
+**Level 2 — First-time user clarity:**
 - Read the README as a stranger. Does the opening explain what this is within 30 seconds?
 - Is the information flow logical? (Why → What → How → Get started)
 - Are there version-specific callouts that should be timeless? (e.g., "v4.0 brings..." → should describe current state)
@@ -129,11 +133,31 @@ Before modifying version files, review README.md at TWO levels:
 - Would a user be excited to install this after reading?
 - Are features from the last 3+ releases represented (not just the latest)?
 
-If Level 2 reveals structural issues, propose a README rewrite as a separate deliverable
-in the release — not a patch. Present findings to user via AskUserQuestion before proceeding.
+**Delegation to Codex** (recommended for releases with new user-facing features):
+
+The README review may be delegated to Codex via
+`/strategic-partner:codex-feedback` with a dedicated first-time-user
+brief (separate from the Step 2b release-audit Codex run). The audit
+asks Codex to read the README as a stranger and report factual drift,
+structural ambiguity, stale references, and clarity gaps — with file:line
+citations. When delegated, run the README audit BEFORE Step 3 (Present
+to User) so any findings are folded into the release commits, not
+deferred to a patch.
+
+The SP/user may run Level 1 + Level 2 directly without Codex; delegation
+is an option, not a requirement. But for releases with new user-facing
+features (heuristic: any minor or major bump), Codex delegation is
+recommended because adversarial first-time-user reading catches drift
+the author cannot see.
+
+**Findings disposition:**
 
 Fix Level 1 issues as part of the version bump commit.
-Fix Level 2 issues as a dedicated commit (may require a separate implementation prompt).
+
+Fix Level 2 issues as a dedicated commit (may require a separate
+implementation prompt). If Level 2 reveals issues warranting a README
+rewrite, propose it as a separate deliverable in the release — not a
+patch. Present findings to user via AskUserQuestion before proceeding.
 
 ### 5. Execute the Bump
 
