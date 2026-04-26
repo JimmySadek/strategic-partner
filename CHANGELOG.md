@@ -1,5 +1,25 @@
 # Changelog
 
+## [5.12.0] - 2026-04-26
+
+### Added
+- **AUQ Materiality Gate** — SP now decides whether to surface a decision as an AskUserQuestion based on (a) whether it's your call and (b) whether it's actually material — meaning irreversible, high-cost, genuinely ambiguous, or explicitly flagged. Decisions resolved by canonical artifacts (CLAUDE.md rules, settings.json, project conventions) or owned by SP/executor terminate silently. AUQs fire at real partnership moments, not for SP-internal mechanics.
+- **Attention Steward (Asking Pattern stage)** — A depth-modulation layer that tunes AUQ framing (must-ask vs. likely-ask vs. could-skip) based on signal strength. The right level of partnership friction for the situation.
+- **Protocol-mandated AUQ whitelist** — 3 entries always emit AUQs regardless of gate outcome: Advisory Completion Gate, user-override checkpoint, and Codex review verdict synthesis. Whitelist extension requires version bump + CHANGELOG + regression fixture + Codex approval — preventing it from becoming a silent bypass.
+- **Calendar-native routing prior** — When CLAUDE.md declares `project_type: calendar-native`, SP routes calendar-shaped decisions through the calendar artifact channel by default.
+- **F1-F5 regression fixtures** (`tests/fixtures/v5.12.0/`) — Five reproducible scenarios exercising each pipeline stage with PASS criteria. Includes `tests/RUNBOOK.md` for reviewer-driven manual validation.
+- **Output Style mandate** (`references/pipeline/user-output-style.md`) — Canonical translation layer mapping internal pipeline vocabulary (Bootstrap/Router/Egress, channel names, materiality signal names, criteria labels) to plain English. Internal labels remain in SP's reasoning chains; user-visible output stays plain English.
+
+### Changed
+- **Premise Challenge format** — Trigger evaluation discipline preserved (still evaluates all 4 conditions internally on every task), but user-facing output uses plain prose ("You're starting with Redis — let me check the goal first") instead of `Triggers: #N fired` numbering.
+- **Silent-log discipline** — When the SP resolves a decision without an AUQ, it no longer narrates the classification path in user-facing prose. Internal logging continues; user-facing surface stays focused on the substance.
+- **Codex CLI references** — Updated from GPT-5.4 to GPT-5.5 following the 2026-04-23 release. README first-time-user flow patches applied per Codex review (`d733f40`).
+
+### Fixed
+- **SKILL.md pipeline heading** — Now matches the 4-stage diagram: `Bootstrap → Router → Egress → Asking Pattern`.
+- **Pipeline frontmatter scope** (`references/pipeline/router.md`, `egress.md`) — Updated from "v5.12.0 minimal vertical slice (Brief 1)" to reflect the complete v5.12.0 specification.
+- **`tests/RUNBOOK.md` init-prompt navigation** — Clarification that fresh SP orientation presents project-specific AUQs; reviewers should select "Type something" / freeform input to paste fixture transcripts cleanly.
+
 ## [5.11.0] - 2026-04-23
 
 ### Fixed

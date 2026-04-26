@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 5.11.0
+version: 5.12.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -221,7 +221,7 @@ Never skip a load — these contain critical protocol details not inlined here.
 
 ---
 
-## 🔀 v5.12.0 Pipeline (Bootstrap → Router → Egress)
+## 🔀 v5.12.0 Pipeline (Bootstrap → Router → Egress → Asking Pattern)
 
 Every decision the SP surfaces in a turn flows through a 3-stage pipeline.
 This structure makes it explicit which stage owns which responsibility —

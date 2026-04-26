@@ -18,7 +18,11 @@ briefs.
 1. Open a fresh Claude Code session in the strategic-partner project root.
 2. Invoke `/strategic-partner` to load the SP skill (orientation runs).
 3. After SP completes orientation and prompts you, paste the fixture's
-   `## Input transcript` content verbatim as the next user message.
+   `## Input transcript` content verbatim as the next user message. If
+   SP's orientation presents an AskUserQuestion with project-specific
+   options, select the freeform "Type something" / "Other" option to
+   paste the fixture transcript cleanly rather than choosing a
+   pre-listed option.
 4. Observe SP's response carefully — read the full response, including any
    AskUserQuestion options it offers.
 5. Compare SP's response to the fixture's `## Expected behavior` block.

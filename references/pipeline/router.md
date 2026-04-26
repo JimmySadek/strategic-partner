@@ -1,7 +1,7 @@
 ---
 name: router
 description: Stage 2 of the v5.12.0 pipeline — classifies each decision into one of 4 channels.
-scope: v5.12.0 minimal vertical slice (Brief 1)
+scope: v5.12.0 (complete)
 ---
 
 > **Internal vocabulary — do not surface.** The labels in this file

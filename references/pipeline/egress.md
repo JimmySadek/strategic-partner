@@ -1,7 +1,7 @@
 ---
 name: egress
 description: Stage 3 of the v5.12.0 pipeline — composite materiality gate deciding AUQ_PROCEED.
-scope: v5.12.0 minimal vertical slice (Brief 1)
+scope: v5.12.0 (complete)
 ---
 
 > **Internal vocabulary — do not surface.** The labels in this file
