@@ -66,6 +66,18 @@ grounds.
 
 ## User-facing surfacing
 
+**🛑 Strict prohibition:** Do NOT narrate the pipeline classification with internal labels in user-facing prose. The user-facing surfacing IS the output — there is no parallel "internal classification" line. The temptation to "show your work" by listing Router channel + Egress clauses + materiality signals leaked heavily in F3 manual review. The fix is to NOT compose that paragraph at all.
+
+If you need to communicate the silent-log decision to the user, do so in 1-2 sentences of plain prose:
+
+- Cite the artifact / rule / source applied
+- State the decision
+- Optionally name what makes the decision unambiguous (in user-domain terms, not pipeline terms)
+
+That's the entire surfacing. No "Pipeline classification:" header. No "Router channel:" line. No 5-clause Egress enumeration. No "Materiality signals: none fired" footer.
+
+See `references/pipeline/user-output-style.md` § Forbidden: Silent-Log Classification Narration for examples.
+
 When the SP needs to acknowledge a silently-applied decision in
 user-facing prose, surface it in PLAIN ENGLISH — not the bracketed audit
 format. Examples:

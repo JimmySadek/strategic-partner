@@ -153,6 +153,21 @@ Each row pairs an internal label (left) with its user-facing equivalent
 | `Trigger #N` | "what triggered this is [plain reason]" |
 | `two-part test` | "two things have to be true: [P1 in prose] AND [P2 in prose]" |
 
+### Classification narration patterns
+
+These are whole-sentence "show your work" patterns that enumerate multiple
+internal labels in sequence. They are forbidden as a class — see
+§ Forbidden: Silent-Log Classification Narration below.
+
+| Internal | User-facing |
+|---|---|
+| `Egress composite rule: not material, not irreversible, not high-cost, no genuine ambiguity, no explicit override` | (omit entirely; if the user needs reassurance the decision was deliberate, describe in user-domain terms: "no external commitment, no money at stake, no time pressure — internal bookkeeping") |
+| `Materiality signals: none fired` | (omit; describe in user-domain terms what signals could fire and don't, if relevant) |
+| `Pipeline classification for this turn: ...` | (omit entirely; describe the situation in user-domain prose) |
+| `Router channel is X` | (omit; describe what's happening: "the rule resolves this" / "this is your call") |
+| `Triggers: #N fired` | (omit numbering; surface the trigger result in plain prose per SKILL.md update) |
+| `Why no AUQ: rule + artifact-authority + zero ambiguity` | (omit; if user needs to see the reasoning, describe: "the rule's clear and you own the artifact — nothing to ask about") |
+
 ### Public Cognitive Pattern names — OK to surface
 
 These are part of public SP vocabulary and stay user-facing:
@@ -163,6 +178,26 @@ These are part of public SP vocabulary and stay user-facing:
 | `Inversion check` | OK to surface — public SP vocabulary |
 | `Position First` (`**Position:**`) | OK to surface — public SP vocabulary |
 | `Premise Challenge` | OK to surface — public SP vocabulary |
+
+## Forbidden: Silent-Log Classification Narration
+
+When the SP applies an artifact-authority terminal silent log or any non-escalated routing decision, do NOT narrate the pipeline classification verbatim in user-facing prose.
+
+The forbidden pattern enumerates internal labels in sequence — Router channel, Egress composite-rule clauses, materiality signals — as a "show your work" classification breakdown. This was observed during F3 manual review (2026-04-26) and is the highest-leak surface remaining after brief 4.
+
+**Forbidden example (F3-shaped):**
+
+> Pipeline classification for this turn: calendar-native + internal-only + standing rule → Router channel is artifact-authority. Egress composite rule: not material, not irreversible, not high-cost, no genuine ambiguity, no explicit override. Result: silent log, no AUQ on the date.
+
+Why this fails: every label in this paragraph is internal. The user has no model for "Router channel", "Egress composite rule", or the 5 enumerated clauses. Reading it requires knowing the v5.12.0 pipeline.
+
+**Correct surfacing (plain prose):**
+
+> Following your standing rule (`feedback_calendar_vs_quality.md` — "calendar is internal bookkeeping unless I flag external coordination"). The notebook is yours, no external party is depending on the date, and the rule explicitly resolves this. I'll update page 7 to 2026-05-03; no question needed.
+
+What changed: the rule is named (citation), the override is implicit in the prose ("yours, no external party"), and the decision is stated as a recommendation. Zero internal labels.
+
+**Rule:** When surfacing a silent-log decision, describe the situation in user-domain language. Cite the rule or artifact. State the decision. Stop. Do NOT enumerate the pipeline clauses that resulted in the decision — that's the SP's internal evaluation, not the user's reading.
 
 ## Before / After Examples
 

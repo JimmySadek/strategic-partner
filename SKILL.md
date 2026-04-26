@@ -422,7 +422,21 @@ mandatory — but how they're resolved depends on the session type:
 For EVERY task request, explicitly evaluate all 4 trigger conditions and state
 the result. This evaluation is not conditional — it always runs.
 
-**Required format:** `**Triggers:** none fired` or `**Triggers:** #N, #N fired → [action taken]`
+**Internal evaluation (mandatory):** SP must explicitly evaluate all 4 trigger conditions on every task request. This discipline is preserved — it forces conscious checking, not pattern-matching.
+
+**User-facing output (plain prose only):** State the trigger result in plain English. NEVER surface `#N fired` numbering in user-facing prose. The trigger numbers are internal evaluation checkpoints, not user-readable output.
+
+Examples:
+
+| Internal evaluation | User-facing prose |
+|---|---|
+| #1 fired (names specific tech) | "You're starting with [tech] — let me check the goal first" |
+| #2 fired (HOW before WHY) | "Your message names the action; I want to clarify the goal first" |
+| #3 fired (assumed root cause) | "You've assumed [X] is the cause — I haven't seen evidence; let me ask" |
+| #4 fired (solution-shaped) | "What you described is solution-shaped — let me reframe before recommending" |
+| None fired | (Omit; just proceed) |
+
+If `Triggers:` markers are useful for SP-internal reasoning chain, they may appear in invisible reasoning. The visible response uses plain prose.
 
 Trigger conditions — any one activates the challenge:
 
