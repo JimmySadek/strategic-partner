@@ -125,3 +125,30 @@ satisfied otherwise."
 
 After Brief 3 lands, F2 should turn fully PASS (the `likely-ask` indicator
 becomes visible and the depth-modulation MECHANICS take effect).
+
+---
+
+## Brief 3 expected results (v5.12.0 implementation complete)
+
+After Brief 3 lands, the v5.12.0 implementation phase is complete. All 5
+fixtures should PASS without caveats. Manual review against this table is
+the final verification before the v5.12.0 release ceremony.
+
+| Fixture | Brief 3 result | Mechanism |
+|---|---|---|
+| F1 — α/β/γ planning reconciliation | **PASS** (regression) | Minimal pipeline + C1 T1/T2/T3 + (no C4 effect — generic project) → silent log unchanged |
+| F2 — calendar-native rehearsal coordination | **PASS** (full) | C4 routing prior → user-channel + `likely-ask`. Asking Pattern composes brief AUQ. C1 T3 fires on coordination signal. F2's pass criteria 1-4 all satisfied at brief depth |
+| F3 — calendar-native internal bookkeeping | **PASS** (regression) | Standing-rule override applied (Brief 2). C4 prior overridden by user-authored rule per Tier-3-over-Tier-5 precedence. Silent log unchanged |
+| F4 — precedence conflict / direct-rule boundary | **PASS** (regression) | Standing-rule + T2 fail (Brief 2). C4 prior overridden. User-channel via override path with rule cited |
+| F5 — Bootstrap fresh-session context shift | **PASS** (regression) | Bootstrap B2 + `genuine_ambiguity` (Brief 2). Asking Pattern reads reason field, frames alternatives by category |
+
+**F2 specifically** — Brief 3 makes F2 fully PASS (no PARTIAL caveat). Brief
+2's table flagged F2 as PASS-with-caveat pending C4 attention hint; Brief 3
+closes that gap by landing both the C4 routing prior (in Router) and the
+depth-modulation MECHANICS (in Asking Pattern).
+
+> After verifying all 5 PASS in a fresh Claude Code session loaded with the
+> post-Brief-3 SP, the v5.12.0 implementation phase is complete. The next
+> step is the v5.12.0 release ceremony per CLAUDE.md release process: version
+> bump (5.11.0 → 5.12.0), CHANGELOG composition, single-tag push of the held
+> commits.

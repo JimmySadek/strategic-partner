@@ -13,9 +13,9 @@ in the current turn, Router classifies it into exactly one of four channels.
 Channel selection determines WHO owns the decision — and therefore whether
 the decision flows to Egress for AUQ consideration or terminates silently.
 
-## Scope (Brief 2)
+## Scope (Brief 3 — v5.12.0 closing)
 
-After Brief 2, Router implements:
+After Brief 3, Router implements the full v5.12.0 spec:
 
 - 4 channels (defined and selectable).
 - **Standing-rule retrieval** — Router queries CLAUDE.md, Serena memories,
@@ -24,15 +24,16 @@ After Brief 2, Router implements:
 - **C1 artifact-authority terminality (T1/T2/T3)** — gates the
   artifact-authority channel; failure of any criterion escalates to
   user-channel.
+- **C4 calendar-native routing prior** — `project_type: calendar-native`
+  in CLAUDE.md biases Router classification of calendar-bearing artifact
+  reconciliations toward `user-channel` with `likely-ask` attention hint.
+  Sits at Tier 5 of the precedence stack — overridden by every
+  higher-tier constraint. See § Calendar-native routing prior below.
 
-One behavior remains deferred:
-
-| Behavior | Brief | Fixture that exercises it |
-|---|---|---|
-| C4 calendar-native routing prior (`project_type` biasing) | Brief 3 (step 6) | F2 |
-
-The deferred prior sits at Tier 5 of the precedence stack — see Standing-
-rule retrieval § Precedence stack below.
+Nothing in Router is deferred for v5.12.0. The depth-modulation
+MECHANICS for the `must-ask` / `likely-ask` / `could-skip` attention
+hints live in the Asking Pattern stage — see
+`references/pipeline/asking-pattern.md`.
 
 ## Channels (4)
 
@@ -221,30 +222,112 @@ interpretation is ambiguous for the current case), default to escalate
 rather than silently picking an interpretation. Same default-on-uncertainty
 discipline as C1 terminality.
 
-## Calendar-native routing prior (DEFERRED)
+## Calendar-native routing prior (C4)
 
-**Status: stub. Brief 3 step 6 implements.**
+**Status: ✅ implemented (Brief 3, v5.12.0).**
 
-When implemented, `project_type: calendar-native` in CLAUDE.md will bias
-Router classification AWAY from artifact-authority for calendar-bearing
-reconciliations (per the C3 two-part test in
-`references/pipeline/egress.md`), toward user-channel with `likely-ask`
-attention hint.
-
-The prior sits at **Tier 5 — General SP defaults** in the Precedence stack
-above. Any higher-tier constraint addressing calendar handling overrides
-the prior. Brief 2's standing-rule retrieval already loads Tiers 1-4, so
-once the prior lands in Brief 3, the override paths exercised by F3 and
-F4 work without further Router changes.
-
-The prior does NOT raise materiality thresholds, does NOT modify
-materiality signal definitions, and does NOT cause AUQs on every date
-mentioned.
-
-Brief 2 does NOT implement the prior. Fixture F2 documents target
-behavior and is expected to fail until Brief 3 lands.
+When `project_type: calendar-native` is set in CLAUDE.md, Router biases
+classification of calendar-bearing artifact reconciliations toward
+`user-channel` with the `likely-ask` attention hint, instead of the
+default `artifact-authority`. The bias is a routing prior — it sits at
+Tier 5 of the precedence stack (general SP defaults) and is overridden
+by every higher-tier constraint.
 
 **Full spec:** `.handoffs/v512-spec-addenda-0425.md` § C4.
+
+### Precedence
+
+The prior occupies **Tier 5** of the Precedence stack (Standing-rule
+retrieval § Precedence stack above):
+
+```
+1. Current direct instruction          ─┐
+2. Hard commitments (safety/legal/$)   │  always override project_type
+3. User-authored rules                 │  (CLAUDE.md, Serena memory, feedback_*.md)
+4. Project planning docs               ─┘
+─────────────────────────────────────
+5. project_type: calendar-native        ← routing prior; this tier
+6. Other general SP defaults
+```
+
+Higher tiers always override. The prior never raises a calendar-bearing
+decision past higher-tier constraints — those still bind first.
+
+### Mechanism — what the prior DOES (when not overridden)
+
+- Biases Router classification: calendar-bearing artifact reconciliation
+  → `user-channel` with `likely-ask` attention hint, instead of
+  `artifact-authority`.
+- Affects ONE Router decision (channel selection); produces ZERO
+  downstream effects.
+
+The C3 two-part test (substance + consumption) determines whether an
+artifact is calendar-bearing. See `references/pipeline/egress.md` §
+coordination signal for the full test.
+
+### Mechanism — what the prior does NOT do
+
+Verbatim from § C4 of the spec — the prior:
+
+- Does NOT modify materiality signal definitions
+- Does NOT lower Egress composite-rule threshold
+- Does NOT convert non-material decisions into material ones
+- Does NOT raise materiality thresholds (no "calendar matters more"
+  semantics)
+- Does NOT cause AUQs on every date mentioned
+- Does NOT convert internal bookkeeping to user-channel by virtue of
+  containing a date
+
+### Override rules
+
+A higher-precedence constraint that addresses calendar handling
+**overrides the project_type routing prior**.
+
+| Override source | Effect on project_type prior |
+|---|---|
+| In-session direct instruction ("treat calendar carefully" / "don't fuss about calendars") | Overrides — direct instruction wins, project_type bias disabled for the session or named scope |
+| Hard commitment (safety / legal / financial deadline) | Overrides — hard commitment determines routing regardless of project_type |
+| User-authored rule (e.g., `feedback_calendar_vs_quality.md`) | Overrides — calendar handling falls back to normal Router classification (no calendar-specific bias) |
+| Project planning doc | Overrides if specifies calendar policy directly |
+
+### Concrete example — BAM-MVP
+
+- `project_type: calendar-native` (set in CLAUDE.md)
+- `feedback_calendar_vs_quality.md` Serena memory = "don't push calendar"
+- Decision: planning docs A/B/C have date inconsistency
+- Resolution: user-authored rule WINS over project_type prior. Calendar-
+  bearing decision goes through **normal** Router classification → likely
+  artifact-authority. C1 terminality criteria evaluated. If T1/T2/T3 hold
+  → silent log, terminal. (No AUQ. Standing rule respected.)
+
+### Operational test
+
+> "Does `project_type: calendar-native` produce more AUQs than `generic`
+> for the same task?"
+
+**Correct answer:** Only when:
+
+1. Calendar-bearing artifact reconciliation occurs, AND
+2. No higher-precedence rule overrides the prior, AND
+3. C1 artifact-authority terminality criteria fail (escalate to
+   user-channel)
+
+In all other cases, `project_type` produces zero additional AUQs.
+
+If SP rationalizes "this is a calendar-native project, so I should ask
+about every date" — the test fails. The rationalization is the failure
+mode C4 prevents.
+
+### Interaction with C1
+
+The two interact at one specific point: when a calendar-bearing artifact
+reconciliation routes to `artifact-authority` despite the
+`calendar-native` prior (because a higher-precedence override redirected
+it). At that point, C1's T1/T2/T3 terminality criteria apply normally.
+**C4 does NOT modify or relax C1's criteria.** F3 exercises this path —
+the standing-rule override redirects routing back toward
+artifact-authority, and T1/T2/T3 evaluate as if `project_type` were
+absent.
 
 ## Output
 

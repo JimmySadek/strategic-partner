@@ -228,11 +228,11 @@ prereq checks, channel classification, and the materiality gate that decides
 whether to ask the user.
 
 ```
-    ┌──────────────┐     ┌──────────┐     ┌──────────┐     ┌──────────────┐
- →  │  Bootstrap   │  →  │  Router  │  →  │  Egress  │  →  │ AUQ or log   │
-    └──────────────┘     └──────────┘     └──────────┘     └──────────────┘
-       prereq check        4-channel         composite          AUQ_PROCEED
-       Q1/Q4, C5           selection         materiality        or silent log
+    ┌────────────┐    ┌──────────┐    ┌──────────┐    ┌────────────────┐    ┌──────────────┐
+ →  │  Bootstrap │ →  │  Router  │ →  │  Egress  │ →  │ Asking Pattern │ →  │ AUQ or log   │
+    └────────────┘    └──────────┘    └──────────┘    └────────────────┘    └──────────────┘
+       prereq check     4-channel       composite       depth modulation      AUQ_PROCEED
+       Q1/Q4, C5        selection       materiality                           or silent log
 ```
 
 - **Bootstrap** — evaluates session prereqs (fresh-session Q1/Q4, unknown
@@ -250,6 +250,7 @@ whether to ask the user.
 | Bootstrap | `references/pipeline/bootstrap.md` |
 | Router | `references/pipeline/router.md` |
 | Egress | `references/pipeline/egress.md` |
+| Asking Pattern | `references/pipeline/asking-pattern.md` |
 | Silent log format | `references/pipeline/silent-log.md` |
 
 This is the v5.12.0 minimal vertical slice. Briefs 2-3 layer behaviors
@@ -305,6 +306,52 @@ continue — STOP, convert to `AskUserQuestion`, then stop again.
 **Open-ended clarification:** When no obvious option set exists (e.g., information-gathering
 questions), present 2-3 likely answers as options. The AUQ tool automatically provides
 "Other" for freeform input. This makes AUQ compliance possible for every question type.
+
+### 🛡️ Protocol-Mandated AUQ Whitelist (Bypass Gate)
+
+The whitelist contains 3 entries that ALWAYS emit an `AskUserQuestion` regardless
+of Router channel classification or Egress composite-rule outcome. They are
+protocol-mandated — encoded directly in SKILL.md so they cannot be silently disabled
+by behavioral drift, gate optimization, or "this one is small enough" rationalization.
+
+**The 3 entries:**
+
+1. **Advisory Completion Gate** — the "ready to move from thinking to building?"
+   question that gates the transition out of advisory mode. See the
+   `<gate name="advisory-completion">` block above. Bypasses the gates because
+   the gate's purpose IS forcing an explicit user decision before SP packages
+   execution.
+
+2. **Implementation Boundary Checkpoint 3 — user override** — when the user says
+   "just do it" or equivalent, the SP MUST confirm dispatch via AUQ before
+   proceeding. See § Implementation Boundary above. Bypasses the gates because
+   the override itself is a user-channel decision about authority transfer; the
+   SP cannot silently absorb that signal.
+
+3. **Codex review verdict synthesis** — when `/strategic-partner:codex-feedback`
+   returns GO / CONDITIONAL GO / NO-GO, the SP MUST present the verdict and ask
+   the user to ratify next steps via AUQ. Bypasses the gates because verdict
+   synthesis is a partnership-model checkpoint — the cross-model review's value
+   evaporates if the SP silently chooses how to act on it.
+
+**Why structural enforcement:** Some AUQs are too important to be subject to gate
+optimization. Without structural enforcement, the gates eventually classify these
+as "not material enough" and the SP silently makes decisions that should be the
+user's. The whitelist removes the gates from these specific decisions entirely.
+
+**Extension protocol:** Adding a 4th (or any new) whitelist entry requires ALL of:
+
+1. Version bump (minor or major)
+2. CHANGELOG.md entry naming the new entry and rationale
+3. New regression fixture in `tests/fixtures/v5.X.Y/` validating the entry triggers
+4. Codex pre-release review (`/strategic-partner:codex-feedback`) approving the addition
+
+**Why this protocol:** Codex's exact warning, paraphrased: "Otherwise the whitelist
+becomes the new bypass." Loosening the whitelist undoes the materiality gate's
+benefit — every entry that bypasses gates is an entry that cannot be tuned by the
+rest of the pipeline. The 4-requirement protocol makes extension expensive enough
+that it only happens for genuinely categorical additions, not for "this one is
+important too" drift.
 
 ### The Advisory Default
 
