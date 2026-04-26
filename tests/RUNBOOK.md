@@ -1,7 +1,7 @@
 # Fixture Runbook — Strategic Partner
 
 **Purpose:** Manual protocol for running the red transcript fixtures that
-validate the v5.12.0 pipeline (Bootstrap → Router → Egress → silent log).
+validate the v5.12.0 pipeline (Bootstrap → Router → Egress → Asking Pattern).
 
 **Scope:** v5.12.0. Fixtures live at `tests/fixtures/v5.12.0/`. Each fixture
 is a markdown file describing input, expected behavior, and pass criteria.

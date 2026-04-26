@@ -51,7 +51,7 @@ Artifact-authority terminal (F1 fixture target):
 [2026-04-25 14:32] [router] "α/β/γ planning reconciliation" → applied α | reason: artifact-authority terminal (T1 ✓, T2 ✓, T3 ✓)
 ```
 
-Standing-rule override (Brief 2 target — F3):
+Standing-rule override (F3 fixture target):
 
 ```
 [2026-04-25 14:35] [router] "Calendar-bearing internal bookkeeping" → applied feedback_calendar_vs_quality.md override | reason: standing-rule override applied
@@ -106,21 +106,36 @@ the pipeline emits more entries and users review them retrospectively.
 
 ## When an entry is emitted
 
-v5.12.0 emits silent-log entries from exactly one path:
+v5.12.0 emits silent-log entries from three active paths:
 
-- **Router → artifact-authority terminal** — when Router classifies a
-  decision as `artifact-authority` and the minimal slice treats it as
-  terminal (F1 path).
+- **Router → artifact-authority terminal** — Router classifies a decision as
+  `artifact-authority` and T1/T2/T3 all hold, treating it as terminal (no
+  Egress materiality evaluation needed). Exercised by F1.
+  (Source: `router.md` § Test fixture coverage — F1; `egress.md` § Silent log
+  integration — path 1.)
 
-Deferred emission paths:
+- **Router → standing-rule override applied** — Router finds an applicable
+  standing rule (`feedback_calendar_vs_quality.md` or similar) that resolves
+  the decision; T1/T2/T3 all pass under the override → terminal at Router.
+  Exercised by F3.
+  (Source: `router.md` § Test fixture coverage — F3; `egress.md` § Test
+  fixture coverage — F3.)
 
-| Path | Brief |
-|---|---|
-| Router → artifact-authority with T1/T2/T3 all holding | Brief 2 (step 4) — same path but explicitly gated |
-| Router → standing-rule override applied | Brief 2 (step 3) |
-| Egress → user-owned but no signal fires (proceed without AUQ) | Brief 2 (step 5) |
+- **Egress → user-owned but no materiality signal fires** — Egress evaluates
+  the composite rule, finds `owner == user` but no clause in the OR-cluster
+  fires (no materiality signal, no ambiguity, no override) → proceed without
+  AUQ. Entry reason: `egress: user-owned but no signal fired`.
+  (Source: `egress.md` § Silent log integration — path 2.)
+  Note: no dedicated F-fixture exercises this exact path in v5.12.0; coverage
+  is implicit through fixtures that exclude this outcome.
 
-Each of these lands as the corresponding feature lands.
+Deferred enhancement candidates (not part of v5.12.0):
+
+- Persistent storage to `.handoffs/silent-log-MMDD.md` (currently
+  inline-only in SP response prose, per the User-facing surfacing rules
+  above).
+- Cross-session retrospective audit tooling (review entries by date /
+  channel / fixture).
 
 ## Test fixture coverage
 

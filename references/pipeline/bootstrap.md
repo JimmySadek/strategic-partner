@@ -16,7 +16,7 @@ scope: v5.12.0 (complete)
 ## Purpose
 
 Bootstrap is the first stage of the v5.12.0 pipeline (Bootstrap → Router →
-Egress). It evaluates session prerequisite questions BEFORE downstream Router
+Egress → Asking Pattern). It evaluates session prerequisite questions BEFORE downstream Router
 classification runs. If a prereq is unresolved, Bootstrap blocks the pipeline
 until resolved via direct AUQ.
 

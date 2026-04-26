@@ -18,10 +18,13 @@ scope: v5.12.0 (complete)
 
 ## Purpose
 
-Egress is the third and final stage of the v5.12.0 pipeline. For each
-decision that Router routes to a non-terminal channel (primarily `user`),
-Egress evaluates the composite materiality rule and decides whether to
-compose an AskUserQuestion (`AUQ_PROCEED`) or proceed without asking.
+Egress is the third stage of the v5.12.0 pipeline (followed by Asking Pattern,
+the fourth and final stage). For each decision that Router routes to a
+non-terminal channel (primarily `user`), Egress evaluates the composite
+materiality rule and decides whether to compose an AskUserQuestion
+(`AUQ_PROCEED`) or proceed without asking. On AUQ_PROCEED=true, the decision
+flows to Asking Pattern for depth modulation; on AUQ_PROCEED=false, the
+decision terminates with a silent log.
 
 The stage exists to prevent two opposite failure modes:
 
