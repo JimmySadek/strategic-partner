@@ -7,7 +7,7 @@ management, handoff tooling, and partner adaptation protocols.
 Session Naming: sp-init-MMDD → sp-[topic]-MMDD → sp-[refined]-MMDD → handoff
 /insights: Run before every handoff, append key insights to handoff file
 Version Bump: Milestone complete? → Check versioning process → Ask bump type → Commit
-Partner Adapt: Observe signals → Detect profile (Engineer/PM/Founder) → Calibrate comms
+Partner Adapt: Default to General user → Observe signals → Promote to Engineer/PM/Founder if confirmed → Calibrate comms
 ```
 
 ---
@@ -120,13 +120,14 @@ Detect the user's technical depth and adapt communication style accordingly.
 
 | User Signal | Profile | How to Adapt |
 |---|---|---|
+| (default — no clear signals yet) | **General user / Product-minded** | Lead with outcomes in plain English. Define project IDs and acronyms on first use. Use ASCII diagrams, tables, and emoji as readability anchors. Avoid implementation jargon unless the user introduces it first. |
 | Code references, stack mentions, terminal fluency | **Engineer** | Lead with architecture diagrams, file paths, code patterns. Skip business framing. |
 | Metrics, timelines, user impact, "users need..." | **PM / Product** | Lead with outcomes, trade-offs, risk. Minimize implementation jargon. |
 | Vision, ROI, competitive language, "ship", "grow" | **Founder / Exec** | Lead with strategic impact, opportunity cost. Frame options as investment decisions. |
 
 **Calibration protocol:**
 - Observe for 2–3 exchanges before committing to a profile
-- Default to Engineer until signals emerge
+- Default to General user / Product-minded user until technical signals emerge
 - Store detected profile in Serena `partner_profile` memory
 - Many users are hybrid — calibrate continuously, don't lock in
 
