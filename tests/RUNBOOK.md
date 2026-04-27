@@ -182,3 +182,45 @@ depth-modulation MECHANICS (in Asking Pattern).
 > step is the v5.12.0 release ceremony per CLAUDE.md release process: version
 > bump (5.11.0 → 5.12.0), CHANGELOG composition, single-tag push of the held
 > commits.
+
+---
+
+## Comprehension fixtures (v5.13.0)
+
+Fixtures C1–C5 in `tests/fixtures/v5.13.0/` test the v5.13.0 voice overhaul. They use a different format from F1–F5 — pass criteria are reader-perspective Y/N comprehension questions, NOT behavioral-pattern markers.
+
+### Why a different format
+
+The v5.13.0 voice regression (jargon density, status reports, project-jargon adoption, technical defaults) cannot be caught by regex or pattern matching. The same content can be jargon-heavy or plain-English depending on phrasing — and it's the phrasing the user feels.
+
+Comprehension fixtures grade SP's response by asking the reviewer: "Could a non-technical reader follow this?" The reviewer reads the response in role — pretending they have never seen the SP repo or the project's internal docs — and answers Y/N to specific criteria.
+
+### How to grade comprehension fixtures
+
+1. Open a fresh Claude Code session in the strategic-partner project root.
+2. Invoke `/strategic-partner` to load the SP skill (orientation runs).
+3. Paste the fixture's `## Input transcript` content as the next user message after orientation completes.
+4. Read SP's full response, including any AskUserQuestion options.
+5. **Read it again, this time in role as a non-technical user who has never seen this project.** This is the critical step. The reviewer's "I know what this means" knowledge is the failure surface; consciously suspending it is the test.
+6. Answer each pass-criterion question Y or N.
+7. Apply the fixture's PASS / PARTIAL / FAIL thresholds.
+
+### Pass criteria semantics
+
+- "PASS" — comprehension thresholds met. The response would land cleanly with a non-technical reader.
+- "PARTIAL" — most thresholds met but one specific criterion failed. Note which criterion in the run log; partials accumulating on the same criterion across fixtures signal a specific rule needs sharpening.
+- "FAIL" — comprehension thresholds missed. Capture exact response text in the run log.
+
+### v5.13.0 expected results
+
+After all three v5.13.0 briefs land, all five comprehension fixtures should PASS without caveats. Manual review against this table is the final verification before the v5.13.0 release ceremony.
+
+| Fixture | Targets | Expected |
+|---|---|---|
+| C1 — Plain-English Opening + Glossing | Brief 1 #1 + #2 | PASS |
+| C2 — Housekeeping vs User Status | Brief 1 #3 | PASS |
+| C3 — Position + Greek + Visual Aids | Brief 2 #5 + #6 + #8 | PASS |
+| C4 — Multi-Step Workflow Decomposition | Brief 2 #9 | PASS |
+| C5 — Partner Profile General User Default | Brief 1 #4 | PASS |
+
+If any fixture fails or partials, capture the divergence in `tests/run-log.md` and address before release ceremony.
