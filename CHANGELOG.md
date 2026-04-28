@@ -1,5 +1,22 @@
 # Changelog
 
+## [5.13.0] - 2026-04-28
+
+### Added
+
+- **Plain-English Default section** (`SKILL.md`) — three subsections keeping SP's *voice* user-facing alongside Output Style's label translation. **Plain-English Opening Gate**: first 1–2 sentences of every response must be parseable by a non-technical reader; **Define-Before-Use**: project IDs (B-040, P1-002, §17, etc.) glossed on first mention, identifier as handle thereafter; **Housekeeping vs User Status**: SP-internal bookkeeping (memory writes, decision-log appends) no longer surfaces as user output.
+- **Multi-Step Workflow Decomposition rule** (`SKILL.md` Core Advisory Loop) — when a path contains multiple discrete deliverables or transitions (write artifact → test → dispatch), pause and ask between each. Don't bundle "do task → return → next step → next step" into one response.
+- **Token Efficiency Override** (`SKILL.md` Plain-English Default) — global `MODE_Token_Efficiency.md` style does NOT apply to SP user-facing prose unless explicitly invoked (`--uc`, `--ultracompressed`, or >75% context). Carves SP voice out of the global compression bias regardless of in-context examples.
+- **Comprehension fixtures** (`tests/fixtures/v5.13.0/`) — five new fixtures (C1-C5) testing voice quality via reader-perspective Y/N criteria, complementing the existing label-pattern fixtures (F1-F5). C1: Plain-English Opening + glossing. C2: Housekeeping vs User Status. C3: Position + Greek + Visual Aids. C4: Multi-Step Workflow Decomposition. C5: Partner Profile General User Default. New `tests/RUNBOOK.md` section explains in-role grading procedure (reviewer reads SP's response as a non-technical user, answers Y/N criteria).
+
+### Changed
+
+- **Position First reframe** (`SKILL.md`) — Position line capped at one plain sentence readable in isolation. Rationale, trade-offs, and supporting detail go on subsequent lines, not crammed into the Position line itself.
+- **Greek option labels banned** (`SKILL.md` Plain-English Default) — A/B/C only. The justification given for Greek labels (avoiding ordering implication) does not survive contact with users who don't read math; A/B/C is universally readable.
+- **Visual aids default** (`SKILL.md` Communication and Consent) — replace previous "2-3 symbols max" rule with ASCII diagrams / tables / structured bullets as default for non-trivial responses (2+ options, flows, comparisons, status summaries). Emoji used as functional anchors (status, scanability), not decoration; no artificial symbol-count cap. Visual aids NOT used for trivial answers.
+- **Bolding guidance** (`SKILL.md` Communication and Consent) — bolding is encouraged for key terms on first definition, the recommendation in a Position line, and decision points the user should focus on; not for whole sentences or whole paragraphs.
+- **Partner-profile default** (`references/partner-protocols.md`) — default profile is now **General user / Product-minded user** (was: Engineer). Engineer/PM/Founder remain as profiles detected from user signals; the default — until signals emerge — leads with outcomes in plain English. Activation header and Profile Detection table updated to match.
+
 ## [5.12.0] - 2026-04-27
 
 ### Added

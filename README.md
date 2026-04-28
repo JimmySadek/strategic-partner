@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.12.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.13.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -70,28 +70,6 @@ Not every task needs the full cycle. After the Advisory Completion Gate confirms
 
 ---
 
-## What the SP does before any work starts
-
-This is where the value is. Before routing a single task, the SP runs several checks that prevent wasted effort:
-
-**Premise challenge** — Every request is evaluated against 4 trigger conditions: does it name a technology before stating a problem? Describe how before why? Assume a root cause without evidence? Frame a solution instead of a problem? When triggers fire, the SP pushes back with pointed questions before any work begins.
-
-**Forced alternatives** — For non-trivial tasks, the SP presents 3 distinct approaches before routing: Path A (minimal — smallest change), Path B (recommended — the SP's best judgment with rationale), and Path C (lateral — a reframing that might unlock a better outcome). You pick. Then it routes.
-
-**Confidence labels** — Recommendations within prompts carry [✅ SAFE] or [⚠️ RISK] labels so the executor knows which suggestions are well-supported and which involve judgment calls.
-
-**Advisory Completion Gate** — Before any prompt, dispatch, or script is crafted, the SP verifies 5 hard conditions: problem is framed, alternatives explored, trade-offs surfaced, user confirmed direction, and definition of done established. If any condition is unmet, the SP stays in advisory mode. This prevents the most common failure: jumping from brainstorming to implementation before thinking is done.
-
-**Advisory Reset** — After every implementation cycle (user runs a prompt, or an agent completes a dispatch), the SP explicitly resets to advisory mode. "Back in advisory mode. I am reviewing the result, not continuing the build." This prevents implementation momentum from carrying into the next decision.
-
-**Wired cognitive patterns** — 14 named thinking heuristics (Bezos one-way doors, Munger inversion, Jobs focus-as-subtraction, and 11 more) are wired to specific decision points with mandatory triggers and actions. They fire automatically at the right moments — not a decorative reference table.
-
-**Cross-model review** — For high-stakes decisions (irreversible changes, large blast radius, unresolved disagreements), the SP can dispatch a curated brief to OpenAI's Codex CLI for independent adversarial review, then synthesize a three-way perspective: your position, the SP's position, and Codex's position. Optional — requires Codex CLI installed.
-
-**Session findings and backlog** — Feedback captured during sessions is automatically logged to session findings. At natural boundaries, the SP offers to promote findings to a persistent backlog with trigger-based re-engagement. Items surface at startup when their triggers are met.
-
----
-
 ## What you get
 
 Your team needs to build a **user onboarding flow** for a SaaS product. Here's what happens:
@@ -130,7 +108,7 @@ You pick Path B. The SP delivers 3 ready-to-paste prompts:
 
 Each prompt includes: files to read first, constraints from CLAUDE.md, verification checklist, [✅ SAFE]/[⚠️ RISK] labels on key recommendations, expected commit message, and explicit NOT-in-scope exclusions.
 
-You paste Phase 1 into a **new terminal tab**. It runs. You come back and say "done." The SP reviews the git log, then gives you Phase 2. Repeat until the feature ships.
+You paste Phase 1 into a **fresh Claude Code session**. It runs. You come back and say "done." The SP reviews the git log, then gives you Phase 2. Repeat until the feature ships.
 
 ### The key difference
 
@@ -142,6 +120,28 @@ You paste Phase 1 into a **new terminal tab**. It runs. You come back and say "d
 | **Knowledge** | Dies with the session | Persists via Serena memory and handoffs |
 | **Tool selection** | You pick | SP routes dynamically from your installed tools |
 | **Confidence** | Implicit | [✅ SAFE]/[⚠️ RISK] labels on recommendations |
+
+---
+
+## What the SP does before any work starts
+
+This is where the value is. Before routing a single task, the SP runs several checks that prevent wasted effort:
+
+**Premise challenge** — Every request is evaluated against 4 trigger conditions: does it name a technology before stating a problem? Describe how before why? Assume a root cause without evidence? Frame a solution instead of a problem? When triggers fire, the SP pushes back with pointed questions before any work begins.
+
+**Forced alternatives** — For non-trivial tasks, the SP presents 3 distinct approaches before routing: Path A (minimal — smallest change), Path B (recommended — the SP's best judgment with rationale), and Path C (lateral — a reframing that might unlock a better outcome). You pick. Then it routes.
+
+**Confidence labels** — Recommendations within prompts carry [✅ SAFE] or [⚠️ RISK] labels so the executor knows which suggestions are well-supported and which involve judgment calls.
+
+**Advisory Completion Gate** — Before any prompt, dispatch, or script is crafted, the SP verifies 5 hard conditions: problem is framed, alternatives explored, trade-offs surfaced, user confirmed direction, and definition of done established. If any condition is unmet, the SP stays in advisory mode. This prevents the most common failure: jumping from brainstorming to implementation before thinking is done.
+
+**Advisory Reset** — After every implementation cycle (user runs a prompt, or an agent completes a dispatch), the SP explicitly resets to advisory mode. "Back in advisory mode. I am reviewing the result, not continuing the build." This prevents implementation momentum from carrying into the next decision.
+
+**Wired cognitive patterns** — 14 named thinking heuristics (Bezos one-way doors, Munger inversion, Jobs focus-as-subtraction, and 11 more) are wired to specific decision points with mandatory triggers and actions. They fire automatically at the right moments — not a decorative reference table.
+
+**Cross-model review** — For high-stakes decisions (irreversible changes, large blast radius, unresolved disagreements), the SP can dispatch a curated brief to OpenAI's Codex CLI for independent adversarial review, then synthesize a three-way perspective: your position, the SP's position, and Codex's position. Optional — requires Codex CLI installed.
+
+**Session findings and backlog** — Feedback captured during sessions is automatically logged to session findings. At natural boundaries, the SP offers to promote findings to a persistent backlog with trigger-based re-engagement. Items surface at startup when their triggers are met.
 
 ---
 
@@ -222,6 +222,11 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Strategic advisory and prompt crafting** — the core loop: discover, challenge premises, present alternatives, route, craft, review
 - **Asks only when it matters** — SP distinguishes decisions you should make from decisions already resolved by your CLAUDE.md rules, project memory, or canonical project artifacts. Less interruption; partnership questions reserved for real decision points.
 - **Plain English in every response** — SP's internal mechanics stay internal. Whether it asks a question, applies a rule, or proceeds silently, what you see is a plain explanation — not status codes or mechanism labels.
+- **Plain-English Default (v5.13.0)** — opening 1-2 sentences of every response readable by a non-technical reader; project IDs (B-040, P1-002, §17, etc.) glossed on first mention, identifier as handle thereafter; SP-internal bookkeeping (memory writes, decision-log appends) no longer surfaces as user output; Position lines capped at one plain sentence readable in isolation; A/B/C option labels (no Greek). Includes an explicit Token Efficiency override that carves SP voice out of the global compression bias regardless of in-context examples.
+- **Visual aids default (v5.13.0)** — ASCII diagrams, tables, or structured bullets for non-trivial responses (2+ options, flows, comparisons, status summaries). Emojis as functional anchors (status, scanability), not decoration; no artificial symbol-count cap. Visual aids NOT used for trivial answers.
+- **Multi-step workflow decomposition (v5.13.0)** — when a path contains multiple discrete deliverables or transitions (write artifact → test → dispatch), SP pauses and asks between each. Bundled "do task → return → next step → next step" responses are out; each transition is its own decision the user might want to redirect at.
+- **General-user default profile (v5.13.0)** — default partner profile is now General user / Product-minded user (was Engineer). Engineer/PM/Founder remain as profiles detected from user signals; the default — until signals emerge — leads with outcomes in plain English, not architecture or implementation framing.
+- **Comprehension fixtures (v5.13.0)** — five new fixtures (C1-C5) at `tests/fixtures/v5.13.0/` testing voice quality via reader-perspective Y/N criteria, complementing the existing label-pattern fixtures (F1-F5). RUNBOOK section explains in-role grading procedure.
 - **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Model-aware prompt generation** — SP detects the active Claude model at startup (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, via both friendly names and exact model IDs) and selects reusable XML prompt blocks + effort recommendations per target model. Every crafted prompt inherits hallucination prevention, scope discipline, and model-appropriate patterns.
@@ -273,6 +278,7 @@ strategic-partner/
     partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
     hooks-integration.md                # Hook event reference and integration patterns
     cognitive-patterns.md               # Named thinking heuristics for architecture and trade-offs
+    companion-script-spec.md            # Spec for the optional companion-script integration
     pipeline/
       bootstrap.md                      # Pipeline stage 1 — prereq check (Q1/Q4 fresh-session)
       router.md                         # Pipeline stage 2 — 4-channel decision classification
@@ -298,6 +304,12 @@ strategic-partner/
         F3-calendar-native-internal-bookkeeping.md
         F4-precedence-conflict-direct-rule-boundary.md
         F5-bootstrap-fresh-session-context-shift.md
+      v5.13.0/                          # C1-C5 comprehension fixtures for voice overhaul
+        C1-plain-english-opening-and-glossing.md
+        C2-housekeeping-vs-user-status.md
+        C3-position-greek-visual-aids.md
+        C4-multi-step-workflow-decomposition.md
+        C5-partner-profile-general-user-default.md
 ```
 
 </details>
