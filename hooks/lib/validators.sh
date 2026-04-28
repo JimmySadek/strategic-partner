@@ -137,12 +137,17 @@ validate_tool_availability() {
 
   while IFS= read -r line; do
     [ -z "$line" ] && continue
-    # Match common claim patterns (case-insensitive via tr)
+    # Match first-person tool-access claim patterns ONLY (case-insensitive via tr).
+    # Broad substring matches like "is available" / "detected" were removed
+    # because they false-positive on common neutral phrases ("the harness is
+    # available", "the API is unavailable", "Sonnet 4.6 is available", etc.).
+    # The intent of this check is to catch the model claiming "I have access
+    # to X" without a verifying tool call.
     lower=$(printf '%s' "$line" | tr '[:upper:]' '[:lower:]')
     case "$lower" in
       *"i can run "* | *"i can call "* | *"i have access to "* | \
-      *"is available"* | *"is not available"* | *"is unavailable"* | \
-      *"not detected"* | *"detected"* | *"i cannot access "*)
+      *"i cannot access "* | *"i don't have access"* | \
+      *"i'm able to run "* | *"i am able to run "*)
         violation_found=1
         violation_line="$line"
         break
@@ -153,7 +158,7 @@ $prose
 EOF
 
   if [ "$violation_found" -eq 1 ]; then
-    printf 'Tool-availability-claim violation: text asserts tool presence/absence without a verified call. Line: "%s" — Fix: make the actual tool call first, then describe the result. Never infer availability from indirect signals.\n' "$violation_line"
+    printf 'Tool-availability-claim violation: first-person tool-access claim without a verified call. Line: "%s" — Fix: make the actual tool call first, then describe the result. Never infer availability from indirect signals.\n' "$violation_line"
     return 1
   fi
 

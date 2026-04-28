@@ -244,8 +244,28 @@ scope for checking structural rules against the assistant's just-completed respo
 | Check | Scope | What it detects |
 |---|---|---|
 | AUQ-must-be-AUQ | Always-on | Sentence-final `?` in prose without an `AskUserQuestion` tool call in the same turn |
-| Tool-availability claims | Always-on | Text asserting a tool is available/unavailable without an actual call verifying it |
+| Tool-availability claims | Always-on | First-person tool-access claim ("I can run", "I have access to", "I cannot access", etc.) without a verified call |
 | Fence-write coupling | Fence-conditional | `══ START 🟢 COPY ══` fence without a preceding `Write` to `.handoffs/last-prompts/[N].md` in the same turn |
+
+**AUQ scan: line-by-line.** Both the inlined SKILL.md hook and the standalone
+`hooks/lib/validators.sh::validate_auq_must_be_auq` iterate the assistant turn
+line-by-line (preserving newlines from the JSONL transcript) and flag the first
+prose line ending in `?`. An earlier draft of the inlined hook collapsed the turn
+into a single line via `tr '\n' ' '`, which made the check inert for any prose
+question that wasn't the literal last sentence of the response — fixed in the
+follow-up patch to cecd1be so the inlined runtime parity matches the standalone.
+
+**Tool-availability scope: first-person only.** The patterns are scoped to phrases
+where the model is claiming its own tool access — `"I can run "`, `"I can call "`,
+`"I have access to "`, `"I cannot access "`, `"I don't have access"`,
+`"I'm able to run "`, `"I am able to run "`. Broad substring matches like
+`"is available"`, `"is not available"`, `"is unavailable"`, `"not detected"`,
+and `"detected"` were intentionally excluded — they false-positive on common
+neutral SP phrases ("the harness is available at /tmp/foo", "Sonnet 4.6 is
+available", "the test suite is unavailable") that are statements about the world,
+not unverified tool-availability claims by Claude. Both the inlined SKILL.md
+hook and `hooks/lib/validators.sh::validate_tool_availability` use the same
+tightened pattern set (Layer 2 and Layer 3 stay in sync).
 
 **Exit behavior:** Exit 2 on first violation. Stop hook exit-2 prevents Claude from
 completing its turn and forces continuation — the stderr message becomes Claude's

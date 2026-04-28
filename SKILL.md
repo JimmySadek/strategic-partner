@@ -142,19 +142,29 @@ hooks:
             HAS_AUQ="false"
             if command -v jq > /dev/null 2>&1; then
               TURN_JSON=$(tac "$TP" 2>/dev/null | awk 'BEGIN{c=1}{if(c){if((index($0,"\"role\":\"user\"")||index($0,"\"role\": \"user\""))&&!index($0,"\"type\":\"tool_result\"")&&!index($0,"\"type\": \"tool_result\"")){c=0;next}print}}')
-              TURN_TEXT=$(printf '%s\n' "$TURN_JSON" | jq -r 'select(.message.role=="assistant" or .role=="assistant") | (.message.content // .content // [])[] | select(.type=="text") | .text // empty' 2>/dev/null | tr '\n' ' ')
-              AUQ_N=$(printf '%s\n' "$TURN_JSON" | jq -r 'select(.message.role=="assistant" or .role=="assistant") | (.message.content // .content // [])[] | select(.type=="tool_use") | .name // empty' 2>/dev/null | grep -c "AskUserQuestion" 2>/dev/null || echo 0)
-              [ "$AUQ_N" -gt 0 ] && HAS_AUQ="true"
+              TURN_TEXT=$(printf '%s\n' "$TURN_JSON" | jq -r 'select(.message.role=="assistant" or .role=="assistant") | (.message.content // .content // [])[] | select(.type=="text") | .text // empty' 2>/dev/null)
+              AUQ_N=$(printf '%s\n' "$TURN_JSON" | jq -r 'select(.message.role=="assistant" or .role=="assistant") | (.message.content // .content // [])[] | select(.type=="tool_use") | .name // empty' 2>/dev/null | grep -c "AskUserQuestion" 2>/dev/null)
+              AUQ_N="${AUQ_N:-0}"
+              [ "${AUQ_N:-0}" -gt 0 ] 2>/dev/null && HAS_AUQ="true"
             else
-              TURN_TEXT=$(tac "$TP" 2>/dev/null | awk 'BEGIN{c=1}{if(c){if((index($0,"\"role\":\"user\"")||index($0,"\"role\": \"user\""))&&!index($0,"\"type\":\"tool_result\"")&&!index($0,"\"type\": \"tool_result\"")){c=0;next}print}}' | grep '"type":"text"' | grep -o '"text":"[^"]*"' | cut -d'"' -f4 | tr '\n' ' ')
-              AUQ_N=$(tac "$TP" 2>/dev/null | awk 'BEGIN{c=1}{if(c){if((index($0,"\"role\":\"user\"")||index($0,"\"role\": \"user\""))&&!index($0,"\"type\":\"tool_result\"")&&!index($0,"\"type\": \"tool_result\"")){c=0;next}print}}' | grep -c "AskUserQuestion" 2>/dev/null || echo 0)
-              [ "$AUQ_N" -gt 0 ] && HAS_AUQ="true"
+              TURN_TEXT=$(tac "$TP" 2>/dev/null | awk 'BEGIN{c=1}{if(c){if((index($0,"\"role\":\"user\"")||index($0,"\"role\": \"user\""))&&!index($0,"\"type\":\"tool_result\"")&&!index($0,"\"type\": \"tool_result\"")){c=0;next}print}}' | grep '"type":"text"' | grep -o '"text":"[^"]*"' | cut -d'"' -f4)
+              AUQ_N=$(tac "$TP" 2>/dev/null | awk 'BEGIN{c=1}{if(c){if((index($0,"\"role\":\"user\"")||index($0,"\"role\": \"user\""))&&!index($0,"\"type\":\"tool_result\"")&&!index($0,"\"type\": \"tool_result\"")){c=0;next}print}}' | grep -c "AskUserQuestion" 2>/dev/null)
+              AUQ_N="${AUQ_N:-0}"
+              [ "${AUQ_N:-0}" -gt 0 ] 2>/dev/null && HAS_AUQ="true"
             fi
             [ -z "$TURN_TEXT" ] && TURN_TEXT="$LM"
             VIOLATION=""
             if [ "$HAS_AUQ" != "true" ]; then
-              prose=$(printf '%s' "$TURN_TEXT" | grep -v '^[[:space:]]*>' | grep -v '^[[:space:]]*```')
-              Q_LINE=$(printf '%s' "$prose" | grep -m1 '\?[[:space:]]*$')
+              # Line-by-line scan: skip blockquote and code-fence lines,
+              # right-trim whitespace, flag the first prose line ending in "?".
+              # Pipe-into-sed approach is used (rather than heredoc) because
+              # YAML block-scalar indentation rules forbid unindented heredoc
+              # body lines.
+              Q_LINE=$(printf '%s\n' "$TURN_TEXT" \
+                | grep -v '^[[:space:]]*>' \
+                | grep -v '^[[:space:]]*```' \
+                | sed 's/[[:space:]]*$//' \
+                | grep -m1 '\?$')
               if [ -n "$Q_LINE" ]; then
                 VIOLATION="AUQ-must-be-AUQ violation: prose question without AskUserQuestion call — wrap questions in AskUserQuestion instead of inline prose."
               fi
@@ -162,8 +172,8 @@ hooks:
             if [ -z "$VIOLATION" ]; then
               lower=$(printf '%s' "$TURN_TEXT" | grep -v '^[[:space:]]*>' | grep -v '^[[:space:]]*```' | tr '[:upper:]' '[:lower:]')
               case "$lower" in
-                *"i can run "*|*"i can call "*|*"i have access to "*|*"is available"*|*"is not available"*|*"is unavailable"*|*"not detected"*|*"i cannot access "*)
-                  VIOLATION="Tool-availability-claim violation: text asserts tool presence/absence without a verified call. Make the actual tool call first." ;;
+                *"i can run "*|*"i can call "*|*"i have access to "*|*"i cannot access "*|*"i don't have access"*|*"i'm able to run "*|*"i am able to run "*)
+                  VIOLATION="Tool-availability-claim violation: first-person tool-access claim without a verified call. Make the actual tool call first, then describe the result." ;;
               esac
             fi
             if [ -z "$VIOLATION" ]; then
