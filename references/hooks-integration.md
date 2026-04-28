@@ -5,18 +5,22 @@ for proactive session management. Phased rollout from essential to advanced.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  SP Hooks Rollout                                                    │
+│  SP Hooks Rollout (v5.14.0)                                          │
 │                                                                      │
 │  Phase 1 (Essential)     Phase 2 (Monitoring)    Phase 3 (Advanced) │
 │  ┌──────────────────┐   ┌──────────────────┐    ┌────────────────┐  │
 │  │ 🛡️ PreToolUse    │   │ 🤖 SubagentStart │    │ 🔧 ConfigChange│  │
-│  │    (identity)    │   │ 🤖 SubagentStop  │    │ ❌ PostToolUse │  │
-│  │ 🚨 PreCompact    │   │ 📝 PostToolUse   │    │    Failure     │  │
-│  │    (user-owned)  │   │ 💬 UserPrompt    │    │ 🔌 Custom      │  │
-│  │ 🛑 Stop (removed)│   │    Submit        │    └────────────────┘  │
-│  │ 🚀 SessionStart  │   └──────────────────┘                        │
+│  │    (identity) ✅ │   │ 🤖 SubagentStop  │    │ ❌ PostToolUse │  │
+│  │ 📝 PostToolUse   │   │ 💬 UserPrompt    │    │    Failure     │  │
+│  │  (tracker)    ✅ │   │    Submit        │    │ 🔌 Custom      │  │
+│  │ 🛑 Stop          │   └──────────────────┘    └────────────────┘  │
+│  │  (validator)  ✅ │                                               │
+│  │ 🚨 PreCompact    │                                               │
+│  │    (user-owned)  │                                               │
+│  │ 🚀 SessionStart  │                                               │
 │  │  (incompatible)  │                                               │
 │  └──────────────────┘                                               │
+│  ✅ = shipping in SKILL.md frontmatter                               │
 │  ◄── implement first    ◄── visibility      ◄── power users        │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -228,20 +232,83 @@ hook is a belt-and-suspenders backstop, not a required dependency.
 
 ---
 
-### 🛑 Stop — REMOVED in v5.0.0
+### 🛑 Stop — RESTORED in v5.14.0 as response-end validator (Layer 2)
 
-The Stop hook was removed in v5.0.0. The implementation script (`hooks/check-handoff.sh`)
-was deleted and the `hooks:` section was removed from SKILL.md frontmatter.
+The Stop hook was removed in v5.0.0 because it was being used for session-end
+detection — the wrong scope for a hook that fires on every turn. v5.14.0 restores
+it for the **correct** scope: **response-end validation**. Every turn IS the right
+scope for checking structural rules against the assistant's just-completed response.
 
-**Why it was removed:** Hooks fire on every turn, not specifically at session end.
-The Stop hook could not reliably detect the difference between a mid-session pause
-and an actual session termination, making it an unreliable backstop.
+**What Layer 2 validates (per synthesis Rev 3 scope split):**
 
-**What replaced it:** Session-end detection is now handled entirely by the SP's
-behavioral protocol in SKILL.md — keyword detection for session-end signals
-(e.g., "done", "wrapping up", "closing") combined with a periodic check every
-5th exchange. There is no automated fallback; the SP must catch session-end
-signals proactively through its behavioral rules.
+| Check | Scope | What it detects |
+|---|---|---|
+| AUQ-must-be-AUQ | Always-on | Sentence-final `?` in prose without an `AskUserQuestion` tool call in the same turn |
+| Tool-availability claims | Always-on | Text asserting a tool is available/unavailable without an actual call verifying it |
+| Fence-write coupling | Fence-conditional | `══ START 🟢 COPY ══` fence without a preceding `Write` to `.handoffs/last-prompts/[N].md` in the same turn |
+
+**Exit behavior:** Exit 2 on first violation. Stop hook exit-2 prevents Claude from
+completing its turn and forces continuation — the stderr message becomes Claude's
+revision context. Exit 0 on pass.
+
+**Delivery:** Inlined in SKILL.md frontmatter under `hooks: Stop:` (same delivery
+surface as the PreToolUse guard). Standalone reference script at
+`hooks/stop-validator.sh` kept in sync for local testing. Validator logic extracted
+to `hooks/lib/validators.sh` and shared with Layer 3 transcript lint.
+
+**Empirical findings (from `.handoffs/v514-spike-findings-0429.md` Q3 — GREEN):**
+
+The spike confirmed three Stop-hook stdin facts that are NOT documented in Anthropic's
+official hooks documentation (as of 2026-04-29):
+
+1. **`last_assistant_message` field** — included in Stop hook stdin JSON. Contains
+   the trailing text block of the final response. Used for a fast-path check
+   (is `══` or `?` present?) before falling back to full transcript parsing.
+   This avoids the expensive JSONL parse on clean responses.
+
+2. **`stop_hook_active` boolean** — included in Stop hook stdin JSON. The validator
+   MUST exit 0 immediately when `stop_hook_active=true`. This is Anthropic's own
+   loop-prevention signal: a Stop hook exit-2 causes a forced continuation, and if
+   the validator re-fires at the end of THAT continuation and exits 2 again, the
+   result is an infinite loop. The `stop_hook_active=true` check is the circuit
+   breaker.
+
+3. **Missing transcript (graceful degradation)** — if `transcript_path` does not
+   exist on disk (e.g., session started with `--no-session-persistence`), the
+   validator exits 0 rather than failing. Normal interactive sessions always
+   persist the transcript; the graceful exit is for robustness in edge cases.
+
+The full empirical Stop hook stdin schema (confirmed via subprocess `claude -p` run,
+2026-04-29):
+```json
+{
+  "session_id": "...",
+  "transcript_path": "/Users/.../<encoded-cwd>/<session-uuid>.jsonl",
+  "cwd": "...",
+  "permission_mode": "...",
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "..."
+}
+```
+
+**Plugin-context caveat (anthropics/claude-code#17688):** Issue #17688 (OPEN, labeled
+bug, 22 comments) reports that SKILL.md frontmatter hooks sometimes fail in plugin
+contexts on CC 2.1.5+. If Layer 2 is not firing for a user, the root cause is likely
+this issue. The documented fallback for those users is Layer 3 (the release-time
+transcript lint at `tests/lint-transcripts.sh`), which catches violations at release
+time regardless of runtime hook availability.
+
+**Theme C coordination note:** Theme C's 6-state closure evidence ledger (SKIPPED /
+RESOLVED / RESOLVED-AUTO / etc.) emits state markers in the final assistant turn. Layer
+2 explicitly does NOT validate closure-ledger state markers — they are status output,
+not user-directed questions or copy fences. Step 4's Theme C implementation must not
+introduce patterns that would trigger the AUQ-must-be-AUQ or fence-write coupling
+checks unintentionally.
+
+**v5.0.0 distinction:** v5.0.0's removal was architecturally correct — Stop was wrong
+for session-end detection. v5.14.0's restoration is architecturally correct — Stop is
+right for response-end validation. Same event, different (and correct) use case.
 
 ---
 
@@ -286,25 +353,51 @@ Without these hooks, agent verification requires polling or inline checks.
 
 ---
 
-### 📝 PostToolUse (on Edit)
+### 📝 PostToolUse — write tracker (Layer 1, shipping in v5.14.0)
 
-**Event**: Fires after any tool use completes. Filter for Edit/Write tools.
+**Event**: Fires after Write / Edit / MultiEdit tool calls complete (filtered by
+matcher). Skill-scoped via SKILL.md frontmatter — fires only while the SP is active.
 
-**SP Behavior:**
-- 📂 Track file modifications automatically for handoff state
-- 📋 Maintain a running list of files changed this session
-- ⚡ No need to manually reconstruct "Files Modified" at handoff time
+**SP Behavior (v5.14.0):**
+- Filters for Write/Edit/MultiEdit calls where `file_path` matches
+  `.handoffs/last-prompts/[0-9]+.md`
+- On match: appends `<session_id>\t<timestamp>\t<file_path>` to
+  `.claude/sp-state/last-prompt-writes.txt`
+- Exit 0 always — tracking only, never blocks
+- Session-scoped cleanup: if the first entry in the state file belongs to a
+  different `session_id`, the file is truncated before appending. Prevents
+  stale cross-session state from polluting fence-write coupling checks.
+- Uses `command -v jq` to detect jq; falls back to bash+grep for field extraction.
 
-**Configuration:**
+**State file:** `.claude/sp-state/last-prompt-writes.txt`
+**Format per line:** `<session_id>\t<timestamp_iso8601>\t<file_path>`
+
+**Why this exists:** The Stop hook (Layer 2) needs to answer "did a write to
+`.handoffs/last-prompts/[N].md` precede the fence emission in this turn?" The JSONL
+transcript records which tool calls were made, but the state file provides a fast,
+session-scoped, pre-parsed answer. Layer 1 produces the evidence; Layer 2 consumes it.
+
+**Standalone reference script:** `hooks/postuse-tracker.sh` — kept in sync with the
+inlined SKILL.md frontmatter version for local testing and documentation.
+
+**Delivery:** Inlined in SKILL.md frontmatter under `hooks: PostToolUse:` alongside
+the existing PreToolUse guard. Matcher: `"Write|Edit|MultiEdit"`.
+
+**Previous behavior (pre-v5.14.0):**
+The PostToolUse section below described a /tmp/-based file-modification log for
+handoff state reconstruction. That was an advisory pattern never shipped in
+SKILL.md frontmatter. v5.14.0 ships the first actual PostToolUse hook.
+
+**Configuration (reference — see SKILL.md for the inlined version):**
 ```json
 {
   "hooks": {
     "PostToolUse": [
       {
         "type": "command",
-        "command": "echo \"FILE_MODIFIED: $TOOL_INPUT_PATH $(date +%H:%M:%S)\" >> /tmp/sp-file-tracking.log",
-        "description": "Track file modifications for SP handoff state",
-        "toolNames": ["Edit", "Write"]
+        "command": "... (see SKILL.md frontmatter PostToolUse block) ...",
+        "description": "Track .handoffs/last-prompts/ writes for Layer 2 fence-write coupling check",
+        "toolNames": ["Write", "Edit", "MultiEdit"]
       }
     ]
   }
@@ -416,14 +509,26 @@ For SP-specific events that don't map to built-in hook events:
 
 ## 💬 Hook Delivery Summary
 
-The SP ships exactly one frontmatter hook: the **PreToolUse identity guard**
-(SKILL.md frontmatter). It is lifecycle-correct — PreToolUse fires during
-tool calls made while the SP is active, which is precisely when source-file
-mutations need to be blocked.
+As of v5.14.0, the SP ships **three frontmatter hooks** (all inlined in SKILL.md):
+
+| Hook | Event | Matcher | Purpose | Ships via |
+|---|---|---|---|---|
+| Identity guard | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|mcp__plugin_serena_serena__` | Block source-file mutations; allow SP workspace paths | SKILL.md frontmatter |
+| Write tracker | PostToolUse | `Write\|Edit\|MultiEdit` | Record `.handoffs/last-prompts/[N].md` writes to state file for Layer 2 | SKILL.md frontmatter |
+| Response-end validator | Stop | (no matcher — fires on all Stop events) | Validate AUQ-must-be-AUQ, tool-availability claims, fence-write coupling | SKILL.md frontmatter |
+
+All three are lifecycle-correct for skill-frontmatter delivery:
+- PreToolUse fires during tool calls while the skill is active — correct for blocking source edits.
+- PostToolUse fires after tool calls while the skill is active — correct for tracking writes.
+- Stop fires at end-of-turn while the skill is active — correct for response-end validation.
+
+**Layer 3 (transcript lint):** `tests/lint-transcripts.sh` — runs the same three
+checks as Layer 2 at release time. Exit 0 if clean; exit 1 with per-violation output
+if any violations found. Added to CLAUDE.md release process Step 2a. This is the
+backstop for users where Layer 2 is unavailable (e.g., plugin-context issue #17688).
 
 All other hook types discussed in this file are either:
 
-- **Removed** (Stop, v5.0.0 — hooks fire on every turn, not just session end)
 - **Architecturally incompatible with skill-frontmatter delivery**
   (SessionStart, investigated and removed in v5.9.0 — see Phase 1 above)
 - **Optional user-owned configurations** (PreCompact and all Phase 2 / Phase 3

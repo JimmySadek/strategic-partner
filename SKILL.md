@@ -81,6 +81,113 @@ hooks:
             fi
             exit 0
           timeout: 2000
+  PostToolUse:
+    - matcher: "Write|Edit|MultiEdit"
+      hooks:
+        - type: command
+          command: |
+            INPUT=$(cat)
+            TOOL=$(printf '%s' "$INPUT" | grep -o '"tool_name":"[^"]*"' | head -1 | cut -d'"' -f4)
+            [ -z "$TOOL" ] && TOOL=$(printf '%s' "$INPUT" | grep -o '"tool_name": "[^"]*"' | head -1 | cut -d'"' -f4)
+            case "$TOOL" in Write|Edit|MultiEdit) ;; *) exit 0 ;; esac
+            FP=$(printf '%s' "$INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)
+            [ -z "$FP" ] && FP=$(printf '%s' "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
+            [ -z "$FP" ] && exit 0
+            case "$FP" in
+              [A-Za-z]:\\*|\\\\*) FP=$(printf '%s' "$FP" | tr '\\' '/') ;;
+            esac
+            case "$FP" in
+              .handoffs/last-prompts/[0-9]*.md|*/.handoffs/last-prompts/[0-9]*.md) ;;
+              *) exit 0 ;;
+            esac
+            SID=$(printf '%s' "$INPUT" | grep -o '"session_id":"[^"]*"' | head -1 | cut -d'"' -f4)
+            [ -z "$SID" ] && SID=$(printf '%s' "$INPUT" | grep -o '"session_id": "[^"]*"' | head -1 | cut -d'"' -f4)
+            [ -z "$SID" ] && SID="unknown"
+            TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            SF=".claude/sp-state/last-prompt-writes.txt"
+            if [ -f "$SF" ]; then
+              FIRST=$(head -1 "$SF" 2>/dev/null)
+              if [ -n "$FIRST" ]; then
+                STORED=$(printf '%s' "$FIRST" | cut -f1)
+                [ "$STORED" != "$SID" ] && : > "$SF"
+              fi
+            fi
+            mkdir -p "$(dirname "$SF")"
+            printf '%s\t%s\t%s\n' "$SID" "$TS" "$FP" >> "$SF"
+            exit 0
+          timeout: 1000
+  Stop:
+    - hooks:
+        - type: command
+          command: |
+            INPUT=$(cat)
+            SHA=$(printf '%s' "$INPUT" | grep -o '"stop_hook_active":[^,}]*' | head -1 | cut -d: -f2 | tr -d ' "')
+            case "$SHA" in true|True|TRUE|1) exit 0 ;; esac
+            if command -v jq > /dev/null 2>&1; then
+              TP=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
+              SID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+              LM=$(printf '%s' "$INPUT" | jq -r '.last_assistant_message // empty' 2>/dev/null)
+            else
+              TP=$(printf '%s' "$INPUT" | grep -o '"transcript_path":"[^"]*"' | head -1 | cut -d'"' -f4)
+              [ -z "$TP" ] && TP=$(printf '%s' "$INPUT" | grep -o '"transcript_path": "[^"]*"' | head -1 | cut -d'"' -f4)
+              SID=$(printf '%s' "$INPUT" | grep -o '"session_id":"[^"]*"' | head -1 | cut -d'"' -f4)
+              [ -z "$SID" ] && SID=$(printf '%s' "$INPUT" | grep -o '"session_id": "[^"]*"' | head -1 | cut -d'"' -f4)
+              LM=$(printf '%s' "$INPUT" | grep -o '"last_assistant_message":"[^"]*"' | head -1 | cut -d'"' -f4)
+              [ -z "$LM" ] && LM=$(printf '%s' "$INPUT" | grep -o '"last_assistant_message": "[^"]*"' | head -1 | cut -d'"' -f4)
+            fi
+            [ -z "$TP" ] || [ ! -f "$TP" ] && exit 0
+            case "$LM" in *"══"*|*"?"*) ;; *) exit 0 ;; esac
+            SF=".claude/sp-state/last-prompt-writes.txt"
+            TURN_TEXT=""
+            HAS_AUQ="false"
+            if command -v jq > /dev/null 2>&1; then
+              TURN_JSON=$(tac "$TP" 2>/dev/null | awk 'BEGIN{c=1}{if(c){if((index($0,"\"role\":\"user\"")||index($0,"\"role\": \"user\""))&&!index($0,"\"type\":\"tool_result\"")&&!index($0,"\"type\": \"tool_result\"")){c=0;next}print}}')
+              TURN_TEXT=$(printf '%s\n' "$TURN_JSON" | jq -r 'select(.message.role=="assistant" or .role=="assistant") | (.message.content // .content // [])[] | select(.type=="text") | .text // empty' 2>/dev/null | tr '\n' ' ')
+              AUQ_N=$(printf '%s\n' "$TURN_JSON" | jq -r 'select(.message.role=="assistant" or .role=="assistant") | (.message.content // .content // [])[] | select(.type=="tool_use") | .name // empty' 2>/dev/null | grep -c "AskUserQuestion" 2>/dev/null || echo 0)
+              [ "$AUQ_N" -gt 0 ] && HAS_AUQ="true"
+            else
+              TURN_TEXT=$(tac "$TP" 2>/dev/null | awk 'BEGIN{c=1}{if(c){if((index($0,"\"role\":\"user\"")||index($0,"\"role\": \"user\""))&&!index($0,"\"type\":\"tool_result\"")&&!index($0,"\"type\": \"tool_result\"")){c=0;next}print}}' | grep '"type":"text"' | grep -o '"text":"[^"]*"' | cut -d'"' -f4 | tr '\n' ' ')
+              AUQ_N=$(tac "$TP" 2>/dev/null | awk 'BEGIN{c=1}{if(c){if((index($0,"\"role\":\"user\"")||index($0,"\"role\": \"user\""))&&!index($0,"\"type\":\"tool_result\"")&&!index($0,"\"type\": \"tool_result\"")){c=0;next}print}}' | grep -c "AskUserQuestion" 2>/dev/null || echo 0)
+              [ "$AUQ_N" -gt 0 ] && HAS_AUQ="true"
+            fi
+            [ -z "$TURN_TEXT" ] && TURN_TEXT="$LM"
+            VIOLATION=""
+            if [ "$HAS_AUQ" != "true" ]; then
+              prose=$(printf '%s' "$TURN_TEXT" | grep -v '^[[:space:]]*>' | grep -v '^[[:space:]]*```')
+              Q_LINE=$(printf '%s' "$prose" | grep -m1 '\?[[:space:]]*$')
+              if [ -n "$Q_LINE" ]; then
+                VIOLATION="AUQ-must-be-AUQ violation: prose question without AskUserQuestion call — wrap questions in AskUserQuestion instead of inline prose."
+              fi
+            fi
+            if [ -z "$VIOLATION" ]; then
+              lower=$(printf '%s' "$TURN_TEXT" | grep -v '^[[:space:]]*>' | grep -v '^[[:space:]]*```' | tr '[:upper:]' '[:lower:]')
+              case "$lower" in
+                *"i can run "*|*"i can call "*|*"i have access to "*|*"is available"*|*"is not available"*|*"is unavailable"*|*"not detected"*|*"i cannot access "*)
+                  VIOLATION="Tool-availability-claim violation: text asserts tool presence/absence without a verified call. Make the actual tool call first." ;;
+              esac
+            fi
+            if [ -z "$VIOLATION" ]; then
+              case "$TURN_TEXT" in
+                *"══ START 🟢 COPY ══"*)
+                  FENCE_OUTSIDE=$(printf '%s' "$TURN_TEXT" | grep -v '^[[:space:]]*>' | grep -v '^[[:space:]]*```' | grep -c "══ START 🟢 COPY ══" 2>/dev/null || echo 0)
+                  if [ "${FENCE_OUTSIDE:-0}" -gt 0 ] 2>/dev/null; then
+                    WRITE_OK=0
+                    if [ -f "$SF" ] && [ -n "$SID" ]; then
+                      grep -q "^${SID}" "$SF" 2>/dev/null && WRITE_OK=1
+                    elif [ -f "$SF" ] && [ -s "$SF" ]; then
+                      WRITE_OK=1
+                    fi
+                    [ "$WRITE_OK" -eq 0 ] && VIOLATION="Fence-write coupling violation: fence emitted without a matching Write to .handoffs/last-prompts/[N].md. Write the prompt file before emitting the fence."
+                  fi
+                  ;;
+              esac
+            fi
+            if [ -n "$VIOLATION" ]; then
+              printf '\n[SP Stop Validator] Response blocked — structural rule violation:\n\n%s\n\nPlease revise your response to satisfy the rule before completing your turn.\n' "$VIOLATION" >&2
+              exit 2
+            fi
+            exit 0
+          timeout: 5000
 ---
 
 # /strategic-partner — Chief of Staff for Claude Code

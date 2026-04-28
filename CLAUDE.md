@@ -63,7 +63,19 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    A historical entry explaining why the pattern failed before is the fastest
    way to avoid re-introducing the same bug.
 
-**Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. v5.4.0→v5.4.1 was a reactive fix for exactly this class of bug.
+6. **Transcript lint (v5.14.0+)**: run the Layer 3 transcript lint backstop
+   against recent `.handoffs/*.md` files and (if accessible) JSONL transcripts
+   since the last release tag. This verifies no AUQ, tool-availability, or
+   fence-write coupling violations slip through to users:
+   ```
+   bash tests/lint-transcripts.sh
+   ```
+   Exit 0 = clean. Exit 1 = violations found; address before proceeding.
+   If the lint reports violations in historical transcripts that predate v5.14.0
+   (before enforcement was added), document them as expected baseline and
+   verify new transcripts are clean.
+
+**Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. v5.4.0→v5.4.1 was a reactive fix for exactly this class of bug. The transcript lint is the Layer 3 backstop for the response-end validators added in v5.14.0.
 
 ### 2b. Codex Pre-Release Review (Mandatory for non-docs-only pushes)
 
