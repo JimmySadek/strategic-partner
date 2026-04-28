@@ -141,7 +141,12 @@ if command -v jq > /dev/null 2>&1; then
     '
   )
 
-  TURN_TEXT=$(printf '%s\n' "$TURN_JSON" | jq -r 'select(.message.role=="assistant" or .role=="assistant") | (.message.content // .content // [])[] | select(.type=="text") | .text // empty' 2>/dev/null | tr '\n' ' ')
+  # Newlines are preserved (no tr '\n' ' ' collapse) so the lib's
+  # validate_auq_must_be_auq can scan line-by-line. Collapsing newlines made
+  # the AUQ check inert for any prose question that wasn't the literal last
+  # sentence of the response — see commit cc8b24e for the inlined-hook fix
+  # and this matching standalone fix.
+  TURN_TEXT=$(printf '%s\n' "$TURN_JSON" | jq -r 'select(.message.role=="assistant" or .role=="assistant") | (.message.content // .content // [])[] | select(.type=="text") | .text // empty' 2>/dev/null)
   HAS_AUQ_CHECK=$(printf '%s\n' "$TURN_JSON" | jq -r 'select(.message.role=="assistant" or .role=="assistant") | (.message.content // .content // [])[] | select(.type=="tool_use") | .name // empty' 2>/dev/null | grep -c "AskUserQuestion" 2>/dev/null)
   HAS_AUQ_CHECK="${HAS_AUQ_CHECK:-0}"
   [ "${HAS_AUQ_CHECK:-0}" -gt 0 ] 2>/dev/null && HAS_AUQ="true"
@@ -161,7 +166,7 @@ else
           print
         }
       }
-    ' | grep '"type":"text"' | grep -o '"text":"[^"]*"' | cut -d'"' -f4 | tr '\n' ' '
+    ' | grep '"type":"text"' | grep -o '"text":"[^"]*"' | cut -d'"' -f4
   )
 
   AUQ_COUNT=$(
@@ -222,8 +227,14 @@ else
     local text="$1"
     local prose
     prose=$(printf '%s' "$text" | tr '[:upper:]' '[:lower:]' | grep -v '^[[:space:]]*>' | grep -v '^[[:space:]]*```')
-    if printf '%s' "$prose" | grep -qE '(i can run |i can call |i have access to |is available|is not available|is unavailable|not detected|i cannot access )'; then
-      printf 'Tool-availability-claim violation: text asserts tool presence/absence without a verified call. Make the actual tool call first.\n'
+    # First-person tool-access claim patterns ONLY (matches cc8b24e tightening
+    # in lib/validators.sh and SKILL.md inlined hook). Broad substring matches
+    # like "is available" / "detected" were removed because they false-positive
+    # on common neutral phrases ("the harness is available", "Sonnet 4.6 is
+    # available", "the API is unavailable").
+    # Apostrophe in "don'\''t" is escaped via close-quote / literal / reopen.
+    if printf '%s' "$prose" | grep -qE '(i can run |i can call |i have access to |i cannot access |i don'\''t have access|i'\''m able to run |i am able to run )'; then
+      printf 'Tool-availability-claim violation: first-person tool-access claim without a verified call. Make the actual tool call first, then describe the result.\n'
       return 1
     fi
     return 0
