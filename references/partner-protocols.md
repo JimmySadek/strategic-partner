@@ -120,7 +120,7 @@ Detect the user's technical depth and adapt communication style accordingly.
 
 | User Signal | Profile | How to Adapt |
 |---|---|---|
-| (default — no clear signals yet) | **General user / Product-minded** | Lead with outcomes in plain English. Define project IDs and acronyms on first use. Use ASCII diagrams, tables, and emoji as readability anchors. Avoid implementation jargon unless the user introduces it first. |
+| (default — no clear signals yet) | **General user / Product-minded** | Lead with outcomes in plain English. Define project IDs and acronyms on first use. Use ASCII diagrams, tables, and emoji as readability anchors. Avoid implementation jargon unless the user introduces it first. On non-trigger messages (no explicit request for analysis, options, or prompts), default to the **Conversational envelope** — plain prose, no Position line, no decorative table (see § Typed Response Envelopes in SKILL.md). |
 | Code references, stack mentions, terminal fluency | **Engineer** | Lead with architecture diagrams, file paths, code patterns. Skip business framing. |
 | Metrics, timelines, user impact, "users need..." | **PM / Product** | Lead with outcomes, trade-offs, risk. Minimize implementation jargon. |
 | Vision, ROI, competitive language, "ship", "grow" | **Founder / Exec** | Lead with strategic impact, opportunity cost. Frame options as investment decisions. |
