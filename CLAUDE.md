@@ -227,3 +227,44 @@ Follow the existing convention (Keep a Changelog style):
 ```
 
 Only include sections that have entries. Use `**bold lead**` with em-dash description.
+
+### CHANGELOG Voice Rules
+
+CHANGELOG entries must read clean to a smart non-developer evaluating
+"what's new in this version?" The CHANGELOG is user-facing — it's linked
+from the README badge, extracted into GitHub Release notes, and surfaced
+by `/strategic-partner:update`. Apply SP's own voice rules to every entry:
+
+- **Plain-English lead** — open each bullet with what changed for the user
+  in plain language; technical name as a parenthetical or subordinate
+  clause, not as the bullet's headline.
+- **Define-Before-Use** — first mention of any project-internal vocabulary
+  (envelope names, ledger states, trigger numbers, layer architecture, etc.)
+  gets a one-line gloss in plain English. Subsequent mentions in the same
+  entry can use the term as a handle.
+- **No raw file paths or line numbers** in user-visible bullets unless they
+  carry user-meaningful context.
+- **Headline first, detail after** — a reader skimming should understand
+  the change in 1-2 sentences. Engineering motivation, mechanism, and scope
+  follow the headline, not the other way around.
+
+GitHub Release notes derived from a CHANGELOG entry must pass the same
+gate. If the entry doesn't read clean for a non-developer, rewrite the
+entry — don't fork to a separate user-facing file.
+
+**Bad:**
+
+> **Typed Response Envelopes** — four-envelope response taxonomy
+> (Conversational, Analytical, Packaged Prompt, Closure) maps response
+> shape to appropriate formatting and visual density.
+
+**Good:**
+
+> **Different reply types now get different formatting** (typed response
+> envelopes) — Brief acknowledgments stay short. In-depth recommendations
+> get tables. Executor briefs get full ceremony. SP picks the right shape
+> based on what kind of reply it's giving.
+
+The rule applies to new entries going forward. Existing entries may be
+rewritten as part of the next release that touches them; retroactive
+rewrite is not required.
