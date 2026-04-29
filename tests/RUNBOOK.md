@@ -280,3 +280,80 @@ The automated `tests/lint-transcripts.sh` script enforces the same checks at rel
 - **V1, V4, V6, V7** are manual-grading only — the lint script cannot detect vocabulary tone, hygiene-AUQ presence, or envelope-type selection.
 
 Run `bash tests/lint-transcripts.sh` as part of every release verification cycle. Lint violations block the release; V-fixture failures require a fix-and-retest cycle before ceremony proceeds.
+
+---
+
+## Voice lint (v5.15.0)
+
+The voice lint at `tests/lint-voice.sh` is a release-time backstop for the User-Facing Voice Rules in CLAUDE.md. It scans static documents (CHANGELOG.md, README.md, commands/*.md) for jargon-loaded patterns that violate the rules — distinct from `tests/lint-transcripts.sh`, which scans conversation transcripts for behavior violations.
+
+### What it checks
+
+Five mechanical patterns (each fails the lint):
+
+| TYPE | Detects |
+|---|---|
+| `FUNCTION-CALL-IN-PROSE` | identifiers like `validate_tool_availability()` outside code blocks |
+| `INCIDENT-ID-IN-PROSE` | incident IDs (e.g. `INC-2026-03-30`) outside code blocks |
+| `DIRECTION-REF` | `Direction N` outside code blocks |
+| `LAYER-REF` | `Layer N` outside code blocks |
+| `RAW-LINE-REF` | `line N` (or `line ~N`) outside code blocks |
+
+One heuristic pattern (warns only, never fails):
+
+| TYPE | Detects |
+|---|---|
+| `INTERNAL-TERM-WITHOUT-GLOSS` | first occurrence of an internal term (envelope, ledger, Bootstrap, Router, Egress, Fast Lane, etc.) without a parenthetical, em-dash, or other gloss-shaped follow-up in the same paragraph |
+
+### Skip blocks
+
+For sections that legitimately use internal vocabulary (file tree, architecture details), bracket them with HTML comment markers:
+
+```
+<!-- voice-lint:skip-start -->
+...content not scanned...
+<!-- voice-lint:skip-end -->
+```
+
+Code blocks (triple-backtick fences) and blockquotes are auto-skipped. The skip-block markers are for prose sections that need the same treatment.
+
+### How to run
+
+```
+bash tests/lint-voice.sh                   # scan all targets (CHANGELOG + README + commands/*)
+bash tests/lint-voice.sh --target CHANGELOG
+bash tests/lint-voice.sh --target README
+bash tests/lint-voice.sh --target commands
+bash tests/lint-voice.sh path/to/file.md   # lint a specific file (used by fixtures)
+```
+
+### Exit codes
+
+- `0` — clean, or warnings only (heuristic findings do not block)
+- `1` — one or more mechanical violations found
+
+### Output format
+
+Per-violation line, grep-friendly:
+
+```
+<file>:<line>: <TYPE>: <description>
+```
+
+### Fixture coverage
+
+Three fixtures under `tests/fixtures/v5.15.0/voice-lint/` validate the lint:
+
+| Fixture | Expected exit | Expected output |
+|---|---|---|
+| `pass.md` | 0 | no violations or warnings |
+| `fail-mechanical.md` | 1 | exactly five mechanical violations (one per pattern) |
+| `fail-heuristic.md` | 0 | one or more `INTERNAL-TERM-WITHOUT-GLOSS` warnings |
+
+### Baseline
+
+The current CHANGELOG and README contain mechanical violations from older entries written before the voice rules took effect. These are expected baseline findings. Rewrites are tracked as separate v5.15.0 deliverables; the lint surfaces the targets, humans rewrite the entries.
+
+### Release gate
+
+Run the voice lint as part of the release verification cycle, alongside the transcript lint. Mechanical violations block the release; warnings are informational. See CLAUDE.md "2c. Voice Lint" for the gating posture.

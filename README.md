@@ -257,6 +257,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **13-item Post-Craft Verification visible checklist** — every crafted prompt renders a visible pass/fail table of 13 quality checks (skill routing, file context, deliverables, verification commands, commit message, format match, copy-safety, scope exclusions, model-aware blocks, etc.) BEFORE the fenced prompt. The check runs in the response, not in invisible reasoning — you can audit every crafted prompt without trusting hidden cognition.
 - **1M context advisory (Opus 4.7 sessions)** — on 1M-context models, SP surfaces a one-time orientation note: autocompact defaults to ~95% (~950K), known Anthropic issues cause erratic behavior above ~256K, and users can consider wrapping up or triggering handoff around 250K for reliable retrieval. Pure advisory; no settings changed.
 
+<!-- voice-lint:skip-start -->
 <details>
 <summary>Full file tree</summary>
 
@@ -331,6 +332,7 @@ strategic-partner/
 ```
 
 </details>
+<!-- voice-lint:skip-end -->
 
 Run `./setup` after installation to register subcommands. The update subcommand re-runs this automatically.
 

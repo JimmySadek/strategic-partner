@@ -121,6 +121,42 @@ asking three questions:
 Document every Codex cycle in Serena `decision_log` with the
 verdict(s), fixes applied, and final GO.
 
+### 2c. Voice Lint (Mandatory for non-docs-only pushes)
+
+The voice lint at `tests/lint-voice.sh` is a release-time backstop for the
+User-Facing Voice Rules. It scans CHANGELOG.md, README.md, and
+`commands/*.md` for jargon-loaded patterns that violate the rules:
+function-call notation in prose, incident IDs, internal direction/layer
+references, and raw line references.
+
+```
+bash tests/lint-voice.sh
+```
+
+Exit 0 = clean (or warnings only). Exit 1 = mechanical violations found;
+address before proceeding.
+
+The lint also emits warn-level findings for first-occurrence internal terms
+without a gloss (envelope, ledger, Bootstrap, Router, Egress, Fast Lane,
+etc.). Warnings are informational; they do not block the release.
+
+If the lint reports baseline violations in entries that predate v5.15.0
+(before enforcement was added), document them as expected baseline and
+verify new entries are clean. New entries written for the current release
+must pass the lint with zero mechanical violations.
+
+For sections that legitimately use internal vocabulary (file trees,
+architecture details), bracket them with skip-block markers:
+
+```
+<!-- voice-lint:skip-start -->
+...content not scanned...
+<!-- voice-lint:skip-end -->
+```
+
+Code blocks and blockquotes are auto-skipped. Same gating posture as
+Step 2a's transcript lint — mechanical violations block; warnings inform.
+
 ### 3. Present to User (Mandatory Confirmation)
 
 Before modifying any files, show:
