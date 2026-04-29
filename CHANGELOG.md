@@ -18,6 +18,11 @@
 
 - **`tests/lint-transcripts.sh:333` cwd encoding** — script was doing `tr '/' '-'` only; harness encoding also requires `tr '.' '-'`. Lint was silently scanning a non-existent path and finding zero transcripts. Fix mirrors the SKILL.md startup checklist's encoding pattern.
 
+### Known Limitations (queued for v5.14.1)
+
+- **Layer 3 lint over-flags meta-discussion** — `tests/lint-transcripts.sh` TOOL-CLAIM rule matches first-person tool-availability substrings inside transcript lines that *quote the lint's own patterns* or discuss its findings, rather than making live first-person tool-availability claims. Two known false positives surfaced in v5.14.0 development sessions during release verification. Fix queued for v5.14.1: add backtick-context awareness or sentence-context scoping to the TOOL-CLAIM matcher.
+- **`tests/lint-transcripts.sh:597` integer expression warning** — script emits `0: integer expression expected` warnings during transcript scanning. Output is noisy but violation counts remain correct. Fix queued for v5.14.1.
+
 ### Deferred to v5.15.0
 
 - **Layer 2 runtime enforcement** (Stop hook + PostToolUse tracker) — prototyped during v5.14.0 development but pulled before release after a read-only mining of 105 JSONL transcripts (314 stop-hook-summary records inspected) found zero observable firings of the validator. Production observability was insufficient to verify the < 2% false-positive target the design called for. Layer 1 (existing PreToolUse source-edit guard) and Layer 3 (release-time transcript lint) are the only enforcement layers in v5.14.0. Runtime SP behavior is unchanged versus v5.13.0 except for the Theme A/C/D additions and the voice-fix improvements documented above. Layer 2 returns in v5.15.0+ once observability is in place.
