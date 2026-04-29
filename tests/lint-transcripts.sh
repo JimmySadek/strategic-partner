@@ -272,12 +272,13 @@ EOF
 # ---------------------------------------------------------------------------
 SINCE_TAG=""
 CHECK_ALL=0
+EXPLICIT_FILES=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --since) SINCE_TAG="$2"; shift 2 ;;
     --all)   CHECK_ALL=1; shift ;;
-    *)       shift ;;
+    *)       EXPLICIT_FILES+=("$1"); shift ;;
   esac
 done
 
@@ -472,6 +473,16 @@ lint_markdown_file() {
     esac
   fi
 
+  # Check 4: Voice patterns (always-on)
+  # Scans for the six mechanical jargon patterns in user-facing prose.
+  # Helper preserves line numbers via internal walker, so violations
+  # report the actual file line.
+  local voice_msg
+  voice_msg=$(validate_voice_patterns "$full_text" "$file") || {
+    printf '%s\n' "$voice_msg"
+    violations="${violations}1"
+  }
+
   [ -n "$violations" ] && return 1
   return 0
 }
@@ -568,6 +579,15 @@ EOF
                 ;;
             esac
           fi
+          # Check 4: Voice patterns (always-on).
+          # display_line=turn_start_line — within-turn line offsets don't
+          # map back to JSONL lines (turn_text is concatenated from many
+          # JSON records), so all violations are pinned to the turn boundary.
+          local voice_msg_turn
+          voice_msg_turn=$(validate_voice_patterns "$turn_text" "$file" "$turn_start_line") || {
+            printf '%s\n' "$voice_msg_turn"
+            violations="${violations}1"
+          }
         fi
         # Reset for next turn
         turn_text=""
@@ -659,6 +679,12 @@ EOF
             ;;
         esac
       fi
+      # Check 4: Voice patterns (always-on, final turn).
+      local voice_msg_final
+      voice_msg_final=$(validate_voice_patterns "$turn_text" "$file" "$turn_start_line") || {
+        printf '%s\n' "$voice_msg_final"
+        violations="${violations}1"
+      }
     fi
   else
     # No jq: grep-based heuristic (less precise but avoids hard dependency).
@@ -718,6 +744,15 @@ EOF
           ;;
       esac
     fi
+    # Check 4: Voice patterns (always-on, no-jq fallback).
+    # full_text here has newlines collapsed to spaces, so within-text line
+    # numbers are meaningless — display_line="?" matches the existing
+    # no-jq fallback convention used by the AUQ and tool-availability checks.
+    local voice_msg_nojq
+    voice_msg_nojq=$(validate_voice_patterns "$full_text" "$file" "?") || {
+      printf '%s\n' "$voice_msg_nojq"
+      violations="${violations}1"
+    }
   fi
 
   [ -n "$violations" ] && return 1
@@ -725,45 +760,65 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# Main: collect and lint all applicable files
+# Main: collect and lint all applicable files.
+# When explicit file paths are passed on the command line, lint those
+# directly (dispatching to the markdown or JSONL handler based on extension).
+# Otherwise, auto-discover handoff and transcript files since the last tag.
 # ---------------------------------------------------------------------------
 total_files=0
 total_violations=0
+files_with_violations=0
 all_violation_lines=""
 
-# Lint .handoffs/*.md files
-while IFS= read -r f; do
-  [ -z "$f" ] && continue
+lint_one_file() {
+  local file="$1"
+  local output
+  case "$file" in
+    *.jsonl) output=$(lint_jsonl_file "$file") ;;
+    *)       output=$(lint_markdown_file "$file") ;;
+  esac
   total_files=$(( total_files + 1 ))
-  output=$(lint_markdown_file "$f")
   if [ -n "$output" ]; then
-    total_violations=$(( total_violations + 1 ))
+    files_with_violations=$(( files_with_violations + 1 ))
+    # Count individual violation lines (each violation is one line in output).
+    local n
+    n=$(printf '%s\n' "$output" | grep -c ':' || true)
+    [ -z "$n" ] && n=0
+    total_violations=$(( total_violations + n ))
     all_violation_lines="${all_violation_lines}${output}
 "
   fi
-done <<EOF
+}
+
+if [ "${#EXPLICIT_FILES[@]}" -gt 0 ]; then
+  for f in "${EXPLICIT_FILES[@]}"; do
+    [ -z "$f" ] && continue
+    lint_one_file "$f"
+  done
+else
+  # Lint .handoffs/*.md files
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    lint_one_file "$f"
+  done <<EOF
 $(collect_handoff_files)
 EOF
 
-# Lint JSONL transcript files
-while IFS= read -r f; do
-  [ -z "$f" ] && continue
-  total_files=$(( total_files + 1 ))
-  output=$(lint_jsonl_file "$f")
-  if [ -n "$output" ]; then
-    total_violations=$(( total_violations + 1 ))
-    all_violation_lines="${all_violation_lines}${output}
-"
-  fi
-done <<EOF
+  # Lint JSONL transcript files
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    lint_one_file "$f"
+  done <<EOF
 $(collect_jsonl_files)
 EOF
+fi
 
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
 if [ "$total_violations" -gt 0 ]; then
-  printf 'Transcript lint: %d violation(s) found across %d file(s)\n\n' "$total_violations" "$total_files"
+  printf 'Transcript lint: %d violation(s) found across %d of %d file(s)\n\n' \
+    "$total_violations" "$files_with_violations" "$total_files"
   printf '%s\n' "$all_violation_lines"
   exit 1
 fi

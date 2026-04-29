@@ -93,6 +93,36 @@ CLAIMED INVARIANTS: [The specific claims being audited]
 Instruction to Codex: "Read the files. Cite file:line for every claim. Find what does
 not match. Be specific."
 
+#### Release-Review Brief Template (Step 2b in CLAUDE.md)
+
+When Mode B is invoked for a pre-release audit (per CLAUDE.md "Codex Pre-Release
+Review"), the brief asks four questions. The first three audit the diff and the
+release shape; the fourth audits SP's own chat output during the release sessions.
+
+1. **Diff matches CHANGELOG** — does the proposed CHANGELOG entry accurately
+   describe the full `previous_tag..HEAD` delta? Any undocumented changes?
+
+2. **No regressions vs last released version** — do all invariants from the
+   prior release still hold? Specifically check hook path patterns,
+   allow-list semantics, and setup behavior on macOS/Linux/WSL.
+
+3. **Release worthiness from a user point of view** — is this a meaningful
+   update for the public? Does it improve, not-impact, or degrade the
+   experience for each supported user segment (macOS/Linux, Windows WSL,
+   prospective users)? Would the CHANGELOG entry read as meaningful or as
+   noise?
+
+4. **Voice quality in this release's SP sessions** — did SP use internal
+   jargon in user-facing chat (Direction N, Layer N, deliverable N, ritual
+   audit, policy v1, Step 2b/2c, Path A/B/C, etc.) without plain-English
+   description? The mechanical lint catches the six regex patterns; this
+   question catches the semantic jargon mechanical regexes miss. Cite
+   violations with direct quotes from the transcripts.
+
+The release-review brief lists the relevant transcript files (from
+`.handoffs/` and the current Claude project's JSONL directory) under
+FILES TO READ so Codex can sample them when answering question 4.
+
 ### Step 4 — Brief Preparation
 
 The SP prepares the brief in its main thread, formatted per the mode selected in Step 3.

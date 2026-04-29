@@ -100,80 +100,20 @@ GLOSS_INDICATORS=(
 
 # ---------------------------------------------------------------------------
 # Scan a single file for mechanical patterns.
-# Walks the file line-by-line, tracking:
-#   - in_code: inside a ``` fence
-#   - in_skip: inside an explicit voice-lint:skip-start/end block
+#
+# Thin wrapper over validate_voice_patterns in hooks/lib/validators.sh so
+# the regex set lives in exactly one place. The helper preserves line
+# numbers, tracks code-block / skip-block state, and emits violation lines
+# in the same format used by the transcript lint.
+#
 # Emits violation lines on stdout. Returns 0 always (caller counts violations).
 # ---------------------------------------------------------------------------
 scan_mechanical() {
   local file="$1"
-  local in_code=0
-  local in_skip=0
-  local lineno=0
-
-  while IFS= read -r line || [ -n "$line" ]; do
-    lineno=$(( lineno + 1 ))
-
-    # Skip-block toggle (HTML comment markers). Detect on the line itself
-    # so the marker line is itself excluded from scanning.
-    case "$line" in
-      *"voice-lint:skip-start"*) in_skip=1; continue ;;
-      *"voice-lint:skip-end"*)   in_skip=0; continue ;;
-    esac
-    [ "$in_skip" -eq 1 ] && continue
-
-    # Code-block toggle. Lines beginning with ``` flip the state. Same rule
-    # as hooks/lib/validators.sh:_strip_non_prose so behavior matches.
-    case "$line" in
-      '```'*) in_code=$(( 1 - in_code )); continue ;;
-    esac
-    [ "$in_code" -eq 1 ] && continue
-
-    # Blockquote lines are commentary; skip them.
-    case "$line" in
-      '>'*) continue ;;
-    esac
-
-    # ---- Pattern 1: FUNCTION-CALL-IN-PROSE — word_with_underscore() ----
-    # Match identifiers containing at least one underscore followed by ().
-    # The underscore requirement filters bare-word references like setup()
-    # which can appear in normal prose without being jargon.
-    if [[ "$line" =~ ([a-zA-Z][a-zA-Z0-9_]*_[a-zA-Z0-9_]+\(\)) ]]; then
-      local match="${BASH_REMATCH[1]}"
-      printf '%s:%d: FUNCTION-CALL-IN-PROSE: function-call notation "%s" appears in user-facing prose. Describe what it does in plain English instead.\n' \
-        "$file" "$lineno" "$match"
-    fi
-
-    # ---- Pattern 2: INCIDENT-ID-IN-PROSE — INC-YYYY-MM-DD ----
-    if [[ "$line" =~ (INC-[0-9]{4}-[0-9]{2}-[0-9]{2}) ]]; then
-      local match="${BASH_REMATCH[1]}"
-      printf '%s:%d: INCIDENT-ID-IN-PROSE: incident ID "%s" appears without explanation. Reference incidents by what happened, not by ID — the ID belongs in claudedocs/INCIDENTS.md only.\n' \
-        "$file" "$lineno" "$match"
-    fi
-
-    # ---- Pattern 3: DIRECTION-REF — Direction N ----
-    if [[ "$line" =~ (Direction[[:space:]]+[0-9]+) ]]; then
-      local match="${BASH_REMATCH[1]}"
-      printf '%s:%d: DIRECTION-REF: internal direction reference "%s" appears in user-facing prose. Replace with a plain-English description of the direction.\n' \
-        "$file" "$lineno" "$match"
-    fi
-
-    # ---- Pattern 4: LAYER-REF — Layer N ----
-    if [[ "$line" =~ (Layer[[:space:]]+[0-9]+) ]]; then
-      local match="${BASH_REMATCH[1]}"
-      printf '%s:%d: LAYER-REF: internal layer reference "%s" appears in user-facing prose without a gloss. Describe what the layer does ("the release-time check that..."), not its number.\n' \
-        "$file" "$lineno" "$match"
-    fi
-
-    # ---- Pattern 5: RAW-LINE-REF — line N (or line ~N) ----
-    # Match "line " followed by an optional "~" and a number. Word boundary
-    # on the left via \b to avoid matching "online", "offline", etc.
-    if [[ "$line" =~ (^|[^a-zA-Z])(line[[:space:]]+~?[0-9]+) ]]; then
-      local match="${BASH_REMATCH[2]}"
-      printf '%s:%d: RAW-LINE-REF: raw line reference "%s" appears in user-facing prose. Line numbers belong in commit messages and PR descriptions, not in CHANGELOG/README/commands.\n' \
-        "$file" "$lineno" "$match"
-    fi
-  done < "$file"
+  local content
+  content=$(cat "$file")
+  validate_voice_patterns "$content" "$file"
+  return 0
 }
 
 # ---------------------------------------------------------------------------

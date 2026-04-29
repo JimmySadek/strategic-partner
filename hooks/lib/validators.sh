@@ -347,3 +347,142 @@ EOF
 
   return 0
 }
+
+# ---------------------------------------------------------------------------
+# Check 4: Voice patterns (release-time, mechanical)
+#
+# Scans prose content for jargon-loaded patterns that violate the User-Facing
+# Voice Rules in CLAUDE.md. Single source of truth for the regex set —
+# tests/lint-voice.sh (static-file scanner) and tests/lint-transcripts.sh
+# (transcript scanner) both call this helper instead of inlining the patterns.
+#
+# Six mechanical patterns, each emitting a per-violation line on stdout:
+#
+#   1. FUNCTION-CALL-IN-PROSE    — \w+_\w+\(\) function-call notation
+#   2. INCIDENT-ID-IN-PROSE      — INC-YYYY-MM-DD incident IDs
+#   3. DIRECTION-REF             — Direction N internal references
+#   4. LAYER-REF                 — Layer N internal references
+#   5. RAW-LINE-REF              — line N raw line references
+#   6. DELIVERABLE-REF           — deliverable N internal references
+#
+# The DELIVERABLE-REF pattern is case-sensitive on the lowercase form only.
+# A capitalised "Deliverable 1" in a section header is legitimate ceremony,
+# whereas the lowercase "deliverable 5" in prose is internal jargon.
+#
+# Code-block awareness: lines inside ``` fences and lines starting with ">"
+# are skipped (matches _strip_non_prose semantics, but with line numbers
+# preserved so the violation reports the original line).
+#
+# Skip-block awareness: <!-- voice-lint:skip-start --> ... skip-end markers
+# suppress scanning for an inline range. Useful for sections that legitimately
+# use internal vocabulary (file trees, architecture details).
+#
+# Each violation is emitted on stdout in the format:
+#   <file_path>:<line>: <TYPE>: <description>
+#
+# Args:
+#   text          — content to scan (multi-line string)
+#   file_path     — file identifier used in the violation prefix
+#   display_line  — optional: override every reported line number with this
+#                   single value (used by transcript callers where within-text
+#                   line numbers don't map back to the source file). When
+#                   omitted, violations report the actual within-text line.
+#
+# Returns: 0=clean, 1=one or more violations found
+# ---------------------------------------------------------------------------
+validate_voice_patterns() {
+  local text="$1"
+  local file_path="${2:-?}"
+  local display_line="${3:-}"
+  local in_code=0
+  local in_skip=0
+  local lineno=0
+  local found_violation=0
+  local report_line
+  local match
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    lineno=$(( lineno + 1 ))
+
+    # Skip-block toggle (HTML comment markers)
+    case "$line" in
+      *"voice-lint:skip-start"*) in_skip=1; continue ;;
+      *"voice-lint:skip-end"*)   in_skip=0; continue ;;
+    esac
+    [ "$in_skip" -eq 1 ] && continue
+
+    # Code-block toggle
+    case "$line" in
+      '```'*) in_code=$(( 1 - in_code )); continue ;;
+    esac
+    [ "$in_code" -eq 1 ] && continue
+
+    # Blockquote skip
+    case "$line" in
+      '>'*) continue ;;
+    esac
+
+    if [ -n "$display_line" ]; then
+      report_line="$display_line"
+    else
+      report_line="$lineno"
+    fi
+
+    # ---- Pattern 1: FUNCTION-CALL-IN-PROSE — word_with_underscore() ----
+    if [[ "$line" =~ ([a-zA-Z][a-zA-Z0-9_]*_[a-zA-Z0-9_]+\(\)) ]]; then
+      match="${BASH_REMATCH[1]}"
+      printf '%s:%s: FUNCTION-CALL-IN-PROSE: function-call notation "%s" appears in user-facing prose. Describe what it does in plain English instead.\n' \
+        "$file_path" "$report_line" "$match"
+      found_violation=1
+    fi
+
+    # ---- Pattern 2: INCIDENT-ID-IN-PROSE — INC-YYYY-MM-DD ----
+    if [[ "$line" =~ (INC-[0-9]{4}-[0-9]{2}-[0-9]{2}) ]]; then
+      match="${BASH_REMATCH[1]}"
+      printf '%s:%s: INCIDENT-ID-IN-PROSE: incident ID "%s" appears without explanation. Reference incidents by what happened, not by ID — the ID belongs in claudedocs/INCIDENTS.md only.\n' \
+        "$file_path" "$report_line" "$match"
+      found_violation=1
+    fi
+
+    # ---- Pattern 3: DIRECTION-REF — Direction N ----
+    if [[ "$line" =~ (Direction[[:space:]]+[0-9]+) ]]; then
+      match="${BASH_REMATCH[1]}"
+      printf '%s:%s: DIRECTION-REF: internal direction reference "%s" appears in user-facing prose. Replace with a plain-English description of the direction.\n' \
+        "$file_path" "$report_line" "$match"
+      found_violation=1
+    fi
+
+    # ---- Pattern 4: LAYER-REF — Layer N ----
+    if [[ "$line" =~ (Layer[[:space:]]+[0-9]+) ]]; then
+      match="${BASH_REMATCH[1]}"
+      printf '%s:%s: LAYER-REF: internal layer reference "%s" appears in user-facing prose without a gloss. Describe what the layer does ("the release-time check that..."), not its number.\n' \
+        "$file_path" "$report_line" "$match"
+      found_violation=1
+    fi
+
+    # ---- Pattern 5: RAW-LINE-REF — line N (or line ~N) ----
+    if [[ "$line" =~ (^|[^a-zA-Z])(line[[:space:]]+~?[0-9]+) ]]; then
+      match="${BASH_REMATCH[2]}"
+      printf '%s:%s: RAW-LINE-REF: raw line reference "%s" appears in user-facing prose. Line numbers belong in commit messages and PR descriptions, not in CHANGELOG/README/commands.\n' \
+        "$file_path" "$report_line" "$match"
+      found_violation=1
+    fi
+
+    # ---- Pattern 6: DELIVERABLE-REF — deliverable N (lowercase only) ----
+    # Case-sensitive: "Deliverable 1" in a section header is legitimate
+    # ceremony; "deliverable 5" in prose is internal jargon. Bash regex is
+    # case-sensitive by default, so the lowercase pattern only matches the
+    # jargon form.
+    if [[ "$line" =~ (deliverable[[:space:]]+[0-9]+) ]]; then
+      match="${BASH_REMATCH[1]}"
+      printf '%s:%s: DELIVERABLE-REF: internal deliverable reference "%s" appears in user-facing prose. Describe what the work item is in plain English instead of citing it by number.\n' \
+        "$file_path" "$report_line" "$match"
+      found_violation=1
+    fi
+  done <<EOF
+$text
+EOF
+
+  [ "$found_violation" -eq 1 ] && return 1
+  return 0
+}

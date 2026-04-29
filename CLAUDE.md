@@ -90,7 +90,7 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
 
 Before any non-docs-only push, run an adversarial review via
 `/strategic-partner:codex-feedback` in Evidence Audit mode (Mode B)
-asking three questions:
+asking four questions:
 
 1. **Diff matches CHANGELOG** — does the proposed CHANGELOG entry
    accurately describe the full `previous_tag..HEAD` delta? Any
@@ -104,6 +104,14 @@ asking three questions:
    not-impact, or degrade experience for each supported user segment
    (macOS/Linux, Windows WSL, prospective users)? Would the CHANGELOG
    entry read as meaningful or as noise?
+4. **Voice quality in this release's SP sessions** — did SP use
+   internal jargon in user-facing chat (Direction N, Layer N,
+   deliverable N, ritual audit, policy v1, Step 2b/2c, Path A/B/C,
+   etc.) without plain-English description? The release-time voice
+   lint catches the six mechanical regex patterns; this question
+   catches the semantic jargon those regexes miss. Cite violations
+   with direct quotes from the recent `.handoffs/` notes and the
+   project's JSONL transcripts.
 
 **Verdict handling:**
 - **GO** — push approved
