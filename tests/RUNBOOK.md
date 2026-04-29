@@ -224,3 +224,59 @@ After all three v5.13.0 briefs land, all five comprehension fixtures should PASS
 | C5 — Partner Profile General User Default | Brief 1 #4 | PASS |
 
 If any fixture fails or partials, capture the divergence in `tests/run-log.md` and address before release ceremony.
+
+---
+
+## Verification fixtures (v5.14.0)
+
+Fixtures V1–V7 in `tests/fixtures/v5.14.0/` cover the seven in-scope live failures from the v5.13.0 post-mortem (findings #6, #7, #8, #9, #10, #11, #12). They follow the same C-class format — setup, expected behavior, pass criteria — with two additional grading modes: **trace-based** (requires checking the tool-call log, not just the response text) and **regex-based** (machine-checkable patterns).
+
+### Why V-class fixtures differ from C-class
+
+C-class fixtures (C1–C5) test comprehension: can a non-technical reader follow the response? V-class fixtures test protocol compliance: did SP run the right verification commands, invoke AUQ at the right moments, emit fence artifacts in the right order?
+
+Some V-class criteria are reader-perspective Y/N (V1, V6, V7). Others require inspecting the tool-call trace (V2, V4) or matching structural patterns in the response text (V3, V5). The grading mode is stated in each fixture's pass-criteria header.
+
+### How to grade V-class fixtures
+
+1. Open a fresh Claude Code session in the strategic-partner project root.
+2. Invoke `/strategic-partner` to load the SP skill (orientation runs).
+3. Paste the fixture's `## Setup / input transcript` content as the next user message after orientation completes.
+4. Read SP's full response, including any AskUserQuestion tool calls.
+5. Check the tool-call log (Claude Code's left-side transcript panel, or the `--debug` output) for fixtures that require trace verification (V2, V4).
+6. For response-text structural checks (V3, V5), grep or visually scan for the required patterns.
+7. For reader-perspective checks (V1, V6, V7): read the response again in role as the intended reader (non-technical user for V1/V6, developer-friend for V7). Consciously suspend your knowledge of SP internals.
+8. Answer each pass-criterion question Y or N.
+9. Apply the fixture's PASS / PARTIAL / FAIL thresholds.
+
+### Trace-based grading (V2, V4)
+
+For V2 (closure walk-through) and V4 (hygiene auto-execute), the reviewer must verify that specific tool calls appear in the turn's trace:
+
+- **V2**: `list_memories`, `write_memory` (or `edit_memory` for decision-log updates), `git status` should appear in the tool-call log during closure. If not visible, SP rendered a checklist without running commands — FAIL.
+- **V4**: `git commit` (or equivalent), `write_memory`/`edit_memory` for the existing decision-log entry, and a Write call to `.backlog/[slug].md` should all appear WITHOUT an intervening AUQ asking authorization. If AUQs for these operations are present — FAIL.
+
+### v5.14.0 expected results
+
+After all v5.14.0 Steps 1–6 land, all seven V-class fixtures should PASS. Manual review against this table is required before the v5.14.0 release ceremony.
+
+| Fixture | Finding | Grading mode | Expected |
+|---|---|---|---|
+| V1 — Conversational acknowledgment | #6 (lifeless opening reply) | Reader-perspective Y/N | PASS |
+| V2 — Closure walk-through | #8 (closure lenience) | Trace-based | PASS |
+| V3 — AUQ-must-be-AUQ | #10 (AUQ forgotten) | Response-text structural | PASS |
+| V4 — Hygiene auto-execute | #11 (hygiene-as-decision) | Trace-based | PASS |
+| V5 — Fenced prompt emission | #12 (fence + post-craft skipped) | Response-text structural + trace | PASS |
+| V6 — Analytical dense vocabulary | #7 (Direction 2/4 jargon-leak) | Reader-perspective Y/N + banned-vocabulary | PASS |
+| V7 — Friend-perspective jargon | #9 (terrible output format) | Reader-perspective Y/N + banned-vocabulary | PASS |
+
+### Lint correlation
+
+The automated `tests/lint-transcripts.sh` script enforces the same checks at release time (the "mechanically enforced OR transcript-linted at release" principle):
+
+- **V3** (AUQ-must-be-AUQ) is automatically enforced by the always-on AUQ check.
+- **V5** (fenced prompt emission) is automatically enforced by the fence-conditional implementation-prompt gate (Post-Craft table check + last-prompts write check).
+- **V2** (closure walk-through) is partially enforced by the fence-conditional handoff-continuation gate (closure ledger presence check).
+- **V1, V4, V6, V7** are manual-grading only — the lint script cannot detect vocabulary tone, hygiene-AUQ presence, or envelope-type selection.
+
+Run `bash tests/lint-transcripts.sh` as part of every release verification cycle. Lint violations block the release; V-fixture failures require a fix-and-retest cycle before ceremony proceeds.

@@ -2,12 +2,27 @@
 # tests/lint-transcripts.sh — Layer 3: release-time transcript lint backstop.
 #
 # Scans .handoffs/*.md files and (if accessible) the Claude project JSONL
-# transcripts since the last release tag, then runs the same three structural
-# checks as Layer 2 (stop-validator.sh):
+# transcripts since the last release tag, then runs structural checks per
+# Rev 3 lint scope split (synthesis-voice-verification-0428.md R1.5 + R3):
 #
-#   - AUQ-must-be-AUQ (always-on)
-#   - Tool-availability claims (always-on)
-#   - Fence-write coupling (fence-conditional)
+# ALWAYS-ON CHECKS (every assistant response):
+#   - AUQ-must-be-AUQ: user-directed prose questions outside AskUserQuestion
+#     tool-use blocks (with rhetorical-question exemption)
+#   - Tool-availability claims: first-person tool-access claims without a
+#     verified tool call ("I can run X", "I have access to Y", etc.)
+#
+# FENCE-CONDITIONAL CHECKS (only for responses containing ══ START 🟢 COPY ══):
+#   - Classify fence per Rev 3 three-step discriminator:
+#       Step 1: locate command line (through optional backtick wrapper)
+#       Step 2: classify by command pattern
+#               /strategic-partner <handoffs-file> → handoff continuation
+#               /<any-skill> or /strategic-partner (with body) → implementation prompt
+#               empty / unrecognized → documentation (skip gate)
+#       Step 3: apply class-specific gate
+#               implementation prompt → verify 13-row Post-Craft Verification table
+#                                        preceding AND corresponding last-prompts write
+#               handoff continuation → verify Closure evidence ledger preceding
+#               documentation → skip
 #
 # Exit codes:
 #   0 — all checked files pass (or no files to check)
@@ -37,6 +52,220 @@ else
   printf 'ERROR: hooks/lib/validators.sh not found at %s\n' "$LIB_FILE" >&2
   exit 1
 fi
+
+# ---------------------------------------------------------------------------
+# Rev 3 fence discriminator — three-step classification
+#
+# classify_fence_in_text <text>
+#
+# Extracts the ══ fence body from <text>, then applies:
+#   Step 1: locate command line (through optional backtick wrapper)
+#   Step 2: classify by command pattern
+#   Step 3: emit class name on stdout
+#
+# Outputs one of:
+#   implementation_prompt   — skill command found; 13-row table + write required
+#   handoff_continuation    — /strategic-partner <handoffs-file> pattern
+#   documentation           — empty or unrecognized command line; skip gate
+#
+# Returns 0 always (classification, not pass/fail).
+# ---------------------------------------------------------------------------
+classify_fence_in_text() {
+  local text="$1"
+  local fence_start="══ START 🟢 COPY ══"
+  local fence_end="══ END 🛑 COPY ══"
+
+  # Extract content between fence markers
+  local in_fence=0
+  local fence_body=""
+  while IFS= read -r line; do
+    case "$line" in
+      *"$fence_start"*)
+        in_fence=1
+        continue
+        ;;
+      *"$fence_end"*)
+        in_fence=0
+        break
+        ;;
+    esac
+    if [ "$in_fence" -eq 1 ]; then
+      fence_body="${fence_body}${line}
+"
+    fi
+  done <<EOF
+$text
+EOF
+
+  # Step 1: locate command line through optional backtick wrapper
+  local command_line=""
+  local in_backtick_wrapper=0
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    # Check for backtick wrapper opener (three or more backticks)
+    # Check for backtick wrapper (any line starting with three or more backticks)
+    case "$line" in
+      '```'*)
+        if [ "$in_backtick_wrapper" -eq 0 ]; then
+          in_backtick_wrapper=1
+          continue
+        else
+          # Closing backtick — stop
+          break
+        fi
+        ;;
+    esac
+    # First non-empty, non-backtick line is the command line
+    command_line="$line"
+    break
+  done <<EOF
+$fence_body
+EOF
+
+  # Step 2: classify by command pattern
+  # Trim leading/trailing whitespace from command_line
+  command_line=$(printf '%s' "$command_line" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+
+  if [ -z "$command_line" ]; then
+    # Empty command line = documentation example
+    printf 'documentation'
+    return 0
+  fi
+
+  # Handoff continuation: /strategic-partner followed by a .handoffs/ path
+  case "$command_line" in
+    /strategic-partner\ .handoffs/*|/strategic-partner\ "'.handoffs/"*)
+      printf 'handoff_continuation'
+      return 0
+      ;;
+  esac
+
+  # Implementation prompt: any skill command line starting with /
+  case "$command_line" in
+    /*)
+      printf 'implementation_prompt'
+      return 0
+      ;;
+  esac
+
+  # Unrecognized — treat as documentation (skip gate)
+  printf 'documentation'
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# Verify Post-Craft Verification table precedes the fence in <text>
+#
+# check_postcraft_table_preceding <text> <fence_line_number>
+#
+# Looks for a markdown table with a "Verification" or "Post-Craft" header
+# (case-insensitive) in the content before the fence. Uses a heuristic:
+# a table row containing "Pass" or "Fail" appearing before the fence.
+#
+# Returns: 0=found (pass), 1=not found (violation)
+# ---------------------------------------------------------------------------
+check_postcraft_table_preceding() {
+  local text="$1"
+  local fence_marker="══ START 🟢 COPY ══"
+
+  # Extract text before the fence
+  local before_fence=""
+  while IFS= read -r line; do
+    case "$line" in
+      *"$fence_marker"*) break ;;
+    esac
+    before_fence="${before_fence}${line}
+"
+  done <<EOF
+$text
+EOF
+
+  # Look for Post-Craft Verification section header (H2 or H3) or a
+  # table row with Pass/Fail columns — indicating the 13-row table.
+  case "$before_fence" in
+    *"Post-Craft Verification"*|*"post-craft verification"*)
+      return 0
+      ;;
+  esac
+
+  # Fallback: look for a markdown table with Pass/Fail entries in ≥5 rows
+  # (a 13-row table will certainly have more than 5 pipe-delimited rows).
+  local table_rows=0
+  while IFS= read -r line; do
+    case "$line" in
+      *'|'*Pass*'|'*|*'|'*Fail*'|'*|*'|'*pass*'|'*|*'|'*fail*'|'*)
+        table_rows=$(( table_rows + 1 ))
+        ;;
+    esac
+  done <<EOF
+$before_fence
+EOF
+
+  [ "$table_rows" -ge 5 ] && return 0
+
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+# Verify Closure evidence ledger precedes the fence in <text>
+#
+# check_closure_ledger_preceding <text>
+#
+# Looks for a closure ledger indicator before the fence. The ledger has
+# rows with state labels (RESOLVED, DECISION, SKIPPED, RESOLVED-AUTO, etc.)
+# and a verification command per row — a structural pattern specific to
+# closure handoff continuations.
+#
+# Returns: 0=found (pass), 1=not found (violation)
+# ---------------------------------------------------------------------------
+check_closure_ledger_preceding() {
+  local text="$1"
+  local fence_marker="══ START 🟢 COPY ══"
+
+  # Extract text before the fence
+  local before_fence=""
+  while IFS= read -r line; do
+    case "$line" in
+      *"$fence_marker"*) break ;;
+    esac
+    before_fence="${before_fence}${line}
+"
+  done <<EOF
+$text
+EOF
+
+  # Look for closure ledger indicators — state labels combined with a ledger
+  # layer label to avoid false positives from generic "RESOLVED" usage.
+  # Check each state label individually (avoids SC2221/SC2222 pattern override).
+  local has_state_label=0
+  case "$before_fence" in
+    *"RESOLVED"*) has_state_label=1 ;;
+  esac
+  case "$before_fence" in
+    *"DECISION"*) has_state_label=1 ;;
+  esac
+  case "$before_fence" in
+    *"SKIPPED"*) has_state_label=1 ;;
+  esac
+
+  if [ "$has_state_label" -eq 1 ]; then
+    # Require at least one ledger-layer-specific label to confirm it's a closure ledger
+    case "$before_fence" in
+      *"Serena"*|*"CLAUDE.md"*|*"findings"*|*"backlog"*|*"\.handoffs"*|*"Git"*)
+        return 0
+        ;;
+    esac
+  fi
+
+  # Also accept explicit "Closure evidence ledger" or "Closure Checklist"
+  case "$before_fence" in
+    *"Closure evidence ledger"*|*"closure evidence ledger"*|*"Closure Checklist"*|*"closure checklist"*)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
 
 # ---------------------------------------------------------------------------
 # Parse arguments
@@ -140,6 +369,16 @@ lint_markdown_file() {
   local violations=""
   local lineno=0
 
+  # Skip files over 100KB — these are typically Codex output files or
+  # reference documents, not SP-emitted session transcripts. Shell string
+  # processing of multi-hundred-KB files is prohibitively slow and these
+  # files are not SP output to be validated.
+  local file_size
+  file_size=$(wc -c < "$file" 2>/dev/null || echo "0")
+  if [ "$file_size" -gt 102400 ]; then
+    return 0
+  fi
+
   # Read the file content
   local content
   content=$(cat "$file" 2>/dev/null) || return 0
@@ -170,37 +409,68 @@ lint_markdown_file() {
     violations="${violations}1"
   }
 
-  # Check 3: Fence-write coupling (fence-conditional)
-  # For markdown files, we can't check the state file because these are
-  # historical records. Instead, we check whether the file contains a
-  # fence marker AND a reference to a .handoffs/last-prompts/ write within
-  # the same session block (heuristic: within 50 lines of each other).
+  # Check 3: Fence-conditional checks (Rev 3 lint scope split)
+  # Apply only when file contains a real ══ fence marker (not in code blocks).
+  # Use Rev 3 three-step discriminator to classify the fence, then apply
+  # class-specific gate.
+  local has_real_fence=0
   case "$content" in
     *"══ START 🟢 COPY ══"*)
-      # Verify a last-prompts path reference appears near the fence
-      local fence_line
-      fence_line=$(grep -n "══ START 🟢 COPY ══" "$file" 2>/dev/null | head -1 | cut -d: -f1)
-      if [ -n "$fence_line" ]; then
-        # Look for a .handoffs/last-prompts/ reference within 80 lines before the fence
-        local start_line=$(( fence_line - 80 ))
-        [ "$start_line" -lt 1 ] && start_line=1
+      # Check via existing lib helper whether this is a real fence (not in code block)
+      msg=$(validate_fence_write_coupling "$content" "/nonexistent-no-state-file" "")
+      # If validate_fence_write_coupling passes (returns 0), it means either:
+      #   a) no real fence detected (false — we know content has the marker)
+      #   b) fence in code block (R1.1 tightened selector skipped it)
+      # We need to know if it's a real fence. Use the return code differently:
+      # validate_fence_write_coupling returns 1 (violation) if real fence + no state file.
+      # So if it returns 0 here, fence is inside code block / blockquote.
+      if ! msg=$(validate_fence_write_coupling "$content" "/nonexistent-no-state-file" "") 2>/dev/null; then
+        has_real_fence=1
+      fi
+      ;;
+  esac
+
+  if [ "$has_real_fence" -eq 1 ]; then
+    local fence_class
+    fence_class=$(classify_fence_in_text "$content")
+    local fence_line
+    fence_line=$(grep -n "══ START 🟢 COPY ══" "$file" 2>/dev/null | head -1 | cut -d: -f1)
+    [ -z "$fence_line" ] && fence_line="?"
+
+    case "$fence_class" in
+      implementation_prompt)
+        # Gate: 13-row Post-Craft Verification table must precede fence
+        if ! check_postcraft_table_preceding "$content"; then
+          printf '%s:%s: FENCE-IMPL: implementation-prompt fence emitted without a preceding Post-Craft Verification table (13-row pass/fail table required before ══ fence per SKILL.md protocol).\n' "$file" "$fence_line"
+          violations="${violations}1"
+        fi
+        # Gate: .handoffs/last-prompts/ write must be referenced in preceding context
+        local start_lnum=$(( fence_line - 80 ))
+        [ "$start_lnum" -lt 1 ] && start_lnum=1
         local context_block
-        context_block=$(sed -n "${start_line},${fence_line}p" "$file" 2>/dev/null)
+        context_block=$(sed -n "${start_lnum},${fence_line}p" "$file" 2>/dev/null)
         case "$context_block" in
           *"last-prompts/"*)
             : # write reference found — pass
             ;;
           *)
-            # Check if this fence is in a code block (R1.1 tightened selector)
-            msg=$(validate_fence_write_coupling "$content" "/nonexistent-no-state-file" "") || {
-              printf '%s:%s: FENCE-WRITE: fence emitted near line %s without visible .handoffs/last-prompts/ write reference in preceding context. Verify write preceded fence emission.\n' "$file" "$fence_line" "$fence_line"
-              violations="${violations}1"
-            }
+            printf '%s:%s: FENCE-WRITE: implementation-prompt fence emitted without visible .handoffs/last-prompts/ write reference in preceding %d lines. A Write to .handoffs/last-prompts/[N].md must precede fence emission per SKILL.md Layer 1 protocol.\n' "$file" "$fence_line" "80"
+            violations="${violations}1"
             ;;
         esac
-      fi
-      ;;
-  esac
+        ;;
+      handoff_continuation)
+        # Gate: Closure evidence ledger must precede the fence
+        if ! check_closure_ledger_preceding "$content"; then
+          printf '%s:%s: FENCE-HANDOFF: handoff-continuation fence emitted without a preceding Closure evidence ledger. Each closure ledger row must be walked (verification commands run) before the continuation fence per SKILL.md protocol.\n' "$file" "$fence_line"
+          violations="${violations}1"
+        fi
+        ;;
+      documentation)
+        : # Documentation / example fences — no gate applied
+        ;;
+    esac
+  fi
 
   [ -n "$violations" ] && return 1
   return 0
@@ -237,6 +507,7 @@ lint_jsonl_file() {
         # Process accumulated turn
         if [ -n "$turn_text" ]; then
           local msg
+          # Always-on checks
           msg=$(validate_auq_must_be_auq "$turn_text" "$has_auq") || {
             printf '%s:%s: AUQ: %s\n' "$file" "$turn_start_line" "$msg"
             violations="${violations}1"
@@ -245,10 +516,39 @@ lint_jsonl_file() {
             printf '%s:%s: TOOL-CLAIM: %s\n' "$file" "$turn_start_line" "$msg"
             violations="${violations}1"
           }
-          msg=$(validate_fence_write_coupling "$turn_text" "/nonexistent" "") || {
-            printf '%s:%s: FENCE-WRITE: %s\n' "$file" "$turn_start_line" "$msg"
-            violations="${violations}1"
-          }
+          # Fence-conditional checks (Rev 3 discriminator)
+          local has_real_fence_turn=0
+          if ! msg=$(validate_fence_write_coupling "$turn_text" "/nonexistent" "") 2>/dev/null; then
+            has_real_fence_turn=1
+          fi
+          if [ "$has_real_fence_turn" -eq 1 ]; then
+            local fence_class_turn
+            fence_class_turn=$(classify_fence_in_text "$turn_text")
+            case "$fence_class_turn" in
+              implementation_prompt)
+                if ! check_postcraft_table_preceding "$turn_text"; then
+                  printf '%s:%s: FENCE-IMPL: implementation-prompt fence without preceding Post-Craft Verification table.\n' "$file" "$turn_start_line"
+                  violations="${violations}1"
+                fi
+                case "$turn_text" in
+                  *"last-prompts/"*) : ;;
+                  *)
+                    printf '%s:%s: FENCE-WRITE: implementation-prompt fence without .handoffs/last-prompts/ write reference in same turn.\n' "$file" "$turn_start_line"
+                    violations="${violations}1"
+                    ;;
+                esac
+                ;;
+              handoff_continuation)
+                if ! check_closure_ledger_preceding "$turn_text"; then
+                  printf '%s:%s: FENCE-HANDOFF: handoff-continuation fence without preceding Closure evidence ledger.\n' "$file" "$turn_start_line"
+                  violations="${violations}1"
+                fi
+                ;;
+              documentation)
+                : # skip
+                ;;
+            esac
+          fi
         fi
         # Reset for next turn
         turn_text=""
@@ -272,6 +572,7 @@ lint_jsonl_file() {
     # Process the final turn
     if [ -n "$turn_text" ]; then
       local msg
+      # Always-on checks
       msg=$(validate_auq_must_be_auq "$turn_text" "$has_auq") || {
         printf '%s:%s: AUQ: %s\n' "$file" "$turn_start_line" "$msg"
         violations="${violations}1"
@@ -280,10 +581,39 @@ lint_jsonl_file() {
         printf '%s:%s: TOOL-CLAIM: %s\n' "$file" "$turn_start_line" "$msg"
         violations="${violations}1"
       }
-      msg=$(validate_fence_write_coupling "$turn_text" "/nonexistent" "") || {
-        printf '%s:%s: FENCE-WRITE: %s\n' "$file" "$turn_start_line" "$msg"
-        violations="${violations}1"
-      }
+      # Fence-conditional checks (Rev 3 discriminator)
+      local has_real_fence_final=0
+      if ! msg=$(validate_fence_write_coupling "$turn_text" "/nonexistent" "") 2>/dev/null; then
+        has_real_fence_final=1
+      fi
+      if [ "$has_real_fence_final" -eq 1 ]; then
+        local fence_class_final
+        fence_class_final=$(classify_fence_in_text "$turn_text")
+        case "$fence_class_final" in
+          implementation_prompt)
+            if ! check_postcraft_table_preceding "$turn_text"; then
+              printf '%s:%s: FENCE-IMPL: implementation-prompt fence without preceding Post-Craft Verification table.\n' "$file" "$turn_start_line"
+              violations="${violations}1"
+            fi
+            case "$turn_text" in
+              *"last-prompts/"*) : ;;
+              *)
+                printf '%s:%s: FENCE-WRITE: implementation-prompt fence without .handoffs/last-prompts/ write reference in same turn.\n' "$file" "$turn_start_line"
+                violations="${violations}1"
+                ;;
+            esac
+            ;;
+          handoff_continuation)
+            if ! check_closure_ledger_preceding "$turn_text"; then
+              printf '%s:%s: FENCE-HANDOFF: handoff-continuation fence without preceding Closure evidence ledger.\n' "$file" "$turn_start_line"
+              violations="${violations}1"
+            fi
+            ;;
+          documentation)
+            : # skip
+            ;;
+        esac
+      fi
     fi
   else
     # No jq: grep-based heuristic (less precise but avoids hard dependency)
@@ -294,6 +624,7 @@ lint_jsonl_file() {
     [ "$has_auq_count" -gt 0 ] && has_auq="true"
 
     local msg
+    # Always-on checks
     msg=$(validate_auq_must_be_auq "$full_text" "$has_auq") || {
       printf '%s:?: AUQ: %s\n' "$file" "$msg"
       violations="${violations}1"
@@ -302,10 +633,39 @@ lint_jsonl_file() {
       printf '%s:?: TOOL-CLAIM: %s\n' "$file" "$msg"
       violations="${violations}1"
     }
-    msg=$(validate_fence_write_coupling "$full_text" "/nonexistent" "") || {
-      printf '%s:?: FENCE-WRITE: %s\n' "$file" "$msg"
-      violations="${violations}1"
-    }
+    # Fence-conditional checks (Rev 3 discriminator, no-jq fallback)
+    local has_real_fence_nojq=0
+    if ! msg=$(validate_fence_write_coupling "$full_text" "/nonexistent" "") 2>/dev/null; then
+      has_real_fence_nojq=1
+    fi
+    if [ "$has_real_fence_nojq" -eq 1 ]; then
+      local fence_class_nojq
+      fence_class_nojq=$(classify_fence_in_text "$full_text")
+      case "$fence_class_nojq" in
+        implementation_prompt)
+          if ! check_postcraft_table_preceding "$full_text"; then
+            printf '%s:?: FENCE-IMPL: implementation-prompt fence without preceding Post-Craft Verification table.\n' "$file"
+            violations="${violations}1"
+          fi
+          case "$full_text" in
+            *"last-prompts/"*) : ;;
+            *)
+              printf '%s:?: FENCE-WRITE: implementation-prompt fence without .handoffs/last-prompts/ write reference.\n' "$file"
+              violations="${violations}1"
+              ;;
+          esac
+          ;;
+        handoff_continuation)
+          if ! check_closure_ledger_preceding "$full_text"; then
+            printf '%s:?: FENCE-HANDOFF: handoff-continuation fence without preceding Closure evidence ledger.\n' "$file"
+            violations="${violations}1"
+          fi
+          ;;
+        documentation)
+          : # skip
+          ;;
+      esac
+    fi
   fi
 
   [ -n "$violations" ] && return 1
