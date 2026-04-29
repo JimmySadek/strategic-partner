@@ -152,9 +152,9 @@ after every major deliverable and before starting new analysis, regardless of le
 
 ## 🛑 Session End Trigger
 
-Session-end signals trigger the **same handoff protocol** as context pressure.
-When the user indicates they are finishing, the SP executes Steps 1-6 below —
-identical to context-pressure handoffs. There is no separate "session end" flow.
+Session-end signals trigger the **Closure Evidence Ledger** followed by the handoff
+protocol. When the user indicates they are finishing, the SP auto-dispatches to closure
+mode — no "do you want to close?" AUQ precedes it.
 
 **Signal patterns** (keywords and intent indicators):
 - Explicit: "done", "done for now", "closing", "stopping", "that's it"
@@ -173,8 +173,16 @@ identical to context-pressure handoffs. There is no separate "session end" flow.
 │             │                                     │                 │
 │             └──────────────┬──────────────────────┘                 │
 │                            ▼                                        │
+│        ┌────────────────────────────────────────┐                   │
+│        │  Phase 0: Closure Evidence Ledger      │                   │
+│        │  (SKILL.md § Closure Evidence Ledger)  │                   │
+│        │  Walk 8 rows; AUQ only for DECISION    │                   │
+│        │  rows; hygiene taken automatically.    │                   │
+│        │  .handoffs/ row = final step.          │                   │
+│        └────────────────┬───────────────────────┘                   │
+│                         ▼                                           │
 │              ┌──────────────────────────┐                           │
-│              │  SAME Handoff Protocol   │                           │
+│              │  Handoff Protocol        │                           │
 │              │  Steps 1-6 (below)       │                           │
 │              │                          │                           │
 │              │  1. Reflect (/insights)  │                           │
@@ -186,6 +194,11 @@ identical to context-pressure handoffs. There is no separate "session end" flow.
 │              └──────────────────────────┘                           │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+**User override mid-flow:** If the user says "stop, don't close yet" at any point during
+the closure flow, treat this as SKIPPED-USER on the `.handoffs/` row — no handoff file is
+written, auto-dispatch reverses, session continues. The user can also decline any individual
+DECISION row via "skip" in its AUQ; that row is marked SKIPPED-USER and the flow continues.
 
 > **🚨 Anti-pattern:** The SP summarized the session and said goodbye without
 > writing a handoff file. This is the exact failure mode this trigger prevents.
