@@ -75,7 +75,7 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    (before enforcement was added), document them as expected baseline and
    verify new transcripts are clean.
 
-**Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. v5.4.0→v5.4.1 was a reactive fix for exactly this class of bug. The transcript lint is the Layer 3 backstop for the response-end validators added in v5.14.0.
+**Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. v5.4.0→v5.4.1 was a reactive fix for exactly this class of bug. Layer 1 (the PreToolUse source-edit guard, predates v5.14.0) and Layer 3 (the release-time transcript lint) are the only enforcement layers in play; Layer 2 (a runtime PostToolUse / Stop validator family that was prototyped during v5.14.0) was pulled before release after the hook surface proved fragile, so the transcript lint is the sole post-execution backstop for the AUQ, tool-availability, and fence-write-coupling rules.
 
 ### 2b. Codex Pre-Release Review (Mandatory for non-docs-only pushes)
 
