@@ -330,7 +330,7 @@ collect_jsonl_files() {
   # Project JSONL transcripts live at:
   #   ~/.claude/projects/<encoded-cwd>/*.jsonl
   local cwd_encoded
-  cwd_encoded=$(printf '%s' "$SCRIPT_DIR" | tr '/' '-')
+  cwd_encoded=$(printf '%s' "$SCRIPT_DIR" | tr '/' '-' | tr '.' '-')
   local transcript_dir="${HOME}/.claude/projects/${cwd_encoded}"
 
   [ -d "$transcript_dir" ] || return 0
