@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# hooks/lib/validators.sh — Shared validator logic for Layer 2 (Stop hook)
-# and Layer 3 (release-time transcript lint).
+# hooks/lib/validators.sh — Shared validator logic for Layer 3 (release-time
+# transcript lint).
 #
 # Source this file to get the three validator functions:
 #
-#   validate_auq_must_be_auq       <text_block>
+#   validate_auq_must_be_auq       <text_block> [has_auq_in_turn]
 #   validate_tool_availability     <text_block>
-#   validate_fence_write_coupling  <text_block> <state_file>
+#   validate_fence_write_coupling  <text_block> [tool_use_records]
 #
 # Each function returns:
 #   0 — check passes (no violation detected)
@@ -16,6 +16,11 @@
 # (tool_use blocks excluded — this is purely the prose emitted by the
 # assistant). Callers are responsible for assembling this from the
 # transcript or last_assistant_message field.
+#
+# "tool_use_records" (fence-write coupling only) is a multi-line string
+# carrying one record per line in "<tool_name>\t<file_path>" form,
+# extracted from the same turn's tool_use entries. v5.14.0 retired the
+# state-file evidence model in favour of this tool-call trace.
 #
 # Scope rules per synthesis Rev 3:
 #   - AUQ-must-be-AUQ: ALWAYS-ON (runs regardless of fence presence)
@@ -204,9 +209,8 @@ EOF
 #
 # If a real "══ START 🟢 COPY ══" fence is present in the text (i.e., NOT
 # inside a markdown code block, NOT inside a blockquote, NOT commentary
-# about a prior fence emission), verify that:
-#   - A corresponding write to .handoffs/last-prompts/[N].md was recorded
-#     in the state file before the fence was emitted.
+# about a prior fence emission), verify that the same turn contains a
+# Write/Edit/MultiEdit tool_use record targeting .handoffs/last-prompts/[N].md.
 #
 # Rev 3 R1.1 tightened fence selector — skip fences that are:
 #   1. Inside markdown code blocks (shown as examples, not real fences)
@@ -214,15 +218,27 @@ EOF
 #   3. In text that is explicitly describing a prior fence emission
 #      (heuristic: line contains "emitted" or "above" within 2 lines of fence)
 #
-# state_file: path to .claude/sp-state/last-prompt-writes.txt
-# session_id: current session ID to scope the state file check
+# v5.14.0 evidence model — tool-call trace.
+#   The earlier evidence model (PostToolUse-tracked state file at
+#   .claude/sp-state/last-prompt-writes.txt) was retired with Layer 2.
+#   The replacement: callers pass the tool_use records from the same turn
+#   as a multi-line string. The function scans those records for at least
+#   one matching the prompt-file pattern.
+#
+# Arguments:
+#   text              — assistant turn text (prose with fence markers)
+#   tool_use_records  — multi-line string; one record per line in the form
+#                       "<tool_name>\t<file_path>". Empty string is treated
+#                       as no evidence (fail-closed when a real fence is found).
+#                       Callers pass the empty string when they have no JSONL
+#                       transcript context (e.g., markdown-file lint), in which
+#                       case they apply their own textual proxy check separately.
 #
 # Returns: 0=pass, 1=violation (violation text on stdout)
 # ---------------------------------------------------------------------------
 validate_fence_write_coupling() {
   local text="$1"
-  local state_file="${2:-.claude/sp-state/last-prompt-writes.txt}"
-  local session_id="${3:-}"
+  local tool_use_records="${2:-}"
 
   local fence_marker="══ START 🟢 COPY ══"
 
@@ -293,30 +309,29 @@ EOF
   # No real fence found after applying the tightened selector
   [ "$real_fence_found" -eq 0 ] && return 0
 
-  # Real fence found — check that a .handoffs/last-prompts/[N].md write
-  # was recorded in the state file.
-  if [ ! -f "$state_file" ]; then
-    printf 'Fence-write coupling violation: "══ START 🟢 COPY ══" fence emitted but no write state file found (%s). A Write to .handoffs/last-prompts/[N].md must precede fence emission in the same turn.\n' "$state_file"
-    return 1
-  fi
-
-  # If session_id is provided, check only entries for this session
+  # Real fence found — scan tool_use records for a matching Write/Edit/MultiEdit
+  # to .handoffs/last-prompts/[N].md.
   local found_write=0
-  if [ -n "$session_id" ]; then
-    while IFS= read -r entry; do
-      entry_session=$(printf '%s' "$entry" | cut -f1)
-      if [ "$entry_session" = "$session_id" ]; then
-        found_write=1
-        break
-      fi
-    done < "$state_file"
-  else
-    # No session_id filter — any entry counts
-    [ -s "$state_file" ] && found_write=1
+  if [ -n "$tool_use_records" ]; then
+    while IFS=$'\t' read -r record_tool record_path; do
+      [ -z "$record_tool" ] && continue
+      case "$record_tool" in
+        Write|Edit|MultiEdit) ;;
+        *) continue ;;
+      esac
+      case "$record_path" in
+        *.handoffs/last-prompts/[0-9]*.md|*/.handoffs/last-prompts/[0-9]*.md)
+          found_write=1
+          break
+          ;;
+      esac
+    done <<EOF
+$tool_use_records
+EOF
   fi
 
   if [ "$found_write" -eq 0 ]; then
-    printf 'Fence-write coupling violation: "══ START 🟢 COPY ══" fence emitted but no matching Write to .handoffs/last-prompts/[N].md was recorded for this session. Write the prompt file first, then emit the fence.\n'
+    printf 'Fence-write coupling violation: "══ START 🟢 COPY ══" fence emitted but no matching Write/Edit/MultiEdit to .handoffs/last-prompts/[N].md was recorded in the same turn. Write the prompt file first, then emit the fence.\n'
     return 1
   fi
 

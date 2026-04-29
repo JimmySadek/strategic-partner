@@ -413,18 +413,18 @@ lint_markdown_file() {
   # Apply only when file contains a real ══ fence marker (not in code blocks).
   # Use Rev 3 three-step discriminator to classify the fence, then apply
   # class-specific gate.
+  #
+  # has_real_fence detection: call validate_fence_write_coupling with empty
+  # tool_use_records. The function returns 1 (violation) for any real fence
+  # (no tool-call evidence available in markdown lint) and 0 if the fence
+  # only appears in code blocks/blockquotes/commentary. We use that return
+  # code as a real-fence detector. The actual coupling check for markdown
+  # files runs separately below as an 80-line context window scan, which
+  # is the textual proxy for tool-call trace when JSONL is unavailable.
   local has_real_fence=0
   case "$content" in
     *"══ START 🟢 COPY ══"*)
-      # Check via existing lib helper whether this is a real fence (not in code block)
-      msg=$(validate_fence_write_coupling "$content" "/nonexistent-no-state-file" "")
-      # If validate_fence_write_coupling passes (returns 0), it means either:
-      #   a) no real fence detected (false — we know content has the marker)
-      #   b) fence in code block (R1.1 tightened selector skipped it)
-      # We need to know if it's a real fence. Use the return code differently:
-      # validate_fence_write_coupling returns 1 (violation) if real fence + no state file.
-      # So if it returns 0 here, fence is inside code block / blockquote.
-      if ! msg=$(validate_fence_write_coupling "$content" "/nonexistent-no-state-file" "") 2>/dev/null; then
+      if ! msg=$(validate_fence_write_coupling "$content" "") 2>/dev/null; then
         has_real_fence=1
       fi
       ;;
@@ -489,6 +489,7 @@ lint_jsonl_file() {
   # Collect and check each assistant turn
   # JSONL line-by-line: group records by turn boundary (user-role non-tool-result)
   local turn_text=""
+  local turn_tool_uses=""
   local has_auq="false"
   local turn_start_line=1
   local lineno=0
@@ -516,9 +517,10 @@ lint_jsonl_file() {
             printf '%s:%s: TOOL-CLAIM: %s\n' "$file" "$turn_start_line" "$msg"
             violations="${violations}1"
           }
-          # Fence-conditional checks (Rev 3 discriminator)
+          # Fence-conditional checks (Rev 3 discriminator).
+          # Pass the turn's tool_use records as the coupling evidence.
           local has_real_fence_turn=0
-          if ! msg=$(validate_fence_write_coupling "$turn_text" "/nonexistent" "") 2>/dev/null; then
+          if ! msg=$(validate_fence_write_coupling "$turn_text" "$turn_tool_uses") 2>/dev/null; then
             has_real_fence_turn=1
           fi
           if [ "$has_real_fence_turn" -eq 1 ]; then
@@ -530,13 +532,30 @@ lint_jsonl_file() {
                   printf '%s:%s: FENCE-IMPL: implementation-prompt fence without preceding Post-Craft Verification table.\n' "$file" "$turn_start_line"
                   violations="${violations}1"
                 fi
-                case "$turn_text" in
-                  *"last-prompts/"*) : ;;
-                  *)
-                    printf '%s:%s: FENCE-WRITE: implementation-prompt fence without .handoffs/last-prompts/ write reference in same turn.\n' "$file" "$turn_start_line"
-                    violations="${violations}1"
-                    ;;
-                esac
+                # Coupling check via tool_use trace: scan turn_tool_uses for a
+                # Write/Edit/MultiEdit to .handoffs/last-prompts/[N].md.
+                local found_prompt_write=0
+                if [ -n "$turn_tool_uses" ]; then
+                  while IFS=$'\t' read -r tu_tool tu_path; do
+                    [ -z "$tu_tool" ] && continue
+                    case "$tu_tool" in
+                      Write|Edit|MultiEdit) ;;
+                      *) continue ;;
+                    esac
+                    case "$tu_path" in
+                      *.handoffs/last-prompts/[0-9]*.md|*/.handoffs/last-prompts/[0-9]*.md)
+                        found_prompt_write=1
+                        break
+                        ;;
+                    esac
+                  done <<EOF
+$turn_tool_uses
+EOF
+                fi
+                if [ "$found_prompt_write" -eq 0 ]; then
+                  printf '%s:%s: FENCE-WRITE: implementation-prompt fence without a Write/Edit/MultiEdit tool_use to .handoffs/last-prompts/[N].md in same turn.\n' "$file" "$turn_start_line"
+                  violations="${violations}1"
+                fi
                 ;;
               handoff_continuation)
                 if ! check_closure_ledger_preceding "$turn_text"; then
@@ -552,16 +571,26 @@ lint_jsonl_file() {
         fi
         # Reset for next turn
         turn_text=""
+        turn_tool_uses=""
         has_auq="false"
         turn_start_line=$lineno
         continue
       fi
 
-      # Accumulate assistant text blocks
+      # Accumulate assistant text blocks and tool_use records
       if [ "$role" = "assistant" ]; then
         block_text=$(printf '%s' "$line" | jq -r '(.message.content // .content // [])[] | select(.type=="text") | .text // empty' 2>/dev/null)
         if [ -n "$block_text" ]; then
           turn_text="${turn_text} ${block_text}"
+        fi
+        # Extract tool_use records for fence-write coupling evidence.
+        # Format: "<tool_name>\t<file_path>" per line. Empty file_path is fine
+        # (validate_fence_write_coupling filters non-matching paths).
+        local block_tool_uses
+        block_tool_uses=$(printf '%s' "$line" | jq -r '(.message.content // .content // [])[] | select(.type=="tool_use") | "\(.name // "")\t\(.input.file_path // "")"' 2>/dev/null)
+        if [ -n "$block_tool_uses" ]; then
+          turn_tool_uses="${turn_tool_uses}${block_tool_uses}
+"
         fi
         # Check for AUQ tool use
         auq_check=$(printf '%s' "$line" | jq -r '(.message.content // .content // [])[] | select(.type=="tool_use") | .name // empty' 2>/dev/null | grep -c "AskUserQuestion" 2>/dev/null || echo "0")
@@ -583,7 +612,7 @@ lint_jsonl_file() {
       }
       # Fence-conditional checks (Rev 3 discriminator)
       local has_real_fence_final=0
-      if ! msg=$(validate_fence_write_coupling "$turn_text" "/nonexistent" "") 2>/dev/null; then
+      if ! msg=$(validate_fence_write_coupling "$turn_text" "$turn_tool_uses") 2>/dev/null; then
         has_real_fence_final=1
       fi
       if [ "$has_real_fence_final" -eq 1 ]; then
@@ -595,13 +624,29 @@ lint_jsonl_file() {
               printf '%s:%s: FENCE-IMPL: implementation-prompt fence without preceding Post-Craft Verification table.\n' "$file" "$turn_start_line"
               violations="${violations}1"
             fi
-            case "$turn_text" in
-              *"last-prompts/"*) : ;;
-              *)
-                printf '%s:%s: FENCE-WRITE: implementation-prompt fence without .handoffs/last-prompts/ write reference in same turn.\n' "$file" "$turn_start_line"
-                violations="${violations}1"
-                ;;
-            esac
+            # Coupling check via tool_use trace
+            local found_prompt_write_final=0
+            if [ -n "$turn_tool_uses" ]; then
+              while IFS=$'\t' read -r tu_tool tu_path; do
+                [ -z "$tu_tool" ] && continue
+                case "$tu_tool" in
+                  Write|Edit|MultiEdit) ;;
+                  *) continue ;;
+                esac
+                case "$tu_path" in
+                  *.handoffs/last-prompts/[0-9]*.md|*/.handoffs/last-prompts/[0-9]*.md)
+                    found_prompt_write_final=1
+                    break
+                    ;;
+                esac
+              done <<EOF
+$turn_tool_uses
+EOF
+            fi
+            if [ "$found_prompt_write_final" -eq 0 ]; then
+              printf '%s:%s: FENCE-WRITE: implementation-prompt fence without a Write/Edit/MultiEdit tool_use to .handoffs/last-prompts/[N].md in same turn.\n' "$file" "$turn_start_line"
+              violations="${violations}1"
+            fi
             ;;
           handoff_continuation)
             if ! check_closure_ledger_preceding "$turn_text"; then
@@ -616,7 +661,12 @@ lint_jsonl_file() {
       fi
     fi
   else
-    # No jq: grep-based heuristic (less precise but avoids hard dependency)
+    # No jq: grep-based heuristic (less precise but avoids hard dependency).
+    # Without jq we cannot extract structured tool_use records, so the coupling
+    # check falls back to a textual proxy — looking for `last-prompts/` substring
+    # anywhere in the assembled assistant text. This is conservative (may miss
+    # violations where the substring appears for unrelated reasons) but matches
+    # the pre-v5.14.0 fallback behaviour.
     local full_text
     full_text=$(grep '"type":"text"' "$file" 2>/dev/null | grep -o '"text":"[^"]*"' | cut -d'"' -f4 | tr '\n' ' ')
     local has_auq_count
@@ -633,9 +683,11 @@ lint_jsonl_file() {
       printf '%s:?: TOOL-CLAIM: %s\n' "$file" "$msg"
       violations="${violations}1"
     }
-    # Fence-conditional checks (Rev 3 discriminator, no-jq fallback)
+    # Fence-conditional checks (Rev 3 discriminator, no-jq fallback).
+    # Use empty tool_use_records → real-fence detection only; coupling is
+    # checked by the substring proxy below.
     local has_real_fence_nojq=0
-    if ! msg=$(validate_fence_write_coupling "$full_text" "/nonexistent" "") 2>/dev/null; then
+    if ! msg=$(validate_fence_write_coupling "$full_text" "") 2>/dev/null; then
       has_real_fence_nojq=1
     fi
     if [ "$has_real_fence_nojq" -eq 1 ]; then
@@ -650,7 +702,7 @@ lint_jsonl_file() {
           case "$full_text" in
             *"last-prompts/"*) : ;;
             *)
-              printf '%s:?: FENCE-WRITE: implementation-prompt fence without .handoffs/last-prompts/ write reference.\n' "$file"
+              printf '%s:?: FENCE-WRITE: implementation-prompt fence without .handoffs/last-prompts/ write reference (no-jq fallback proxy).\n' "$file"
               violations="${violations}1"
               ;;
           esac
