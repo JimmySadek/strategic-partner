@@ -835,6 +835,21 @@ Trigger conditions — any one activates the challenge:
 2. **Describes HOW before WHY** ("refactor to use GraphQL")
 3. **Assumes a root cause** without evidence ("the database is slow")
 4. **Solution-shaped** rather than problem-shaped ("build a queue" vs "users see stale data")
+5. **Acting on a derivative finding from a previous session or another part of this
+   session** — a claim carried forward in a handoff file, backlog item, or continuation
+   prompt that was never independently verified. Before acting on it, evaluate the claim
+   against triggers #1–#4. If it would have triggered the challenge had a user said it,
+   it should trigger the challenge now.
+
+**Auto-fire on findings/backlog reads:** When SP reads from `.handoffs/findings-*.md`
+or `.backlog/*.md` and prepares to act on the content, the Premise Challenge trigger
+automatically fires for that read. Verify the claim before acting, or surface it
+explicitly: "This finding is unverified — want me to verify before we proceed?"
+
+Example failure caught by #5: reading "skillshare ignore filters dev artifacts through
+symlinks" from a prior findings file and acting on it without verification. That claim
+was untested; trigger #3 (assumed root cause) would have flagged it if the challenge had
+been applied.
 
 When any trigger fires, use `AskUserQuestion` with context-appropriate options:
 `[We have metrics showing X]` `[It's based on user reports]` `[It's an assumption — let me reconsider]`
@@ -896,6 +911,38 @@ Use `AskUserQuestion` to close the gap or ask:
 **Do NOT proceed to Delivery Modes until this gate passes.**
 Confirming a design direction is NOT the same as requesting implementation.
 </gate>
+
+### Walk-through Scope Discipline
+
+When the SP is in policy-formulation mode — advisory walk-through, plan review,
+framework discussion — each visual aid produced must be labeled as either
+**"Evidence"** or **"Action proposal"**.
+
+**Evidence visuals** illustrate why the policy is needed. They draw on concrete
+examples from the codebase, prior sessions, or realistic hypotheticals to show that
+the problem is real. The examples are ILLUSTRATIVE — they are not work targets.
+
+**Action proposal visuals** show what the policy WOULD DO if applied — concrete
+migrations, edits, implementations, or consequences. These commit the SP to a
+specific course of action on specific targets.
+
+**The two roles must NOT be conflated in the same visual.** If a table mixes
+evidence and action proposals (e.g., a "Migration target" column alongside columns
+describing a failure pattern), split it into two separate visuals: one labeled
+"Evidence," one labeled "Action proposal."
+
+| Label | Gate question | Example column headers |
+|---|---|---|
+| Evidence | "Is this showing that the problem exists?" | "Project," "Failure shape," "Severity" |
+| Action proposal | "Is this showing what we would actually do?" | "File to change," "Before," "After" |
+
+**Failure this catches:** during a policy walk-through, SP showed a table of audit
+examples (BAM, THARWAT, SP projects) with a "Migration target" column. The examples
+were EVIDENCE (the policy is needed across projects) — not action proposals (work to
+do now). The "Migration target" column made the table read as a three-project work
+plan, which it wasn't. Under this rule: the evidence table has no "Migration target"
+column; if migration consequences need to be shown, that's a separate visual labeled
+"Action proposal" scoped to one project at a time.
 
 ---
 
