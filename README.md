@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.13.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.14.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -227,6 +227,13 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Multi-step workflow decomposition (v5.13.0)** — when a path contains multiple discrete deliverables or transitions (write artifact → test → dispatch), SP pauses and asks between each. Bundled "do task → return → next step → next step" responses are out; each transition is its own decision the user might want to redirect at.
 - **General-user default profile (v5.13.0)** — default partner profile is now General user / Product-minded user (was Engineer). Engineer/PM/Founder remain as profiles detected from user signals; the default — until signals emerge — leads with outcomes in plain English, not architecture or implementation framing.
 - **Comprehension fixtures (v5.13.0)** — five new fixtures (C1-C5) at `tests/fixtures/v5.13.0/` testing voice quality via reader-perspective Y/N criteria, complementing the existing label-pattern fixtures (F1-F5). RUNBOOK section explains in-role grading procedure.
+- **Plain-English Whole-Response Gate (v5.14.0)** — extends v5.13.0's opening-sentence rule to every visible block of a user-facing response (every paragraph, every AUQ option description, every Position line, every status summary). Concrete pre-send re-read mechanism named explicitly in the rule's text — not just an aspiration.
+- **Dryness Ban List (v5.14.0)** — eight named patterns banned from advisory turns: jargon-laden tables (D1/D2/D3 columns of internal vocabulary), numbered-deliverable framing in conversational chat, AUQ-as-ceremonial-padding (AUQ remains required for real decisions; the ban is on padding when there's nothing material to decide), code-style spec framing in advisory prose, friend-perspective failures from the V7 fixture, and more. Visual aids — tables, ASCII diagrams, structured bullets, bolding, spacing, functional emojis — are explicitly preserved as required for jargon-bridging; the ban targets misuses of structure, not structure itself.
+- **Anti-sycophancy contrarian-theater symmetric failure mode (v5.14.0)** — the Anti-Sycophancy Protocol now names both failure modes: agreeing for no reason (sycophancy) AND disagreeing for the appearance of independence (contrarian theater). Honest formulation: agree when SP genuinely tested the claim and agrees; push back when SP genuinely sees a problem; don't perform either.
+- **Typed Response Envelopes (v5.14.0)** — four-envelope taxonomy (Conversational, Analytical, Packaged Prompt, Closure) maps response shape to appropriate visual density. Conversational acks get low density; Analytical advisory turns get medium-high (tables for options, AUQ for decisions); Packaged Prompt executor briefs get maximum structure; Closure handoffs get scannable status. Picking the envelope first sets the right visual density.
+- **Closure Evidence Ledger (v5.14.0)** — six-state ledger (RESOLVED / RESOLVED-AUTO / DECISION / SKIPPED-USER / SKIPPED-AUTO / DIRTY) replaces the prior 8-row Visual Closure Checklist. AUQ fires only on DECISION rows; the rest resolve silently with explicit verification commands. Reconciles the SKILL.md hygiene-vs-decision boundary at category-vs-operation level.
+- **Premise Challenge trigger #5 (v5.14.0)** — auto-fires when SP is acting on a derivative finding from a previous session (e.g., a finding inherited via handoff that was never independently verified). Walk-through Scope Discipline subsection added separately — visuals labeled "Evidence" or "Action proposal," no mixing.
+- **V1-V7 fixtures + Layer 3 release-time transcript lint (v5.14.0)** — `tests/lint-transcripts.sh` enforces AUQ-must-be-AUQ, tool-availability claims, and fence-write coupling rules against post-tag JSONL transcripts and SP-internal handoffs at release time. Layer 2 runtime enforcement was prototyped during v5.14.0 development but pulled before release pending observability work; deferred to v5.15.0+. Layer 1 (PreToolUse source-edit guard, predates v5.14.0) and Layer 3 (this release-time lint) are the only enforcement layers in v5.14.0.
 - **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Model-aware prompt generation** — SP detects the active Claude model at startup (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, via both friendly names and exact model IDs) and selects reusable XML prompt blocks + effort recommendations per target model. Every crafted prompt inherits hallucination prevention, scope discipline, and model-appropriate patterns.
@@ -240,7 +247,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Session findings and backlog stewardship** — automatic capture of feedback during advisory sessions, with two-layer persistence: lightweight session findings and curated backlog items with trigger-based surfacing at startup
 - **Cognitive patterns** — 14 named thinking heuristics wired to specific decision points with mandatory triggers (not a decorative table — they fire at the right moments)
 - **Context handoff management** — monitors context pressure and preserves full session state before it degrades
-- **Closure rigor** — session-end detection triggers an 8-row pass/fail Closure Checklist (Serena memories, CLAUDE.md proposals, findings, backlog, `.prompts/`, `.scripts/`, git state, `.handoffs/`) before any handoff is written; the handoff is auto-dispatched on session-end signals; post-handoff verification confirms the continuation prompt and `.gitignore` coverage are correct before the session ends.
+- **Closure rigor** — session-end detection triggers a 6-state Closure Evidence Ledger covering Serena memories, CLAUDE.md proposals, findings, backlog, `.prompts/`, `.scripts/`, git state, and `.handoffs/` — each item classified RESOLVED / RESOLVED-AUTO / DECISION / SKIPPED-USER / SKIPPED-AUTO / DIRTY with explicit verification commands; AUQ fires only on DECISION rows; the handoff is auto-dispatched on session-end signals; post-handoff verification confirms the continuation prompt and `.gitignore` coverage are correct before the session ends.
 - **Provider-specific prompt formatting** — adapts prompt structure for Claude, OpenAI, and Gemini targets
 
 ### Under the hood
@@ -260,6 +267,8 @@ strategic-partner/
   audit-permissions                     # Permission audit helper (Python 3.6+)
   hooks/
     guard-impl.sh                       # PreToolUse hook — blocks source edits in SP sessions
+    lib/
+      validators.sh                     # Shared validator logic (AUQ / tool-availability / fence-write coupling) — used by Layer 3 lint
   commands/
     help.md                             # Subcommand reference
     copy-prompt.md                      # Clipboard copy for fenced prompts
@@ -297,6 +306,7 @@ strategic-partner/
     v4.0-implementation-decisions.md    # Decision log for audit findings F1-F12
   tests/
     RUNBOOK.md                          # Manual fixture-review protocol
+    lint-transcripts.sh                 # Layer 3 release-time lint — enforces AUQ / tool-availability / fence-write coupling rules against JSONL transcripts and handoffs
     fixtures/
       v5.12.0/                          # F1-F5 regression fixtures for AUQ Materiality Gate
         F1-alpha-beta-gamma-planning-reconciliation.md
@@ -310,6 +320,14 @@ strategic-partner/
         C3-position-greek-visual-aids.md
         C4-multi-step-workflow-decomposition.md
         C5-partner-profile-general-user-default.md
+      v5.14.0/                          # V1-V7 regression fixtures for response envelopes + voice-fix
+        V1-conversational-acknowledgment.md
+        V2-closure-walk-through.md
+        V3-auq-must-be-auq.md
+        V4-hygiene-auto-execute.md
+        V5-fenced-prompt-emission.md
+        V6-analytical-dense-vocabulary.md
+        V7-friend-perspective-jargon.md
 ```
 
 </details>
