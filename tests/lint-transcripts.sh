@@ -594,7 +594,7 @@ EOF
         fi
         # Check for AUQ tool use
         auq_check=$(printf '%s' "$line" | jq -r '(.message.content // .content // [])[] | select(.type=="tool_use") | .name // empty' 2>/dev/null | grep -c "AskUserQuestion" 2>/dev/null || echo "0")
-        [ "$auq_check" -gt 0 ] && has_auq="true"
+        [ "$(printf '%s' "$auq_check" | head -n1)" -gt 0 ] && has_auq="true"
       fi
     done < "$file"
 

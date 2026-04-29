@@ -142,6 +142,13 @@ validate_tool_availability() {
 
   while IFS= read -r line; do
     [ -z "$line" ] && continue
+    # Strip inline backtick-quoted spans (e.g. `"i have access to "`) before
+    # matching. _strip_non_prose already removed multi-line ``` blocks; this
+    # handles the remaining false-positive surface: backtick-quoted code
+    # references inside prose lines that happen to contain one of the
+    # first-person patterns (e.g. meta-discussion of the validator's own
+    # pattern set).
+    line=$(printf '%s' "$line" | sed 's/`[^`]*`//g')
     # Match first-person tool-access claim patterns ONLY (case-insensitive via tr).
     # Broad substring matches like "is available" / "detected" were removed
     # because they false-positive on common neutral phrases ("the harness is
