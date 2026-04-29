@@ -7,12 +7,12 @@
 - **Typed Response Envelopes** — four-envelope response taxonomy (Conversational, Analytical, Packaged Prompt, Closure) maps response shape to appropriate formatting and visual density. Fence discriminator and Insight-block suppression rules included. Different envelopes get different formatting: low density for conversational acks, medium-high for analytical advisory turns, maximum for executor briefs, medium-high for closure handoffs.
 - **Closure Evidence Ledger** — six-state ledger (RESOLVED / RESOLVED-AUTO / DECISION / SKIPPED-USER / SKIPPED-AUTO / DIRTY) replaces the prior 8-row Visual Closure Checklist. AUQ fires only on DECISION rows. Reconciles the SKILL.md hygiene-vs-decision boundary at category-vs-operation level.
 - **Premise Challenge trigger #5** — fires when SP is acting on a derivative finding from a previous session (auto-fires on findings/backlog reads). Walk-through Scope Discipline subsection added separately.
-- **V1-V7 regression fixtures + Layer 3 release-time transcript lint** — `tests/fixtures/v5.14.0/V1-V7-*.md` covering structural rule violations and friend-perspective jargon failures; `tests/lint-transcripts.sh` enforces AUQ-must-be-AUQ, tool-availability claims, and fence-write coupling rules against post-tag JSONL transcripts and SP-internal handoffs. RUNBOOK extended with manual-review procedure for fixture grading.
-- **Voice-fix pass** — Define-Before-Use extended to all v5.14.0 SP-internal vocabulary (envelope names, ledger states, trigger numbers, Layer 1/Layer 3 architecture); Plain-English Default rule renamed to Plain-English Whole-Response Gate with a concrete pre-send re-read mechanism named explicitly; eight-item dryness ban list added (covering jargon-laden tables, numbered-deliverable framing in advisory chat, AUQ-as-ceremonial-padding, code-style spec framing in conversation, friend-perspective failures from V7 fixture, and more); warm partner tone made REQUIRED (folded into the existing rule, not a separate target); Anti-Sycophancy Protocol gains contrarian-theater symmetric failure mode; envelope-appropriate visual density principle named explicitly.
+- **V1–V7 regression fixtures + release-time transcript checker** — `tests/fixtures/v5.14.0/V1-V7-*.md` covering structural rule violations and friend-perspective jargon failures; `tests/lint-transcripts.sh` enforces AUQ-must-be-AUQ, tool-availability claims, and fence-write coupling rules against post-tag JSONL transcripts and SP-internal handoffs. RUNBOOK extended with manual-review procedure for fixture grading.
+- **Voice-fix pass** — Define-Before-Use extended to all v5.14.0 SP-internal vocabulary (envelope names, ledger states, trigger numbers, the layered enforcement architecture); Plain-English Default rule renamed to Plain-English Whole-Response Gate with a concrete pre-send re-read mechanism named explicitly; eight-item dryness ban list added (covering jargon-laden tables, numbered-work-item framing in advisory chat, AUQ-as-ceremonial-padding, code-style spec framing in conversation, friend-perspective failures from V7 fixture, and more); warm partner tone made REQUIRED (folded into the existing rule, not a separate target); Anti-Sycophancy Protocol gains contrarian-theater symmetric failure mode; envelope-appropriate visual density principle named explicitly.
 
 ### Changed
 
-- **CLAUDE.md release Step 2a** — hook verification expanded with matcher-scope tests, guard logic verification, runtime-input fuzzing, CHANGELOG cross-reference for env-var patterns, and Layer 3 transcript lint backstop. Scoped to Layer 1 (PreToolUse source-edit guard, predates v5.14.0) and Layer 3 (release-time transcript lint) only after Layer 2 was deferred.
+- **CLAUDE.md release Step 2a** — hook verification expanded with matcher-scope tests, guard logic verification, runtime-input fuzzing, CHANGELOG cross-reference for env-var patterns, and the release-time transcript-checker backstop. Scoped to the source-edit guard (which predates v5.14.0) and the release-time transcript checker only — runtime enforcement was deferred.
 
 ### Fixed
 
@@ -20,12 +20,12 @@
 
 ### Known Limitations (queued for v5.14.1)
 
-- **Layer 3 lint over-flags meta-discussion** — `tests/lint-transcripts.sh` TOOL-CLAIM rule matches first-person tool-availability substrings inside transcript lines that *quote the lint's own patterns* or discuss its findings, rather than making live first-person tool-availability claims. Two known false positives surfaced in v5.14.0 development sessions during release verification. Fix queued for v5.14.1: add backtick-context awareness or sentence-context scoping to the TOOL-CLAIM matcher.
+- **Release-time lint over-flags meta-discussion** — `tests/lint-transcripts.sh` TOOL-CLAIM rule matches first-person tool-availability substrings inside transcript lines that *quote the lint's own patterns* or discuss its findings, rather than making live first-person tool-availability claims. Two known false positives surfaced in v5.14.0 development sessions during release verification. Fix queued for v5.14.1: add backtick-context awareness or sentence-context scoping to the TOOL-CLAIM matcher.
 - **`tests/lint-transcripts.sh:597` integer expression warning** — script emits `0: integer expression expected` warnings during transcript scanning. Output is noisy but violation counts remain correct. Fix queued for v5.14.1.
 
 ### Deferred to v5.15.0
 
-- **Layer 2 runtime enforcement** (Stop hook + PostToolUse tracker) — prototyped during v5.14.0 development but pulled before release after a read-only mining of 105 JSONL transcripts (314 stop-hook-summary records inspected) found zero observable firings of the validator. Production observability was insufficient to verify the < 2% false-positive target the design called for. Layer 1 (existing PreToolUse source-edit guard) and Layer 3 (release-time transcript lint) are the only enforcement layers in v5.14.0. Runtime SP behavior is unchanged versus v5.13.0 except for the Theme A/C/D additions and the voice-fix improvements documented above. Layer 2 returns in v5.15.0+ once observability is in place.
+- **Runtime enforcement layer** (Stop hook + PostToolUse tracker) — prototyped during v5.14.0 development but pulled before release after a read-only mining of 105 JSONL transcripts (314 stop-hook-summary records inspected) found zero observable firings of the validator. Production observability was insufficient to verify the < 2% false-positive target the design called for. The source-edit guard (existing) and the release-time transcript checker are the only enforcement layers in v5.14.0. Runtime SP behavior is unchanged versus v5.13.0 except for the Theme A/C/D additions and the voice-fix improvements documented above. Runtime enforcement returns in v5.15.0+ once observability is in place.
 
 ## [5.13.0] - 2026-04-28
 
@@ -226,7 +226,7 @@ Kept intact: all identity gates (Position mandate, AskUserQuestion protocol, Pre
 
 ### Fixed
 - **skillshare → skills CLI** — replaced all `skillshare` references with Vercel `skills` CLI. Removed broken `npx skillshare install` from README
-- **Stale hook reference** — SKILL.md line 107 corrected to "inlined in SKILL.md frontmatter"
+- **Stale hook reference** — SKILL.md guidance corrected to "inlined in SKILL.md frontmatter"
 - **Hook verification in release process** — CLAUDE.md gains Step 2a for testing matcher scope and guard logic before release
 - **Docs-only push exception** — CLAUDE.md release process allows docs-only pushes to skip version bump and GitHub Release
 
@@ -374,7 +374,7 @@ Kept intact: all identity gates (Position mandate, AskUserQuestion protocol, Pre
 - **Two-level README review gate** — release process now distinguishes factual accuracy checks (every release) from first-time user tests (every 3rd minor or new user-facing features)
 
 ### Changed
-- **README restructured** — information flow redesigned for first-time users (Problem → How → Show Me → Quick Start); core insight moved from line 126 to line 15; two-session model explained once instead of four times; file tree collapsed to `<details>` block; 268 lines, down from 382
+- **README restructured** — information flow redesigned for first-time users (Problem → How → Show Me → Quick Start); core insight moved from buried in the middle to near the top; two-session model explained once instead of four times; file tree collapsed to `<details>` block; 268 lines, down from 382
 
 ## [4.7.0] - 2026-03-26
 
