@@ -237,12 +237,15 @@ Follow the existing convention (Keep a Changelog style):
 
 Only include sections that have entries. Use `**bold lead**` with em-dash description.
 
-### CHANGELOG Voice Rules
+### User-Facing Voice Rules
 
-CHANGELOG entries must read clean to a smart non-developer evaluating
-"what's new in this version?" The CHANGELOG is user-facing — it's linked
-from the README badge, extracted into GitHub Release notes, and surfaced
-by `/strategic-partner:update`. Apply SP's own voice rules to every entry:
+User-facing artifacts — CHANGELOG entries, README user-facing prose, and
+subcommand descriptions in `commands/` — must read clean to a smart
+non-developer. CHANGELOG content is linked from the README badge,
+extracted into GitHub Release notes, and surfaced by
+`/strategic-partner:update`; README is the first thing strangers see;
+subcommand descriptions surface via `/strategic-partner:help`. Apply
+SP's own voice rules:
 
 - **Plain-English lead** — open each bullet with what changed for the user
   in plain language; technical name as a parenthetical or subordinate
@@ -274,8 +277,8 @@ entry — don't fork to a separate user-facing file.
 > get tables. Executor briefs get full ceremony. SP picks the right shape
 > based on what kind of reply it's giving.
 
-The rule applies to new entries going forward. Existing entries may be
-rewritten as part of the next release that touches them; retroactive
+The rule applies to new content going forward. Existing content may be
+rewritten as part of the next release that touches it; retroactive
 rewrite is not required.
 
 ## Provisional Guards
