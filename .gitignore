@@ -7,8 +7,10 @@
 .handoffs/
 .prompts/
 .scripts/
+!.scripts/release-publish.sh
 awesome-list-submission.md
 .skillshare-meta.json
 claudedocs/
+!claudedocs/INCIDENTS.md
 .serena/
 __pycache__/

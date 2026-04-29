@@ -1,5 +1,14 @@
 # Strategic Partner — Project Rules
 
+## Where to Look
+
+| When | Resource |
+|---|---|
+| Running a release | `.scripts/release-publish.sh` — automates Step 7 (GitHub Release creation with CHANGELOG entry extraction) |
+| Investigating past hook bugs or other archaeology | `claudedocs/INCIDENTS.md` — incident write-ups referenced from Provisional Guards and from Step 2a hook verification |
+| Cross-referencing patterns or finding past lessons | `CHANGELOG.md` — searchable history of every feature, fix, and reactive entry |
+| Confirming current version | `SKILL.md` line 12 (`version:` field), and the `version-X.Y.Z-blue` badge on `README.md` line 5 |
+
 ## Release Process (Mandatory Before Push)
 
 Every push to remote MUST go through this process.
@@ -75,7 +84,7 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    (before enforcement was added), document them as expected baseline and
    verify new transcripts are clean.
 
-**Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. v5.4.0→v5.4.1 was a reactive fix for exactly this class of bug. Layer 1 (the PreToolUse source-edit guard, predates v5.14.0) and Layer 3 (the release-time transcript lint) are the only enforcement layers in play; Layer 2 (a runtime PostToolUse / Stop validator family that was prototyped during v5.14.0) was pulled before release after the hook surface proved fragile, so the transcript lint is the sole post-execution backstop for the AUQ, tool-availability, and fence-write-coupling rules.
+**Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. See the Provisional Guard *Don't use `${CLAUDE_*}` env vars in hook commands* at the bottom of this file; `claudedocs/INCIDENTS.md` has the v5.4.0→v5.4.1 archaeology. Layer 1 (the PreToolUse source-edit guard, predates v5.14.0) and Layer 3 (the release-time transcript lint) are the only enforcement layers in play; Layer 2 (a runtime PostToolUse / Stop validator family that was prototyped during v5.14.0) was pulled before release after the hook surface proved fragile, so the transcript lint is the sole post-execution backstop for the AUQ, tool-availability, and fence-write-coupling rules.
 
 ### 2b. Codex Pre-Release Review (Mandatory for non-docs-only pushes)
 
@@ -195,15 +204,15 @@ git push origin main --tags
 After pushing, create a GitHub Release (required for the version-check system):
 
 ```bash
-gh release create vX.Y.Z --title "vX.Y.Z — [one-line summary]" --notes "[CHANGELOG entry for this version]"
+.scripts/release-publish.sh X.Y.Z "one-line summary"
 ```
 
-Or extract the entry automatically:
-
-```bash
-gh release create vX.Y.Z --title "vX.Y.Z — [one-line summary]" \
-  --notes "$(awk '/^## \['"X.Y.Z"'\]/{found=1; next} found && /^## \[/{exit} found' CHANGELOG.md)"
-```
+The script runs the same `gh release create` invocation that previously lived
+inline here, with the matching CHANGELOG entry extracted automatically as
+release notes. Pre-flight checks confirm `gh` is installed and authenticated,
+the tag exists locally, and `CHANGELOG.md` is in the current directory. For
+manual control over the release notes, invoke `gh release create` directly with
+`--notes` and your own text.
 
 **Why**: The startup version check and `/strategic-partner:update` fetch
 `/releases/latest` from GitHub API. Without a Release, users won't get
@@ -268,3 +277,22 @@ entry — don't fork to a separate user-facing file.
 The rule applies to new entries going forward. Existing entries may be
 rewritten as part of the next release that touches them; retroactive
 rewrite is not required.
+
+## Provisional Guards
+
+Bug-driven rules. Each guard names the pattern, the past incident that
+motivated it, and a date to revisit. See `claudedocs/INCIDENTS.md` for the
+underlying archaeology.
+
+### Don't use `${CLAUDE_*}` env vars in hook commands
+
+Instead: inline the values, use deterministic path resolution, or grep
+`CHANGELOG.md` for prior incidents with the variable name before relying on it.
+
+- **Scope**: Hook commands in `SKILL.md` frontmatter and `hooks/` files.
+  Specifically: `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PROJECT_DIR}`,
+  `${CLAUDE_TOOL_NAME}`, and any `CLAUDE_*` variable not explicitly verified in
+  current Claude Code documentation as being set in the hook execution
+  environment.
+- **Source**: v5.4.1 (2026-03-31) — see `claudedocs/INCIDENTS.md` (`INC-2026-03-30 — Hook command relies on ${CLAUDE_SKILL_DIR}`)
+- **Review**: 2026-07-28 (90 days from policy adoption on 2026-04-29; pre-existing reactive rule, eligible for permanence on review per Direction 4 lifecycle)
