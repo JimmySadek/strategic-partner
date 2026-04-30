@@ -4,21 +4,22 @@ Reference file for the strategic-partner advisor. Comprehensive hooks strategy
 for proactive session management. Phased rollout from essential to advanced.
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  SP Hooks Rollout                                                    │
-│                                                                      │
-│  Phase 1 (Essential)     Phase 2 (Monitoring)    Phase 3 (Advanced) │
-│  ┌──────────────────┐   ┌──────────────────┐    ┌────────────────┐  │
+┌──────────────────────────────────────────────────────────────────────┐
+│  SP Hooks Rollout                                                     │
+│                                                                       │
+│  Phase 1 (Essential)      Phase 2 (Monitoring)    Phase 3 (Advanced) │
+│  ┌───────────────────┐   ┌──────────────────┐    ┌────────────────┐  │
 │  │ 🛡️ PreToolUse    │   │ 🤖 SubagentStart │    │ 🔧 ConfigChange│  │
-│  │    (identity) ✅ │   │ 🤖 SubagentStop  │    │ ❌ PostToolUse │  │
-│  │ 🚨 PreCompact    │   │ 💬 UserPrompt    │    │    Failure     │  │
-│  │    (user-owned)  │   │    Submit        │    │ 🔌 Custom      │  │
-│  │ 🚀 SessionStart  │   └──────────────────┘    └────────────────┘  │
-│  │  (incompatible)  │                                               │
-│  └──────────────────┘                                               │
-│  ✅ = shipping in SKILL.md frontmatter                               │
-│  ◄── implement first    ◄── visibility      ◄── power users        │
-└─────────────────────────────────────────────────────────────────────┘
+│  │    (identity) ✅  │   │ 🤖 SubagentStop  │    │ ❌ PostToolUse │  │
+│  │ 🚨 PreCompact     │   │ 💬 UserPrompt    │    │    Failure     │  │
+│  │    (user-owned)   │   │    Submit ✓     │    │ 🔌 Custom      │  │
+│  │ 🚀 SessionStart   │   └──────────────────┘    └────────────────┘  │
+│  │  (unverified)     │                                                │
+│  │ 🛑 Stop ✓        │                                                │
+│  └───────────────────┘                                               │
+│  ✅ = shipping in SKILL.md frontmatter  ✓ = confirmed-viable        │
+│  ◄── implement first    ◄── visibility      ◄── power users         │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -104,6 +105,11 @@ Two patterns work in place of it:
 These hooks provide the **minimum viable integration** for reliable session management.
 Implement these first.
 
+**2026-04-30 update:** The confirmed-working set from skill frontmatter is broader than
+originally framed. PreToolUse is shipping. UserPromptSubmit and Stop are additionally
+confirmed as firing from skill frontmatter on CC 2.1.123 — see the Stop section below
+and the validated canonical pattern section further down.
+
 ### 🛡️ PreToolUse — Identity Guard (shipping)
 
 **Event**: Fires before Edit / Write / MultiEdit / NotebookEdit / Bash /
@@ -124,22 +130,27 @@ tool calls made while the skill is invoked, which matches the desired scope.
 
 ---
 
-### 🚀 SessionStart — investigated in v5.9.0, architecturally incompatible
+### 🚀 SessionStart — investigated in v5.9.0, pending cold-start re-verification (2026-04-30 update)
 
-**TL;DR**: A SessionStart hook in SKILL.md frontmatter **cannot fire at
-Claude Code session start**. v5.9.0 investigated this approach, confirmed it
-empirically, and removed it. The SP's contribution to context-handoff timing
-on large-window sessions is now a pure **advisory note** delivered in
-orientation — see `startup-checklist.md` Step 5 "Context advisory" bullet and
-`context-handoff.md` § Environment Baseline.
+**TL;DR**: v5.9.0 investigated a SessionStart hook in SKILL.md frontmatter,
+observed it did not fire, and removed it. The 2026-04-30 hook audit confirmed
+that PreToolUse, PostToolUse, UserPromptSubmit, and Stop DO fire from skill
+frontmatter on CC 2.1.123 — but SessionStart was NOT re-tested in that audit
+(a cold-start session was not run). The original "architecturally incompatible"
+conclusion may be confounded by the matcher / invocation gotchas discovered
+on 2026-04-30 (see the "Skill-frontmatter hook gotchas" section below). Cold-start
+verification is recommended before locking either way on SessionStart. For now,
+the SP's contribution to context-handoff timing on large-window sessions remains
+a pure **advisory note** delivered in orientation — see `startup-checklist.md`
+Step 5 "Context advisory" bullet and `context-handoff.md` § Environment Baseline.
 
-**Why it can't work (lifecycle mismatch)**: Per Anthropic's hooks documentation
-(https://code.claude.com/docs/en/hooks), hooks declared in a component's
-frontmatter are **scoped to that component's lifecycle and only run while
-that component is active**. SessionStart fires at Claude Code session start —
-before any skill activates. A SessionStart hook declared in a skill's
-frontmatter is therefore registered for an event that, by the harness's own
-lifecycle rules, cannot fire for that skill. Evidence:
+**Why it may not fire (lifecycle scope — pending re-verification)**: Per Anthropic's
+hooks documentation (https://code.claude.com/docs/en/hooks), hooks declared in a
+component's frontmatter are **scoped to that component's lifecycle and only run
+while that component is active**. SessionStart fires at Claude Code session start —
+before any skill activates. A SessionStart hook declared in a skill's frontmatter
+is therefore registered for an event that, by the harness's own lifecycle rules,
+may not fire for that skill. The v5.9.0 evidence:
 
 - An instrumented SessionStart hook inlined in `SKILL.md` frontmatter was
   tested on a fresh Claude Code session invoked via `/strategic-partner`. The
@@ -151,8 +162,16 @@ lifecycle rules, cannot fire for that skill. Evidence:
   have no `hooks:` section at all or use only tool-lifecycle events.
 - Issue anthropics/claude-code#17688 (OPEN, labeled `bug`, 22 comments)
   reports that even PreToolUse hooks in SKILL.md frontmatter fail within
-  plugins on CC 2.1.5 — confirming the skill-frontmatter hook surface is
-  unreliable even for architecturally-valid events.
+  plugins on CC 2.1.5 — confirming the skill-frontmatter hook surface has
+  known failure modes (see Phase 1 gotchas below).
+
+**2026-04-30 caveat:** The 2026-04-30 audit found that the v5.9.0 zero-firings
+result for Stop (a separate lifecycle event) was a false negative caused by
+the invocation gotcha — the skill had not been re-invoked after SKILL.md edits,
+so the hooks block was not re-registered. SessionStart was not re-tested in
+that audit because a cold-start session is required, but the same gotcha
+could explain the v5.9.0 SessionStart result. Re-test with a clean cold-start
+invocation before concluding SessionStart is permanently incompatible.
 
 **What IS real**: `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` is a documented harness
 env var (https://code.claude.com/docs/en/env-vars.md) honored at Claude Code
@@ -228,7 +247,7 @@ hook is a belt-and-suspenders backstop, not a required dependency.
 
 ---
 
-### 🛑 Stop — not currently shipped
+### 🛑 Stop — confirmed firing from skill frontmatter on CC 2.1.123 (superseded 2026-04-30)
 
 The Stop hook was removed in v5.0.0 because it was being used for session-end
 detection — the wrong scope for a hook that fires on every turn. A v5.14.0 spike
@@ -237,16 +256,180 @@ explored restoring it as a response-end validator for three structural rules
 but a soak-mining of 105 production JSONL transcripts found zero observable
 firings. Without confidence the hook was actually running in production, the
 runtime validator was pulled and the rules moved to release-time enforcement
-via Layer 3 (the transcript lint at `tests/lint-transcripts.sh`). A future
-release may revisit a Stop-based runtime validator once observability is
-solved (unconditional trace logging, longer soak window). The three rules
-themselves remain real rules — see the Layer 3 enforcement section below.
+via Layer 3 (the transcript lint at `tests/lint-transcripts.sh`).
+
+**2026-04-30 update — v5.14.0 zero-firings conclusion overturned:** The
+2026-04-30 hook audit produced empirical Stop FIRED trace lines from skill
+frontmatter on CC 2.1.123. The v5.14.0 zero-firings result was a false negative
+caused by the invocation gotcha (see "Skill-frontmatter hook gotchas" below):
+the skill's SKILL.md had been edited to add the Stop hook, but the skill had
+not been re-invoked, so the hooks dispatcher held the pre-edit hooks block and
+Stop was never registered. After re-invoking the skill via the Skill tool,
+Stop fired reliably on every assistant turn. Verbatim trace log evidence from
+`/tmp/sp-hook-audit-trace.log` (Round 4, 2026-04-30):
+
+```
+[2026-04-30T11:17:19Z] PreToolUse-Bash-literal FIRED   (once: true honored)
+[2026-04-30T11:17:21Z] PostToolUse-Bash-literal FIRED  (after 1st Bash)
+[2026-04-30T11:18:15Z] PostToolUse-Bash-literal FIRED  (after 2nd Bash)
+[2026-04-30T11:18:39Z] PostToolUse-Bash-literal FIRED  (after 3rd Bash)
+[2026-04-30T11:19:39Z] Stop FIRED                       (end of assistant turn)
+[2026-04-30T11:19:40Z] UserPromptSubmit FIRED           (user's next message)
+```
+
+Note also: GitHub issue anthropics/claude-code#19225 was closed as "not planned"
+with the claim that Stop never fires from skill frontmatter. That claim is
+**empirically overturned** by the trace evidence above. The project may want to
+open a follow-up comment on #19225 with the trace log as counter-evidence.
+
+**Current status:** Stop hooks DO fire from skill frontmatter on CC 2.1.123 per
+current-version empirical evidence. Consider re-introducing a Stop-based runtime
+validator for SP per-turn rhythm enforcement (AUQ-must-be-AUQ, tool-availability
+claims, fence-write coupling) in v5.15.0+. The three rules themselves remain
+enforced by Layer 3 at release time — see the Hook Delivery Summary below. A
+Stop-based per-turn validator would be belt-and-suspenders, catching violations
+earlier than the release-gate lint.
+
+**Layer 3 enforcement** (unchanged, still active): `tests/lint-transcripts.sh`
+runs three structural checks at release time over `.handoffs/*.md` files and
+JSONL transcripts since the last release tag. Exit 0 if clean; exit 1 with
+per-violation output if violations found. Wired into CLAUDE.md Step 2a.
+
+---
+
+## ⚠️ Skill-frontmatter hook gotchas (CC 2.1.x)
+
+Discovered 2026-04-30 during a multi-round hook audit at `~/sp-hook-sandbox/` using
+a test skill at `~/.claude/skills/sp-hook-audit/`. These two gotchas explain most
+prior zero-firings results.
+
+### Gotcha 1 — Matcher syntax: wildcards and alternation may silently fail
+
+Regex-style matcher values (`.*`, possibly pipe-alternation like `Edit|Write`) appear
+to silently fail hook registration in some invocation contexts, leaving the hook
+unregistered with no error message.
+
+**Forms with known failure risk:**
+```yaml
+hooks:
+  PreToolUse:
+    - matcher: ".*"          # wildcard — silently fails in tested contexts
+      hooks:
+        - type: command
+          command: "..."
+```
+
+**Form that works reliably (literal tool name):**
+```yaml
+hooks:
+  PreToolUse:
+    - matcher: "Bash"        # literal — confirmed firing CC 2.1.123
+      hooks:
+        - type: command
+          command: "..."
+```
+
+**For multiple tools, use multiple entries instead of alternation:**
+```yaml
+hooks:
+  PreToolUse:
+    - matcher: "Edit"
+      hooks:
+        - type: command
+          command: "..."
+    - matcher: "Write"
+      hooks:
+        - type: command
+          command: "..."
+```
+
+**Important exception — SP's own guard:** The SP's existing PreToolUse guard uses
+pipe-alternation `Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__plugin_serena_serena__`
+and is empirically verified firing on this same Claude Code version (the guard
+demonstrably blocks `/tmp/` Bash redirects with exit code 2 in normal use). The
+isolated "alternation + first-invocation" failure mode was not re-tested; the
+Rounds 1–2 failures may have been invocation-related rather than matcher-related.
+Recommendation: use literal matchers + multiple entries for new hooks until an
+isolated re-test resolves the pipe-alternation question.
+
+### Gotcha 2 — Invocation, not mtime: hooks re-bind on skill invocation, not file edit
+
+Editing SKILL.md does NOT re-register its hooks. The `system-reminder` skill-list
+refreshes the skill's description immediately on file save, giving the impression
+the skill was reloaded — but the hook dispatcher holds the **original `hooks:` block**
+from the last invocation. Edits to the `hooks:` section take effect only when:
+
+1. The skill is explicitly re-invoked (slash command `/strategic-partner` or Skill tool call), or
+2. Claude Code is restarted.
+
+**Practical implication:** When testing or updating a hook, always re-invoke the skill
+after editing SKILL.md. This was the root cause of the v5.14.0 Stop zero-firings result
+and may also explain the v5.9.0 SessionStart result.
+
+---
+
+## ✅ Validated canonical pattern (CC 2.1.123, 2026-04-30)
+
+Copy-pasteable YAML covering the four events confirmed firing from skill frontmatter
+in the 2026-04-30 audit. Use this as the baseline for new hooks. Note: SessionStart
+is NOT included — it was not empirically verified in this audit round.
+
+```yaml
+hooks:
+  PreToolUse:
+    - matcher: "Bash"            # literal matcher — confirmed firing
+      hooks:
+        - type: command
+          once: true             # fires once per session (remove for per-call)
+          command: |
+            echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] PreToolUse-Bash FIRED" \
+              >> /tmp/sp-hook-trace.log
+    - matcher: "Edit"            # one entry per tool for new patterns
+      hooks:
+        - type: command
+          command: |
+            echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] PreToolUse-Edit FIRED" \
+              >> /tmp/sp-hook-trace.log
+  PostToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: |
+            echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] PostToolUse-Bash FIRED" \
+              >> /tmp/sp-hook-trace.log
+  UserPromptSubmit:              # non-tool event — no matcher field
+    - type: command
+      command: |
+        TURNS=$(cat /tmp/sp-turn-count.txt 2>/dev/null || echo 0)
+        echo $((TURNS+1)) > /tmp/sp-turn-count.txt
+        echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] UserPromptSubmit FIRED (turn $((TURNS+1)))" \
+          >> /tmp/sp-hook-trace.log
+  Stop:                          # fires at end of every assistant turn
+    - type: command
+      command: |
+        echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Stop FIRED" \
+          >> /tmp/sp-hook-trace.log
+```
+
+**Key rules from the audit:**
+- Use absolute paths in `command:` fields — `${CLAUDE_SKILL_DIR}` and similar env vars
+  are NOT set in the hook execution environment (see GitHub #36135 and the "Skill-dir
+  resolution" section above). Use `${HOME}/...` or hard-coded absolute paths.
+- Re-invoke the skill after every SKILL.md edit that touches the `hooks:` block (Gotcha 2).
+- Use `once: true` in PreToolUse to avoid running expensive startup checks on every tool call.
 
 ---
 
 ## 🟡 Phase 2: Monitoring Hooks
 
 These hooks add **visibility** into session activity for better advisory decisions.
+
+**2026-04-30 update:** Configuration examples below show `settings.json` format because
+these events have not been individually tested from skill frontmatter. They may be
+configurable in skill frontmatter (user-owned OR skill-owned) following the canonical
+pattern once verified — the settings.json format is not the only option. Events like
+UserPromptSubmit are confirmed firing from frontmatter (see Phase 1 Stop section trace
+log); SubagentStart/SubagentStop have not been tested from frontmatter specifically.
 
 ### 🤖 SubagentStart / SubagentStop
 
@@ -314,6 +497,12 @@ Without these hooks, agent verification requires polling or inline checks.
 ## 🟠 Phase 3: Advanced Hooks
 
 These hooks provide deeper integration for **power users** and diagnostics.
+
+**2026-04-30 update:** Configuration examples below show `settings.json` format.
+These events (ConfigChange, PostToolUseFailure) have not been individually tested
+from skill frontmatter. They may be configurable in SKILL.md frontmatter following
+the canonical pattern once verified — `settings.json` is not required if frontmatter
+proves sufficient for these events.
 
 ### 🔧 ConfigChange
 
@@ -388,14 +577,21 @@ For SP-specific events that don't map to built-in hook events:
 
 ## 💬 Hook Delivery Summary
 
-The SP ships **one frontmatter hook** (inlined in SKILL.md):
+(2026-04-30 update — table expanded to reflect confirmed-viable events)
 
-| Hook | Event | Matcher | Purpose | Ships via |
-|---|---|---|---|---|
-| Identity guard | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|mcp__plugin_serena_serena__` | Block source-file mutations; allow SP workspace paths | SKILL.md frontmatter |
+The SP currently ships **one frontmatter hook** (inlined in SKILL.md). UserPromptSubmit
+and Stop are confirmed-viable for v5.15.0+ integration from skill frontmatter.
+
+| Hook | Event | Matcher | Purpose | Ships via | Status |
+|---|---|---|---|---|---|
+| Identity guard | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|mcp__plugin_serena_serena__` | Block source-file mutations; allow SP workspace paths | SKILL.md frontmatter | Shipping ✅ |
+| Turn counter | UserPromptSubmit | (non-tool event, no matcher) | Count exchange turns for context budget estimation | SKILL.md frontmatter | Confirmed viable ✓ — not yet shipped |
+| Per-turn validator | Stop | (non-tool event, no matcher) | Enforce AUQ/tool-availability/fence-write rules per turn | SKILL.md frontmatter | Confirmed viable ✓ — candidate for v5.15.0+ |
 
 PreToolUse fires during tool calls while the skill is active — correct for
-blocking source edits initiated by the SP.
+blocking source edits initiated by the SP. UserPromptSubmit and Stop fire as
+session-level events confirmed firing from frontmatter on CC 2.1.123 per
+2026-04-30 audit (see trace log in the Stop section above).
 
 **Layer 3 (release-time transcript lint):** `tests/lint-transcripts.sh` runs
 three structural checks at release time over `.handoffs/*.md` files and (when
@@ -413,17 +609,21 @@ and is not equivalent to per-turn runtime enforcement.
 
 All other hook types discussed in this file are either:
 
-- **Architecturally incompatible with skill-frontmatter delivery**
-  (SessionStart, investigated and removed in v5.9.0 — see Phase 1 above)
+- **Pending re-verification** (SessionStart — v5.9.0 found it did not fire;
+  2026-04-30 audit did not re-test it; may warrant a cold-start re-test before
+  locking either way — see Phase 1 above)
+- **Confirmed viable but not yet shipped** (UserPromptSubmit, Stop — see table above)
 - **Optional user-owned configurations** (PreCompact and all Phase 2 / Phase 3
-  hooks) — if a user wants PreCompact logging, SubagentStart tracking, or
-  any other monitoring hook, they add it to their own
-  `~/.claude/settings.json`. The SP does not auto-install hooks into user
-  settings and does not modify them.
+  hooks that have not been verified from frontmatter) — if a user wants PreCompact
+  logging, SubagentStart tracking, or any other monitoring hook, they may add it
+  to their own `~/.claude/settings.json` OR (once verified) to SKILL.md frontmatter.
+  The SP does not auto-install hooks into user settings and does not modify them.
 
 ---
 
 ## 📎 Cross-Reference
+
+### Project files
 
 | Reference | Relationship |
 |---|---|
@@ -431,3 +631,11 @@ All other hook types discussed in this file are either:
 | `context-handoff.md` | Advisory framing for autocompact threshold (user-owned) |
 | `companion-script-spec.md` | Historical spec — deprecated in v5.9.0, retained for reference |
 | `orchestration-playbook.md` | Agent patterns that SubagentStart/Stop tracks |
+
+### GitHub issues (anthropics/claude-code)
+
+| Issue | Status | What it means for SP |
+|---|---|---|
+| [#17688](https://github.com/anthropics/claude-code/issues/17688) | OPEN (labeled `bug`) | Plugin-context skill hooks broken — PreToolUse hooks fail within plugins. **SP must NOT be distributed as a Claude Code plugin.** Skill-install (not plugin) is the only supported delivery. |
+| [#19225](https://github.com/anthropics/claude-code/issues/19225) | Closed "not planned" | Originally claimed Stop never fires from skill frontmatter. **Empirically overturned** by 2026-04-30 audit trace evidence (see Stop section above). Consider opening a follow-up comment on the issue with the `/tmp/sp-hook-audit-trace.log` evidence. |
+| [#36135](https://github.com/anthropics/claude-code/issues/36135) | Open | `${CLAUDE_SKILL_DIR}` substitution broken in frontmatter hook commands. Workaround: use absolute paths (`/Users/yourname/...`) or `${HOME}/...`. This matches SP's existing Provisional Guard ("Don't use `${CLAUDE_*}` env vars in hook commands"). |
