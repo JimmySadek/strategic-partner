@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.15.0] - 2026-04-30
+
+### Added
+
+- **Session facts now arrive automatically at every prompt** (UserPromptSubmit floor sentinel) — Each time you send a prompt to SP, a hook gathers a snapshot of the things SP needs to know to advise you well: which model is running, whether your project has a CLAUDE.md and any rule files, what's in your Serena memories, how many findings and parked backlog items exist, current git state, and whether the SP is up to date. The summary is injected into SP's context as a single line, so SP can't miss it. This replaces the previous documentation-only approach where SP had to remember to check on its own. Mechanically enforces the startup floor that prose alone has been failing to ensure.
+
+- **Per-turn rhythm enforcer** (Stop rhythm enforcer) — At the end of every assistant turn, a hook scans the response for four common drift patterns: questions buried in prose (instead of using the Ask-User-Question tool), missing identity-reset announcements after returning from a dispatched agent, first-person tool-availability claims without an actual tool call, and execution fences emitted without the expected handoff file write. When SP slips, the violation gets carried into the next turn's context as a one-line note — and SP self-corrects on the next prompt. Five rounds of adversarial review with Codex GPT-5.5 converged on this design.
+
+### Changed
+
+- **Two new hook integrations alongside the existing source-edit guard** (SKILL.md frontmatter) — The strategic-partner skill now ships three hooks that work together: the existing PreToolUse guard that blocks SP from editing source files, plus the two new hooks above. Hook commands resolve their own install path via the stable command symlinks Claude Code creates at `~/.claude/commands/strategic-partner/`, with no dependency on environment variables that aren't reliably set in hook execution contexts.
+
 ## [5.14.0] - 2026-04-29
 
 ### Added

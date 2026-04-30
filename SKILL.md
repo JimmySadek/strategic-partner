@@ -81,6 +81,340 @@ hooks:
             fi
             exit 0
           timeout: 2000
+  UserPromptSubmit:
+    - hooks:
+        - type: command
+          command: |
+            payload=$(cat 2>/dev/null || printf '%s' '{}')
+
+            session_id=$(printf '%s' "$payload" | jq -r '.session_id // ""' 2>/dev/null || printf '')
+            cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null || printf '')
+            transcript_path=$(printf '%s' "$payload" | jq -r '.transcript_path // ""' 2>/dev/null || printf '')
+            prompt=$(printf '%s' "$payload" | jq -r '.prompt // ""' 2>/dev/null || printf '')
+
+            if printf '%s' "$prompt" | perl -e 'undef $/; $_=<STDIN>; exit($_ =~ /\A\s*\/(strategic-partner|advisor|sp):(help|copy-prompt|update)\s*\z/ ? 0 : 1)' 2>/dev/null; then
+              exit 0
+            fi
+
+            SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+            if [ -n "$SP_ANY_CMD" ]; then
+              SP_SKILL_PATH=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")/SKILL.md
+              skill_version=$(grep '^version:' "$SP_SKILL_PATH" 2>/dev/null | head -1 | awk '{print $2}')
+            else
+              SP_SKILL_PATH=""
+              skill_version=""
+            fi
+            [ -z "$skill_version" ] && skill_version="unknown"
+            floor_schema_version="v3"
+            rule_schema_version="v1"
+
+            prompt_class=$(printf '%s' "$prompt" | perl -ne 'BEGIN{undef $/} m{\A\s*(/(strategic-partner|advisor|sp)(:[a-z-]+)?)} && do { print $1; last }' 2>/dev/null)
+            [ -z "$prompt_class" ] && prompt_class="chat"
+
+            cwd_hash=$(printf '%s' "$cwd" | shasum -a 256 2>/dev/null | cut -d' ' -f1)
+            tp_hash=$(printf '%s' "$transcript_path" | shasum -a 256 2>/dev/null | cut -d' ' -f1)
+
+            KEY=$(printf '%s|%s|%s|%s|%s|%s' \
+                  "$session_id" "$cwd_hash" "$tp_hash" \
+                  "$skill_version" "$floor_schema_version" "$prompt_class" \
+                | shasum -a 256 2>/dev/null | cut -d' ' -f1 | head -c 16)
+            RELAY_KEY=$(printf '%s|%s|%s|%s|%s' \
+                  "$session_id" "$cwd_hash" "$tp_hash" \
+                  "$skill_version" "$rule_schema_version" \
+                | shasum -a 256 2>/dev/null | cut -d' ' -f1 | head -c 16)
+
+            MARKER="/tmp/sp-floor-${KEY}.flag"
+            RESULTS="/tmp/sp-floor-${KEY}.txt"
+            LOCK="/tmp/sp-floor-${KEY}.lock"
+            VIOLATIONS_LOG="/tmp/sp-rule-violations-${RELAY_KEY}.log"
+
+            if [ -f "$VIOLATIONS_LOG" ]; then
+              VIOL_COUNT=$(grep -c '^- ' "$VIOLATIONS_LOG" 2>/dev/null | tr -d ' \n')
+              [ -z "$VIOL_COUNT" ] && VIOL_COUNT=0
+              if [ "$VIOL_COUNT" -gt 0 ] 2>/dev/null; then
+                VIOL_RULES=$(grep '^- ' "$VIOLATIONS_LOG" 2>/dev/null | head -3 | awk -F': ' '{print $1}' | sed 's/^- //' | paste -sd, -)
+                printf 'SP-RULE-CHECK: %s violation(s) from previous turn: %s. Details: %s\n' \
+                  "$VIOL_COUNT" "$VIOL_RULES" "$VIOLATIONS_LOG"
+                mv "$VIOLATIONS_LOG" "${VIOLATIONS_LOG}.consumed-$(date +%s)" 2>/dev/null
+              fi
+            fi
+
+            [ -f "$MARKER" ] && exit 0
+
+            if ! mkdir "$LOCK" 2>/dev/null; then exit 0; fi
+            trap "rmdir '$LOCK' 2>/dev/null" EXIT
+
+            : > "${RESULTS}.tmp"
+
+            # Group 1 — Environment
+            {
+              model=$(printf '%s' "$payload" | jq -r '.model // "unknown"' 2>/dev/null || printf 'unknown')
+              [ -z "$model" ] && model=unknown
+              printf 'g1.model=%s\n' "$model"
+
+              if [ -n "$SP_SKILL_PATH" ] && [ -f "$SP_SKILL_PATH" ]; then
+                SP_INSTALL_DIR=$(dirname "$SP_SKILL_PATH")
+                if [ -d "$SP_INSTALL_DIR/commands" ]; then
+                  cmd_count=$(ls "$SP_INSTALL_DIR/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
+                  link_count=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | wc -l | tr -d ' ')
+                  if [ "$cmd_count" = "$link_count" ] && [ "${cmd_count:-0}" -gt 0 ] 2>/dev/null; then
+                    printf 'g1.self_repair=ok cmds=%s links=%s\n' "$cmd_count" "$link_count"
+                  else
+                    printf 'g1.self_repair=mismatch cmds=%s links=%s\n' "$cmd_count" "$link_count"
+                  fi
+                else
+                  printf 'g1.self_repair=missing\n'
+                fi
+              else
+                printf 'g1.self_repair=unknown\n'
+              fi
+
+              if command -v codex >/dev/null 2>&1; then
+                printf 'g1.codex=available\n'
+              else
+                printf 'g1.codex=missing\n'
+              fi
+
+              if printf '%s' "$model" | grep -qi '1m' || [ "${SP_CONTEXT_WINDOW:-}" = "1M" ]; then
+                printf 'g1.context_window=1m\n'
+              else
+                printf 'g1.context_window=default\n'
+              fi
+
+              if [ -d "${HOME}/.claude/projects" ]; then
+                printf 'g1.auto_memory=available\n'
+              else
+                printf 'g1.auto_memory=unknown\n'
+              fi
+            } >> "${RESULTS}.tmp" 2>/dev/null
+
+            # Group 2 — Project conventions
+            {
+              if [ -n "$cwd" ] && [ -f "$cwd/CLAUDE.md" ]; then
+                line_count=$(wc -l < "$cwd/CLAUDE.md" 2>/dev/null | tr -d ' ')
+                printf 'g2.claude_md=present lines=%s\n' "${line_count:-0}"
+              else
+                printf 'g2.claude_md=missing\n'
+              fi
+              if [ -n "$cwd" ] && [ -d "$cwd/.claude/rules" ]; then
+                rule_count=$(find "$cwd/.claude/rules" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+                printf 'g2.rules_dir=present count=%s\n' "${rule_count:-0}"
+              else
+                printf 'g2.rules_dir=missing\n'
+              fi
+            } >> "${RESULTS}.tmp" 2>/dev/null
+
+            # Group 3 — Persistent memory (read files; hooks can't call Serena MCP)
+            {
+              if [ -n "$cwd" ] && [ -d "$cwd/.serena/memories" ]; then
+                mem_count=$(ls "$cwd/.serena/memories/"*.md 2>/dev/null | wc -l | tr -d ' ')
+                printf 'g3.serena_memories=present count=%s\n' "${mem_count:-0}"
+              else
+                printf 'g3.serena_memories=missing\n'
+              fi
+              if [ -n "$cwd" ] && [ -f "$cwd/.serena/memories/project_overview.md" ]; then
+                printf 'g3.project_overview=present\n'
+              else
+                printf 'g3.project_overview=missing\n'
+              fi
+              if [ -n "$cwd" ] && [ -f "$cwd/.serena/memories/decision_log.md" ]; then
+                dl_lines=$(wc -l < "$cwd/.serena/memories/decision_log.md" 2>/dev/null | tr -d ' ')
+                printf 'g3.decision_log=present lines=%s\n' "${dl_lines:-0}"
+              else
+                printf 'g3.decision_log=missing\n'
+              fi
+            } >> "${RESULTS}.tmp" 2>/dev/null
+
+            # Group 4 — Working memory (.handoffs/findings, .backlog/ frontmatter)
+            {
+              if [ -n "$cwd" ] && [ -d "$cwd/.handoffs" ]; then
+                findings_count=$(ls "$cwd/.handoffs/findings-"*.md 2>/dev/null | wc -l | tr -d ' ')
+              else
+                findings_count=0
+              fi
+              printf 'g4.findings=%s\n' "${findings_count:-0}"
+
+              if [ -n "$cwd" ] && [ -d "$cwd/.backlog" ]; then
+                backlog_count=$(ls "$cwd/.backlog/"*.md 2>/dev/null | wc -l | tr -d ' ')
+                printf 'g4.backlog_count=%s\n' "${backlog_count:-0}"
+                for f in "$cwd/.backlog/"*.md; do
+                  [ -f "$f" ] || continue
+                  bn=$(basename "$f" .md)
+                  title=$(awk '/^-{3}$/{c++; next} c==1 && /^title:/{sub(/^title:[[:space:]]*/,""); print; exit}' "$f" 2>/dev/null | head -c 80)
+                  status_field=$(awk '/^-{3}$/{c++; next} c==1 && /^status:/{sub(/^status:[[:space:]]*/,""); print; exit}' "$f" 2>/dev/null | head -c 30)
+                  trigger=$(awk '/^-{3}$/{c++; next} c==1 && /^trigger:/{sub(/^trigger:[[:space:]]*/,""); print; exit}' "$f" 2>/dev/null | head -c 100)
+                  printf 'g4.backlog_item name=%s status=%s title=%s\n' "$bn" "${status_field:-unknown}" "${title:-unknown}"
+                done
+              else
+                printf 'g4.backlog_count=0\n'
+              fi
+            } >> "${RESULTS}.tmp" 2>/dev/null
+
+            # Group 5 — Git state (timeout-bounded git ops)
+            {
+              if [ -n "$cwd" ] && [ -d "$cwd/.git" ]; then
+                branch=$(cd "$cwd" 2>/dev/null && timeout 1 git branch --show-current 2>/dev/null)
+                printf 'g5.branch=%s\n' "${branch:-unknown}"
+                porcelain_count=$(cd "$cwd" 2>/dev/null && timeout 1 git status --porcelain 2>/dev/null | head -10 | wc -l | tr -d ' ')
+                if [ "${porcelain_count:-0}" = "0" ]; then
+                  printf 'g5.status=clean\n'
+                else
+                  printf 'g5.status=dirty changed=%s\n' "$porcelain_count"
+                fi
+                last_commit=$(cd "$cwd" 2>/dev/null && timeout 1 git log --oneline -1 2>/dev/null | head -c 80)
+                printf 'g5.last_commit=%s\n' "${last_commit:-none}"
+              else
+                printf 'g5.git=missing\n'
+              fi
+            } >> "${RESULTS}.tmp" 2>/dev/null
+
+            # Group 6 — Version (local SKILL.md grep + remote GitHub release lookup, bounded curl)
+            {
+              if [ -n "$SP_SKILL_PATH" ] && [ -f "$SP_SKILL_PATH" ]; then
+                local_version=$(grep '^version:' "$SP_SKILL_PATH" 2>/dev/null | head -1 | awk '{print $2}')
+                printf 'g6.local=%s\n' "${local_version:-unknown}"
+                remote_version=$(timeout 2 curl --max-time 2 -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
+                if [ -z "$remote_version" ]; then
+                  printf 'g6.remote=unreachable\n'
+                  printf 'g6.diff=unreachable\n'
+                elif [ "$remote_version" = "$local_version" ]; then
+                  printf 'g6.remote=%s\n' "$remote_version"
+                  printf 'g6.diff=current\n'
+                else
+                  printf 'g6.remote=%s\n' "$remote_version"
+                  printf 'g6.diff=behind\n'
+                fi
+              else
+                printf 'g6.local=unknown\n'
+                printf 'g6.remote=unreachable\n'
+                printf 'g6.diff=unknown\n'
+              fi
+            } >> "${RESULTS}.tmp" 2>/dev/null
+
+            # Group 7 — Routing matrix freshness (1-hour staleness window)
+            {
+              ROUTING_FILE="$cwd/.serena/memories/skill_routing_matrix.md"
+              if [ -n "$cwd" ] && [ -f "$ROUTING_FILE" ]; then
+                file_mtime=$(stat -f %m "$ROUTING_FILE" 2>/dev/null || stat -c %Y "$ROUTING_FILE" 2>/dev/null || printf '0')
+                now=$(date +%s)
+                age=$((now - file_mtime))
+                if [ "$age" -lt 3600 ]; then
+                  printf 'g7.routing=fresh age_seconds=%s\n' "$age"
+                else
+                  printf 'g7.routing=stale age_seconds=%s\n' "$age"
+                fi
+              else
+                printf 'g7.routing=missing\n'
+              fi
+            } >> "${RESULTS}.tmp" 2>/dev/null
+
+            # Atomic finalize + summary stdout (Claude sees stdout in context)
+            mv "${RESULTS}.tmp" "$RESULTS" 2>/dev/null
+
+            conventions=$(grep -q '^g2.claude_md=present' "$RESULTS" 2>/dev/null && printf 'present' || printf 'missing')
+            memory=$(grep -q '^g3.serena_memories=present' "$RESULTS" 2>/dev/null && printf 'ok' || printf 'missing')
+            findings=$(grep '^g4.findings=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+            [ -z "$findings" ] && findings=0
+            backlog=$(grep '^g4.backlog_count=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+            [ -z "$backlog" ] && backlog=0
+            git_summary=$(grep '^g5.status=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}' | awk '{print $1}')
+            [ -z "$git_summary" ] && git_summary=missing
+            version_summary=$(grep '^g6.diff=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+            [ -z "$version_summary" ] && version_summary=unknown
+            routing=$(grep '^g7.routing=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}' | awk '{print $1}')
+            [ -z "$routing" ] && routing=missing
+            model_id=$(grep '^g1.model=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+            [ -z "$model_id" ] && model_id=unknown
+
+            touch "$MARKER"
+
+            printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s git=%s version=%s routing=%s. Full results: %s\n' \
+              "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$git_summary" "$version_summary" "$routing" "$RESULTS"
+
+            exit 0
+          timeout: 10000
+  Stop:
+    - hooks:
+        - type: command
+          command: |
+            payload=$(cat 2>/dev/null || printf '%s' '{}')
+            transcript_path=$(printf '%s' "$payload" | jq -r '.transcript_path // ""' 2>/dev/null || printf '')
+            session_id=$(printf '%s' "$payload" | jq -r '.session_id // ""' 2>/dev/null || printf '')
+            cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null || printf '')
+
+            [ -z "$transcript_path" ] && exit 0
+            [ ! -f "$transcript_path" ] && exit 0
+
+            SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+            if [ -n "$SP_ANY_CMD" ]; then
+              SP_SKILL_PATH=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")/SKILL.md
+              skill_version=$(grep '^version:' "$SP_SKILL_PATH" 2>/dev/null | head -1 | awk '{print $2}')
+            else
+              skill_version=""
+            fi
+            [ -z "$skill_version" ] && skill_version="unknown"
+            rule_schema_version="v1"
+
+            cwd_hash=$(printf '%s' "$cwd" | shasum -a 256 2>/dev/null | cut -d' ' -f1)
+            tp_hash=$(printf '%s' "$transcript_path" | shasum -a 256 2>/dev/null | cut -d' ' -f1)
+            RELAY_KEY=$(printf '%s|%s|%s|%s|%s' \
+                  "$session_id" "$cwd_hash" "$tp_hash" \
+                  "$skill_version" "$rule_schema_version" \
+                | shasum -a 256 2>/dev/null | cut -d' ' -f1 | head -c 16)
+
+            VIOLATIONS_LOG="/tmp/sp-rule-violations-${RELAY_KEY}.log"
+
+            last_turn=$(timeout 1 tail -200 "$transcript_path" 2>/dev/null | jq -s 'map(select((.message.role // .role) == "assistant")) | last' 2>/dev/null)
+            [ -z "$last_turn" ] && exit 0
+            [ "$last_turn" = "null" ] && exit 0
+
+            turn_text=$(printf '%s' "$last_turn" | jq -r 'if .message.content then (if (.message.content | type) == "array" then (.message.content | map(select(.type == "text") | .text) | join("\n")) else .message.content end) elif .content then (if (.content | type) == "array" then (.content | map(select(.type == "text") | .text) | join("\n")) else .content end) else "" end' 2>/dev/null)
+            [ -z "$turn_text" ] && exit 0
+
+            has_auq=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"name\"\\s*:\\s*\"AskUserQuestion\""; "i") then "true" else "false" end' 2>/dev/null)
+            has_tool_use=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"type\"\\s*:\\s*\"tool_use\"") then "true" else "false" end' 2>/dev/null)
+            has_lastprompts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\\.handoffs/last-prompts/[0-9]+\\.md") then "true" else "false" end' 2>/dev/null)
+
+            had_dispatch=$(timeout 1 tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | if . == null then "false" elif (tostring | test("\"name\"\\s*:\\s*\"(Agent|Task)\""; "i")) then "true" else "false" end' 2>/dev/null)
+
+            violation_count=0
+            log_violation() {
+              if [ "$violation_count" = 0 ]; then
+                printf '=== Turn check %s RELAY_KEY=%s ===\n' "$(date -u +%FT%TZ)" "$RELAY_KEY" >> "$VIOLATIONS_LOG"
+              fi
+              printf -- '- %s\n' "$1" >> "$VIOLATIONS_LOG"
+              violation_count=$((violation_count + 1))
+            }
+
+            # Rule 1: AUQ-must-be-AUQ — prose question without AskUserQuestion in same turn
+            auq_violation=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/^>.*$//mg; if ($t =~ /^([^\n]{15,}\?)\s*$/m) { print $1; }' 2>/dev/null | head -c 80)
+            if [ -n "$auq_violation" ] && [ "$has_auq" != "true" ]; then
+              log_violation "AUQ-must-be-AUQ: prose question detected: ${auq_violation}"
+            fi
+
+            # Rule 2: Identity-reset announcement — required after Agent dispatch return
+            if [ "$had_dispatch" = "true" ]; then
+              if ! printf '%s' "$turn_text" | grep -qE 'Back in advisory mode|Dispatch complete\. I am back in strategic-partner mode'; then
+                log_violation "identity-reset-announcement: missing reset phrase after dispatch return"
+              fi
+            fi
+
+            # Rule 3: Tool-availability claims — first-person tool-access claim without tool_use
+            tool_claim=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/`[^`]*`//g; $t =~ s/\*"[^"]*"\*//g; $t =~ s/"[^"]*"//g; $t =~ s/^>.*$//mg; if ($t =~ /\b(I can run |I can call |I have access to |I cannot access |I don.t have access|I.m able to run |I am able to run )/i) { print $1; }' 2>/dev/null | head -c 60)
+            if [ -n "$tool_claim" ] && [ "$has_tool_use" != "true" ]; then
+              log_violation "tool-availability-claim: first-person claim without tool_use: ${tool_claim}"
+            fi
+
+            # Rule 4: Fence-write coupling — fence emitted without same-turn last-prompts write
+            if printf '%s' "$turn_text" | grep -qF '══ START 🟢 COPY ══'; then
+              real_fence=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/^>.*$//mg; if ($t =~ /══ START 🟢 COPY ══/) { print "yes"; }' 2>/dev/null)
+              if [ "$real_fence" = "yes" ] && [ "$has_lastprompts_write" != "true" ]; then
+                log_violation "fence-write-coupling: fence emitted without preceding last-prompts write"
+              fi
+            fi
+
+            exit 0
+          timeout: 5000
 ---
 
 # /strategic-partner — Chief of Staff for Claude Code
