@@ -413,6 +413,33 @@ hooks:
               fi
             fi
 
+            # Rule 5: Floor-signal acknowledgment — non-clean actionable signal in last user
+            # prompt requires either dispatch (Agent/Task tool_use) or explicit text mention
+            last_user_text=$(timeout 1 tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | tostring' 2>/dev/null)
+            floor_line=$(printf '%s' "$last_user_text" | grep -oE 'SP-FLOOR-COMPLETE [^.]+' | head -1)
+            if [ -n "$floor_line" ]; then
+              non_clean=""
+              echo "$floor_line" | grep -q 'conventions=missing'      && non_clean="$non_clean conventions"
+              echo "$floor_line" | grep -q 'memory=missing'           && non_clean="$non_clean memory"
+              echo "$floor_line" | grep -q 'git=dirty'                && non_clean="$non_clean git"
+              echo "$floor_line" | grep -q 'version=behind'           && non_clean="$non_clean version"
+              echo "$floor_line" | grep -qE 'routing=(missing|stale)' && non_clean="$non_clean routing"
+              if [ -n "$non_clean" ]; then
+                acknowledged=false
+                if [ "$has_tool_use" = "true" ]; then
+                  printf '%s' "$last_turn" | jq -r 'tostring' 2>/dev/null \
+                    | grep -qE '"name"[[:space:]]*:[[:space:]]*"(Agent|Task)"' && acknowledged=true
+                fi
+                if [ "$acknowledged" = false ]; then
+                  ack_pattern='matrix|routing|memory|onboard|serena|claude\.md|conventions|uncommitted|behind|update.*available|defer'
+                  printf '%s' "$turn_text" | grep -qiE "$ack_pattern" && acknowledged=true
+                fi
+                if [ "$acknowledged" = false ]; then
+                  log_violation "floor-signal-acknowledgment: non-clean signals (${non_clean# }) not addressed"
+                fi
+              fi
+            fi
+
             exit 0
           timeout: 5000
 ---
@@ -1770,6 +1797,40 @@ one for `git status`, one for `git branch --show-current`, one for
 The same anti-pattern applies to any compound command that uses `echo` as
 a visual separator between tool invocations. Separate parallel calls are
 always the answer.
+
+### Floor-Signal Handling
+
+The startup-floor sentinel emits an `SP-FLOOR-COMPLETE` line on every user
+prompt with seven status fields. Five of those fields are actionable — when
+they come back non-clean, the model MUST either (a) dispatch a remediation
+agent, or (b) explicitly acknowledge the signal in the response with a
+reason for deferring. Silent ignores are caught at the runtime layer by the
+Stop rhythm enforcer's rule 5 (`floor-signal-acknowledgment`).
+
+| Field          | Non-clean values    | Required action                                                       |
+|----------------|---------------------|-----------------------------------------------------------------------|
+| `conventions`  | `missing`           | Acknowledge in orientation; note no project rules defined yet         |
+| `memory`       | `missing`           | Surface in orientation; ask user before dispatching Serena onboarding |
+| `git`          | `dirty changed=N`   | Acknowledge dirty state in orientation; confirm intent                |
+| `version`      | `behind`            | Show update notice in orientation; recommend `:update` subcommand     |
+| `routing`      | `missing`, `stale`  | Dispatch background Opus 4.7 matrix-build agent; notify on completion |
+| `findings`     | (count, always N≥0) | Informational; surface in orientation per existing protocol           |
+| `backlog`      | (count, always N≥0) | Informational; check triggers per existing protocol                   |
+
+`memory=missing` is held to a higher bar than `routing=missing` — Serena
+onboarding writes 5+ memories with project analysis, which is a heavier
+intervention than building a routing matrix from existing context. Always
+ask the user before dispatching onboarding.
+
+Default model for any remediation dispatch is **Opus 4.7** with
+`run_in_background: true`. These are load-bearing decisions that propagate
+through every downstream session, so synthesis quality matters more than
+dispatch speed. See auto-memory `feedback_opus_max_for_substantive_work`
+for the broader rationale and concrete examples.
+
+The full canonical patterns (with worked examples for each remediation
+dispatch shape) live in `references/floor-signal-handling.md` once that
+reference doc is added in v5.15.0 fan-out.
 
 <load_reference file="startup-checklist.md">
 Full startup protocol including identity commands, environment setup, fire-and-verify agents, and orientation.
