@@ -349,6 +349,51 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
+# Check 5: Identity-reset announcement (always-on when prev user had dispatch)
+#
+# Mirrors SKILL.md Stop rule 2 (`identity-reset-announcement`). When the
+# previous user-side record contained a tool_result for an Agent or Task
+# tool_use (i.e., a background dispatch returned), the assistant's next
+# turn MUST contain one of two reset phrases:
+#
+#   "Back in advisory mode"
+#   "Dispatch complete. I am back in strategic-partner mode."
+#
+# The Stop rule catches this in real time per turn. This validator is the
+# release-time backstop — it catches the same pattern in the transcript
+# lint, redundant detection mirroring how AUQ-must-be-AUQ is enforced both
+# at runtime (Stop rule 1) and at release time (validate_auq_must_be_auq).
+#
+# Arguments:
+#   text                       — assistant turn text (prose)
+#   prev_user_had_dispatch     — "true" if the prior user record contained
+#                                a tool_result for an Agent/Task tool_use
+#
+# Returns: 0=pass (or check inapplicable — no prior dispatch), 1=violation
+# ---------------------------------------------------------------------------
+validate_identity_reset() {
+  local text="$1"
+  local prev_user_had_dispatch="${2:-false}"
+
+  # Check inapplicable when the previous user record did not contain a
+  # tool_result for an Agent/Task tool_use.
+  [ "$prev_user_had_dispatch" != "true" ] && return 0
+
+  # Look for either reset phrase. The Stop rule's regex:
+  #   'Back in advisory mode|Dispatch complete\. I am back in strategic-partner mode'
+  # We match the same patterns here as plain substrings to avoid regex-engine
+  # quirks across bash versions.
+  case "$text" in
+    *"Back in advisory mode"*|*"Dispatch complete. I am back in strategic-partner mode"*)
+      return 0
+      ;;
+  esac
+
+  printf 'Identity-reset announcement violation: previous user record contained an Agent/Task tool_result, but assistant turn does not include "Back in advisory mode" or "Dispatch complete. I am back in strategic-partner mode." phrase. Add the reset phrase at the start of the turn so the user knows the SP has resumed advisory mode.\n'
+  return 1
+}
+
+# ---------------------------------------------------------------------------
 # Check 4: Voice patterns (release-time, mechanical)
 #
 # Scans prose content for jargon-loaded patterns that violate the User-Facing

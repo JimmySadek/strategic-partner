@@ -10,6 +10,11 @@
 #     tool-use blocks (with rhetorical-question exemption)
 #   - Tool-availability claims: first-person tool-access claims without a
 #     verified tool call ("I can run X", "I have access to Y", etc.)
+#   - IDENTITY-RESET: assistant turn following an Agent/Task tool_result
+#     must contain "Back in advisory mode" or "Dispatch complete. I am back
+#     in strategic-partner mode" (mirrors SKILL.md Stop rule 2 as a
+#     release-time backstop; only applied to JSONL transcripts where prior
+#     turn structure is visible)
 #
 # FENCE-CONDITIONAL CHECKS (only for responses containing ══ START 🟢 COPY ══):
 #   - Classify fence per Rev 3 three-step discriminator:
@@ -504,6 +509,12 @@ lint_jsonl_file() {
   local has_auq="false"
   local turn_start_line=1
   local lineno=0
+  # IDENTITY-RESET tracking: set to "true" when a user-role tool_result record
+  # carries an Agent/Task tool's output. Cleared when the assistant turn that
+  # follows is checked. Persists across multiple intermediate user records
+  # (a dispatch may produce several tool_result lines before the assistant
+  # responds).
+  local prev_user_had_dispatch="false"
 
   if command -v jq > /dev/null 2>&1; then
     # Process with jq for reliable JSON parsing
@@ -514,6 +525,22 @@ lint_jsonl_file() {
       # Check for user-role non-tool-result (turn boundary)
       role=$(printf '%s' "$line" | jq -r '.message.role // .role // empty' 2>/dev/null)
       content_type=$(printf '%s' "$line" | jq -r '(.message.content // .content // [null])[0].type // empty' 2>/dev/null)
+
+      # IDENTITY-RESET tracking: scan user-role tool_result records for an
+      # Agent or Task tool name. The tool_result links back to a prior
+      # tool_use by tool_use_id; we infer the original tool by name encoded
+      # in the same record (Claude Code includes the original tool name in
+      # the tool_result payload's tool_use_id reference, but the simplest
+      # heuristic is to scan the record text for "Agent" or "Task" tool
+      # names alongside the tool_result type).
+      if [ "$role" = "user" ] && [ "$content_type" = "tool_result" ]; then
+        # Look for Agent/Task tool name in the record (the parent tool_use
+        # name surfaces in the JSONL trace within the same record's
+        # surrounding context — search the full line as a substring proxy).
+        if printf '%s' "$line" | grep -qE '"name"[[:space:]]*:[[:space:]]*"(Agent|Task)"'; then
+          prev_user_had_dispatch="true"
+        fi
+      fi
 
       if [ "$role" = "user" ] && [ "$content_type" != "tool_result" ]; then
         # Process accumulated turn
@@ -528,6 +555,15 @@ lint_jsonl_file() {
             printf '%s:%s: TOOL-CLAIM: %s\n' "$file" "$turn_start_line" "$msg"
             violations="${violations}1"
           }
+          # IDENTITY-RESET check (only fires when prior user records carried
+          # an Agent/Task tool_result)
+          msg=$(validate_identity_reset "$turn_text" "$prev_user_had_dispatch") || {
+            printf '%s:%s: IDENTITY-RESET: %s\n' "$file" "$turn_start_line" "$msg"
+            violations="${violations}1"
+          }
+          # Reset dispatch flag now that the assistant turn following the
+          # dispatch has been checked.
+          prev_user_had_dispatch="false"
           # Fence-conditional checks (Rev 3 discriminator).
           # Pass the turn's tool_use records as the coupling evidence.
           local has_real_fence_turn=0
@@ -628,6 +664,11 @@ EOF
       }
       msg=$(validate_tool_availability "$turn_text") || {
         printf '%s:%s: TOOL-CLAIM: %s\n' "$file" "$turn_start_line" "$msg"
+        violations="${violations}1"
+      }
+      # IDENTITY-RESET check (final turn)
+      msg=$(validate_identity_reset "$turn_text" "$prev_user_had_dispatch") || {
+        printf '%s:%s: IDENTITY-RESET: %s\n' "$file" "$turn_start_line" "$msg"
         violations="${violations}1"
       }
       # Fence-conditional checks (Rev 3 discriminator)
