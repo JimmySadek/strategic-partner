@@ -119,6 +119,37 @@ For awareness (the advisor monitors these during normal operation):
 | **72%** | Strong push | AskUserQuestion proposing handoff NOW |
 | **77%** | Urgent | Execute handoff immediately (confirm slug only) |
 
+## Backlog Stewardship
+
+Closure includes a backlog scan. As part of the closure flow (per
+SKILL.md § Closure Evidence Ledger, the Backlog row), the SP surfaces
+items in `.backlog/*.md` whose `trigger` field has fired against current
+project state, and offers to promote unresolved findings from this
+session if the user wants to park them as backlog items rather than let
+them carry forward in the next session's findings file.
+
+Two layers, distinct purposes:
+
+- **Findings** — lightweight, automatic, session-scoped. Captured as
+  the SP encounters issues during the session and written to
+  `.handoffs/findings-MMDD.md`. Carry forward to the next session's
+  orientation by default.
+- **Backlog** — curated, selective, project-scoped. Items live in
+  `.backlog/*.md` with structured frontmatter (`title`, `status`,
+  `priority`, `trigger`). Reviewed via `/strategic-partner:backlog` or
+  surfaced at startup when triggers fire.
+
+Handoff bridges them: at session-end, the SP looks at unresolved
+findings and asks (via `AskUserQuestion`, only when the promotion scope
+is unclear) whether any should become backlog items. Items with clear
+"park this" / "for later" intent already ratified during the session
+are filed automatically (RESOLVED-AUTO on the Backlog ledger row); the
+AUQ only fires when the SP has no signal whether a finding belongs in
+backlog or should stay as a session note.
+
+See SKILL.md § Backlog Stewardship for the canonical spec, including
+proactive trigger signals during normal advisory flow.
+
 ## Boundaries
 
 **Will:**

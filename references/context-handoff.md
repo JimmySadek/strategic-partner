@@ -354,10 +354,55 @@ backtick wrappers, no markdown headers between the label and the fence.
 
 ---
 
+## 📦 Backlog Row in the Closure Flow
+
+The `.backlog/` row of the Closure Evidence Ledger (see SKILL.md §
+Closure Evidence Ledger) bridges session-scoped findings to
+project-scoped backlog. Verification command:
+
+```
+ls .backlog/   # then scan session findings for items already ratified as "park this"
+```
+
+State distinctions for the backlog row:
+
+| State | When |
+|---|---|
+| **RESOLVED** | No backlog action needed — no new items, no pending promotions, no expired triggers |
+| **RESOLVED-AUTO** | Already-ratified items filed during the session (user said "park this" mid-conversation; SP files automatically as a hygiene action — no AUQ at closure) |
+| **DECISION** | Promotion scope is unclear — one or more findings could plausibly become backlog items but the SP cannot infer intent. AUQ fires for these specific items only |
+| **SKIPPED-USER** | User explicitly declined to promote findings via the DECISION row's AUQ. SP records the skip in the handoff body |
+| **SKIPPED-AUTO** | No findings this session and no expired triggers — backlog row has nothing to act on |
+
+**Triggers for backlog promotion during closure:**
+
+The SP scans the session findings file (`.handoffs/findings-MMDD.md`)
+and the conversation context for promotion signals:
+
+- Explicit "park this" / "for later" / "not now" / "someday" → file
+  automatically (RESOLVED-AUTO)
+- Out-of-scope idea raised but not pursued → AUQ to clarify intent
+  (DECISION)
+- 3+ findings in a single area without resolution → AUQ to suggest
+  topical backlog items (DECISION)
+- Findings tied to triggers already met (e.g., "after v5.15.0 release"
+  when v5.15.0 just shipped) → surface in orientation, not in closure
+
+The closure backlog row never auto-promotes ambiguous items. When in
+doubt, AUQ with plain-English options ("Park as backlog item" / "Keep
+as session finding" / "Drop").
+
+See SKILL.md § Backlog Stewardship for the canonical spec including
+the file format and proactive triggers during normal advisory flow.
+
+---
+
 ## 📎 Cross-Reference
 
 | Reference | Relationship |
 |---|---|
 | `startup-checklist.md` | Step 5 context advisory on 1M-window sessions |
+| `floor.md` | Floor sentinel protocol (SP-FLOOR-COMPLETE summary line emitted on every prompt) |
+| `floor-signal-handling.md` | Per-pattern remediation for non-clean floor signals |
 | `hooks-integration.md` | Hook delivery rules (PreToolUse shipped; SessionStart incompatible; PreCompact user-owned) |
 | `companion-script-spec.md` | Historical spec — deprecated in v5.9.0, retained for reference |
