@@ -2,6 +2,12 @@
 
 ## [5.15.0] - 2026-04-30
 
+### Fixed
+
+- **Update notifications work reliably on fresh sessions** (UserPromptSubmit floor sentinel — Group 6 GitHub release lookup) — The hook that checks GitHub for new SP releases was failing in two ways. First, a 2-second timeout: on a cold session (DNS not yet warm, TLS handshake fresh), the response consistently missed the window. Loosened to 8 seconds and dropped a redundant outer shell timeout. Second, the grep that pulled the version out of GitHub's response required no whitespace after the colon, but GitHub's pretty-printed JSON has a space (`"tag_name": "v5.14.0"`) — so even when curl succeeded, the version was never extracted. Pattern is now whitespace-tolerant. Fresh sessions now see real version status (`current` / `behind` / actual version string) instead of a silent "unreachable".
+
+- **Rhythm enforcer no longer flags SP describing its own rule patterns** (Stop rhythm enforcer — rule 4 fence-write-coupling) — When SP walked through what its own hooks check (e.g., explaining "rule 4 catches `══ START 🟢 COPY ══` fences emitted without a handoff write"), the rule was triggering on the inline-code mention of the fence pattern in SP's prose, not on actual fence emission. The fence detection now strips inline code (single-backtick spans) before matching — same treatment the tool-availability rule already applied. False positive eliminated.
+
 ### Added
 
 - **Session facts now arrive automatically at every prompt** (UserPromptSubmit floor sentinel) — Each time you send a prompt to SP, a hook gathers a snapshot of the things SP needs to know to advise you well: which model is running, whether your project has a CLAUDE.md and any rule files, what's in your Serena memories, how many findings and parked backlog items exist, current git state, and whether the SP is up to date. The summary is injected into SP's context as a single line, so SP can't miss it. This replaces the previous documentation-only approach where SP had to remember to check on its own. Mechanically enforces the startup floor that prose alone has been failing to ensure.

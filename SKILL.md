@@ -273,7 +273,7 @@ hooks:
               if [ -n "$SP_SKILL_PATH" ] && [ -f "$SP_SKILL_PATH" ]; then
                 local_version=$(grep '^version:' "$SP_SKILL_PATH" 2>/dev/null | head -1 | awk '{print $2}')
                 printf 'g6.local=%s\n' "${local_version:-unknown}"
-                remote_version=$(timeout 2 curl --max-time 2 -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
+                remote_version=$(curl --max-time 8 -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -oE '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
                 if [ -z "$remote_version" ]; then
                   printf 'g6.remote=unreachable\n'
                   printf 'g6.diff=unreachable\n'
@@ -407,7 +407,7 @@ hooks:
 
             # Rule 4: Fence-write coupling — fence emitted without same-turn last-prompts write
             if printf '%s' "$turn_text" | grep -qF '══ START 🟢 COPY ══'; then
-              real_fence=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/^>.*$//mg; if ($t =~ /══ START 🟢 COPY ══/) { print "yes"; }' 2>/dev/null)
+              real_fence=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/`[^`]*`//g; $t =~ s/^>.*$//mg; if ($t =~ /══ START 🟢 COPY ══/) { print "yes"; }' 2>/dev/null)
               if [ "$real_fence" = "yes" ] && [ "$has_lastprompts_write" != "true" ]; then
                 log_violation "fence-write-coupling: fence emitted without preceding last-prompts write"
               fi
