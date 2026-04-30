@@ -152,3 +152,8 @@ Options:
 - Delete items (prune is a future mode)
 - Modify item files without `AskUserQuestion` confirmation
 - Block on Serena availability
+
+## See Also
+
+- `/strategic-partner:status` — current session state, in-progress work, and what's next. Use when you want a recenter briefing on the active session rather than a backlog review.
+- `/strategic-partner:handoff` — close the session and write a continuation prompt. Use when you're wrapping up; the closure flow surfaces backlog automatically as part of the evidence ledger.

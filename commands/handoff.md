@@ -163,3 +163,9 @@ proactive trigger signals during normal advisory flow.
 - Push to git or create commits (that's a separate ask-before-act decision)
 - Delete or overwrite existing handoff files
 - Implement any source code changes
+
+## See Also
+
+- `/strategic-partner:status` — mid-session check on where things stand. Use before triggering handoff if you want a sanity check on what state will be captured.
+- `/strategic-partner:backlog` — review parked items and defer unresolved findings before closing. Use during the closure flow when the SP asks about backlog promotion.
+- `/strategic-partner:copy-prompt` — pull the continuation prompt this command emitted into the OS clipboard. Use immediately after handoff when you're about to open a new session.

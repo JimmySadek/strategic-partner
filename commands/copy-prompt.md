@@ -91,3 +91,7 @@ the next SP response that emits fenced content will wipe and rewrite the directo
 - Delete or modify any files in `.handoffs/last-prompts/`
 - Start an advisory session or load the full SP persona
 - Retry on clipboard failure — it reports and exits
+
+## See Also
+
+- `/strategic-partner:handoff` — the other SP command that emits a fenced prompt. The continuation prompt at session-end is the most common case for `:copy-prompt` to follow.

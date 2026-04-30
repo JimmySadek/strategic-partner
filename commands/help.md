@@ -68,3 +68,7 @@ Key behaviors:
 - Execute any commands or create files
 - Activate implementation modes
 - Engage any tools beyond displaying text
+
+## See Also
+
+All SP subcommands are listed above. Each subcommand's own page includes a "See Also" section linking to logically related commands — start with `:status` for orientation, `:handoff` for closing, `:backlog` for parked work, `:codex-feedback` for adversarial review, `:update` for version checks, and `:copy-prompt` for clipboard support.

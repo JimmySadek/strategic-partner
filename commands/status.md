@@ -111,3 +111,8 @@ Show the full briefing in the question description.
 - Trigger mode detection or upgrade detection
 - Run the full startup sequence
 - Make implementation decisions
+
+## See Also
+
+- `/strategic-partner:backlog` — review parked items and check whether any triggers have fired since the last orientation. Use when the status briefing surfaces unresolved findings that may belong in backlog.
+- `/strategic-partner:handoff` — close the session at a clean point. Use when status confirms a good stopping place and you want to write a continuation prompt before context fills up.

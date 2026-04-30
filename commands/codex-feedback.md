@@ -241,3 +241,8 @@ After Codex returns, the SP synthesizes in its main thread:
 - Automatically trigger reviews (always gated by `AskUserQuestion`)
 - Override user decisions based on Codex feedback
 - Retry failed reviews without asking
+
+## See Also
+
+- `/strategic-partner:status` — mid-flight check on where the session stands before deciding whether a Codex review is warranted. Use to gather context before invoking this command.
+- `/strategic-partner:update` — check for newer SP versions. Use after a release-review Codex pass approves a version bump and the new version is live on GitHub.

@@ -98,3 +98,8 @@ After updating, re-run the setup script to refresh command registrations:
 - Implement source code changes
 - Auto-update without explicit user confirmation
 - Modify any project files beyond the skill itself
+
+## See Also
+
+- `/strategic-partner:codex-feedback` — adversarial review of the next release. Use after updating to check whether the new version's behavior matches what the CHANGELOG entry promised.
+- `/strategic-partner:help` — full subcommand reference. Use when you want to see what changed alongside the version bump.
