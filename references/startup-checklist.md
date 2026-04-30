@@ -4,6 +4,11 @@ Reference file for the strategic-partner advisor. Full startup sequence with
 identity setup, environment configuration, and fire-and-verify agents.
 Do not display to user.
 
+> **Floor sentinel protocol** — see `references/floor.md`. The floor runs
+> unconditionally on every user prompt via the UserPromptSubmit hook in SKILL.md
+> frontmatter and is documented separately. This file covers the broader startup
+> orientation that runs on the first invocation of `/strategic-partner` only.
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  SP Startup Flow                                                          │
@@ -170,19 +175,23 @@ returning one version string — agent overhead adds fragility with no benefit.
 SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
 if [ -n "$SP_ANY_CMD" ]; then
   SP_SKILL_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
-  LOCAL_VERSION=$(grep '^version:' "${SP_SKILL_DIR}/SKILL.md" | head -1 | awk '{print $2}')
-  REMOTE_VERSION=$(curl -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
-  if [ -n "$REMOTE_VERSION" ] && [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
-    echo "UPDATE_AVAILABLE:${REMOTE_VERSION}"
-  else
+  local_version=$(grep '^version:' "${SP_SKILL_DIR}/SKILL.md" | head -1 | awk '{print $2}')
+  remote_version=$(curl --max-time 8 -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -oE '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
+  if [ -z "$remote_version" ]; then
+    echo "UNABLE_TO_CHECK"
+  elif [ "$remote_version" = "$local_version" ]; then
     echo "UP_TO_DATE"
+  else
+    echo "UPDATE_AVAILABLE:${remote_version}"
   fi
 fi
 ```
 
-- If curl fails or GitHub is unreachable: `REMOTE_VERSION` is empty → treated as up-to-date (silent skip)
-- If versions differ: orientation shows update notice
-- Timeout: curl -sf has a default timeout; no retries needed
+- If curl fails or GitHub is unreachable: `remote_version` is empty → emit `UNABLE_TO_CHECK` explicitly (no longer falsely declaring `UP_TO_DATE`)
+- If versions match: emit `UP_TO_DATE`
+- If versions differ: emit `UPDATE_AVAILABLE:${remote_version}` and orientation shows update notice
+- Timeout: `curl --max-time 8` bounds the call (matches the v5.15.0 floor's Group 6 pattern); no retries needed
+- The `grep -oE '"tag_name": *"[^"]*"'` regex tolerates whitespace between key and value, which GitHub's pretty-printed JSON includes by default
 
 This replaces Agent E entirely. No WebFetch, no ToolSearch, no background agent.
 
