@@ -65,6 +65,17 @@ Run `/insights` before writing this file, then extract relevant items below.
 ## Open Questions / Blockers
 - [anything unresolved or needing follow-up]
 
+## Deferred Floor Signals
+
+List any startup-floor signals (`SP-FLOOR-COMPLETE` summary line) that were
+acknowledged but not addressed during the session. Format: `<field>=<value>`
+followed by a one-line description of what was deferred and why.
+
+Example: `version=behind (5.14.0 → 5.15.0) — release ceremony scheduled
+for tomorrow's session.`
+
+If no signals were deferred, write "None."
+
 ## Session Findings
 - **Findings file**: `.handoffs/findings-MMDD.md` (or "None — no issues identified")
 - **Unresolved**: N items not yet promoted to backlog
