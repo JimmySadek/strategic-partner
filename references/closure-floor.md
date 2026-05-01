@@ -789,15 +789,49 @@ as the user signals "wrapping up" before terminating, the closure
 walk runs and the handoff file is written. The SessionEnd snapshot
 is purely a backstop for the unsignaled-termination case.
 
-### Why we do not ship a SessionEnd hook
+### Why we do not ship a SessionEnd hook (as of v5.15.0)
 
-(This section is populated only if Component 5's empirical verification
-during the v5.15.0 release confirmed that SessionEnd does not fire
-reliably from skill frontmatter on the tested Claude Code version.
-If the verification passed, this section reads "SessionEnd is shipped
-— see SKILL.md frontmatter for the hook spec.")
+The locked v5.15.0 design names SessionEnd as an **optional** last-gasp
+evidence capture, gated on empirical verification that SessionEnd
+fires reliably from skill frontmatter on Claude Code 2.1.x. The
+verification protocol (see `.prompts/v5150-structural-fix/phase3-closure-floor.md`
+Component 5 Step 1) requires:
 
-[Populated at release time per Component 5 outcome.]
+1. Setting up a sandbox skill at `~/.claude/skills/sessionend-test-${UUID}/`
+2. Opening a **fresh, separate** Claude Code session in a separate terminal
+3. Invoking the sandbox skill from inside that fresh session
+4. Exiting via the normal `/exit` lifecycle (not `kill`)
+5. Reading the marker file written by the SessionEnd hook
+6. Repeating steps 2-5 a second time to confirm reliability across
+   separate session lifecycles
+
+Steps 2-5 require the user's hand at the keyboard — the executor agent
+that built the v5.15.0 closure floor could not drive a separate
+Claude Code session, invoke a slash command from inside it, and trigger
+the `/exit` lifecycle from outside that session's process tree.
+
+The brief's gating rule was binary: "All 5 gates pass on BOTH
+invocations → ship the hook" or "Any gate fails → do not ship and
+document the gap." The actual verification status at v5.15.0 release
+was neither pass nor fail — it was **untested in this scope**.
+
+The conservative default applied: **do not ship a SessionEnd hook
+in v5.15.0**. The closure floor remains the canonical closure path
+and does not depend on SessionEnd.
+
+**To ship SessionEnd in a future version (v5.16.0+), the user runs the
+verification protocol manually:**
+
+1. Follow `.prompts/v5150-structural-fix/phase3-closure-floor.md` § Component 5 Step 1
+2. If all 5 gates pass on both invocations, dispatch an executor brief
+   to add the SessionEnd hook block to SKILL.md frontmatter per the
+   brief's Step 2 spec
+3. Update this section to reflect the verification result
+
+Until then, sessions that terminate without invoking
+`/strategic-partner:handoff` (crash, force-quit, network drop) leave
+no forensic snapshot. Recovery options listed in "When SessionEnd is
+Not Available" above remain the only paths.
 
 ---
 
