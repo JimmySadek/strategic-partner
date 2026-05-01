@@ -577,20 +577,22 @@ For SP-specific events that don't map to built-in hook events:
 
 ## 💬 Hook Delivery Summary
 
-(2026-04-30 update — table expanded to reflect confirmed-viable events)
+(2026-05-01 update — v5.15.0 ships UserPromptSubmit + Stop hooks alongside the
+existing PreToolUse identity guard)
 
-The SP currently ships **one frontmatter hook** (inlined in SKILL.md). UserPromptSubmit
-and Stop are confirmed-viable for v5.15.0+ integration from skill frontmatter.
+The SP ships **three frontmatter hooks** (all inlined in SKILL.md). All three
+were empirically verified to fire on Claude Code 2.1.123 per the 2026-04-30
+hook audit (see trace log in the Stop section above).
 
 | Hook | Event | Matcher | Purpose | Ships via | Status |
 |---|---|---|---|---|---|
 | Identity guard | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|mcp__plugin_serena_serena__` | Block source-file mutations; allow SP workspace paths | SKILL.md frontmatter | Shipping ✅ |
-| Turn counter | UserPromptSubmit | (non-tool event, no matcher) | Count exchange turns for context budget estimation | SKILL.md frontmatter | Confirmed viable ✓ — not yet shipped |
-| Per-turn validator | Stop | (non-tool event, no matcher) | Enforce AUQ/tool-availability/fence-write rules per turn | SKILL.md frontmatter | Confirmed viable ✓ — candidate for v5.15.0+ |
+| Floor sentinel | UserPromptSubmit | (non-tool event, no matcher) | Inject minimum-floor reminder per user turn | SKILL.md frontmatter | Shipping ✅ (v5.15.0) |
+| Rhythm enforcer | Stop | (non-tool event, no matcher) | Enforce 5 per-turn rules (AUQ, tool availability, fence-write coupling, voice quality, decision points) | SKILL.md frontmatter | Shipping ✅ (v5.15.0) |
 
 PreToolUse fires during tool calls while the skill is active — correct for
 blocking source edits initiated by the SP. UserPromptSubmit and Stop fire as
-session-level events confirmed firing from frontmatter on CC 2.1.123 per
+session-level events; both confirmed firing from frontmatter on CC 2.1.123 per
 2026-04-30 audit (see trace log in the Stop section above).
 
 **Layer 3 (release-time transcript lint):** `tests/lint-transcripts.sh` runs
@@ -612,7 +614,10 @@ All other hook types discussed in this file are either:
 - **Pending re-verification** (SessionStart — v5.9.0 found it did not fire;
   2026-04-30 audit did not re-test it; may warrant a cold-start re-test before
   locking either way — see Phase 1 above)
-- **Confirmed viable but not yet shipped** (UserPromptSubmit, Stop — see table above)
+- **Considered but not shipped** (SessionEnd — evaluated as optional in v5.15.0
+  design but not shipped; empirical verification of SessionEnd from skill
+  frontmatter could not be completed within v5.15.0 work scope; deferred to
+  v5.16.0 — see `references/closure-floor.md` for the verification gap)
 - **Optional user-owned configurations** (PreCompact and all Phase 2 / Phase 3
   hooks that have not been verified from frontmatter) — if a user wants PreCompact
   logging, SubagentStart tracking, or any other monitoring hook, they may add it
