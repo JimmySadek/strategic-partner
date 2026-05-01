@@ -343,3 +343,19 @@ Instead: inline the values, use deterministic path resolution, or grep
   environment.
 - **Source**: v5.4.1 (2026-03-31) — see `claudedocs/INCIDENTS.md` (`INC-2026-03-30 — Hook command relies on ${CLAUDE_SKILL_DIR}`)
 - **Review**: 2026-07-28 (90 days from policy adoption on 2026-04-29; pre-existing reactive rule, eligible for permanence on review per Direction 4 lifecycle)
+
+### Brief authors must re-read locked design files at brief-author time, not derived summaries
+
+Instead: when scoping an executor brief that derives from a multi-source design lock (a `.prompts/[milestone]/design-*.md` file iterated across multiple Codex review rounds, a `decision_log` summary that rolls up the locked design's content, or a Phase task list documented after design lock), re-read the LOCKED design files directly. Summary lists are convenient but lossy — they may name smaller items individually while skipping the load-bearing implementation as a discrete sub-task.
+
+- **Scope**: SP brief authoring — the `.prompts/[milestone]/[descriptor].md` files SP writes for executor dispatch — specifically when the brief covers work derived from a multi-iteration design that was locked through Codex review rounds or extended SP advisory work. Smaller mechanical briefs (single-file fixes, quick patches) are out of scope; this guard targets briefs that aggregate multiple components from a substantial design.
+- **Source**: 2026-05-01 — v5.15.0 fan-out brief missed the 8-group closure floor entirely because the brief author worked from the `decision_log` Phase 3 task summary list rather than re-reading `.prompts/v5150-structural-fix/design-ab.md` directly. The summary listed smaller items individually (handoff doc backlog mention, identity-reset rule, startup-checklist refactor) but didn't repeat the closure-floor implementation as a discrete sub-task. User caught the gap mid-session; SP had to draft a second brief covering what the first missed. See `.handoffs/findings-0501.md` Issue 2 for the full journey.
+- **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)
+
+### Deferred work needs durable artifacts (backlog item or reference doc), not just commit messages
+
+Instead: when a release defers a planned feature or fix to a future release (e.g., "deferred to vX.Y+1" callouts in design Principle rewrites, Component rewrites, brief commit messages), document the deferral in BOTH (a) the relevant commit message or brief context, AND (b) a durable artifact that surfaces during normal SP scans. Acceptable durable artifacts: a `.backlog/[deferred-item].md` file with explicit `trigger:` field for re-engagement, OR a dedicated section in a reference doc (e.g., `references/closure-floor.md` § "Why we do not ship a SessionEnd hook"). The artifact must surface during SP orientation, `/strategic-partner:backlog`, or closure-floor Group 7a backlog hygiene scans — not only in commit history.
+
+- **Scope**: Any explicit deferral within a release. Typical patterns include: design principles that name a v5.X+1 follow-up, Component rewrites that move a feature out of scope, "deferred to next release" notes in brief commit messages or release CHANGELOG entries.
+- **Source**: 2026-05-01 — v5.15.0 closure-floor brief deferred Stop rule 6 (closure-walk-completeness) to v5.16.0 in Principle 5's rewrite + Component 7's commit message. Codex re-review (`.handoffs/codex-closure-floor-rereview-output-0501.md`) flagged: "the v5.16 deferral lives only in the brief's commit message — findable if you know to look, but not surfaced automatically when v5.16 work begins." SP created `.backlog/closure-walk-completeness-stop-rule.md` to make the deferral surface in normal SP backlog scans. See `.handoffs/findings-0501.md` Issue 2.
+- **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)
