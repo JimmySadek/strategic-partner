@@ -318,13 +318,15 @@ We're working on [project name and one-line description].
 
 ### Step 5: 🛡️ Ensure Gitignore Coverage (Auto-Add)
 
-`.gitignore` coverage for `.handoffs/`, `.prompts/`, and `.scripts/` should be
-verified at startup. By the time a handoff occurs, coverage should already be in place.
+`.gitignore` coverage for `.handoffs/`, `.prompts/`, `.scripts/`, and
+`.backlog/` should be verified at startup. By the time a handoff occurs,
+coverage should already be in place.
 
-If for any reason it wasn't done at startup, add all three entries **without asking**:
+If for any reason it wasn't done at startup, add all four entries **without asking**:
 - `.handoffs/`
 - `.prompts/`
 - `.scripts/`
+- `.backlog/`
 
 This is an enforced guardrail, not a discretionary decision — ❌ never ask before adding.
 
