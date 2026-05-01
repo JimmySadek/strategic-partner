@@ -477,6 +477,39 @@ Open a new Claude Code session and paste the above prompt to continue.
 
 **STOP** — no commentary, praise, or editorial after the fence.
 
+### Step 14 — Post-Handoff Verification
+
+After writing the handoff file and displaying the continuation prompt,
+run a verification pass before ending the session:
+
+```bash
+# 1. Continuation prompt is present and intact
+grep -c "FRESH THREAD STARTING PROMPT" .handoffs/[topic-slug]-[MMDD-HHMM].md
+# Expected: 1
+
+# 2. Continuation prompt invokes the SP
+grep -c "/strategic-partner" .handoffs/[topic-slug]-[MMDD-HHMM].md
+# Expected: ≥1
+
+# 3. Today's findings file exists or "no findings this session" was acknowledged
+ls -la .handoffs/findings-*.md 2>/dev/null
+# Expected: at least today's findings-MMDD.md, OR explicit acknowledgment
+# in the closure walk's Group 6 output that no findings were captured
+
+# 4. .gitignore covers all four session-work directories
+grep -E "^\.handoffs/|^\.prompts/|^\.scripts/|^\.backlog/" .gitignore | wc -l
+# Expected: ≥4
+```
+
+If any check fails, surface the gap via `AskUserQuestion` before
+confirming the handoff complete. Do NOT silently retry; the user
+must see what failed and approve the fix.
+
+The verification confirms the handoff actually delivered on the
+closure contract — no silent gaps. See `references/closure-floor.md`
+§ Anti-Pattern Catalog for the failure modes this verification
+catches.
+
 ## Thresholds Reference (Tiered Escalation)
 
 For awareness (the advisor monitors these during normal operation):
