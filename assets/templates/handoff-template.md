@@ -65,6 +65,30 @@ Run `/insights` before writing this file, then extract relevant items below.
 ## Open Questions / Blockers
 - [anything unresolved or needing follow-up]
 
+## Closure Walk Status
+
+| Group | Status | Detail |
+|---|---|---|
+| 🧠 1. Staleness verification     | [STATUS_EMOJI] | [one-line outcome] |
+| 🏗️ 2. Architecture drift scan   | [STATUS_EMOJI] | [one-line outcome] |
+| 🗺️ 3. Routing matrix verification | [STATUS_EMOJI] | [one-line outcome] |
+| 💾 4. Persistent memory ledger    | [STATUS_EMOJI] | [one-line outcome] |
+| 📝 5. Project conventions ledger  | [STATUS_EMOJI] | [one-line outcome] |
+| 📋 6. Working memory ledger       | [STATUS_EMOJI] | [one-line outcome] |
+| 📦 7. Workspace ledger            | [STATUS_EMOJI] | [one-line outcome] |
+| 🔀 8. Working tree closure        | [STATUS_EMOJI] | [one-line outcome] |
+
+State emoji mapping:
+- ✅ RESOLVED — group passed verification, no action needed
+- 🔄 RESOLVED-AUTO — group passed; SP took hygiene action automatically
+- 🟡 DECISION — user input required for this group's resolution
+- ⏸️ SKIPPED-USER — user explicitly declined this group's action
+- ⏭️ SKIPPED-AUTO — group not applicable this session
+- 🚨 DIRTY — git tree has source-edit blockers; handoff blocks until resolved
+
+> If invoked outside the 8-group walk (e.g., manual handoff at
+> context-pressure trigger), write "Walk not run — manual handoff path."
+
 ## Deferred Floor Signals
 
 List any startup-floor signals (`SP-FLOOR-COMPLETE` summary line) that were

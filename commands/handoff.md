@@ -381,6 +381,36 @@ Anti-pattern: continuing to write the handoff file with dirty source
 state — every dirty case must be explicitly RESOLVED-AUTO, DECISION,
 or DIRTY; no silent ignores.
 
+### After Group 8 — Render Closure Walk Status table inline
+
+Before the handoff file write Steps 9-13 begin, render the Closure
+Walk Status table inline in the response so the user sees the walk
+outcome before persistence:
+
+```
+## Closure Walk Status
+
+| Group | Status | Detail |
+|---|---|---|
+| 🧠 1. Staleness verification     | [STATUS_EMOJI] | [one-line outcome] |
+| 🏗️ 2. Architecture drift scan   | [STATUS_EMOJI] | [one-line outcome] |
+| 🗺️ 3. Routing matrix verification | [STATUS_EMOJI] | [one-line outcome] |
+| 💾 4. Persistent memory ledger    | [STATUS_EMOJI] | [one-line outcome] |
+| 📝 5. Project conventions ledger  | [STATUS_EMOJI] | [one-line outcome] |
+| 📋 6. Working memory ledger       | [STATUS_EMOJI] | [one-line outcome] |
+| 📦 7. Workspace ledger            | [STATUS_EMOJI] | [one-line outcome] |
+| 🔀 8. Working tree closure        | [STATUS_EMOJI] | [one-line outcome] |
+```
+
+Use the canonical state-emoji mapping (✅ RESOLVED, 🔄 RESOLVED-AUTO,
+🟡 DECISION, ⏸️ SKIPPED-USER, ⏭️ SKIPPED-AUTO, 🚨 DIRTY) and the
+canonical row-anchor emoji mapping (🧠 / 🏗️ / 🗺️ / 💾 / 📝 / 📋 /
+📦 / 🔀). The same table is also persisted to the handoff file body
+in Step 11. See `references/closure-floor.md` § Visual Output
+Specification for the canonical mapping; the mapping is identical
+across all three render targets (this inline render, the handoff
+template, and the closure-floor reference).
+
 ### After Group 8 — Proceed to handoff file write (Steps 9-13)
 
 After all 8 groups have been walked and their states determined, the
