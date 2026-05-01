@@ -423,7 +423,7 @@ the file format and proactive triggers during normal advisory flow.
 | Reference | Relationship |
 |---|---|
 | `startup-checklist.md` | Step 5 context advisory on 1M-window sessions |
-| `floor.md` | Floor sentinel protocol (SP-FLOOR-COMPLETE summary line emitted on every prompt) |
+| `floor.md` | Floor sentinel protocol (SP-FLOOR-COMPLETE emitted at session and subcommand entry) |
 | `floor-signal-handling.md` | Per-pattern remediation for non-clean floor signals |
 | `hooks-integration.md` | Hook delivery rules (PreToolUse shipped; SessionStart incompatible; PreCompact user-owned) |
 | `companion-script-spec.md` | Historical spec — deprecated in v5.9.0, retained for reference |

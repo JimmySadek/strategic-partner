@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 5.14.0
+version: 5.15.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -107,6 +107,9 @@ hooks:
             [ -z "$skill_version" ] && skill_version="unknown"
             floor_schema_version="v3"
             rule_schema_version="v1"
+
+            # Portable timeout (gtimeout on macOS coreutils, timeout on Linux; empty if neither)
+            TIMEOUT=$(command -v gtimeout 2>/dev/null || command -v timeout 2>/dev/null)
 
             prompt_class=$(printf '%s' "$prompt" | perl -ne 'BEGIN{undef $/} m{\A\s*(/(strategic-partner|advisor|sp)(:[a-z-]+)?)} && do { print $1; last }' 2>/dev/null)
             [ -z "$prompt_class" ] && prompt_class="chat"
@@ -253,15 +256,15 @@ hooks:
             # Group 5 — Git state (timeout-bounded git ops)
             {
               if [ -n "$cwd" ] && [ -d "$cwd/.git" ]; then
-                branch=$(cd "$cwd" 2>/dev/null && timeout 1 git branch --show-current 2>/dev/null)
+                branch=$(cd "$cwd" 2>/dev/null && ${TIMEOUT:+$TIMEOUT 1} git branch --show-current 2>/dev/null)
                 printf 'g5.branch=%s\n' "${branch:-unknown}"
-                porcelain_count=$(cd "$cwd" 2>/dev/null && timeout 1 git status --porcelain 2>/dev/null | head -10 | wc -l | tr -d ' ')
+                porcelain_count=$(cd "$cwd" 2>/dev/null && ${TIMEOUT:+$TIMEOUT 1} git status --porcelain 2>/dev/null | head -10 | wc -l | tr -d ' ')
                 if [ "${porcelain_count:-0}" = "0" ]; then
                   printf 'g5.status=clean\n'
                 else
                   printf 'g5.status=dirty changed=%s\n' "$porcelain_count"
                 fi
-                last_commit=$(cd "$cwd" 2>/dev/null && timeout 1 git log --oneline -1 2>/dev/null | head -c 80)
+                last_commit=$(cd "$cwd" 2>/dev/null && ${TIMEOUT:+$TIMEOUT 1} git log --oneline -1 2>/dev/null | head -c 80)
                 printf 'g5.last_commit=%s\n' "${last_commit:-none}"
               else
                 printf 'g5.git=missing\n'
@@ -355,6 +358,9 @@ hooks:
             [ -z "$skill_version" ] && skill_version="unknown"
             rule_schema_version="v1"
 
+            # Portable timeout (gtimeout on macOS coreutils, timeout on Linux; empty if neither)
+            TIMEOUT=$(command -v gtimeout 2>/dev/null || command -v timeout 2>/dev/null)
+
             cwd_hash=$(printf '%s' "$cwd" | shasum -a 256 2>/dev/null | cut -d' ' -f1)
             tp_hash=$(printf '%s' "$transcript_path" | shasum -a 256 2>/dev/null | cut -d' ' -f1)
             RELAY_KEY=$(printf '%s|%s|%s|%s|%s' \
@@ -364,7 +370,7 @@ hooks:
 
             VIOLATIONS_LOG="/tmp/sp-rule-violations-${RELAY_KEY}.log"
 
-            last_turn=$(timeout 1 tail -200 "$transcript_path" 2>/dev/null | jq -s 'map(select((.message.role // .role) == "assistant")) | last' 2>/dev/null)
+            last_turn=$(${TIMEOUT:+$TIMEOUT 1} tail -200 "$transcript_path" 2>/dev/null | jq -s 'map(select((.message.role // .role) == "assistant")) | last' 2>/dev/null)
             [ -z "$last_turn" ] && exit 0
             [ "$last_turn" = "null" ] && exit 0
 
@@ -375,7 +381,7 @@ hooks:
             has_tool_use=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"type\"\\s*:\\s*\"tool_use\"") then "true" else "false" end' 2>/dev/null)
             has_lastprompts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\\.handoffs/last-prompts/[0-9]+\\.md") then "true" else "false" end' 2>/dev/null)
 
-            had_dispatch=$(timeout 1 tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | if . == null then "false" elif (tostring | test("\"name\"\\s*:\\s*\"(Agent|Task)\""; "i")) then "true" else "false" end' 2>/dev/null)
+            had_dispatch=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | if . == null then "false" elif (tostring | test("\"name\"\\s*:\\s*\"(Agent|Task)\""; "i")) then "true" else "false" end' 2>/dev/null)
 
             violation_count=0
             log_violation() {
@@ -415,7 +421,7 @@ hooks:
 
             # Rule 5: Floor-signal acknowledgment — non-clean actionable signal in last user
             # prompt requires either dispatch (Agent/Task tool_use) or explicit text mention
-            last_user_text=$(timeout 1 tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | tostring' 2>/dev/null)
+            last_user_text=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | tostring' 2>/dev/null)
             floor_line=$(printf '%s' "$last_user_text" | grep -oE 'SP-FLOOR-COMPLETE [^.]+' | head -1)
             if [ -n "$floor_line" ]; then
               non_clean=""
@@ -1800,12 +1806,16 @@ always the answer.
 
 ### Floor-Signal Handling
 
-The startup-floor sentinel emits an `SP-FLOOR-COMPLETE` line on every user
-prompt with seven status fields. Five of those fields are actionable — when
-they come back non-clean, the model MUST either (a) dispatch a remediation
-agent, or (b) explicitly acknowledge the signal in the response with a
-reason for deferring. Silent ignores are caught at the runtime layer by the
-Stop rhythm enforcer's rule 5 (`floor-signal-acknowledgment`).
+The startup-floor sentinel emits an `SP-FLOOR-COMPLETE` line at session
+entry and on subcommand transitions, with seven status fields. The hook
+fires on every UserPromptSubmit event but exits early once the floor has
+run for a given scope (session, cwd, skill version, prompt class), so the
+line is emitted only when SP enters a new scope — not on every user turn.
+Five of the seven fields are actionable — when they come back non-clean,
+the model MUST either (a) dispatch a remediation agent, or (b) explicitly
+acknowledge the signal in the response with a reason for deferring. Silent
+ignores are caught at the runtime layer by the Stop rhythm enforcer's
+rule 5 (`floor-signal-acknowledgment`).
 
 | Field          | Non-clean values    | Required action                                                       |
 |----------------|---------------------|-----------------------------------------------------------------------|

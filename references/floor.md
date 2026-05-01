@@ -5,20 +5,26 @@ The broader startup orientation protocol (mode detection, environment
 discovery, orientation rendering) lives in
 `references/startup-checklist.md`.
 
-The floor runs **unconditionally on every user prompt** via the
-UserPromptSubmit hook in SKILL.md frontmatter. The startup orientation
-runs only on first invocation. Splitting them clarifies which protocol
-applies when.
+The floor's UserPromptSubmit hook fires on every user prompt, but the
+floor walk itself runs **once per unique scope** — defined by (session,
+cwd, skill version, floor schema version, prompt class). When the hook
+detects a new scope it walks the seven groups and emits SP-FLOOR-COMPLETE;
+otherwise it exits early to avoid duplicating the snapshot. See § Schema,
+Key, and RELAY_KEY below for the full key composition. The startup
+orientation runs only on first invocation. Splitting them clarifies which
+protocol applies when.
 
 ---
 
 ## What the Floor Does
 
 The floor sentinel is a Bash hook that fires on every UserPromptSubmit
-event (every time the user sends a prompt to Claude Code). It runs seven
-groups of cheap, parallel checks against the project state, then emits a
-single summary line — `SP-FLOOR-COMPLETE` — that the SP reads as
-context-injected text in the same turn.
+event. On the first prompt of a new scope (session, cwd, skill version,
+prompt class), it runs seven groups of cheap, parallel checks against
+the project state, then emits a single summary line — `SP-FLOOR-COMPLETE`
+— that the SP reads as context-injected text in the same turn. On
+subsequent prompts within the same scope, the hook exits early to avoid
+duplicating the snapshot.
 
 The summary line carries a fingerprint of the project's current state:
 project conventions present, persistent memory present, working memory

@@ -7,8 +7,8 @@ state distinction details, and anti-pattern catalog.
 
 The closure floor complements the startup floor (see `references/floor.md`)
 and the per-turn rhythm enforcer (see SKILL.md § Stop hook). The startup
-floor watches every prompt; the rhythm enforcer watches every turn; the
-closure floor walks the project state once at session-end.
+floor walks at session and subcommand entry; the rhythm enforcer watches
+every turn; the closure floor walks the project state once at session-end.
 
 ---
 
@@ -736,9 +736,9 @@ Layer 1: PreToolUse identity guard
          → existing since v5.4.0
 
 Layer 2: UserPromptSubmit startup floor (`references/floor.md`)
-         → 7-group walk on every user prompt
+         → 7-group walk on session and subcommand entry
          → emits SP-FLOOR-COMPLETE summary line into context
-         → enforces that SP knows current project state at every turn
+         → enforces that SP knows current project state at every new scope
 
 Layer 3: Stop per-turn rhythm enforcer (SKILL.md frontmatter)
          → 5 rules checked at end of every assistant turn

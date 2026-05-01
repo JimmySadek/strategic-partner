@@ -2,11 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.14.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.15.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
+
+> **New in v5.15.0** — The Strategic Partner is harder to drift. It receives a fresh snapshot of session state at session entry and subcommand transitions, catches missed startup signals and response-shape mistakes turn-by-turn, walks an 8-group closure check at session end, and makes update notifications reliable in fresh sessions. See [CHANGELOG](CHANGELOG.md) for the full set.
 
 ---
 
@@ -66,7 +68,7 @@ You describe what you need. The SP asks clarifying questions, then delivers a se
 
 ### Fast lane for small tasks
 
-Not every task needs the full cycle. After the Advisory Completion Gate confirms you're done thinking, small mechanical tasks can be dispatched directly via agent — same fresh context, without the copy-paste overhead. Fast Lane is a delivery shortcut, not a personality change: the SP still thinks first, recommends a path, and gets your consent before dispatching. The simplicity score and solution ambiguity gate are always displayed, making the routing decision auditable.
+For small mechanical tasks, the SP may offer to dispatch the prepared prompt to a background agent instead of asking you to paste it into a fresh session. Same roles, same separation: SP decides what gets built and why; the agent executes what SP specifies. Fast Lane is a delivery shortcut, not a personality change — the SP still thinks first, presents alternatives, and gets your consent before dispatching.
 
 ---
 
@@ -233,7 +235,11 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Typed Response Envelopes (v5.14.0)** — four-envelope taxonomy (Conversational, Analytical, Packaged Prompt, Closure) maps response shape to appropriate visual density. Conversational acks get low density; Analytical advisory turns get medium-high (tables for options, AUQ for decisions); Packaged Prompt executor briefs get maximum structure; Closure handoffs get scannable status. Picking the envelope first sets the right visual density.
 - **Closure Evidence Ledger (v5.14.0)** — six-state ledger (RESOLVED / RESOLVED-AUTO / DECISION / SKIPPED-USER / SKIPPED-AUTO / DIRTY) replaces the prior 8-row Visual Closure Checklist. AUQ fires only on DECISION rows; the rest resolve silently with explicit verification commands. Reconciles the SKILL.md hygiene-vs-decision boundary at category-vs-operation level.
 - **Premise Challenge trigger #5 (v5.14.0)** — auto-fires when SP is acting on a derivative finding from a previous session (e.g., a finding inherited via handoff that was never independently verified). Walk-through Scope Discipline subsection added separately — visuals labeled "Evidence" or "Action proposal," no mixing.
-- **V1–V7 fixtures + release-time transcript checker (v5.14.0)** — `tests/lint-transcripts.sh` enforces AUQ-must-be-AUQ, tool-availability claims, and fence-write coupling rules against post-tag JSONL transcripts and SP-internal handoffs at release time. The runtime enforcement layer was prototyped during v5.14.0 development but pulled before release pending observability work; deferred to v5.15.0+. The source-edit guard (which predates v5.14.0) and this release-time transcript checker are the only enforcement layers in v5.14.0.
+- **Release-time transcript checker** — `tests/lint-transcripts.sh` enforces four behavioral rules (AUQ-must-be-AUQ, tool-availability claims, fence-write coupling, identity-reset announcement) against post-tag JSONL transcripts and SP-internal handoffs at release time. Backstops the runtime Stop hook layer; shared validator logic in `hooks/lib/validators.sh` keeps both enforcement paths in sync.
+- **Session-entry snapshot** — At session start and on each subcommand transition, a hook gathers a snapshot of session-relevant facts (model, project conventions, persistent memory, working memory counts, git state, version freshness, routing matrix freshness) and injects a single summary line into SP's context. The hook deduplicates within a session — once SP has the snapshot for a given context, repeat prompts skip the gather. SP can't miss session state because the floor surfaces it mechanically.
+- **Per-turn rhythm enforcer** — At the end of every assistant turn, a hook scans the response for five common drift patterns: questions buried in prose (instead of using AskUserQuestion), missing identity-reset announcements after agent dispatches return, first-person tool-availability claims without an actual tool call, execution fences without expected handoff file write, and silent ignores of any non-clean signal from the startup floor. Violations carry forward to the next turn as a one-line note; SP self-corrects on next prompt.
+- **Floor-signal handling** — Each of the seven startup-floor signal fields has explicit guidance for how SP should respond when non-clean: routing matrix gets an immediate background Opus 4.7 dispatch; memory missing surfaces in orientation and asks before dispatching the heavier Serena onboarding; dirty git tree surfaces with explicit acknowledgment. Default model for any auto-remediation is Opus 4.7 — load-bearing decisions deserve the smartest model.
+- **Reliable update notifications** — Update checks against GitHub now correctly handle network slowness and pretty-printed JSON formats. Fresh sessions see real version status (current / behind / actual version string) instead of a silent "unreachable".
 - **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Model-aware prompt generation** — SP detects the active Claude model at startup (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, via both friendly names and exact model IDs) and selects reusable XML prompt blocks + effort recommendations per target model. Every crafted prompt inherits hallucination prevention, scope discipline, and model-appropriate patterns.
@@ -247,7 +253,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Session findings and backlog stewardship** — automatic capture of feedback during advisory sessions, with two-layer persistence: lightweight session findings and curated backlog items with trigger-based surfacing at startup
 - **Cognitive patterns** — 14 named thinking heuristics wired to specific decision points with mandatory triggers (not a decorative table — they fire at the right moments)
 - **Context handoff management** — monitors context pressure and preserves full session state before it degrades
-- **Closure rigor** — session-end detection triggers a 6-state Closure Evidence Ledger covering Serena memories, CLAUDE.md proposals, findings, backlog, `.prompts/`, `.scripts/`, git state, and `.handoffs/` — each item classified RESOLVED / RESOLVED-AUTO / DECISION / SKIPPED-USER / SKIPPED-AUTO / DIRTY with explicit verification commands; AUQ fires only on DECISION rows; the handoff is auto-dispatched on session-end signals; post-handoff verification confirms the continuation prompt and `.gitignore` coverage are correct before the session ends.
+- **Closure rigor** — session-end detection triggers an 8-group closure floor walked in the body of `/strategic-partner:handoff`: staleness verification, architecture drift scan, routing matrix verification, persistent memory ledger, project conventions ledger, working memory ledger, workspace ledger (with active backlog management), and working tree closure. Each group runs a verification command, marks one of six states (RESOLVED / RESOLVED-AUTO / DECISION / SKIPPED-USER / SKIPPED-AUTO / DIRTY), and either takes hygiene actions automatically or asks only when there's a genuine call to make. Post-Handoff Verification gates the close with four lightweight checks (continuation prompt present, SP invocation included, findings file surfaced, .gitignore covers session-work directories) before the session ends.
 - **Provider-specific prompt formatting** — adapts prompt structure for Claude, OpenAI, and Gemini targets
 
 ### Under the hood
@@ -280,6 +286,9 @@ strategic-partner/
     backlog.md                          # Backlog review — parked items with trigger evaluation
   references/
     startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
+    floor.md                            # Startup-floor sentinel protocol (7 groups, summary line, carve-out rules)
+    floor-signal-handling.md            # Per-pattern remediation for non-clean floor signals (worked examples)
+    closure-floor.md                    # Closure-floor protocol (8 groups, state machine, anti-patterns)
     prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
     fast-lane.md                        # Simplicity scoring, consent flows, dispatch protocol
     context-handoff.md                  # Env var baseline, two-tier thresholds, split writes
@@ -307,7 +316,8 @@ strategic-partner/
     v4.0-implementation-decisions.md    # Decision log for audit findings F1-F12
   tests/
     RUNBOOK.md                          # Manual fixture-review protocol
-    lint-transcripts.sh                 # Layer 3 release-time lint — enforces AUQ / tool-availability / fence-write coupling rules against JSONL transcripts and handoffs
+    lint-transcripts.sh                 # Release-time lint — AUQ / tool-availability / fence-write coupling / identity-reset rules against JSONL transcripts and handoffs
+    lint-voice.sh                       # Release-time voice lint — scans CHANGELOG / README / commands/ for jargon-loaded patterns
     fixtures/
       v5.12.0/                          # F1-F5 regression fixtures for AUQ Materiality Gate
         F1-alpha-beta-gamma-planning-reconciliation.md
@@ -329,6 +339,9 @@ strategic-partner/
         V5-fenced-prompt-emission.md
         V6-analytical-dense-vocabulary.md
         V7-friend-perspective-jargon.md
+      v5.15.0/                          # voice-lint and voice-transcript fixtures
+        voice-lint/
+        voice-transcript/
 ```
 
 </details>

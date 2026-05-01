@@ -588,7 +588,7 @@ hook audit (see trace log in the Stop section above).
 |---|---|---|---|---|---|
 | Identity guard | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|mcp__plugin_serena_serena__` | Block source-file mutations; allow SP workspace paths | SKILL.md frontmatter | Shipping ✅ |
 | Floor sentinel | UserPromptSubmit | (non-tool event, no matcher) | Inject minimum-floor reminder per user turn | SKILL.md frontmatter | Shipping ✅ (v5.15.0) |
-| Rhythm enforcer | Stop | (non-tool event, no matcher) | Enforce 5 per-turn rules (AUQ, tool availability, fence-write coupling, voice quality, decision points) | SKILL.md frontmatter | Shipping ✅ (v5.15.0) |
+| Rhythm enforcer | Stop | (non-tool event, no matcher) | Enforce 5 per-turn rules (AUQ-as-AUQ, identity-reset announcements after agent dispatch returns, tool-availability claims, fence-write coupling, floor-signal acknowledgment) | SKILL.md frontmatter | Shipping ✅ (v5.15.0) |
 
 PreToolUse fires during tool calls while the skill is active — correct for
 blocking source edits initiated by the SP. UserPromptSubmit and Stop fire as
@@ -596,13 +596,22 @@ session-level events; both confirmed firing from frontmatter on CC 2.1.123 per
 2026-04-30 audit (see trace log in the Stop section above).
 
 **Layer 3 (release-time transcript lint):** `tests/lint-transcripts.sh` runs
-three structural checks at release time over `.handoffs/*.md` files and (when
-available) the JSONL transcripts since the last release tag:
+four behavioral checks plus a voice-pattern scan at release time over
+`.handoffs/*.md` files and (when available) the JSONL transcripts since the
+last release tag:
 
 - AUQ-must-be-AUQ (prose questions outside `AskUserQuestion` tool calls)
 - First-person tool-availability claims without a verified call
 - Fence-write coupling (`══ START 🟢 COPY ══` fence without a preceding
   `Write` to `.handoffs/last-prompts/[N].md` in the same turn)
+- Identity-reset announcement (assistant turn following an Agent/Task
+  tool_result must include "Back in advisory mode" or "Dispatch complete.
+  I am back in strategic-partner mode" — implemented via the shared
+  `validate_identity_reset` function in `hooks/lib/validators.sh`, mirroring
+  Stop rule 2)
+- Voice patterns (raw line refs, `Layer N` without gloss, `Direction N`,
+  `deliverable N`, function-call notation in prose, incident IDs) — these
+  are mechanical violations, separate from the four behavioral rules above.
 
 Exit 0 if clean; exit 1 with per-violation output if any violations found.
 Wired into CLAUDE.md release process Step 2a as the release-gate backstop.

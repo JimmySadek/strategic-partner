@@ -4,9 +4,10 @@ Reference file for the strategic-partner advisor. Full startup sequence with
 identity setup, environment configuration, and fire-and-verify agents.
 Do not display to user.
 
-> **Floor sentinel protocol** — see `references/floor.md`. The floor runs
-> unconditionally on every user prompt via the UserPromptSubmit hook in SKILL.md
-> frontmatter and is documented separately. This file covers the broader startup
+> **Floor sentinel protocol** — see `references/floor.md`. The floor's
+> UserPromptSubmit hook fires on every user prompt; the floor walk itself
+> runs once per unique scope (session, cwd, skill version, prompt class)
+> and is documented separately. This file covers the broader startup
 > orientation that runs on the first invocation of `/strategic-partner` only.
 
 ```
