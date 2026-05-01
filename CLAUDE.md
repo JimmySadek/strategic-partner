@@ -359,3 +359,23 @@ Instead: when a release defers a planned feature or fix to a future release (e.g
 - **Scope**: Any explicit deferral within a release. Typical patterns include: design principles that name a v5.X+1 follow-up, Component rewrites that move a feature out of scope, "deferred to next release" notes in brief commit messages or release CHANGELOG entries.
 - **Source**: 2026-05-01 — v5.15.0 closure-floor brief deferred Stop rule 6 (closure-walk-completeness) to v5.16.0 in Principle 5's rewrite + Component 7's commit message. Codex re-review (`.handoffs/codex-closure-floor-rereview-output-0501.md`) flagged: "the v5.16 deferral lives only in the brief's commit message — findable if you know to look, but not surfaced automatically when v5.16 work begins." SP created `.backlog/closure-walk-completeness-stop-rule.md` to make the deferral surface in normal SP backlog scans. See `.handoffs/findings-0501.md` Issue 2.
 - **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)
+
+### Brief verification commands and prose specs in the same brief must agree
+
+Instead: when authoring an executor brief that includes BOTH prose describing a structural element (heading format, file path pattern, naming convention) AND verification grep/regex patterns checking for that element, the two MUST use literally identical patterns.
+
+- **Scope**: Executor briefs in `.prompts/[milestone]/[descriptor].md`. Specifically: any brief with verification grep commands that reference the same structure described in prose deliverables.
+- **Source**: 2026-05-01 — `findings-0501.md` Issue 3 Pattern 1. Closure-floor brief's Component 1 prose said "the 8-group walk is Steps 1-8" while its verification grep `^### Group [1-8] —` required NO "Step" prefix. Two specs in the same brief disagreed.
+- **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)
+
+### Briefs with user-keyboard verification must enumerate three outcomes
+
+Instead: when an executor brief includes a verification step that requires user-keyboard work (separate terminal, fresh CC session, manual `/exit` lifecycle), the brief MUST enumerate three outcomes, not two:
+
+- **(a)** All gates pass on user-driven test → ship the deliverable
+- **(b)** Any gate fails on user-driven test → defer with documentation of failure mode
+- **(c)** Test could not run within executor scope → defer with explicit scope-limit documentation; the executor records why the verification couldn't run
+
+- **Scope**: Executor briefs whose verification depends on multi-process orchestration the agent cannot drive — separate terminals, fresh Claude Code sessions, manual lifecycle events.
+- **Source**: 2026-05-01 — `findings-0501.md` Issue 3 Pattern 4. Closure-floor brief's Component 5 used binary "any gate fails → don't ship" framing that elided the "untested in this scope" third state.
+- **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)

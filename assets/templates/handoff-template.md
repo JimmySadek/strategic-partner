@@ -75,7 +75,9 @@ Run `/insights` before writing this file, then extract relevant items below.
 | 💾 4. Persistent memory ledger    | [STATUS_EMOJI] | [one-line outcome] |
 | 📝 5. Project conventions ledger  | [STATUS_EMOJI] | [one-line outcome] |
 | 📋 6. Working memory ledger       | [STATUS_EMOJI] | [one-line outcome] |
-| 📦 7. Workspace ledger            | [STATUS_EMOJI] | [one-line outcome] |
+| 📦 7a. Backlog hygiene            | [STATUS_EMOJI] | [one-line outcome] |
+| 📄 7b. Pending prompts            | [STATUS_EMOJI] | [one-line outcome] |
+| 🔧 7c. Pending scripts            | [STATUS_EMOJI] | [one-line outcome] |
 | 🔀 8. Working tree closure        | [STATUS_EMOJI] | [one-line outcome] |
 
 State emoji mapping:

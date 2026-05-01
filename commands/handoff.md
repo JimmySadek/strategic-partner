@@ -253,18 +253,37 @@ ls .handoffs/findings-*.md | tail -1  # today's findings file
 ```
 
 State logic:
-- No findings this session → SKIPPED-AUTO
-- Findings exist, all resolved or carrying forward → RESOLVED-AUTO,
-  brief summary in handoff body
+- No findings this session → SKIPPED-AUTO. Detail string collapses
+  to "no findings this session."
+- Findings exist (N>0) → DECISION or RESOLVED-AUTO depending on
+  disposition clarity. The Group 6 row's detail string MUST follow
+  this format:
+
+  ```
+  N findings: M resolved in-session, K promoted to .backlog/, L carrying forward
+  ```
+
+  Where N = total findings in today's findings file, and M + K + L = N.
+  Every finding gets explicit disposition. Counts that don't sum to
+  N indicate the disposition is incomplete and the row CANNOT be
+  RESOLVED-AUTO.
 - Findings ratified for promotion during conversation → RESOLVED-AUTO,
-  promotion to `.backlog/` filed automatically
+  promotion to `.backlog/` filed automatically; counted in K.
 - Findings with unclear promotion intent → DECISION, batched AUQ
-  with options [Park as backlog item] [Keep as session finding] [Drop]
+  with options [Park as backlog item] [Keep as session finding] [Drop].
+  After user resolves, recompute the disposition string before
+  marking RESOLVED-AUTO.
 
 Ledger row updated: 📋 Session findings.
 
 Anti-pattern: leaving findings in limbo (neither resolved nor
 promoted nor explicitly carried forward).
+
+Anti-pattern: marking RESOLVED on "any new findings?" alone — the
+row's detail must enumerate disposition for ALL findings in the
+file, not just new captures from this session. RESOLVED-AUTO requires
+the full "N findings: M resolved in-session, K promoted to .backlog/,
+L carrying forward" disposition string.
 
 ### Group 7 — Workspace ledger (with backlog hygiene as first-class)
 
@@ -287,27 +306,66 @@ ls .backlog/*.md
 State logic (grouped summary first, per-item only on opt-in — matches
 existing `commands/backlog.md` pattern):
 
-1. **Compute aggregate counts**: total items, items with met triggers
-   (X), items stale (>30 days no movement) (Y), items recently added
-   (Z).
+1. **Compute aggregate counts**: total items (N), items with met
+   triggers (X), items stale (>30 days no movement) (Y), items
+   recently added — last 7 days (Z), and items with `status:
+   completed` still in `.backlog/` (W).
 
-2. **Emit a single-line summary in handoff body**: "Backlog: N total.
-   Met triggers: X. Stale: Y. Recent: Z."
+2. **Emit aggregate-format summary in handoff body**. The Group 7a
+   row's detail string MUST follow this format:
+
+   ```
+   Backlog: N total. Met: X. Stale: Y. Recent: Z. Completed-parked: W.
+   ```
+
+   Where N = total `.backlog/*.md` files, X = items whose `trigger:`
+   fired against current state, Y = items >30 days no movement,
+   Z = items added in last 7 days, W = items with `status: completed`
+   still in the `.backlog/` directory.
 
 3. **AUQ ONLY ONCE for the entire backlog** (not per-item):
-   - If X + Y == 0 → no AUQ, mark RESOLVED with the summary line
-   - If X > 0 OR Y > 10 → AUQ with grouped options:
+   - If X + Y + W == 0 → no AUQ, mark RESOLVED with the summary line
+   - If X > 0 OR W > 0 OR Y > 10 → AUQ with grouped options:
      - [Review met-trigger items now] — opens per-item walk for the X items
      - [Review stale items now] — opens per-item walk for the Y items
+     - [Archive completed-parked items now] — opens 7a-retirement-scan
+       below for the W items
      - [Defer all to next session] — items carry forward in next orientation
      - [Drop accumulated stale items in bulk] — bulk action, single confirmation
-   - If 0 < Y ≤ 10 → no AUQ (informational only); items surface in
-     next session's orientation per existing protocol
+   - If 0 < Y ≤ 10 AND X == 0 AND W == 0 → no AUQ (informational only);
+     items surface in next session's orientation per existing protocol
 
 4. **Per-item walk fires ONLY if user opts in via step 3**. Then
    per item:
    - Met trigger → AUQ [Activate now] [Re-park with new trigger] [Drop]
    - Stale → AUQ [Keep parked] [Re-park with new trigger] [Drop as obsolete]
+
+##### 7a-retirement-scan
+
+After the aggregate AUQ resolves, perform retirement scan:
+
+1. For each item with `status: completed` in `.backlog/` (the W set),
+   propose archive to `.handoffs/backlog-archive/` via single batched
+   AUQ. User can approve all, opt into per-item review, or defer.
+
+2. For each item still in `.backlog/` with `status: parked`,
+   cross-reference the title and scope against this session's work
+   artifacts (git log entries since last handoff, decision_log entries,
+   user-stated completions during conversation). Heuristic: title
+   keyword match against commit messages from this session.
+
+3. If matches found: propose marking matched items as completed via
+   batched AUQ. User can approve all, approve per-item, or reject all.
+
+State logic for 7a-retirement-scan:
+- W == 0 AND no parked-but-completed-by-session matches found →
+  SKIPPED-AUTO (no retirements needed)
+- W > 0 OR matches found → DECISION; user resolves via batched AUQ
+- All retirements approved and archived → RESOLVED-AUTO
+
+Anti-pattern: completed work silently piling up in `.backlog/`
+because nobody scanned for retirements. The 2026-05-01 audit found
+3 completed lint items still showing as parked.
 
 After backlog pass, handle newly-promoted findings (from Group 6):
 - Items already ratified during conversation as "park this" →
@@ -397,19 +455,22 @@ outcome before persistence:
 | 🗺️ 3. Routing matrix verification | [STATUS_EMOJI] | [one-line outcome] |
 | 💾 4. Persistent memory ledger    | [STATUS_EMOJI] | [one-line outcome] |
 | 📝 5. Project conventions ledger  | [STATUS_EMOJI] | [one-line outcome] |
-| 📋 6. Working memory ledger       | [STATUS_EMOJI] | [one-line outcome] |
-| 📦 7. Workspace ledger            | [STATUS_EMOJI] | [one-line outcome] |
+| 📋 6. Working memory ledger       | [STATUS_EMOJI] | [findings disposition format] |
+| 📦 7a. Backlog hygiene            | [STATUS_EMOJI] | [N total. Met: X. Stale: Y. Recent: Z. Completed-parked: W.] |
+| 📄 7b. Pending prompts            | [STATUS_EMOJI] | [one-line outcome] |
+| 🔧 7c. Pending scripts            | [STATUS_EMOJI] | [one-line outcome] |
 | 🔀 8. Working tree closure        | [STATUS_EMOJI] | [one-line outcome] |
 ```
 
 Use the canonical state-emoji mapping (✅ RESOLVED, 🔄 RESOLVED-AUTO,
 🟡 DECISION, ⏸️ SKIPPED-USER, ⏭️ SKIPPED-AUTO, 🚨 DIRTY) and the
 canonical row-anchor emoji mapping (🧠 / 🏗️ / 🗺️ / 💾 / 📝 / 📋 /
-📦 / 🔀). The same table is also persisted to the handoff file body
-in Step 11. See `references/closure-floor.md` § Visual Output
-Specification for the canonical mapping; the mapping is identical
-across all three render targets (this inline render, the handoff
-template, and the closure-floor reference).
+📦 / 📄 / 🔧 / 🔀, with 📦 / 📄 / 🔧 anchoring sub-rows 7a / 7b /
+7c respectively). The same table is also persisted to the handoff
+file body in Step 11. See `references/closure-floor.md` § Visual
+Output Specification for the canonical mapping; the mapping is
+identical across all three render targets (this inline render, the
+handoff template, and the closure-floor reference).
 
 ### After Group 8 — Proceed to handoff file write (Steps 9-13)
 

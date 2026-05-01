@@ -36,6 +36,51 @@ its own state mark with its own verification output.
 
 ---
 
+## The Thing-Noticed Lifecycle
+
+Findings, backlog, and retired work are not separate systems — they are **three states of the
+same entity**: a thing-noticed. The closure floor's job is to exercise every transition that
+should fire between these states, not just the "nothing changed" defaults.
+
+```
+                    ┌─────── TRANSITIONS ────────┐
+                    │                            │
+
+  ① NOTICED                  ② TRACKED                  ③ RETIRED
+  ┌─────────────┐            ┌─────────────┐            ┌─────────────┐
+  │  findings/  │   promote  │  .backlog/  │  complete  │  archived   │
+  │  -MMDD.md   │ ─────────► │  *.md       │ ─────────► │  + closed   │
+  │             │            │             │            │  in git     │
+  │  session-   │            │  project-   │            │  history    │
+  │  scoped     │ ◄───────── │  scoped     │ ◄───────── │             │
+  │             │  re-active │             │   reopen   │             │
+  └──────┬──────┘            └──────┬──────┘            └──────┬──────┘
+         │                          │                          │
+         │ default at               │ default                  │ default
+         │ session-end              │                          │
+         ▼                          ▼                          ▼
+   carry forward              stay parked                 evidence
+   (next session's            (until trigger              preserved in
+    orientation)                 fires)                    commit + tag
+```
+
+- **① NOTICED** — `.handoffs/findings-MMDD.md` (session-scoped capture buffer). Default
+  transition at session-end is "carry forward" — items appear in next session's orientation.
+- **② TRACKED** — `.backlog/*.md` (project-scoped tracking with structured frontmatter).
+  Default transition is "stay parked until trigger fires."
+- **③ RETIRED** — `.handoffs/backlog-archive/*.md` + git history. Items completed by
+  this session's work or items determined obsolete. Evidence preserved.
+
+The closure floor exercises:
+- ① → ② (Group 6 + Group 7a Findings cross-reference): findings ratified as "park this" become
+  backlog items.
+- ② → ③ (Group 7a retirement-scan): completed-but-parked items get archived; backlog items
+  finished by this session's work get marked completed and archived.
+- ① → carry-forward (Group 6 default): findings without explicit disposition surface in next
+  session's orientation.
+
+---
+
 ## State Machine (6 states)
 
 Every group lands in exactly one of these six states. The state
@@ -73,7 +118,7 @@ renders a Closure Walk Status table inline in the response. The same
 table is also persisted to the handoff file's body. Both renders use
 identical row-anchor and state-emoji mappings.
 
-**Row-anchor emoji mapping (one per group):**
+**Row-anchor emoji mapping (one per row, with Group 7 split into 7a / 7b / 7c):**
 
 | Group | Emoji | Anchor |
 |---|---|---|
@@ -83,7 +128,9 @@ identical row-anchor and state-emoji mappings.
 | 4 | 💾 | Persistent memory ledger |
 | 5 | 📝 | Project conventions ledger |
 | 6 | 📋 | Working memory ledger |
-| 7 | 📦 | Workspace ledger |
+| 7a | 📦 | Backlog hygiene |
+| 7b | 📄 | Pending prompts |
+| 7c | 🔧 | Pending scripts |
 | 8 | 🔀 | Working tree closure |
 
 **State emoji mapping (one per state):**
@@ -395,22 +442,43 @@ SKIPPED-AUTO. Handoff body: "no findings this session."
 **Sample RESOLVED-AUTO output:** today's findings file has 4 items;
 3 marked as already-resolved during conversation, 1 explicitly
 ratified as "park this for v5.16.0" → SP files automatically as
-backlog item. → State: RESOLVED-AUTO. Handoff body: "4 findings:
-3 resolved, 1 promoted to `.backlog/findings-park-MMDD.md`."
+backlog item, 0 carry forward. → State: RESOLVED-AUTO. Handoff body:
+"4 findings: 3 resolved in-session, 1 promoted to .backlog/, 0
+carrying forward."
 
 **Sample DECISION output:** today's findings file has 5 items; 2
 have unclear promotion intent (could be backlog items, could be
 session-only notes). → State: DECISION. AUQ batches both items in
-a single question.
+a single question. After user resolves, recompute disposition string
+before marking RESOLVED-AUTO.
+
+**Disposition format (REQUIRED for RESOLVED-AUTO):**
+
+The Group 6 row's detail string MUST follow this format:
+
+```
+N findings: M resolved in-session, K promoted to .backlog/, L carrying forward
+```
+
+Where N = total findings in today's findings file, and M + K + L = N.
+Every finding gets explicit disposition. If N == 0, the format collapses
+to "no findings this session" and state is SKIPPED-AUTO.
 
 **State logic:**
 
-- No findings this session → SKIPPED-AUTO
-- All findings resolved or carrying forward → RESOLVED-AUTO
+- No findings this session → SKIPPED-AUTO; detail "no findings this session"
+- Findings exist (N>0) and all have explicit disposition → RESOLVED-AUTO
+  with the full disposition string above
 - Findings ratified for promotion during conversation → RESOLVED-AUTO,
-  promotion to `.backlog/` filed automatically
+  promotion to `.backlog/` filed automatically; counted in K
 - Findings with unclear promotion intent → DECISION, AUQ batching
-  the unclear items
+  the unclear items; after user resolves, recompute the disposition
+  string before marking RESOLVED-AUTO
+
+Anti-pattern: marking RESOLVED on "any new findings?" alone — the
+row's detail must enumerate disposition for ALL findings in the
+file, not just new captures from this session. RESOLVED-AUTO requires
+the full N/M/K/L disposition string.
 
 **AUQ when DECISION fires (single question for all unclear items):**
 
@@ -448,37 +516,76 @@ ls .backlog/*.md
 **Aggregate-first protocol:**
 
 1. Compute counts: total items (N), items with met triggers (X),
-   stale items (Y, >30 days no movement), recently added (Z).
-2. Emit single-line summary in handoff body:
-   "Backlog: N total. Met triggers: X. Stale: Y. Recent: Z."
+   stale items (Y, >30 days no movement), recently added (Z, last
+   7 days), and items with `status: completed` still in `.backlog/` (W).
+2. Emit aggregate-format summary in handoff body. The Group 7a row's
+   detail string MUST follow this format:
+
+   ```
+   Backlog: N total. Met: X. Stale: Y. Recent: Z. Completed-parked: W.
+   ```
+
 3. AUQ ONLY ONCE for the entire backlog (not per-item):
-   - If X + Y == 0 → no AUQ, mark RESOLVED with summary
-   - If X > 0 OR Y > 10 → AUQ with grouped options
-   - If 0 < Y ≤ 10 → no AUQ; surface in next session's orientation
+   - If X + Y + W == 0 → no AUQ, mark RESOLVED with summary
+   - If X > 0 OR W > 0 OR Y > 10 → AUQ with grouped options
+   - If 0 < Y ≤ 10 AND X == 0 AND W == 0 → no AUQ; surface in next
+     session's orientation
 4. Per-item walk fires ONLY if user opts in via step 3.
+5. Retirement scan (sub-step 7a-retirement-scan) fires after the
+   aggregate AUQ resolves; see below.
 
-**Sample RESOLVED output:** 27 total items. Met triggers: 0. Stale:
-3. Recent: 5. Y is 3 (under threshold of 10). → State: RESOLVED.
-No AUQ.
+**Sample RESOLVED output:** 27 total items. Met: 0. Stale: 3.
+Recent: 5. Completed-parked: 0. Y is 3 (under threshold of 10),
+X and W are zero. → State: RESOLVED. No AUQ.
 
-**Sample DECISION output:** 27 total items. Met triggers: 2 (the
-v5.15.0 release just shipped, two items had "after v5.15.0 release"
-triggers). Stale: 12 (over threshold). Recent: 5. → State:
-DECISION. AUQ fires with grouped options.
+**Sample DECISION output:** 27 total items. Met: 2 (the v5.15.0
+release just shipped, two items had "after v5.15.0 release"
+triggers). Stale: 12 (over threshold). Recent: 5. Completed-parked: 3
+(three items finished by this session's work). → State: DECISION.
+AUQ fires with grouped options.
 
 **AUQ when DECISION fires:**
 
 > "Backlog hygiene check: 27 total items. **2 items** now have
 > their triggers met (the v5.15.0 release shipped, which both items
 > were waiting on). **12 items** have been stale for >30 days with
-> no movement. Want to review now, defer all to next session, or
-> bulk-prune the stale items?"
+> no movement. **3 items** are marked completed but still parked in
+> `.backlog/`. Want to review now, defer all to next session, archive
+> the completed-but-parked items, or bulk-prune the stale items?"
 >
 > Options:
 > - [Review met-trigger items now] — opens per-item walk for the 2
 > - [Review stale items now] — opens per-item walk for the 12
+> - [Archive completed-parked items now] — opens 7a-retirement-scan
+>   for the 3
 > - [Defer all to next session] — items carry forward in orientation
 > - [Bulk-drop accumulated stale items] — single-confirmation prune
+
+**7a-retirement-scan sub-step:**
+
+After the aggregate AUQ resolves, perform retirement scan:
+
+1. For each item with `status: completed` in `.backlog/` (the W set),
+   propose archive to `.handoffs/backlog-archive/` via single batched
+   AUQ. User can approve all, opt into per-item review, or defer.
+2. For each item still in `.backlog/` with `status: parked`,
+   cross-reference the title and scope against this session's work
+   artifacts (git log entries since last handoff, decision_log entries,
+   user-stated completions during conversation). Heuristic: title
+   keyword match against commit messages from this session.
+3. If matches found: propose marking matched items as completed via
+   batched AUQ. User can approve all, approve per-item, or reject all.
+
+State logic for 7a-retirement-scan:
+
+- W == 0 AND no parked-but-completed-by-session matches found →
+  SKIPPED-AUTO (no retirements needed)
+- W > 0 OR matches found → DECISION; user resolves via batched AUQ
+- All retirements approved and archived → RESOLVED-AUTO
+
+Anti-pattern: completed work silently piling up in `.backlog/`
+because nobody scanned for retirements. The 2026-05-01 audit found
+3 completed lint items still showing as parked.
 
 **Per-item AUQ when user opts into the walk:**
 

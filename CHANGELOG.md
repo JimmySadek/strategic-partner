@@ -1,5 +1,22 @@
 # Changelog
 
+## [5.15.1] - 2026-05-01
+
+### Fixed
+- **Close-routine now properly tracks every loose end at session-end.** Previously the close-routine's parked-folder check just gave a count ("27 items total"). It now breaks down by status — how many are ready to act on (their wait condition fired), how many haven't moved in over 30 days, how many are recent, and how many are technically done but still showing as parked. The findings check also now lists what happened to every captured note, not just whether new ones got captured today.
+
+- **Close-routine now closes finished items.** When work in this session finishes a parked item, the close-routine catches it and proposes archiving. Previously items piled up as "parked" even after the work was done.
+
+### Changed
+- **Close-routine status table now shows each piece independently.** The "parked-folder, draft-prompts, scripts, summary" check used to render as one row in the table; if a piece was skipped, you couldn't tell. Now each piece gets its own row.
+
+- **Voice rules document now includes a checklist and worked examples.** The pre-send check now has an explicit list of patterns to scan for (Greek labels, bare letter options without named context, file paths in user prose, internal vocabulary without gloss). And a positive-examples section demonstrates what readable / clearly visual SP communication looks like in practice.
+
+### Added
+- **A short paragraph in the canonical close-routine documentation** names the noticed → tracked → done lifecycle as the SP's mental model for findings, backlog, and retired work. Concrete enough to anchor future protocol decisions.
+
+- **Two new Provisional Guards in CLAUDE.md.** First: when an executor brief has both prose specs and verification grep patterns describing the same structural element, the two must use identical patterns. Second: when a brief's verification depends on user-keyboard work, the brief must enumerate three outcomes (pass / fail / couldn't-run-in-scope), not two.
+
 ## [5.15.0] - 2026-05-01
 
 ### Fixed
