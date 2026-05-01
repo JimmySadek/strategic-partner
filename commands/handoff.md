@@ -381,24 +381,85 @@ Anti-pattern: continuing to write the handoff file with dirty source
 state — every dirty case must be explicitly RESOLVED-AUTO, DECISION,
 or DIRTY; no silent ignores.
 
-### After Group 8 — Proceed to handoff file write
+### After Group 8 — Proceed to handoff file write (Steps 9-13)
 
 After all 8 groups have been walked and their states determined, the
-handoff file write protocol runs as the terminal step. The walk's
-per-group state output populates the handoff file's structured
-sections — Files Modified comes from Group 8; Serena Memory Updates
-from Group 4; Open Questions from Groups 5-7 DECISION rows; Pending
-Prompts from Group 7b; Pending Scripts from Group 7c.
+handoff file write runs as Steps 9-13. The walk's per-group state
+output populates the handoff file's structured sections:
 
-Follow `references/context-handoff.md` § Handoff Protocol exactly —
-Reflect → Derive Slug → Split Writes → Continuation Prompt → Display
-Results. The continuation prompt's FIRST LINE must be
-`/strategic-partner .handoffs/[topic-slug]-[MMDD-HHMM].md`.
+- **Files Modified** ← Group 8
+- **Serena Memory Updates** ← Group 4
+- **Open Questions / Blockers** ← Groups 5-7 DECISION rows
+- **Pending Implementation Prompts** ← Group 7b
+- **Pending Scripts** ← Group 7c
+- **Deferred Floor Signals** ← Group 1 fallback chain (when SKIPPED-USER)
 
-Display in this exact format:
+Follow `references/context-handoff.md` § Handoff Protocol Steps 1-6,
+which run as Steps 9-13 of this command body.
+
+### Step 9 — Reflect
+
+Synthesize state from the 8-group walk plus session context. Run
+`/insights` first; extract relevant items into the handoff file's
+`/insights Analysis` section. Then extract per the template:
+
+- **Primary goal**: what the user was trying to achieve
+- **Current state**: done / half-done / broken or blocked
+- **Key decisions made**: choices and the reasoning behind them
+- **Files modified**: every file created, edited, or deleted
+- **Open issues**: unresolved questions, blockers, follow-ups
+- **Pending prompts**: any implementation prompts not yet run
+- **Serena memory changes**: memories created, updated, or deleted
+- **Next immediate action**: single most important thing to do next
+
+### Step 10 — Derive topic slug
+
+From session goal and files touched, derive a 2-4 word hyphenated
+slug: `auth-refactor`, `dashboard-stats`, `subcommand-setup`,
+`closure-floor`.
+
+### Step 11 — Split writes
+
+Write up to three artifacts in parallel:
+
+| Artifact | Destination | Template |
+|---|---|---|
+| Session state | `.handoffs/[topic-slug]-[MMDD-HHMM].md` | `assets/templates/handoff-template.md` |
+| Pending prompts | `.prompts/[milestone]/[descriptor].md` | `assets/templates/prompt-template.md` |
+| Pending scripts | `.scripts/[descriptor].sh` | — |
+
+Prompt-save threshold: save if >250 lines OR >5 deliverables OR >1
+prompt pending. The handoff file references prompts by path in its
+"Pending Implementation Prompts" section and scripts by path in its
+"Pending Scripts" section.
+
+### Step 12 — Write the Continuation Prompt
+
+Append after the final `---` in the handoff file.
+
+**🔴 Critical**: The continuation prompt's **FIRST LINE** must be:
+
+```
+/strategic-partner .handoffs/[topic-slug]-[MMDD-HHMM].md
+```
+
+This restores the advisor persona via the argument path (startup
+uses `$ARGUMENTS` to load the specific handoff file). Omitting it
+means the next session starts in initialization mode and loses all
+session state.
+
+The prompt must be self-contained — a fresh session with zero context
+must understand what to do. Write it as if briefing a new expert
+collaborator. See `references/context-handoff.md` Step 4 for the
+recommended structure.
+
+### Step 13 — Display Results
+
+Present in this exact format:
 
 ```
 ✅ Handoff written to `.handoffs/[filename]`
+🧾 Closure floor: [N]/8 RESOLVED, [M] RESOLVED-AUTO, [K] SKIPPED-AUTO, [J] DECISION
 📁 Implementation prompts saved to `.prompts/[milestone]/` (if applicable)
 ```
 
@@ -413,6 +474,8 @@ Then a separator, followed by a clearly labeled block:
 
 Open a new Claude Code session and paste the above prompt to continue.
 ```
+
+**STOP** — no commentary, praise, or editorial after the fence.
 
 ## Thresholds Reference (Tiered Escalation)
 

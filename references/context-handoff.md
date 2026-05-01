@@ -216,6 +216,22 @@ The SP must catch session-end signals proactively.
 
 ### Step 1: 🔍 Reflect on the Session
 
+> **Note:** When invoked from `/strategic-partner:handoff`, the reflection
+> in this step is informed by the **8-group closure floor walk** that
+> ran as Steps 1-8 of the command body (see `commands/handoff.md`).
+> Each group's state output populates a slice of the handoff file:
+> - **Files Modified** ← Group 8 (working tree closure)
+> - **Serena Memory Updates** ← Group 4 (persistent memory ledger)
+> - **Open Questions / Blockers** ← Groups 5-7 DECISION rows
+> - **Pending Implementation Prompts** ← Group 7b (`.prompts/` scan)
+> - **Pending Scripts** ← Group 7c (`.scripts/` scan)
+> - **Deferred Floor Signals** ← Group 1 fallback chain (when SKIPPED-USER)
+>
+> When invoked outside the command body (e.g., manual reflection
+> on context-pressure trigger before reaching the closure walk),
+> Steps 1-6 of this protocol still produce a complete handoff —
+> the walk's per-group structure is informational, not load-bearing.
+
 **First**: Run `/insights` to get Claude Code's automated session analysis.
 Extract relevant items for the handoff file's `/insights Analysis` section.
 
@@ -315,9 +331,12 @@ This is an enforced guardrail, not a discretionary decision — ❌ never ask be
 ### Step 6: 📤 Display Results
 
 1. ✅ Confirmation: `Handoff written to .handoffs/[filename]`
-2. 📄 If prompts saved: `Implementation prompts saved to .prompts/[milestone]/`
-3. 📋 Label: **COPY THIS INTO NEW SESSION:**
-4. Fenced continuation prompt:
+2. 🧾 Closure walk summary (when invoked from the 8-group walk):
+   one-line count like `Closure floor: 6/8 RESOLVED, 1 RESOLVED-AUTO, 1 SKIPPED-AUTO`.
+   Skip if invoked outside the command body (manual reflection path).
+3. 📄 If prompts saved: `Implementation prompts saved to .prompts/[milestone]/`
+4. 📋 Label: **COPY THIS INTO NEW SESSION:**
+5. Fenced continuation prompt:
 
 ```
 ══════════════════════ START 🟢 COPY ══════════════════════
@@ -327,8 +346,8 @@ This is an enforced guardrail, not a discretionary decision — ❌ never ask be
 ══════════════════════= END 🛑 COPY ═══════════════════════
 ```
 
-5. 💡 Reminder: `Open a new Claude Code session and paste the above prompt to continue.`
-6. **STOP.** Do not add commentary, praise, or editorial after the fence.
+6. 💡 Reminder: `Open a new Claude Code session and paste the above prompt to continue.`
+7. **STOP.** Do not add commentary, praise, or editorial after the fence.
 
 **🚨 Anti-patterns at handoff display:**
 - ❌ "Copy the continuation prompt from the handoff file" — NEVER redirect the
