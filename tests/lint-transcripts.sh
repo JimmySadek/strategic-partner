@@ -858,6 +858,13 @@ fi
 # Report
 # ---------------------------------------------------------------------------
 if [ "$total_violations" -gt 0 ]; then
+  # Output shape note (v5.15.0):
+  # The format "across %d of %d file(s)" is an intentional evolution from the
+  # v5.14.0 baseline of "across %d file(s)". The new format reports BOTH
+  # files-with-findings AND total-files-scanned (strictly more information),
+  # whereas the prior format only surfaced one number. This is a deliberate
+  # backward-incompatible change documented in CHANGELOG.md v5.15.0 § Changed.
+  # Downstream parsers expecting the older single-number format must update.
   printf 'Transcript lint: %d violation(s) found across %d of %d file(s)\n\n' \
     "$total_violations" "$files_with_violations" "$total_files"
   printf '%s\n' "$all_violation_lines"
