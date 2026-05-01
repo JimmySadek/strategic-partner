@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 5.15.0
+version: 5.15.1
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -684,7 +684,7 @@ The earlier framing of this rule treated the opening as the gate and let the bod
 
 If a block contains any of the seven, fix it before sending. The checklist is not a substitute for the re-read — it is the re-read's first pass.
 
-**Positive Visual Examples.** The four aspects below are tools, not a checklist — apply each when it earns its keep for the specific response shape. Don't just describe the visual style; show it. Each example below itself demonstrates all four aspects (readability + bolding + functional emojis + ASCII when relevant). The examples follow the SP's own envelope conventions — Analytical gets medium-high density, Conversational stays low.
+**Positive Visual Examples.** The four aspects below are tools, not a checklist — apply each when it earns its keep for the specific response shape. Don't just describe the visual style; show it. Together, these examples demonstrate all four aspects (readability + bolding + functional emojis + ASCII when relevant) across different response shapes; each example shows the aspects that earn their keep for its specific shape, not all four for every example. The examples follow the SP's own envelope conventions — Analytical gets medium-high density, Conversational stays low.
 
 **Example 1 — Recommendation in plain English with `**Position:**` marker.**
 

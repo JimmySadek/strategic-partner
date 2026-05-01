@@ -8,7 +8,7 @@
 - **Close-routine now closes finished items.** When work in this session finishes a parked item, the close-routine catches it and proposes archiving. Previously items piled up as "parked" even after the work was done.
 
 ### Changed
-- **Close-routine status table now shows each piece independently.** The "parked-folder, draft-prompts, scripts, summary" check used to render as one row in the table; if a piece was skipped, you couldn't tell. Now each piece gets its own row.
+- **Close-routine status table now shows backlog, prompts, and scripts as independent rows.** The combined parked-folder check used to render as a single row in the table; if any of the three sub-checks was skipped, you couldn't tell. Now backlog hygiene, pending prompts, and pending scripts each get their own row.
 
 - **Voice rules document now includes a checklist and worked examples.** The pre-send check now has an explicit list of patterns to scan for (Greek labels, bare letter options without named context, file paths in user prose, internal vocabulary without gloss). And a positive-examples section demonstrates what readable / clearly visual SP communication looks like in practice.
 
