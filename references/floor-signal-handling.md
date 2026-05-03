@@ -19,14 +19,35 @@ matters more than dispatch speed.
 
 ## Pattern: routing=missing or routing=stale
 
-**Trigger:** Floor sentinel emits `routing=missing` (no
-`.serena/memories/skill_routing_matrix.md`) or `routing=stale`
-(matrix exists but file mtime is older than 1 hour).
+**Trigger:** Floor sentinel emits one of:
+
+- `routing=missing` — neither
+  `.serena/memories/skill_routing_matrix.md` nor
+  `.claude/skill-routing-matrix.md` exists. Initial build needed.
+- `routing=stale hash_diff=<current>:<stored>` — matrix exists, but the
+  stored `inventory_hash` differs from a freshly-recomputed hash of the
+  current agent inventory (`~/.claude/agents/*.md` filenames). The
+  inventory has actually changed (additions, removals, renames) —
+  rebuild is meaningful work, not waste.
+- `routing=stale hash_diff=<current>:none` — matrix file exists but has
+  no `inventory_hash:` field. Older matrix from a pre-v5.16.0 release,
+  or the field was stripped. Treat as stale; rebuild populates the
+  field.
+- `routing=stale hash_compute_failed` — sha256 backend missing or hash
+  compute errored. Defensive fail-stale; rare, indicates a hook
+  environment issue (e.g., neither `sha256sum` nor `shasum` on PATH).
+- `routing=stale hash_compute_failed inventory_unavailable` —
+  `~/.claude/agents/` is missing or empty so the hash cannot be
+  computed. Fail stale rather than emit a placeholder hash that would
+  never match Agent D's. Rebuild dispatches and reseeds the inventory.
+
+`routing=fresh hash=<short>` is the no-action case: the cached matrix is
+current, and no rebuild dispatches.
 
 **Surface in orientation:** Note the matrix state in one line.
-"Routing matrix is stale (last refreshed Nh ago) — dispatching a
-background rebuild." or "No routing matrix found — dispatching a
-background build."
+"Routing matrix is stale (inventory changed since last build) —
+dispatching a background rebuild." or "No routing matrix found —
+dispatching a background build."
 
 **Dispatch parameters:**
 
@@ -35,8 +56,8 @@ background build."
 - **Model**: `opus` (explicit — do not inherit the user-thread model)
 - **`run_in_background`**: `true` (the SP continues advisory work
   without blocking)
-- **Mode**: `acceptEdits` (the agent will write to the Serena memory
-  file under `.serena/memories/`)
+- **Mode**: `acceptEdits` (the agent will write to Serena memory or to
+  `.claude/skill-routing-matrix.md` depending on Serena availability)
 
 **Prompt skeleton:**
 
@@ -46,7 +67,11 @@ You are building the SP routing matrix for the project at [PROJECT_PATH].
 Read the system-reminder skill list available in this conversation, plus
 the contents of these reference files:
 
-- references/skill-routing-matrix.md (canonical task categories)
+- references/skill-routing-matrix.md (canonical task categories +
+  inventory_hash protocol — Initialization Step 6 has the exact hash
+  inputs and shell shape)
+- references/startup-checklist.md § Step 5 detail (canonical persistence
+  rules: Serena memory if active, .claude/skill-routing-matrix.md if not)
 - .claude/agents/ (project-level custom agents — directory may not exist)
 - ~/.claude/agents/ (user-level custom agents — directory may not exist)
 
@@ -54,24 +79,55 @@ For each available skill, match it to a task category from the routing
 matrix reference. Build a markdown table with columns:
 | Task Category | Best Tool | Why | Tier |
 
-Then write the table to .serena/memories/skill_routing_matrix.md (full
-file replacement is fine — this is the canonical version). Include a
-header comment with today's date and the count of skills mapped.
+Compute the inventory_hash per references/skill-routing-matrix.md
+Initialization Step 6 — the input (sorted basenames of
+~/.claude/agents/*.md plus agent_count) and shell shape MUST match the
+floor sentinel's Group 7 hook in SKILL.md so the next session sees
+`routing=fresh`.
+
+Persistence — write to ONE source of truth based on Serena availability:
+
+- If Serena memory tools (mcp__plugin_serena_serena__*) are available
+  in this conversation → write the matrix to Serena memory
+  `skill_routing_matrix` via write_memory. The memory body includes the
+  table + footer with inventory_hash + other metadata.
+- If Serena memory tools are NOT available → write to
+  .claude/skill-routing-matrix.md (full file replacement). The footer
+  includes inventory_hash on a line of the form:
+    inventory_hash: "sha256:<short>"
+
+Do NOT write to both. Do NOT create .claude/sp-routing-matrix.md
+(deprecated as of v5.16.0).
+
+Include a header comment with today's date and the count of skills
+mapped.
 
 Return: one-line summary "Matrix built: N skills mapped, M custom agents
-detected." Do not return prose explanations of individual mappings.
+detected. Persistence: <serena|.claude>. inventory_hash: sha256:<short>."
+Do not return prose explanations of individual mappings.
 ```
 
 **Verification (the SP runs this in its own thread after the agent
 returns):**
 
 ```
+# When Serena was the persistence target:
 mcp__plugin_serena_serena__list_memories
 # expect skill_routing_matrix in the list
 
 mcp__plugin_serena_serena__read_memory(memory_file_name="skill_routing_matrix")
-# expect a markdown table with task categories
+# expect a markdown table with task categories AND a footer line:
+# inventory_hash: "sha256:<short>"
+
+# When .claude/skill-routing-matrix.md was the persistence target:
+# Read the file directly and grep for the inventory_hash line:
+grep '^inventory_hash:' .claude/skill-routing-matrix.md
+# expect: inventory_hash: "sha256:<short>"
 ```
+
+If the inventory_hash line is missing from the artifact, the next floor
+sentinel run will still report `routing=stale hash_diff=...:none` and
+re-dispatch. Surface this as a verification failure to the user.
 
 **Post-dispatch hygiene:**
 

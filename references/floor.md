@@ -107,17 +107,54 @@ pretty-printed JSON (whitespace between key and value). Detects:
 
 ### Group 7 — Routing Matrix Freshness
 
-Detects whether the Serena `skill_routing_matrix.md` memory is recent
-enough to trust without rebuilding:
+Detects whether the cached routing matrix matches the current agent
+inventory. Staleness is content-based (an inventory hash stored in the
+matrix footer is compared against a hash recomputed from the live
+filesystem), not time-based — the matrix only needs rebuilding when the
+agent inventory actually changed.
 
-- **`g7.routing`** — `fresh age_seconds=N` (file mtime within the last
-  hour), `stale age_seconds=N` (older than an hour), or `missing` if the
-  file does not exist
+The hook reads from a fallback chain:
 
-The 1-hour staleness window is a heuristic balancing freshness against
-dispatch overhead. New skills installed since the last build will not be
-visible until the matrix is rebuilt; the SP surfaces stale matrices in
-orientation per the Floor-Signal Handling table in SKILL.md.
+1. `.serena/memories/skill_routing_matrix.md` (preferred when Serena is active)
+2. `.claude/skill-routing-matrix.md` (fallback when Serena memory is absent)
+3. Neither present → `missing`
+
+Detects:
+
+- **`g7.routing`** — one of:
+  - `fresh hash=<short>` — stored `inventory_hash` matches the current
+    inventory hash. Matrix is current; no rebuild needed.
+  - `stale hash_diff=<current>:<stored>` — stored hash differs from
+    current. Agent inventory has actually changed (added, removed, or
+    renamed) — rebuild is meaningful work.
+  - `stale hash_diff=<current>:none` — matrix file exists but has no
+    `inventory_hash:` field (older matrix from a pre-v5.16.0 release, or
+    field was stripped). Treat as stale and rebuild to populate the field.
+  - `stale hash_compute_failed` — sha256 backend missing or hash compute
+    errored. Defensive fail-stale; rare, indicates hook environment issue.
+  - `stale hash_compute_failed inventory_unavailable` —
+    `~/.claude/agents/` is missing or empty. The hash cannot be computed
+    from a non-existent inventory, so fail stale rather than emit a
+    placeholder hash that would never match Agent D's.
+  - `missing` — neither matrix file exists. Initial build is needed.
+
+The hash input is **agent filenames only** — sorted basenames of
+`~/.claude/agents/*.md` plus the count, sha256-hashed and truncated to
+16 hex chars. This is the one inventory the hook (which sees only the
+prompt envelope, not the system-reminder skill list) can read from the
+same filesystem location Agent D reads — guaranteeing identical inputs
+and therefore identical hashes when nothing changed. Skills and MCP
+servers are inventoried in the matrix BODY for routing decisions but
+are NOT in the freshness hash, because the hook cannot reliably
+enumerate them at hook time. Trade-off: pure skill or MCP installs
+without an accompanying agent change are not auto-detected by the
+floor; an explicit refresh via `/strategic-partner:update` (or any
+future explicit-refresh command) handles those cases.
+
+Hash algorithm: sha256, truncated to 16 hex chars. Backend: `sha256sum`
+(Linux) with `shasum -a 256` fallback (macOS). The SP surfaces stale or
+missing matrices in orientation per the Floor-Signal Handling table in
+SKILL.md.
 
 ---
 

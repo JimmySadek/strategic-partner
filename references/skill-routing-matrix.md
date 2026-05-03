@@ -140,26 +140,77 @@ Step 4: Map skills to task categories
   │   └─ Build routing entry
   └─ Merge with built-in Agent types (always available)
 
-Step 5: Store the complete matrix in Serena as `skill_routing_matrix`
+Step 5: Store the complete matrix at the canonical location
+  ├─ If Serena is active → write to Serena memory `skill_routing_matrix`
+  └─ If Serena is absent → write to `.claude/skill-routing-matrix.md`
+
+Step 6: Compute and emit inventory_hash in the matrix footer
+  ├─ Inventory hash scope (v5.16.0): agent filenames only.
+  │  The matrix body inventories skills + MCP servers + agents for
+  │  routing decisions, but ONLY agent filenames feed the hash —
+  │  because the floor sentinel hook cannot reliably enumerate
+  │  skills or MCP servers from its $payload context, and the hash
+  │  must use inputs both Agent D and the floor can read identically.
+  │   └─ Inputs:
+  │       ├─ Sorted basenames of ~/.claude/agents/*.md (user-level)
+  │       └─ agent_count
+  ├─ Algorithm: sha256, truncated to 16 hex chars
+  ├─ Trade-off: pure skill or MCP installs without an accompanying
+  │  agent change are NOT auto-detected by the floor; explicit
+  │  refresh (`/strategic-partner:update` or any future
+  │  explicit-refresh command) handles those cases. Agent changes
+  │  are the most common config delta in practice.
+  └─ Emit as YAML footer field: inventory_hash: "sha256:<short>"
+     The floor sentinel reads this on next session start to decide
+     whether the cached matrix is still current.
 ```
 
 ### Continuation (Returning Session)
 
 ```
-Step 1: Read cached matrix from Serena (`skill_routing_matrix`)
+Step 1: Read cached matrix from canonical location
+  ├─ Prefer Serena memory `skill_routing_matrix` if Serena is active
+  └─ Else read `.claude/skill-routing-matrix.md`
+     Extract the stored inventory_hash from the footer.
 
-Step 2: Compare against current system context
-  ├─ Skills in cache but NOT in system-reminder → mark as removed
-  ├─ Skills in system-reminder but NOT in cache → mark as new
-  └─ Skills in both → keep existing entry
+Step 2: Compute current_hash from current inventory
+  ├─ Same filesystem input and algorithm as Initialization Step 6
+  └─ sha256 of (sorted basenames of ~/.claude/agents/*.md + count),
+     truncated to 16 hex chars
 
-Step 3: If changes detected
-  ├─ Build entries for new skills
-  ├─ Remove stale entries
-  └─ Update Serena with revised matrix
+Step 3: If current_hash == stored_hash
+  └─ Use cached matrix as-is (zero rebuild cost). The floor sentinel's
+     Group 7 check will have already emitted routing=fresh; this step
+     just confirms inside Agent D's protocol when it runs.
 
-Step 4: If no changes → use cached matrix (zero rebuild cost)
+Step 4: If current_hash differs OR stored_hash is missing
+  ├─ Rebuild the matrix per Initialization Steps 1-5
+  └─ Update the footer with the new inventory_hash from Step 6
+     (full file replacement is fine — the matrix is regenerated, not
+     patched)
 ```
+
+### Persistence — Single Canonical Location
+
+The matrix has ONE source of truth per project. The choice depends on
+whether Serena memory is active:
+
+| Project state | Source of truth | Floor sentinel reads |
+|---|---|---|
+| Serena active (memory tools available) | Serena memory `skill_routing_matrix` | `.serena/memories/skill_routing_matrix.md` |
+| Serena absent | `.claude/skill-routing-matrix.md` | `.claude/skill-routing-matrix.md` |
+
+The floor sentinel falls through Serena → `.claude/` automatically.
+Agent D writes to one location; the floor checks both.
+
+**Deprecation note (v5.16.0):** The legacy `.claude/sp-routing-matrix.md`
+companion file is DEPRECATED. Earlier releases sometimes wrote two files
+in non-Serena projects (one task-shape, one taxonomy-organized) — that
+caused a permanent rebuild loop in the BAM-MVP project (the floor only
+checked Serena memory while SP wrote to `.claude/`). Agent D no longer
+creates `sp-routing-matrix.md`. Existing copies in user projects remain
+on disk until natural rebuild via the canonical name; users may also
+delete them manually. Single canonical name: `skill-routing-matrix.md`.
 
 ### Fallback Chain
 

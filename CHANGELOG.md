@@ -1,5 +1,20 @@
 # Changelog
 
+## [5.16.0] - 2026-05-03
+
+### Fixed
+- **The routing matrix no longer rebuilds every session.** Previously, a fresh SP session opened more than an hour after the last build triggered a full rebuild, burning ~4 minutes and ~85K tokens to inventory the same skills, agents, and MCP servers as before. The startup floor check now compares a compact fingerprint of the agent inventory (a sha256 over the sorted filenames in `~/.claude/agents/`) against a fingerprint stored in the cached matrix. If they match, the cached matrix is reused with no rebuild. If they differ, only then does a rebuild run — because something actually changed. The freshness check itself runs in ~150ms per invocation, well under the 200ms budget for the startup floor, and uses zero LLM tokens when nothing changed. The fingerprint covers agents only (not skills or MCP servers) because the startup hook can read `~/.claude/agents/` from the same filesystem location the rebuild does — that's the only inventory source where the two sides are guaranteed to compute identical hashes. Pure skill or MCP installs without an accompanying agent change are not auto-detected by the floor; an explicit refresh via `/strategic-partner:update` handles those cases.
+
+- **A permanent rebuild loop in projects without Serena memory is now closed.** Previously, the floor only checked the Serena memory location, while the SP wrote the matrix to `.claude/` files when Serena was absent — so the floor saw "missing" every session and dispatched a rebuild every session. The floor now falls through Serena → `.claude/skill-routing-matrix.md` → missing, and the SP writes to one canonical location based on whether Serena is active. (User-flagged via the BAM-MVP project, where Serena memory was absent and two competing matrix files had accumulated.)
+
+### Added
+- **`inventory_hash` field in the routing matrix footer.** Each rebuilt matrix now records a 16-character sha256 fingerprint of the agent inventory alongside the existing `routing_status`, `scan_timestamp`, `errors`, and `counts` fields. The startup floor reads this field on the next session start to decide whether the cached matrix is current. The fingerprint covers sorted `~/.claude/agents/` filenames plus the agent count so the floor — which has no access to the in-conversation skill list — can recompute the same hash that the matrix builder wrote.
+
+- **A new Provisional Guard in CLAUDE.md** — routing-matrix freshness must be content-based, not time-based. Codifies the inventory-hash decision so future floor work doesn't regress to mtime + time-window heuristics, and pins the hash inputs to filesystem sources both the floor and the matrix builder can see.
+
+### Changed
+- **Single canonical routing-matrix file when Serena is absent.** The matrix builder now writes to one source of truth per project: Serena memory `skill_routing_matrix` when Serena is active, else `.claude/skill-routing-matrix.md`. The legacy `.claude/sp-routing-matrix.md` companion is deprecated and no longer created. Existing legacy files in user projects remain on disk until natural rebuild via the canonical name.
+
 ## [5.15.2] - 2026-05-03
 
 ### Fixed

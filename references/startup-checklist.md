@@ -228,11 +228,21 @@ ensures commands are registered even if setup was never run manually.
 **Version check** is handled inline in Step 1.5 via a single curl command.
 See the "Version Check (inline, not an agent)" section above.
 
-### Agent D: 🗺️ Environment Discovery + Routing Matrix (mode: "auto", MANDATORY)
+### Agent D: 🗺️ Environment Discovery + Routing Matrix (mode: "auto", DISPATCHED ONLY ON FLOOR-SIGNAL)
 
 Full environment scan: skills, custom agents, MCP servers/plugins, and routing
 matrix build. This is mechanical work — exactly what agents should handle.
-**Never skip or defer.**
+
+**When to dispatch (v5.16.0+ contract):** Agent D is dispatched only when
+the floor sentinel reports the matrix is not current — concretely, when
+the `SP-FLOOR-COMPLETE` line carries `routing=stale ...` or
+`routing=missing`. When the floor reports `routing=fresh hash=<short>`,
+the cached matrix's `inventory_hash` matched the live filesystem
+inventory, and Agent D is skipped — the SP uses the cached matrix.
+
+Earlier releases dispatched Agent D unconditionally on every fresh
+session, which is what caused the every-session rebuild waste this
+release fixes. Treat the floor signal as authoritative.
 
 **What it does:**
 
@@ -263,9 +273,77 @@ matrix build. This is mechanical work — exactly what agents should handle.
 │     ├─ Merge with built-in Agent types (always available)      │
 │     └─ Annotate with MCP tool availability                     │
 │                                                                │
-│  5. 💾 Return: full environment summary                        │
+│  5. 💾 Compute inventory_hash + persist + return summary       │
 └────────────────────────────────────────────────────────────────┘
 ```
+
+**Step 5 detail — `inventory_hash` and canonical persistence:**
+
+After steps 1-4 complete, Agent D MUST emit an `inventory_hash` field in
+the matrix footer. The floor sentinel (Group 7) reads this hash on the
+next session start to decide whether to skip the rebuild — if the hash
+still matches the live inventory, the matrix is current and no rebuild
+dispatches.
+
+**Inventory hash scope (v5.16.0): agent filenames only.**
+`inventory_hash = sha256(sorted basenames of ~/.claude/agents/*.md + count)`,
+truncated to 16 hex chars. The matrix BODY still inventories skills, MCP
+servers, and agent definitions for routing decisions, but ONLY agent
+filenames feed the hash because the floor sentinel hook cannot reliably
+enumerate skills or MCP servers from its `$payload` context — and the
+hash must use inputs both Agent D and the floor can read identically.
+
+**Trade-off**: pure skill or MCP installs without an accompanying agent
+change are not auto-detected by the floor; an explicit refresh path
+(currently `/strategic-partner:update`, or any future explicit-refresh
+command) handles those cases. In practice, agent changes are the most
+common config delta when a user is iterating on their setup, and skill
+installs typically arrive alongside an agent change — so agent
+filenames serve as a reliable cross-context proxy for "the user's
+config has shifted enough to warrant a rebuild."
+
+Compute as follows:
+
+```
+inventory_hash = sha256(
+  sorted(agent filenames basenames):
+    ~/.claude/agents/*.md          (user-level)
+  + count: agent_count
+), truncated to 16 hex chars.
+```
+
+The shell shape (must match the Group 7 hook in SKILL.md):
+
+```
+agents_list=$(ls ~/.claude/agents/*.md 2>/dev/null \
+              | xargs -n1 basename 2>/dev/null | sort)
+agent_count=$(printf '%s' "$agents_list" | grep -c .)
+printf 'agents:\n%s\ncount:%s\n' "$agents_list" "$agent_count" \
+  | sha256sum (or shasum -a 256) | awk '{print $1}' | cut -c1-16
+```
+
+Emit as `inventory_hash: "sha256:<short>"` in the YAML footer alongside
+the existing `routing_status`, `scan_timestamp`, `errors`, `counts`,
+`category_counts`, and `notes` fields.
+
+Note: Agent D may use the system-reminder skill list to BUILD the
+matrix's task-category mappings (that's where the descriptions live),
+but the inventory_hash MUST be computed from the agent-filenames input
+above so the floor sentinel — which has no access to system-reminder —
+can recompute the same hash on next session start.
+
+**Canonical persistence — write to ONE source of truth:**
+
+- If Serena is active in this project (memory tools available) → write
+  the matrix to Serena memory `skill_routing_matrix`. This is the
+  preferred source of truth; the floor sentinel reads it first.
+- If Serena is absent → write to `.claude/skill-routing-matrix.md`. The
+  `.claude/` directory is gitignored by default and is the canonical
+  fallback location.
+- Do NOT write to both. The matrix has one source of truth per project.
+- Do NOT create `.claude/sp-routing-matrix.md` — that legacy companion
+  file is DEPRECATED as of v5.16.0. Single canonical name:
+  `skill-routing-matrix.md` everywhere it appears outside Serena memory.
 
 **Return format:**
 ```
@@ -273,7 +351,9 @@ matrix build. This is mechanical work — exactly what agents should handle.
   skills: { total: N, new_since_cache: N, removed_since_cache: N },
   agents: { user_level: N, project_level: N, errors: [] },
   mcp_servers: { active: ["serena", ...], tool_count: N },
-  routing_status: "built" | "cached" | "fallback"
+  routing_status: "built" | "cached" | "fallback",
+  inventory_hash: "sha256:<short>",
+  persistence_target: "serena" | ".claude/skill-routing-matrix.md"
 }
 ```
 
@@ -292,17 +372,21 @@ The SP should reason from the environment summary, not spend context building it
 ```
 Agent D succeeds fully
   └─ routing_status: "built"
-     Store matrix in Serena as skill_routing_matrix
+     Store matrix in Serena as skill_routing_matrix (or
+     .claude/skill-routing-matrix.md if Serena absent)
+     Footer includes inventory_hash for next-session freshness check
 
 Agent D partial failure (e.g., agent scan fails, skills readable)
   └─ routing_status: "built" (with errors noted in agents.errors)
      Use what succeeded + note gaps in orientation
+     inventory_hash still computed from successful portions
 
 Agent D total failure
-  └─ Read Serena cached matrix (skill_routing_matrix)
+  └─ Read Serena cached matrix (skill_routing_matrix) or
+     .claude/skill-routing-matrix.md
      routing_status: "cached"
 
-No Serena cache exists
+No cached matrix exists anywhere
   └─ Match system-reminder skills to task categories + built-in Agent types
      routing_status: "fallback"
 ```
@@ -355,23 +439,35 @@ While agents are running, read session context in parallel:
    "quoted characters in flag names" safety warning.
 
 **Note**: Custom agent scanning and routing matrix building are handled by
-Agent D (Step 2). The SP reads state here while Agent D works in parallel.
+Agent D (Step 2). When the floor sentinel reports `routing=fresh hash=<short>`,
+Agent D is skipped and the SP uses the cached matrix at the canonical
+location (Serena memory `skill_routing_matrix` if active, else
+`.claude/skill-routing-matrix.md`). When the floor reports `routing=stale ...`
+or `routing=missing`, Agent D works in parallel with the state reads here.
 
 ---
 
 ## ✅ Step 4: Verify Agent Results (Gate)
 
-Before presenting orientation, verify **Agent D** completed successfully.
-This is a **blocking verification** — Agents A and B provide useful context
-but are not security-critical.
+Before presenting orientation, verify any agents that were dispatched.
+**Agent D verification is required only when Agent D was dispatched** —
+it is skipped on `routing=fresh hash=<short>`. Agents A and B provide
+useful context but are not security-critical.
 
-### 🗺️ Agent D Verification (Required)
+### 🗺️ Routing Matrix Source
+
+| Floor signal | Source for orientation | Verification |
+|---|---|---|
+| `routing=fresh hash=<short>` | Cached matrix at canonical location (Agent D skipped) | None — the floor's hash match is itself the verification |
+| `routing=stale ...` or `routing=missing` (Agent D dispatched) | Agent D's return summary | Per the table below |
+
+### 🗺️ Agent D Verification (Required only when Agent D ran)
 
 | Result | Action |
 |---|---|
-| ✅ `routing_status: "built"` (no errors) | Store matrix in Serena as `skill_routing_matrix`. Report: "N skills available, M agents detected. Routing matrix built." |
-| ✅ `routing_status: "built"` (with errors) | Store matrix, note gaps. Report: "N skills available, M agents detected (scan had issues — count may be incomplete)." |
-| ⚠️ `routing_status: "cached"` | Using Serena cached matrix. Report: "Using cached routing matrix (environment scan failed). N skills in cache." |
+| ✅ `routing_status: "built"` (no errors) | Persist matrix per Step 5 detail (Serena memory if active, else `.claude/skill-routing-matrix.md`). Report: "N skills available, M agents detected. Routing matrix built." |
+| ✅ `routing_status: "built"` (with errors) | Persist matrix, note gaps. Report: "N skills available, M agents detected (scan had issues — count may be incomplete)." |
+| ⚠️ `routing_status: "cached"` | Using cached matrix from canonical location. Report: "Using cached routing matrix (environment scan failed). N skills in cache." |
 | ❌ `routing_status: "fallback"` | No cache available. Report: "Limited routing — no cache available. Routing from system context only." |
 
 ### 🔍 Agents A/B Integration (Non-blocking)
@@ -406,7 +502,12 @@ and ask what the user wants to work on.
 - ⚠️ Any agent warnings from Step 4
 - ❌ Staleness check results (if FAIL)
 - 🌿 Current branch and git state
-- 🗺️ Environment summary from Agent D: skill count, agent count (with any scan errors noted), active MCP servers
+- 🗺️ Environment summary: skill count, agent count (with any scan errors
+  noted), active MCP servers. Source depends on the floor's routing signal:
+  - `routing=fresh hash=<short>` → counts read from the cached matrix's
+    `counts:` footer (Agent D was skipped, so use the existing matrix).
+  - `routing=stale ...` or `routing=missing` → counts come from Agent D's
+    return summary.
 - ⚡ Update available (from inline version check in Step 1.5): one-liner with version diff and update command
 - 🔧 **Context advisory** (1M-context sessions only): If the detected model
   has a 1M context window (Opus 4.7, or any model running with

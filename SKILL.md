@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 5.15.2
+version: 5.16.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -294,20 +294,70 @@ hooks:
               fi
             } >> "${RESULTS}.tmp" 2>/dev/null
 
-            # Group 7 — Routing matrix freshness (1-hour staleness window)
+            # Group 7 — Routing matrix freshness (agent-inventory hash)
             {
-              ROUTING_FILE="$cwd/.serena/memories/skill_routing_matrix.md"
-              if [ -n "$cwd" ] && [ -f "$ROUTING_FILE" ]; then
-                file_mtime=$(stat -f %m "$ROUTING_FILE" 2>/dev/null || stat -c %Y "$ROUTING_FILE" 2>/dev/null || printf '0')
-                now=$(date +%s)
-                age=$((now - file_mtime))
-                if [ "$age" -lt 3600 ]; then
-                  printf 'g7.routing=fresh age_seconds=%s\n' "$age"
-                else
-                  printf 'g7.routing=stale age_seconds=%s\n' "$age"
-                fi
+              ROUTING_FILE_SERENA="$cwd/.serena/memories/skill_routing_matrix.md"
+              ROUTING_FILE_FALLBACK="$cwd/.claude/skill-routing-matrix.md"
+              if [ -n "$cwd" ] && [ -f "$ROUTING_FILE_SERENA" ]; then
+                ROUTING_FILE="$ROUTING_FILE_SERENA"
+              elif [ -n "$cwd" ] && [ -f "$ROUTING_FILE_FALLBACK" ]; then
+                ROUTING_FILE="$ROUTING_FILE_FALLBACK"
               else
+                ROUTING_FILE=""
+              fi
+              if [ -z "$ROUTING_FILE" ]; then
                 printf 'g7.routing=missing\n'
+              else
+                if command -v sha256sum >/dev/null 2>&1; then
+                  SHA_CMD="sha256sum"
+                elif command -v shasum >/dev/null 2>&1; then
+                  SHA_CMD="shasum -a 256"
+                else
+                  SHA_CMD=""
+                fi
+                if [ -z "$SHA_CMD" ]; then
+                  printf 'g7.routing=stale hash_compute_failed\n'
+                else
+                  # Inventory source: agent filenames in ~/.claude/agents/ only.
+                  # This is the one inventory both the floor and Agent D can read
+                  # from the same filesystem location → identical hash inputs →
+                  # identical hashes when nothing changed. Skills and MCP servers
+                  # are NOT in the hash because the UserPromptSubmit payload does
+                  # not reliably expose them at hook time, and skill/MCP install
+                  # paths vary across harnesses. Trade-off: pure skill or MCP
+                  # installs without an accompanying agent change are not
+                  # auto-detected by the floor; explicit refresh
+                  # (/strategic-partner:update or any future explicit-refresh
+                  # path) handles those cases.
+                  AGENT_DIR="${HOME}/.claude/agents"
+                  if [ -d "$AGENT_DIR" ]; then
+                    agents_list=$(ls "$AGENT_DIR"/*.md 2>/dev/null | xargs -n1 basename 2>/dev/null | sort)
+                    agent_count=$(printf '%s' "$agents_list" | grep -c . 2>/dev/null | tr -d ' \n')
+                  else
+                    agents_list=""
+                    agent_count=0
+                  fi
+                  [ -z "$agent_count" ] && agent_count=0
+                  if [ -z "$agents_list" ] || [ "$agent_count" = "0" ]; then
+                    printf 'g7.routing=stale hash_compute_failed inventory_unavailable\n'
+                  else
+                    current_hash=$(printf 'agents:\n%s\ncount:%s\n' \
+                                   "$agents_list" "$agent_count" \
+                                   | $SHA_CMD 2>/dev/null | awk '{print $1}' | cut -c1-16)
+                    if [ -z "$current_hash" ] || [ ${#current_hash} -ne 16 ]; then
+                      printf 'g7.routing=stale hash_compute_failed\n'
+                    else
+                      stored_hash=$(grep '^inventory_hash:' "$ROUTING_FILE" 2>/dev/null | head -1 | awk -F'"' '{print $2}' | sed 's/^sha256://')
+                      if [ -n "$stored_hash" ] && [ "$current_hash" = "$stored_hash" ]; then
+                        printf 'g7.routing=fresh hash=%s\n' "$current_hash"
+                      elif [ -n "$stored_hash" ]; then
+                        printf 'g7.routing=stale hash_diff=%s:%s\n' "$current_hash" "$stored_hash"
+                      else
+                        printf 'g7.routing=stale hash_diff=%s:none\n' "$current_hash"
+                      fi
+                    fi
+                  fi
+                fi
               fi
             } >> "${RESULTS}.tmp" 2>/dev/null
 
