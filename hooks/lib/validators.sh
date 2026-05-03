@@ -401,7 +401,7 @@ validate_identity_reset() {
 # tests/lint-voice.sh (static-file scanner) and tests/lint-transcripts.sh
 # (transcript scanner) both call this helper instead of inlining the patterns.
 #
-# Six mechanical patterns, each emitting a per-violation line on stdout:
+# Seven mechanical patterns, each emitting a per-violation line on stdout:
 #
 #   1. FUNCTION-CALL-IN-PROSE    — \w+_\w+\(\) function-call notation
 #   2. INCIDENT-ID-IN-PROSE      — INC-YYYY-MM-DD incident IDs
@@ -409,6 +409,7 @@ validate_identity_reset() {
 #   4. LAYER-REF                 — Layer N internal references
 #   5. RAW-LINE-REF              — line N raw line references
 #   6. DELIVERABLE-REF           — deliverable N internal references
+#   7. PLACEHOLDER-STRING-IN-PROSE — [Populated at...]/[TODO]/[PENDING]/[FIXME]/[XXX] markers
 #
 # The DELIVERABLE-REF pattern is case-sensitive on the lowercase form only.
 # A capitalised "Deliverable 1" in a section header is legitimate ceremony,
@@ -522,6 +523,37 @@ validate_voice_patterns() {
       match="${BASH_REMATCH[1]}"
       printf '%s:%s: DELIVERABLE-REF: internal deliverable reference "%s" appears in user-facing prose. Describe what the work item is in plain English instead of citing it by number.\n' \
         "$file_path" "$report_line" "$match"
+      found_violation=1
+    fi
+
+    # ---- Pattern 7: PLACEHOLDER-STRING-IN-PROSE — incomplete-draft markers ----
+    # Catches placeholder strings shipped in user-facing prose:
+    #   [Populated at ...]   (the v5.15.0 incident pattern)
+    #   [TODO] / [TODO:...]
+    #   [PENDING] / [PENDING:...]
+    #   [FIXME] / [FIXME:...]
+    #   [XXX] / [XXX:...]
+    # Inline backtick-wrapped spans are stripped first — they show the marker
+    # as a code reference (e.g., a CHANGELOG entry describing this lint rule)
+    # rather than as actual incomplete prose. Match is case-insensitive.
+    local stripped_line lower_line placeholder_match
+    stripped_line=$(printf '%s' "$line" | sed 's/`[^`]*`//g')
+    lower_line=$(printf '%s' "$stripped_line" | tr '[:upper:]' '[:lower:]')
+    placeholder_match=""
+    case "$lower_line" in
+      *"[populated at"*) placeholder_match="[Populated at...]" ;;
+      *"[todo]"*)        placeholder_match="[TODO]" ;;
+      *"[todo:"*)        placeholder_match="[TODO:...]" ;;
+      *"[pending]"*)     placeholder_match="[PENDING]" ;;
+      *"[pending:"*)     placeholder_match="[PENDING:...]" ;;
+      *"[fixme]"*)       placeholder_match="[FIXME]" ;;
+      *"[fixme:"*)       placeholder_match="[FIXME:...]" ;;
+      *"[xxx]"*)         placeholder_match="[XXX]" ;;
+      *"[xxx:"*)         placeholder_match="[XXX:...]" ;;
+    esac
+    if [ -n "$placeholder_match" ]; then
+      printf '%s:%s: PLACEHOLDER-STRING-IN-PROSE: incomplete-draft placeholder "%s" appears in user-facing prose. Replace with the final content before shipping.\n' \
+        "$file_path" "$report_line" "$placeholder_match"
       found_violation=1
     fi
   done <<EOF

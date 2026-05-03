@@ -379,3 +379,11 @@ Instead: when an executor brief includes a verification step that requires user-
 - **Scope**: Executor briefs whose verification depends on multi-process orchestration the agent cannot drive — separate terminals, fresh Claude Code sessions, manual lifecycle events.
 - **Source**: 2026-05-01 — `findings-0501.md` Issue 3 Pattern 4. Closure-floor brief's Component 5 used binary "any gate fails → don't ship" framing that elided the "untested in this scope" third state.
 - **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)
+
+### Cross-file template token names must agree across all files in the same authored set
+
+Instead: when authoring multiple template/specification files in sequence (e.g., a brief that produces both a template file AND a renderer command file AND a reference specification), use IDENTICAL token names across all files. Tokens like `[STATUS_EMOJI]` vs `[STATE_EMOJI]` differ in only one word but represent the same slot — divergence in any one file means the renderer doesn't fill the slot, or fills it inconsistently.
+
+- **Scope**: Multi-file authoring sessions where 2+ files share a templated token vocabulary. Specifically: brief deliverables that produce a template file (`assets/templates/`) AND a renderer command (`commands/`) OR a reference specification (`references/`).
+- **Source**: 2026-05-01 — `findings-0501.md` Issue 3 Pattern 2. Closure-floor brief produced `[STATUS_EMOJI]` in `assets/templates/handoff-template.md` and `[STATE_EMOJI]` in initial draft of `commands/handoff.md` inline render section. Caught at commit prep via visual scan; no automated detection. The mismatch was one word but represented the same slot in the renderer.
+- **Review**: 2026-08-01 (90 days from policy adoption on 2026-05-03)

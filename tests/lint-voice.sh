@@ -8,15 +8,17 @@
 # behavior violations; this one scans static documents for voice quality.
 #
 # Mechanical patterns (each is a release-blocking violation):
-#   1. FUNCTION-CALL-IN-PROSE   — \w+_\w+\(\) outside code blocks
-#   2. INCIDENT-ID-IN-PROSE     — INC-\d{4}-\d{2}-\d{2} outside code blocks
-#   3. DIRECTION-REF            — Direction\s+\d+ outside code blocks
-#   4. LAYER-REF                — Layer\s+\d+ outside code blocks
-#   5. RAW-LINE-REF             — line\s+~?\d+ outside code blocks
+#   1. FUNCTION-CALL-IN-PROSE       — \w+_\w+\(\) outside code blocks
+#   2. INCIDENT-ID-IN-PROSE         — INC-\d{4}-\d{2}-\d{2} outside code blocks
+#   3. DIRECTION-REF                — Direction\s+\d+ outside code blocks
+#   4. LAYER-REF                    — Layer\s+\d+ outside code blocks
+#   5. RAW-LINE-REF                 — line\s+~?\d+ outside code blocks
+#   6. DELIVERABLE-REF              — deliverable\s+\d+ (lowercase) outside code blocks
+#   7. PLACEHOLDER-STRING-IN-PROSE  — [Populated at...]/[TODO]/[PENDING]/[FIXME]/[XXX] markers
 #
 # Heuristic pattern (warn-only, does not fail the lint):
-#   6. INTERNAL-TERM-WITHOUT-GLOSS — first occurrence of an internal term
-#      without a gloss-shaped follow-up in the same paragraph.
+#   INTERNAL-TERM-WITHOUT-GLOSS — first occurrence of an internal term
+#     without a gloss-shaped follow-up in the same paragraph.
 #
 # Skip-block markers (HTML comments) suppress scanning for an inline range:
 #   <!-- voice-lint:skip-start -->
@@ -303,6 +305,15 @@ total_warnings=0
 all_output=""
 
 if [ "${#EXPLICIT_FILES[@]}" -gt 0 ]; then
+  # Explicit file mode: verify each file exists. Fail-closed if any path is
+  # bogus — the caller asked for a specific file by name and silently skipping
+  # it would mask configuration errors.
+  for explicit_f in "${EXPLICIT_FILES[@]}"; do
+    if [ ! -f "$explicit_f" ]; then
+      printf 'Voice lint: file not found: %s\n' "$explicit_f" >&2
+      exit 1
+    fi
+  done
   files_to_lint=$(printf '%s\n' "${EXPLICIT_FILES[@]}")
 else
   files_to_lint=$(collect_targets "$TARGET")
@@ -330,6 +341,26 @@ while IFS= read -r f; do
 done <<EOF
 $files_to_lint
 EOF
+
+# ---------------------------------------------------------------------------
+# Fail-closed sentinel: if we asked the lint to scan everything by default
+# (no --target flag, no explicit files) and the loop above produced zero
+# iterations, but the project's expected user-facing files are present on
+# disk, abort with exit 1. A release-time gate that silently reports "all
+# clean" when it never actually scanned anything is the most dangerous
+# failure mode (e.g., broken find, hostile environment, missing TMPDIR).
+# ---------------------------------------------------------------------------
+if [ "$total_files" -eq 0 ] \
+   && [ "$TARGET" = "all" ] \
+   && [ "${#EXPLICIT_FILES[@]}" -eq 0 ]; then
+  if [ -f "${SCRIPT_DIR}/CHANGELOG.md" ] \
+     || [ -f "${SCRIPT_DIR}/README.md" ] \
+     || [ -d "${SCRIPT_DIR}/commands" ]; then
+    printf 'Voice lint: scan failed — zero files collected, but expected files exist in %s. Aborting (fail-closed).\n' \
+      "$SCRIPT_DIR" >&2
+    exit 1
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # Report

@@ -121,7 +121,14 @@ release shape; the fourth audits SP's own chat output during the release session
 
 The release-review brief lists the relevant transcript files (from
 `.handoffs/` and the current Claude project's JSONL directory) under
-FILES TO READ so Codex can sample them when answering question 4.
+FILES TO READ so Codex can sample them when answering question 4. Note
+that the JSONL transcript directory at `~/.claude/projects/...` is
+OUTSIDE the project sandbox by default — add
+`--add-dir ~/.claude/projects/<encoded-project-dir>` to the dispatch
+command (see Step 5) to grant Codex read access. Without `--add-dir`,
+Codex falls back to scanning only `.handoffs/` files for voice quality,
+which is partial evidence; document the limitation in the verdict when
+this happens.
 
 ### Step 4 — Brief Preparation
 
@@ -130,20 +137,71 @@ The SP does NOT run Codex — it dispatches via Agent.
 
 ### Step 5 — Dispatch
 
-Canonical invocation (no exceptions, no variations):
+**Sandbox mode depends on the review mode:**
+
+| Review mode | Sandbox flag | Why |
+|---|---|---|
+| Mode A — Decision Review | `--sandbox read-only` | Codex reads files for analysis only. No shell execution required. Read-only is the tightest mode that still works. |
+| Mode B — Evidence Audit | `--sandbox workspace-write` | Codex runs verification commands (`git diff`, `bash tests/*.sh`, etc.). Read-only blocks `/tmp` writes that bash heredocs and other shell tools require. `workspace-write` allows shell execution while keeping the rest of the system protected. |
+
+**Canonical invocations:**
+
+Mode A — Decision Review:
 
 ```
-codex exec --sandbox read-only -c 'mcp_servers={}' -C <project-dir> "<prompt>"
+codex exec --sandbox read-only -c 'mcp_servers={}' -C <project-dir> "<prompt>" < /dev/null
 ```
 
-**Why `-c 'mcp_servers={}'`**: Disables MCP server startup during `codex exec`. MCP servers (playwright, serena, etc.) add startup latency and can hang — they provide zero benefit for evidence audits since Codex reads files via its sandbox, not MCPs.
+Mode B — Evidence Audit:
+
+```
+codex exec --sandbox workspace-write -c 'mcp_servers={}' -C <project-dir> "<prompt>" < /dev/null
+```
+
+**Reading files outside the project directory** (e.g., JSONL transcripts at `~/.claude/projects/...`): use `--add-dir <path>` to grant Codex read access to additional directories without changing the project root. Example for transcript audits:
+
+```
+codex exec --sandbox workspace-write -c 'mcp_servers={}' \
+  -C <project-dir> \
+  --add-dir ~/.claude/projects/<encoded-project-dir> \
+  "<prompt>" < /dev/null
+```
+
+**Mandatory flag explanations:**
+
+- `-c 'mcp_servers={}'` — Disables MCP server startup during `codex exec`. MCP servers (playwright, serena, etc.) add startup latency and can hang — they provide zero benefit for evidence audits since Codex reads files via its sandbox, not MCPs.
+- `< /dev/null` — Closes stdin to prevent hangs. Codex CLI 0.124.0+ may hang for 30+ minutes if stdin is left open with no input. Always pipe stdin closed via `< /dev/null` (or pipe the prompt via stdin if using the `-` argument form).
+- `-C <project-dir>` — Sets Codex's working root. The sandbox is bound to this directory unless extended via `--add-dir`.
+
+**Codex CLI version**: This skill spec is current for Codex CLI **0.128.0+**. Earlier versions (0.124.0 through 0.127.x) have known issues with sandbox profile selection and are missing some sandbox CLI improvements. If `codex --version` returns earlier than 0.128.0, run `npm install -g @openai/codex@latest` before dispatching.
 
 Rules:
-- **No `--model` flag.** The user's Codex CLI configuration determines the model.
-  This is non-negotiable.
-- **Timeout**: 300 seconds
-- **Dispatched via Agent tool** (background, `run_in_background: true`, mode: `"acceptEdits"`) — the SP NEVER runs Codex in its own thread. Background dispatch is mandatory to trigger the Notify rule on completion.
-- The full brief + instructions are passed as the prompt string
+
+- **No model overrides EVER.** The SP must not pass `-m`, `--model`, or `-c model=*` for any reason. The user's `~/.codex/config.toml` `model` setting (typically `gpt-5.5` or latest) is the source of truth. Attempting to use `o4-mini` or any older/cheaper model "to save time or tokens" is the exact failure mode this rule prevents — adversarial review needs the strongest model the user has configured. If you suspect the user's model is wrong, recommend they update their config; do not inject a flag.
+
+- **No effort overrides EVER.** The SP must not pass `-c model_reasoning_effort=*` for any reason. The user's `~/.codex/config.toml` `model_reasoning_effort` setting is the source of truth. Recommend the user set `model_reasoning_effort = "high"` minimum, or `"xhigh"` for complex audits. Lowering effort to "speed things up" is forbidden — Codex is a meticulous model that needs the reasoning depth its config grants it.
+
+- **Timeout (scope-aware, generous floors — better to over-allocate than waste already-spent tokens on a timeout)**:
+  - Small diffs (<10 files, <500 lines): **480 seconds (8 min)**
+  - Moderate diffs (10–50 files, 500–2000 lines): **900 seconds (15 min)**
+  - Large diffs (>50 files, >2000 lines): **1500 seconds (25 min)**
+  - Full repo audits: **2400 seconds (40 min)**, or split into multiple focused audits
+
+  Always prefer giving Codex more time rather than less. If you're unsure which tier a diff falls in, round UP to the next tier. The cost of an unused minute is nothing; the cost of a timeout is wasted tokens, retries, and degraded quality.
+
+- **Dispatched via Agent tool** (background, `run_in_background: true`, `mode: "acceptEdits"`) — the SP NEVER runs Codex in its own thread. Background dispatch is mandatory to trigger the Notify rule on completion.
+
+- The full brief + instructions are passed as the prompt string.
+
+**Required `~/.codex/config.toml` settings** (recommend the user verify these are present; SP should NOT inject these via flags — fix the config instead):
+
+```toml
+model = "gpt-5.5"                    # or latest available; never o4-mini or older
+model_reasoning_effort = "xhigh"     # "high" minimum; "xhigh" recommended for adversarial review
+sandbox_mode = "workspace-write"     # default for Mode B; tighter modes set via --sandbox per call
+```
+
+If the user's config is missing or weaker, the SP recommends fixing the config before any Codex dispatch. Do not work around a wrong config by injecting CLI overrides — that's exactly the regression class this section guards against.
 
 **Mandatory anti-injection rule** — include VERBATIM in every prompt sent to Codex:
 
@@ -224,6 +282,10 @@ After Codex returns, the SP synthesizes in its main thread:
 | Garbled/off-topic response | "External review was inconclusive. Proceeding with SP recommendation only." |
 | Wrong working directory | Ask user to confirm project directory before retrying. |
 | Non-zero exit (not timeout) | Report error, suggest `codex login` or version check. |
+| Shell commands fail with "cannot create temp file" or report `total_files=0` despite files being present | Sandbox mode is `read-only` but the audit needs shell execution (heredocs, sed/awk pipelines, etc.). Re-run the audit with `--sandbox workspace-write` (Mode B canonical invocation). |
+| Codex can't read files outside the project directory (e.g., JSONL transcripts) | Add `--add-dir <path>` for each external directory needed. The sandbox stays bound to `-C <project-dir>` for writes; `--add-dir` only extends read access. |
+| Codex CLI version older than 0.128.0 | Run `npm install -g @openai/codex@latest` before retrying. Older versions have known sandbox profile and stdin handling issues. |
+| Audit returned wrong-shape output OR completed unexpectedly fast (<60 sec) for a non-trivial diff | Likely the model was overridden to a weaker one (e.g., `o4-mini`) or effort was lowered. Verify: `cat ~/.codex/config.toml \| grep -E "^(model\|model_reasoning_effort)"`. Expected: `model = "gpt-5.5"` (or latest), `model_reasoning_effort = "xhigh"` (or `"high"` minimum). Never inject `-m` or `-c model_reasoning_effort=*` flags to override — fix the config instead. |
 
 ## Boundaries
 

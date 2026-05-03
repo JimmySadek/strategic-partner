@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.15.2] - 2026-05-03
+
+### Fixed
+- **Voice lint now fails closed when it can't actually scan files** (`tests/lint-voice.sh` hardening) — Previously, an empty file collection (e.g., when `TMPDIR` is broken or expected directories go missing) would silently report "all clean" and exit 0. The release-time gate now aborts with exit 1 when expected files exist but zero were scanned. Header comment also updated to document the 7 mechanical patterns now in `hooks/lib/validators.sh`. Closes a hidden release-gate failure mode.
+
+- **Codex CLI dispatch policy hardened end-to-end in `commands/codex-feedback.md`** — Locks in five policies covering every known misconfiguration class for SP-dispatched Codex reviews: (1) **mode-aware sandbox** — Mode A (decision review) uses `--sandbox read-only` for tightest analysis; Mode B (evidence audit) uses `--sandbox workspace-write` because read-only blocks `/tmp` writes that bash heredocs require; (2) **stdin closed via `< /dev/null`** to prevent 30+ min hangs in Codex CLI 0.124+; (3) **never override the model** via `-m`/`--model`/`-c model=*` — user's `~/.codex/config.toml` `model` setting wins (recommend `gpt-5.5` or latest, never `o4-mini` or older); (4) **never override reasoning effort** via `-c model_reasoning_effort=*` — user's config wins (recommend `high` minimum, `xhigh` for complex audits, never medium/low); (5) **generous timeout floors** — bumped to 480s/900s/1500s/2400s for small/moderate/large/full-repo audits, prefer over-allocating to wasting already-spent tokens on a timeout. Spec also documents required `~/.codex/config.toml` settings, `--add-dir` for audits that need transcripts outside the project dir, and minimum Codex CLI version 0.128.0+.
+
+### Added
+- **Placeholder-string check in voice lint** — Catches committed user-facing prose containing `[Populated at...]`, `[TODO]`, `[PENDING]`, `[FIXME]`, or `[XXX]` markers across `CHANGELOG.md`, `README.md`, and `commands/*.md`. Prevents incomplete drafts from shipping. Mechanical violation (release-blocking).
+- **Cross-file token consistency Provisional Guard** in `CLAUDE.md` — Documents the rule that when authoring multi-file template sets (template + renderer + reference), all files must use IDENTICAL token names. Codifies the v5.15.0 closure-floor lesson where `[STATUS_EMOJI]` and `[STATE_EMOJI]` diverged across three files.
+
 ## [5.15.1] - 2026-05-01
 
 ### Fixed
