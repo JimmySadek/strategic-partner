@@ -2,9 +2,10 @@
 
 ## Project Facts
 
-- **Version & bumps** — SemVer; current version sits in `SKILL.md` line 12. The
-  version bump touches three files together (`SKILL.md`, `README.md`,
-  `CHANGELOG.md`); see § Release Process Step 5.
+- **Versioning** — SemVer. The version-bump procedure touches three files
+  together (`SKILL.md`, `README.md`, `CHANGELOG.md`); see § Release Process
+  Step 5 for the canonical "what changes where." (Where to Look points to
+  the current version's location.)
 - **Commit style** — Conventional commits (`feat:`, `fix:`, `refactor:`,
   `docs:`, `release:`). Release commits use `release: vX.Y.Z — one-line summary`
   per § Release Process Step 6.
@@ -23,7 +24,7 @@
 | Investigating past hook bugs or any reactive rule's archaeology | `claudedocs/INCIDENTS.md` — incident write-ups (one entry per `INC-YYYY-MM-DD` ID) referenced by every Provisional Guard and by Step 2a hook verification |
 | Cross-referencing patterns or hunting prior lessons across releases | `CHANGELOG.md` — searchable history of every feature, fix, and reactive entry; CHANGELOG content surfaces directly in GitHub Release notes |
 | Running a release after the four release commits land | `.scripts/release-publish.sh` — automates Step 7 (creates the GitHub Release with the matching CHANGELOG entry extracted as release notes) |
-| Confirming the current SP version | `SKILL.md` line 12 (`version:` field) and the `version-X.Y.Z-blue` badge on `README.md` line 5 |
+| Confirming the current SP version | `SKILL.md` line 11 (`version:` field) and the `version-X.Y.Z-blue` badge on `README.md` line 5 |
 
 ## Release Process (Mandatory Before Push)
 
@@ -246,7 +247,7 @@ Update these files (all three, every time):
 
 | File | Location | What to Change |
 |---|---|---|
-| `SKILL.md` | Line 12, `version:` field | `version: X.Y.Z` |
+| `SKILL.md` | Line 11, `version:` field | `version: X.Y.Z` |
 | `README.md` | Line 5, badge URL | `version-X.Y.Z-blue` |
 | `CHANGELOG.md` | Top of file, new section | `## [X.Y.Z] - YYYY-MM-DD` with categorized entries |
 
