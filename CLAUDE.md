@@ -1,13 +1,29 @@
 # Strategic Partner — Project Rules
 
+## Project Facts
+
+- **Version & bumps** — SemVer; current version sits in `SKILL.md` line 12. The
+  version bump touches three files together (`SKILL.md`, `README.md`,
+  `CHANGELOG.md`); see § Release Process Step 5.
+- **Commit style** — Conventional commits (`feat:`, `fix:`, `refactor:`,
+  `docs:`, `release:`). Release commits use `release: vX.Y.Z — one-line summary`
+  per § Release Process Step 6.
+- **User-facing voice** — CHANGELOG entries, README user-prose, and
+  `commands/*.md` descriptions follow § User-Facing Voice Rules (plain-English
+  lead, define-before-use, no raw paths). The voice lint at
+  `tests/lint-voice.sh` enforces the mechanical patterns at release time.
+- **macOS bash 3.2 in hooks** — Shell hooks must run under bash 3.2 — no
+  associative arrays, no nameref variables. Tool name comes from stdin JSON
+  (`tool_name`), never from `${CLAUDE_*}` env vars (see Provisional Guards).
+
 ## Where to Look
 
 | When | Resource |
 |---|---|
-| Running a release | `.scripts/release-publish.sh` — automates Step 7 (GitHub Release creation with CHANGELOG entry extraction) |
-| Investigating past hook bugs or other archaeology | `claudedocs/INCIDENTS.md` — incident write-ups referenced from Provisional Guards and from Step 2a hook verification |
-| Cross-referencing patterns or finding past lessons | `CHANGELOG.md` — searchable history of every feature, fix, and reactive entry |
-| Confirming current version | `SKILL.md` line 12 (`version:` field), and the `version-X.Y.Z-blue` badge on `README.md` line 5 |
+| Investigating past hook bugs or any reactive rule's archaeology | `claudedocs/INCIDENTS.md` — incident write-ups (one entry per `INC-YYYY-MM-DD` ID) referenced by every Provisional Guard and by Step 2a hook verification |
+| Cross-referencing patterns or hunting prior lessons across releases | `CHANGELOG.md` — searchable history of every feature, fix, and reactive entry; CHANGELOG content surfaces directly in GitHub Release notes |
+| Running a release after the four release commits land | `.scripts/release-publish.sh` — automates Step 7 (creates the GitHub Release with the matching CHANGELOG entry extracted as release notes) |
+| Confirming the current SP version | `SKILL.md` line 12 (`version:` field) and the `version-X.Y.Z-blue` badge on `README.md` line 5 |
 
 ## Release Process (Mandatory Before Push)
 
