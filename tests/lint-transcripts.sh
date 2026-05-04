@@ -290,15 +290,23 @@ done
 
 # ---------------------------------------------------------------------------
 # Determine the last release tag (for filtering .handoffs/*.md by mtime)
+#
+# LAST_TAG_DATE: ISO 8601 string with timezone, used by `git log --since`
+#                (git parses tz-aware ISO dates correctly).
+# LAST_TAG_EPOCH: UTC epoch seconds, used for direct file-mtime comparison
+#                 (avoids tz-parsing pitfalls in the python comparison branch).
 # ---------------------------------------------------------------------------
 LAST_TAG_DATE=""
+LAST_TAG_EPOCH=""
 if [ "$CHECK_ALL" -eq 0 ]; then
   if [ -n "$SINCE_TAG" ]; then
     LAST_TAG_DATE=$(git -C "$SCRIPT_DIR" log -1 --format='%ai' "$SINCE_TAG" 2>/dev/null)
+    LAST_TAG_EPOCH=$(git -C "$SCRIPT_DIR" log -1 --format='%ct' "$SINCE_TAG" 2>/dev/null)
   else
     LAST_TAG=$(git -C "$SCRIPT_DIR" describe --tags --abbrev=0 2>/dev/null || true)
     if [ -n "$LAST_TAG" ]; then
       LAST_TAG_DATE=$(git -C "$SCRIPT_DIR" log -1 --format='%ai' "$LAST_TAG" 2>/dev/null)
+      LAST_TAG_EPOCH=$(git -C "$SCRIPT_DIR" log -1 --format='%ct' "$LAST_TAG" 2>/dev/null)
     fi
   fi
 fi
@@ -371,19 +379,17 @@ collect_jsonl_files() {
     done
   }
 
-  if [ "$CHECK_ALL" -eq 1 ] || [ -z "$LAST_TAG_DATE" ]; then
+  if [ "$CHECK_ALL" -eq 1 ] || [ -z "$LAST_TAG_EPOCH" ]; then
     find "$transcript_dir" -maxdepth 1 -name "*.jsonl" -type f 2>/dev/null \
       | filter_allowlist
   else
+    # Compare file mtime (epoch seconds) against LAST_TAG_EPOCH (epoch seconds
+    # straight from `git log -1 --format=%ct`). Both are UTC epochs — no tz
+    # parsing needed. Files newer than the tag are in scope.
     find "$transcript_dir" -maxdepth 1 -name "*.jsonl" -type f 2>/dev/null | while read -r f; do
-      # JSONL files have session timestamps in their records; use file mtime
-      # as a proxy (close enough for release-time gating).
-      # Use find -newer with a temp reference file at the tag date.
-      # Simpler: use stat + date comparison via python if available.
       if command -v python3 > /dev/null 2>&1; then
         FILE_MTIME=$(python3 -c "import os; print(int(os.path.getmtime('$f')))" 2>/dev/null || echo "0")
-        TAG_EPOCH=$(python3 -c "import datetime, calendar; t=datetime.datetime.fromisoformat('${LAST_TAG_DATE}'); print(int(calendar.timegm(t.timetuple())))" 2>/dev/null || echo "0")
-        [ "$FILE_MTIME" -gt "$TAG_EPOCH" ] && printf '%s\n' "$f"
+        [ "$FILE_MTIME" -gt "$LAST_TAG_EPOCH" ] && printf '%s\n' "$f"
       else
         # No python3: include all (conservative — may flag pre-release sessions)
         printf '%s\n' "$f"
