@@ -1,5 +1,22 @@
 # Changelog
 
+## [5.18.0] - 2026-05-05
+
+### Added
+- **A new section in SP's project-rules file describing how Claude should approach editing SP source** (migration #1.5, internal). The new "Behavioral Guardrails" section in `CLAUDE.md` names four principles in four lines — think before coding, prefer simplicity, make surgical changes, anchor on verifiable outcomes — and points to a separate file with the full content. Same hybrid pattern SP will recommend to other projects when the broader policy ships publicly.
+
+- **A new path-scoped rules file at `.claude/rules/source-editing.md`** holds the full behavioral content. It loads only when Claude is editing SP source files (the skill definition, hooks, references, commands, or tests) — so the rules apply where they matter without costing tokens during release runbook work or advisory turns. Each principle includes an anti-pattern, a corrected approach, and a worked example drawn from SP's own domain (caching the routing matrix; making the floor sentinel's timeout configurable; adding a value to a list in YAML frontmatter; fixing a silent-pass bug in the voice lint).
+
+### Changed
+- **CLAUDE.md visual style aligned with the policy.** Each top-level section now leads with a functional emoji (🎯 Project Facts, 📍 Where to Look, 🧠 Behavioral Guardrails, ⚙️ Release Process, 🚧 Provisional Guards) and major sections are separated by `═══` rules. Emojis are scanning anchors, not decoration; separators give visual rhythm so major sections aren't easily missed. Same visual pattern SP will recommend to other projects when the broader policy ships publicly.
+
+- **`.gitignore` carve-out so the new rules file actually ships.** `.claude/` was wholesale gitignored for session state (local settings, worktrees). The new rules file lives under `.claude/rules/` and needs to ship with the skill, so `.gitignore` switches to ignoring `.claude/*` with an explicit exception for `.claude/rules/`. Session state stays local; project rules ship.
+
+### Note
+- **The four behavioral principles come from a draft policy that's been in development since April 28** — a unified policy on how project-rules files should be sized, layered, and refreshed over time. v5.17.0 applied the structural half of that policy to SP itself (file shape, layer routing, lifecycle for incident-born rules). This release applies the behavioral half (how Claude should approach editing SP source). The full policy document with external attribution lands publicly in v6.0.0 alongside the scanner command that detects similar drift in other projects' rules files.
+
+- **No GitHub Release for v5.18.0** — internal release. The eight commits from v5.17.0 also push as part of this bundle. The user-facing release that includes the scanner command lands as v6.0.0 once the scanner is built.
+
 ## [5.17.0] - 2026-05-04
 
 ### Changed

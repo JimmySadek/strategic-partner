@@ -2,7 +2,8 @@
 *.swp
 *.swo
 .env
-.claude/
+.claude/*
+!.claude/rules/
 .backlog/
 .handoffs/
 .prompts/

@@ -1,6 +1,8 @@
 # Strategic Partner — Project Rules
 
-## Project Facts
+═══════════════════════════════════════════════════════════════════
+
+## 🎯 Project Facts
 
 - **Versioning** — SemVer. The version-bump procedure touches three files
   together (`SKILL.md`, `README.md`, `CHANGELOG.md`); see § Release Process
@@ -17,7 +19,9 @@
   associative arrays, no nameref variables. Tool name comes from stdin JSON
   (`tool_name`), never from `${CLAUDE_*}` env vars (see Provisional Guards).
 
-## Where to Look
+═══════════════════════════════════════════════════════════════════
+
+## 📍 Where to Look
 
 | When | Resource |
 |---|---|
@@ -26,7 +30,29 @@
 | Running a release after the four release commits land | `.scripts/release-publish.sh` — automates Step 7 (creates the GitHub Release with the matching CHANGELOG entry extracted as release notes) |
 | Confirming the current SP version | `SKILL.md` line 11 (`version:` field) and the `version-X.Y.Z-blue` badge on `README.md` line 5 |
 
-## Release Process (Mandatory Before Push)
+═══════════════════════════════════════════════════════════════════
+
+## 🧠 Behavioral Guardrails
+
+When editing SP source files, follow these behavioral principles:
+
+   1. **Think Before Coding**   →  surface assumptions; reject sycophancy as
+                                   a dark pattern; push back when warranted
+   2. **Simplicity First**       →  no overengineering; minimum code; no
+                                   speculative abstractions
+   3. **Surgical Changes**       →  every changed line traces to the request;
+                                   no drive-by refactoring
+   4. **Verification, not Specification**  →  declarative verifiable outcomes
+                                              over imperative step-by-step
+                                              prescription
+
+📁 **Full rules + worked examples:** [`.claude/rules/source-editing.md`](.claude/rules/source-editing.md)
+[Path-scoped to source files; loads when Claude is editing SKILL.md, hooks/,
+ references/, commands/, or tests/.]
+
+═══════════════════════════════════════════════════════════════════
+
+## ⚙️ Release Process (Mandatory Before Push)
 
 Every push to remote MUST go through this process.
 
@@ -342,7 +368,9 @@ The rule applies to new content going forward. Existing content may be
 rewritten as part of the next release that touches it; retroactive
 rewrite is not required.
 
-## Provisional Guards
+═══════════════════════════════════════════════════════════════════
+
+## 🚧 Provisional Guards
 
 Bug-driven rules. Each guard names the pattern, the past incident that
 motivated it, and a date to revisit. See `claudedocs/INCIDENTS.md` for the

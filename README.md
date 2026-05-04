@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.17.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.18.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -272,6 +272,8 @@ strategic-partner/
   SKILL.md                              # Lean hub — identity, core behaviors, routing dispatch
   setup                                 # Command registration script (run after install/update)
   audit-permissions                     # Permission audit helper (Python 3.6+)
+  .claude/rules/
+    source-editing.md                   # Path-scoped behavioral rules for editing SP source (loaded only when editing SKILL.md / hooks/ / references/ / commands/ / tests/)
   hooks/
     guard-impl.sh                       # PreToolUse hook — blocks source edits in SP sessions
     lib/
