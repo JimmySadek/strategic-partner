@@ -349,65 +349,56 @@ underlying archaeology.
 
 ### Don't use `${CLAUDE_*}` env vars in hook commands
 
-Instead: inline the values, use deterministic path resolution, or grep
-`CHANGELOG.md` for prior incidents with the variable name before relying on it.
+Instead: inline the values, use deterministic path resolution, or grep `CHANGELOG.md` for prior incidents with the variable name before relying on it.
 
-- **Scope**: Hook commands in `SKILL.md` frontmatter and `hooks/` files.
-  Specifically: `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PROJECT_DIR}`,
-  `${CLAUDE_TOOL_NAME}`, and any `CLAUDE_*` variable not explicitly verified in
-  current Claude Code documentation as being set in the hook execution
-  environment.
-- **Source**: v5.4.1 (2026-03-31) — see `claudedocs/INCIDENTS.md` (`INC-2026-03-30 — Hook command relies on ${CLAUDE_SKILL_DIR}`)
-- **Review**: 2026-07-28 (90 days from policy adoption on 2026-04-29; pre-existing reactive rule, eligible for permanence on review per Direction 4 lifecycle)
+- **Scope**: Hook commands in `SKILL.md` frontmatter and `hooks/` files — including `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_TOOL_NAME}`, and any other unverified `CLAUDE_*` variable.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-03-30 — v5.4.0 → v5.4.1 hook breakage from two phantom env vars plus a permissive matcher.
+- **Review**: 2026-07-28.
 
 ### Brief authors must re-read locked design files at brief-author time, not derived summaries
 
-Instead: when scoping an executor brief that derives from a multi-source design lock (a `.prompts/[milestone]/design-*.md` file iterated across multiple Codex review rounds, a `decision_log` summary that rolls up the locked design's content, or a Phase task list documented after design lock), re-read the LOCKED design files directly. Summary lists are convenient but lossy — they may name smaller items individually while skipping the load-bearing implementation as a discrete sub-task.
+Instead: when scoping a brief that derives from a multi-iteration locked design, re-read the locked design files directly — summary lists are convenient but lossy and routinely drop load-bearing items.
 
-- **Scope**: SP brief authoring — the `.prompts/[milestone]/[descriptor].md` files SP writes for executor dispatch — specifically when the brief covers work derived from a multi-iteration design that was locked through Codex review rounds or extended SP advisory work. Smaller mechanical briefs (single-file fixes, quick patches) are out of scope; this guard targets briefs that aggregate multiple components from a substantial design.
-- **Source**: 2026-05-01 — v5.15.0 fan-out brief missed the 8-group closure floor entirely because the brief author worked from the `decision_log` Phase 3 task summary list rather than re-reading `.prompts/v5150-structural-fix/design-ab.md` directly. The summary listed smaller items individually (handoff doc backlog mention, identity-reset rule, startup-checklist refactor) but didn't repeat the closure-floor implementation as a discrete sub-task. User caught the gap mid-session; SP had to draft a second brief covering what the first missed. See `.handoffs/findings-0501.md` Issue 2 for the full journey.
-- **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)
+- **Scope**: SP-authored executor briefs in `.prompts/[milestone]/[descriptor].md` that aggregate multiple components from a substantial locked design; small mechanical briefs (single-file fixes, quick patches) are out of scope.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-01-A — v5.15.0 fan-out brief missed the 8-group closure floor because the author worked from a `decision_log` summary instead of re-reading the locked design.
+- **Review**: 2026-07-30.
 
 ### Deferred work needs durable artifacts (backlog item or reference doc), not just commit messages
 
-Instead: when a release defers a planned feature or fix to a future release (e.g., "deferred to vX.Y+1" callouts in design Principle rewrites, Component rewrites, brief commit messages), document the deferral in BOTH (a) the relevant commit message or brief context, AND (b) a durable artifact that surfaces during normal SP scans. Acceptable durable artifacts: a `.backlog/[deferred-item].md` file with explicit `trigger:` field for re-engagement, OR a dedicated section in a reference doc (e.g., `references/closure-floor.md` § "Why we do not ship a SessionEnd hook"). The artifact must surface during SP orientation, `/strategic-partner:backlog`, or closure-floor Group 7a backlog hygiene scans — not only in commit history.
+Instead: when a release defers a planned feature, document it in BOTH (a) the relevant commit/brief context AND (b) a durable artifact — a `.backlog/[item].md` file with an explicit `trigger:` field, or a dedicated section in a reference doc — so the deferral surfaces during normal SP scans, not only in commit history.
 
-- **Scope**: Any explicit deferral within a release. Typical patterns include: design principles that name a v5.X+1 follow-up, Component rewrites that move a feature out of scope, "deferred to next release" notes in brief commit messages or release CHANGELOG entries.
-- **Source**: 2026-05-01 — v5.15.0 closure-floor brief deferred Stop rule 6 (closure-walk-completeness) to v5.16.0 in Principle 5's rewrite + Component 7's commit message. Codex re-review (`.handoffs/codex-closure-floor-rereview-output-0501.md`) flagged: "the v5.16 deferral lives only in the brief's commit message — findable if you know to look, but not surfaced automatically when v5.16 work begins." SP created `.backlog/closure-walk-completeness-stop-rule.md` to make the deferral surface in normal SP backlog scans. See `.handoffs/findings-0501.md` Issue 2.
-- **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)
+- **Scope**: Any explicit deferral within a release — design principles naming a v5.X+1 follow-up, Component rewrites that move work out of scope, "deferred to next release" notes in commit messages or CHANGELOG entries.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-01-B — v5.15.0 closure-floor brief deferred Stop rule 6 to v5.16.0 with no surface artifact, so the deferral was findable only by reading the original commit message.
+- **Review**: 2026-07-30.
 
 ### Brief verification commands and prose specs in the same brief must agree
 
-Instead: when authoring an executor brief that includes BOTH prose describing a structural element (heading format, file path pattern, naming convention) AND verification grep/regex patterns checking for that element, the two MUST use literally identical patterns.
+Instead: when a brief includes prose describing a structural element AND verification grep/regex patterns checking for that element, the two must use literally identical patterns.
 
-- **Scope**: Executor briefs in `.prompts/[milestone]/[descriptor].md`. Specifically: any brief with verification grep commands that reference the same structure described in prose deliverables.
-- **Source**: 2026-05-01 — `findings-0501.md` Issue 3 Pattern 1. Closure-floor brief's Component 1 prose said "the 8-group walk is Steps 1-8" while its verification grep `^### Group [1-8] —` required NO "Step" prefix. Two specs in the same brief disagreed.
-- **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)
+- **Scope**: Executor briefs in `.prompts/[milestone]/[descriptor].md` whose verification commands reference structures described in prose deliverables.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-01-C — closure-floor brief's Component 1 prose said "Steps 1-8" while its verification grep `^### Group [1-8] —` required no "Step" prefix; two specs in the same brief disagreed.
+- **Review**: 2026-07-30.
 
 ### Briefs with user-keyboard verification must enumerate three outcomes
 
-Instead: when an executor brief includes a verification step that requires user-keyboard work (separate terminal, fresh CC session, manual `/exit` lifecycle), the brief MUST enumerate three outcomes, not two:
+Instead: when a brief's verification requires user-keyboard work (separate terminal, fresh CC session, manual `/exit` lifecycle), enumerate three outcomes — (a) all gates pass → ship; (b) any gate fails → defer with documented failure mode; (c) test couldn't run within executor scope → defer with explicit scope-limit documentation.
 
-- **(a)** All gates pass on user-driven test → ship the deliverable
-- **(b)** Any gate fails on user-driven test → defer with documentation of failure mode
-- **(c)** Test could not run within executor scope → defer with explicit scope-limit documentation; the executor records why the verification couldn't run
-
-- **Scope**: Executor briefs whose verification depends on multi-process orchestration the agent cannot drive — separate terminals, fresh Claude Code sessions, manual lifecycle events.
-- **Source**: 2026-05-01 — `findings-0501.md` Issue 3 Pattern 4. Closure-floor brief's Component 5 used binary "any gate fails → don't ship" framing that elided the "untested in this scope" third state.
-- **Review**: 2026-07-30 (90 days from policy adoption on 2026-05-01)
+- **Scope**: Executor briefs whose verification depends on multi-process orchestration the agent cannot drive (separate terminals, fresh Claude Code sessions, manual lifecycle events).
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-01-D — closure-floor brief's Component 5 used binary "any gate fails → don't ship" framing that elided the "untested in this scope" third state.
+- **Review**: 2026-07-30.
 
 ### Cross-file template token names must agree across all files in the same authored set
 
-Instead: when authoring multiple template/specification files in sequence (e.g., a brief that produces both a template file AND a renderer command file AND a reference specification), use IDENTICAL token names across all files. Tokens like `[STATUS_EMOJI]` vs `[STATE_EMOJI]` differ in only one word but represent the same slot — divergence in any one file means the renderer doesn't fill the slot, or fills it inconsistently.
+Instead: when authoring multiple template/specification files in sequence (template + renderer command + reference specification), use literally identical token names across all files.
 
-- **Scope**: Multi-file authoring sessions where 2+ files share a templated token vocabulary. Specifically: brief deliverables that produce a template file (`assets/templates/`) AND a renderer command (`commands/`) OR a reference specification (`references/`).
-- **Source**: 2026-05-01 — `findings-0501.md` Issue 3 Pattern 2. Closure-floor brief produced `[STATUS_EMOJI]` in `assets/templates/handoff-template.md` and `[STATE_EMOJI]` in initial draft of `commands/handoff.md` inline render section. Caught at commit prep via visual scan; no automated detection. The mismatch was one word but represented the same slot in the renderer.
-- **Review**: 2026-08-01 (90 days from policy adoption on 2026-05-03)
+- **Scope**: Multi-file authoring sessions where 2+ files share a templated token vocabulary — typically a template file in `assets/templates/`, a renderer command in `commands/`, and a reference spec in `references/`.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-03-A — handoff template `[STATUS_EMOJI]` vs `commands/handoff.md` initial-draft `[STATE_EMOJI]` mismatch; one-word divergence, same renderer slot.
+- **Review**: 2026-08-01.
 
 ### Routing matrix freshness is content-based (inventory hash), not time-based
 
-Instead: when the floor sentinel checks routing-matrix freshness, compare an `inventory_hash` field in the matrix footer against a recomputed `current_hash`. Hash inputs MUST be filesystem-discoverable from one source both Agent D and the floor sentinel can read identically. The v5.16.0 input is **agent filenames only**: sorted basenames of `~/.claude/agents/*.md` plus `agent_count`, sha256-hashed and truncated to 16 hex chars. Skill directories and MCP server names are NOT in the hash because (a) the floor's UserPromptSubmit hook receives only the prompt envelope (cwd / session_id / model / transcript_path / prompt) — not the system-reminder skill list visible to agents — and (b) skill/MCP install paths vary across harnesses, so the floor cannot reliably enumerate them at hook time. Trade-off: pure skill or MCP installs without an accompanying agent change are not auto-detected; explicit refresh paths (e.g. `/strategic-partner:update`) handle those cases. Never use file mtime + a fixed time threshold — the inventory only changes when agents change, not on a fixed cadence.
+Instead: compare an `inventory_hash` field in the matrix footer (sha256 of sorted `~/.claude/agents/*.md` basenames + count, truncated to 16 hex chars) against a recomputed hash; both the floor sentinel and Agent D must compute from the same filesystem source so the hashes agree. Never use file mtime + a fixed time threshold — the inventory only changes when agents change, not on a fixed cadence.
 
-- **Scope**: SKILL.md frontmatter UserPromptSubmit hook Group 7; `references/floor.md` § Group 7 doc; Agent D protocol in `references/startup-checklist.md` and `references/skill-routing-matrix.md`. Both the floor and Agent D MUST compute the hash from the same filesystem input (`~/.claude/agents/*.md` filenames) so they agree across runs.
-- **Source**: 2026-05-03 — `.handoffs/findings-0503.md` Issue #1. User flagged that SP rebuilds the routing matrix every session regardless of whether anything changed, burning ~4 min / 85K tokens per session. Investigation confirmed the 1-hour mtime check was the wrong axis. BAM-MVP confirmation also exposed a permanent rebuild loop where Serena memory was missing and SP wrote to `.claude/` (which the floor never checked). The first v5.16.0 implementation drafted by an executor agent attempted to extract skill names from `$payload` (the UserPromptSubmit JSON); Codex Step 2b adversarial review caught that this payload contains only the prompt envelope — not the system-reminder skill list visible to agents — so the hash was effectively over empty input and would never match Agent D's full-inventory hash. The patch narrowed the hash scope to agent filenames only — the one inventory the hook and Agent D can both read from the same filesystem path.
-- **Review**: 2026-08-01 (90 days from policy adoption on 2026-05-03)
+- **Scope**: SKILL.md frontmatter UserPromptSubmit hook Group 7; `references/floor.md` § Group 7; Agent D protocol in `references/startup-checklist.md` and `references/skill-routing-matrix.md`.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-03-B — mtime + 1-hour staleness check + permanent rebuild loop in BAM-MVP, plus a Codex-caught hash-source bug in the first v5.16.0 dispatch.
+- **Review**: 2026-08-01.
