@@ -46,6 +46,7 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LIB_FILE="${SCRIPT_DIR}/hooks/lib/validators.sh"
+ALLOWLIST_FILE="${SCRIPT_DIR}/.lint-allowlist"
 
 # ---------------------------------------------------------------------------
 # Load shared validator logic
@@ -341,8 +342,38 @@ collect_jsonl_files() {
 
   [ -d "$transcript_dir" ] || return 0
 
+  # ---------------------------------------------------------------------------
+  # Allowlist mechanism (v5.17.0):
+  # After the mtime-since-tag filter, a second pass excludes any JSONL whose
+  # basename matches an entry in $ALLOWLIST_FILE (one basename per line; lines
+  # starting with '#' are comments; blank lines ignored). Used sparingly to
+  # exempt specific historical transcripts whose authoring drift never reached
+  # published files. If the allowlist file does not exist, or contains only
+  # comments/blanks, behavior is identical to pre-allowlist (no skips).
+  # bash 3.2 compat: simple line-by-line grep -Fx — no associative arrays.
+  # ---------------------------------------------------------------------------
+  filter_allowlist() {
+    if [ ! -f "$ALLOWLIST_FILE" ]; then
+      cat
+      return 0
+    fi
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      local base
+      base=$(basename "$f")
+      # Skip if basename matches a non-comment, non-blank line in allowlist.
+      if grep -v '^[[:space:]]*#' "$ALLOWLIST_FILE" 2>/dev/null \
+           | grep -v '^[[:space:]]*$' \
+           | grep -Fxq "$base"; then
+        continue
+      fi
+      printf '%s\n' "$f"
+    done
+  }
+
   if [ "$CHECK_ALL" -eq 1 ] || [ -z "$LAST_TAG_DATE" ]; then
-    find "$transcript_dir" -maxdepth 1 -name "*.jsonl" -type f 2>/dev/null
+    find "$transcript_dir" -maxdepth 1 -name "*.jsonl" -type f 2>/dev/null \
+      | filter_allowlist
   else
     find "$transcript_dir" -maxdepth 1 -name "*.jsonl" -type f 2>/dev/null | while read -r f; do
       # JSONL files have session timestamps in their records; use file mtime
@@ -357,7 +388,7 @@ collect_jsonl_files() {
         # No python3: include all (conservative — may flag pre-release sessions)
         printf '%s\n' "$f"
       fi
-    done
+    done | filter_allowlist
   fi
 }
 
