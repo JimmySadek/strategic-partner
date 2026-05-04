@@ -1,5 +1,20 @@
 # Changelog
 
+## [5.17.0] - 2026-05-04
+
+### Changed
+- **SP's own project-rules file got reshaped to match SP's draft policy on rules-files** (migration #1, internal). SP has been drafting a policy on how project-rules files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) should be sized, sectioned, and trimmed over time. This release applies that policy to SP's own `CLAUDE.md` as the first of three to five projects that have to migrate before the policy ships publicly. The file now opens with a small "Project Facts" section (four non-default conventions like commit style and macOS bash compatibility), a polished "Where to Look" pointer table, the unchanged release runbook, and a tighter rules section at the bottom.
+
+- **Bug-driven rules now sit in a 4-line shape pointing at the underlying incident write-ups.** Each Provisional Guard (the entries that record a rule SP added in response to a past incident) used to carry a multi-paragraph narrative explaining the original bug inline. Those narratives have moved to `claudedocs/INCIDENTS.md` — searchable, indexed, one entry per incident. The guards themselves keep only the rule, its affirmative alternative, the scope, the pointer to the incident write-up, and the review date. Same rules, less reading at session start.
+
+### Added
+- **Six new incident write-ups in `claudedocs/INCIDENTS.md`** — one for every Provisional Guard whose narrative just moved out of `CLAUDE.md`. Each entry follows the existing format: What happened / Why it broke / Fix shipped / Lesson formalized.
+
+### Note
+- **The reshaped `CLAUDE.md` lands at 404 lines / 21K characters — healthy for a single-topic release runbook, not a length problem.** The draft policy explicitly endorses release-runbook files at this size when their content earns its space; this release confirms that's the realistic floor for SP's own runbook after every reasonable compression pass.
+
+- **The rules-file policy itself stays unpublished for now.** It ships publicly when the matching auto-scan command exists and the policy gets referenced from SP's onboarding for new projects. Three more project migrations after this one will prompt a first-pass review of the policy itself.
+
 ## [5.16.0] - 2026-05-03
 
 ### Fixed
