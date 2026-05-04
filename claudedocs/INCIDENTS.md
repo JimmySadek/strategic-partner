@@ -42,3 +42,167 @@ Several months after the incident, during the v5.9.0 release-review cycle (2026-
 - **§2a item 5 — CHANGELOG cross-reference** for `${CLAUDE_*}` env vars and path-resolution patterns: before endorsing any hook command that uses one, grep `CHANGELOG.md` for that variable or pattern. Prior release notes are authoritative on what doesn't work in this harness, and a historical entry is the fastest way to avoid re-introducing the same bug.
 
 These checks are preventive; the lesson came from this incident plus a small number of subsequent near-misses with related variables. Together with the Provisional Guard above, they form the current mitigation surface for this failure mode.
+
+## INC-2026-05-01-A — v5.15.0 fan-out brief missed the 8-group closure floor
+
+### What happened
+
+SP's v5.15.0 Phase 3 fan-out brief at `.prompts/v5150-structural-fix/phase3-fanout.md` — the brief that decomposed the locked v5.15.0 design into atomic executor commits — did not include the 8-group closure floor as a deliverable. The locked design at `.prompts/v5150-structural-fix/design-ab.md` (line 139+) explicitly specified the closure floor as a Phase 3 component. The fan-out brief covered other Phase 3 work (handoff doc backlog mention, identity-reset rule, startup-checklist refactor) but treated the closure floor as already-covered when it was not.
+
+Six executor commits landed (`27680d6`, `88e3a60`, `f7deb35`, `1fb570a`, `4a9c979`, `06afe09`) before the user caught the gap mid-session: "I remember we had two floors, not only one. Is this just the start-up floor and the closure one? Are we going to do it, or do we have a resolution that we're not going to do it?"
+
+### Why it broke
+
+The brief author (SP, in advisory mode) worked from the `decision_log` Phase 3 task summary list — a rolled-up view that listed smaller items individually but did not repeat the closure floor as a discrete sub-task. The summary was chronologically downstream of the locked design and had drifted in coverage.
+
+The structural shape of the failure: when a brief derives from a multi-source design lock (a `.prompts/[milestone]/design-*.md` file iterated across multiple Codex review rounds, plus a `decision_log` summary that aggregates the design's tasks, plus the brief author's working memory of the design conversation), each downstream representation is lossy. The summary captured the smaller items because they were named individually in conversation; the closure floor was treated as a single canonical item in the locked design and got compressed into "the closure work" — present in name, absent in fan-out detail.
+
+This is a class of failure where the convenience of a derived summary (faster to scan than re-reading 700 lines of locked design) trades against the completeness of the source-of-truth.
+
+### Fix shipped
+
+SP drafted a second brief at `.prompts/v5150-structural-fix/phase3-closure-floor.md` (~700 lines, 7 components) covering the missed work: 8-group closure floor body, backlog hygiene as first-class, handoff write protocol refinements, Post-Handoff Verification, optional SessionEnd hook, new `references/closure-floor.md` reference doc, and visual prescription via the Closure Walk Status table.
+
+The closure-floor brief went through two Codex Mode A review rounds: round 1 returned CONDITIONAL GO with six substantive conditions (full skill rediscovery in Group 3, Serena verify-activate-fallback chain instead of permissive skip, grouped backlog summary + single AUQ pattern, runtime backstop scope correction, visual consistency prescription, durable SessionEnd test marker). SP applied 10 atomic edits resolving all six. Round 2 returned CONDITIONAL GO with three surgical fixes (MCP-error retry chain, stale `/tmp` reference cleanup, durable artifact for the v5.16 Stop rule 6 deferral). SP applied all three.
+
+The brief shipped to a background Opus 4.7 executor on 2026-05-01 and produced six atomic commits landing the closure-floor work.
+
+### Lesson formalized as Provisional Guard
+
+Captured in CLAUDE.md's `## Provisional Guards` as: *Brief authors must re-read locked design files at brief-author time, not derived summaries.* Scope: SP-authored executor briefs that aggregate multiple components from a multi-iteration locked design (small mechanical briefs are out of scope). Review: 2026-07-30.
+
+## INC-2026-05-01-B — v5.15.0 closure-floor brief deferred Stop rule 6 with no surface artifact
+
+### What happened
+
+The v5.15.0 closure-floor brief (`.prompts/v5150-structural-fix/phase3-closure-floor.md`) deferred the closure-walk-completeness Stop rule (Stop rule 6) to v5.16.0. The deferral was documented in two places: Principle 5's rewrite within the brief, and Component 7's commit message. Both locations are findable, but only by reading the original source artifacts after the fact.
+
+Codex Mode A re-review (round 2) flagged the absence of a durable surface for the deferral: "the v5.16 deferral lives only in the brief's commit message — findable if you know to look, but not surfaced automatically when v5.16 work begins."
+
+When the v5.16.0 milestone opened, SP's normal scans (`/strategic-partner:backlog`, startup orientation, closure-floor Group 7a backlog hygiene) would not see the deferred Stop rule 6 — it would surface only if someone happened to grep commit history or re-read the closed brief.
+
+### Why it broke
+
+Commit messages and brief context are write-once retrieval-poor surfaces. They are findable via `git log -S` or grep across `.prompts/`, but neither path is part of SP's normal session-start orientation flow. The structural pattern: deferral within an executed brief assumes the next milestone's planner will re-read the prior brief. That assumption is false in practice — milestones open from the new brief, not from re-reading completed ones.
+
+The bug class: any explicit deferral within a release that lacks a durable artifact in a routinely-scanned location (`.backlog/`, a reference doc, project memory) becomes invisible to SP within one milestone cycle.
+
+### Fix shipped
+
+SP created `.backlog/closure-walk-completeness-stop-rule.md` capturing the v5.16 Stop rule 6 deferral as a durable artifact. The file documents the full design approach (sample real transcripts → identify format variations → design detection patterns → empirical validation → implementation), references back to v5.15.0 brief Principle 5, Component 7's commit message, and the Codex re-review output, and carries an explicit `trigger:` field so `/strategic-partner:backlog` lists it during normal scans.
+
+### Lesson formalized as Provisional Guard
+
+Captured in CLAUDE.md's `## Provisional Guards` as: *Deferred work needs durable artifacts (backlog item or reference doc), not just commit messages.* Scope: any explicit deferral within a release. Acceptable durable artifacts: a `.backlog/[item].md` file with explicit `trigger:` field, or a dedicated section in a reference doc. Review: 2026-07-30.
+
+## INC-2026-05-01-C — Closure-floor brief Component 1 prose vs verification grep mismatch
+
+### What happened
+
+The v5.15.0 closure-floor brief's Component 1 description carried two conflicting specifications for the same structural element. The prose said "the 8-group walk is Steps 1-8" — implying group headings should carry the format `### Step N — Group description`. The verification grep `^### Group [1-8] —` required the opposite: headings must NOT include any "Step" prefix.
+
+Two specifications in the same brief disagreed on the format of the same headings.
+
+### Why it broke
+
+The prose and the verification command were written in different drafting passes. The prose described the conceptual structure ("Steps 1-8" reads naturally as a description of an ordered walk), while the verification command was tightened later to anchor against the actual heading format the executor would produce. Neither pass updated the other.
+
+The bug class: any brief that contains BOTH prose describing a structural element AND verification grep/regex patterns checking for the same element risks divergence if the two are not authored or proofread in lockstep.
+
+### Fix shipped
+
+The closure-floor executor agent went with the verification grep's anchor (`### Group N —`) since the verification check was the load-bearing specification at execution time. Semantic intent ("Step 1, Step 2, ...") was preserved by Component 3 and Component 4 carrying the "Step" prefix in body content (Steps 9-13 covered handoff write protocol; Step 14 covered Post-Handoff Verification), while the eight closure groups themselves used the `Group N —` format.
+
+No retroactive fix to the brief was needed because the executor's call resolved cleanly. The lesson is forward-looking: future briefs must keep prose specs and verification commands in lockstep.
+
+### Lesson formalized as Provisional Guard
+
+Captured in CLAUDE.md's `## Provisional Guards` as: *Brief verification commands and prose specs in the same brief must agree.* Scope: executor briefs with verification commands that reference structures described in prose deliverables. Review: 2026-07-30.
+
+## INC-2026-05-01-D — Closure-floor Component 5 used binary outcome framing
+
+### What happened
+
+The v5.15.0 closure-floor brief's Component 5 (optional SessionEnd hook) specified a verification protocol that required user-keyboard work the executor agent could not drive: open a separate terminal, invoke the skill in a fresh Claude Code session, `/exit` normally, repeat.
+
+The brief's outcome framing was binary: "any gate fails → don't ship the deliverable." It did not enumerate "test couldn't run within executor scope" as a third possible state.
+
+When the executor ran the brief, it could not drive the multi-process orchestration. It made a defensible call — treating the situation as "documented gap with explicit scope-limit framing" — but the brief's binary framing left the call ambiguous between "test failed" and "test couldn't run."
+
+### Why it broke
+
+Briefs with verification steps that depend on multi-process orchestration sit in an awkward space: the executor can verify single-process behavior, but cannot drive separate terminals, fresh CC sessions, or manual lifecycle events. The brief author either (a) writes verification the agent CAN drive, (b) explicitly enumerates the user-keyboard outcome path, or (c) accepts ambiguity at execution time.
+
+The bug class: any brief whose verification depends on user-keyboard work without explicitly enumerating the "couldn't run" outcome forces the executor to invent a third state — which produces inconsistent calls across briefs.
+
+### Fix shipped
+
+No retroactive fix to the brief was needed; the executor's documented gap with scope-limit framing was a defensible call. The lesson is forward-looking: future briefs with user-keyboard verification must enumerate three outcomes, not two.
+
+The three-outcomes pattern came from the dispatch-vs-instruct split formalized in 2026-04-30 findings (issue 9): when verification requires user-keyboard work, the brief author must explicitly account for the agent's structural inability to drive certain test paths.
+
+### Lesson formalized as Provisional Guard
+
+Captured in CLAUDE.md's `## Provisional Guards` as: *Briefs with user-keyboard verification must enumerate three outcomes.* Scope: executor briefs whose verification depends on multi-process orchestration the agent cannot drive. The three outcomes: (a) all gates pass → ship; (b) any gate fails → defer with documented failure mode; (c) test couldn't run within executor scope → defer with explicit scope-limit documentation. Review: 2026-07-30.
+
+## INC-2026-05-03-A — Cross-file template token mismatch (`[STATUS_EMOJI]` vs `[STATE_EMOJI]`)
+
+### What happened
+
+The v5.15.0 closure-floor brief's Component 6 produced three files that share a templated token vocabulary: `assets/templates/handoff-template.md` (the template the renderer fills), `commands/handoff.md` (the renderer command itself, with an inline render section), and `references/closure-floor.md` (the canonical specification).
+
+The handoff template used the token `[STATUS_EMOJI]`. The initial draft of `commands/handoff.md`'s inline render section used `[STATE_EMOJI]`. Same renderer slot, one-word difference. If the divergence had shipped, the renderer would not have filled the slot in one of the files (the renderer searches for `[STATUS_EMOJI]`; a template carrying `[STATE_EMOJI]` would leave a literal `[STATE_EMOJI]` placeholder visible to users).
+
+The mismatch was caught at commit prep via a manual visual scan, not by any automated check.
+
+### Why it broke
+
+Authoring three template-related files in sequence requires holding the token vocabulary in working memory across all three drafts. One-word divergences (`STATUS` vs `STATE` — both legitimate English words for the same concept) are easy to introduce mid-draft and hard to spot on re-read because both readings parse as sensible English.
+
+The bug class: any multi-file authoring session where 2+ files share templated tokens risks one-word divergences that pass spell-check, parse as sensible English, and are detectable only by literal-text comparison.
+
+### Fix shipped
+
+The mismatch was caught and fixed pre-commit during the closure-floor work. Both files now use `[STATUS_EMOJI]` consistently. No automated detection was added at the time — the visual scan was the only check.
+
+### Lesson formalized as Provisional Guard
+
+Captured in CLAUDE.md's `## Provisional Guards` as: *Cross-file template token names must agree across all files in the same authored set.* Scope: multi-file authoring sessions where 2+ files share a templated token vocabulary (typically a template + renderer command + reference specification). Review: 2026-08-01.
+
+## INC-2026-05-03-B — Routing matrix mtime+1h staleness check + permanent rebuild loop
+
+### What happened
+
+User flagged at start of the 2026-05-03 session: "SP REBUILDS the ROUTING SKILLS Map EVERY TIME! that's a waste of time and tokens."
+
+Concrete evidence: floor sentinel reported `routing=stale`, SP dispatched an Opus 4.7 background rebuild agent per the Floor-Signal Handling protocol. The agent ran 4 minutes / 85K tokens / 11 tool uses to inventory 198 skills + 28 agents + 16 MCP servers and persist the result to Serena `skill_routing_matrix`. The prior session's handoff showed the same rebuild had fired the day before, producing near-identical inventory.
+
+Mid-session investigation revealed the floor sentinel checked `.serena/memories/skill_routing_matrix.md` mtime against a 1-hour threshold (`g7.routing` = `fresh` if mtime within last hour, else `stale`). Any session opened more than an hour after the last build triggered a full rebuild — even when the inventory had not changed.
+
+A second confirmation came from the BAM-MVP project: that project had no Serena `skill_routing_matrix` memory at all, so the floor marked `routing=missing` every session, dispatched a rebuild every session, and SP wrote the rebuild output to `.claude/skill-routing-matrix.md` instead. Two competing routing-matrix files (`skill-routing-matrix.md` and `sp-routing-matrix.md` with different schemas) had accumulated, the floor never checked `.claude/`, and the rebuild loop was permanent.
+
+### Why it broke
+
+Three layered issues:
+
+1. **Wrong axis for staleness.** Time-since-last-rebuild is not what determines whether a routing matrix is fresh — what determines freshness is whether the skill / agent / MCP inventory itself has changed. Mtime + 1-hour threshold guarantees rebuild on any session opened more than an hour after the last one.
+
+2. **Persistence fork in non-Serena projects.** When Serena memory was unavailable, SP wrote to `.claude/` files. The floor checked Serena only. The two locations were never aligned.
+
+3. **Floor-vs-write disconnect.** Even when the floor and SP were both supposed to coordinate via the matrix, they read and wrote different paths. In projects where Serena memory was missing, the rebuild loop became permanent because every session reproduced the same `routing=missing` signal.
+
+A fourth issue surfaced during fix work: the first v5.16.0 implementation (drafted by an executor agent) attempted to compute the inventory hash from `$payload` — the UserPromptSubmit JSON. Codex Step 2b adversarial review caught that `$payload` contains only the prompt envelope (cwd / session_id / model / transcript_path / prompt) — NOT the system-reminder skill list visible to agents. The hash was effectively over empty input and would never match Agent D's full-inventory hash.
+
+### Fix shipped
+
+v5.16.0 (commit `de4ed7a`, 2026-05-03) shipped the corrected design after five Codex Step 2b rounds:
+
+- The floor sentinel now compares an `inventory_hash` field in the matrix footer against a recomputed hash. Both the floor and Agent D compute the hash from the same filesystem source: sorted basenames of `~/.claude/agents/*.md` plus `agent_count`, sha256-hashed and truncated to 16 hex chars.
+- Skill directories and MCP server names are NOT in the hash because the floor's UserPromptSubmit hook receives only the prompt envelope — not the system-reminder skill list — and skill / MCP install paths vary across harnesses. The hash inputs must be filesystem-discoverable from one source both sides can read identically.
+- Trade-off: pure skill or MCP installs without an accompanying agent change are not auto-detected by the floor; explicit refresh paths (`/strategic-partner:update`) handle those cases.
+- The persistence fork is closed: the matrix builder writes to one source of truth per project (Serena memory `skill_routing_matrix` when active, else `.claude/skill-routing-matrix.md`). The legacy `.claude/sp-routing-matrix.md` companion is deprecated.
+- Live verification: hash reproduces as `d6bf21db8f2df3e5`; voice lint clean; synthetic hook tests 6/6 pass; cross-file consistency holds.
+
+### Lesson formalized as Provisional Guard
+
+Captured in CLAUDE.md's `## Provisional Guards` as: *Routing matrix freshness is content-based (inventory hash), not time-based.* Scope: SKILL.md frontmatter UserPromptSubmit hook Group 7; `references/floor.md` § Group 7; Agent D protocol in `references/startup-checklist.md` and `references/skill-routing-matrix.md`. Review: 2026-08-01.
