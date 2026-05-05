@@ -185,8 +185,15 @@ if [ -n "$behav_out" ]; then
 "
 fi
 
-# Strip blank lines, package as JSON array
-FINDINGS_ARRAY=$(printf '%s\n' "$ALL_FINDINGS_RAW" | grep -v '^$' | scanner_findings_array || echo '[]')
+# Strip blank lines, package as JSON array. When ALL_FINDINGS_RAW is
+# empty, skip the pipeline (with pipefail, an empty grep -v '^$'
+# returns 1 and the prior `|| echo '[]'` rescue would double-emit).
+if [ -z "$ALL_FINDINGS_RAW" ]; then
+  FINDINGS_ARRAY='[]'
+else
+  FINDINGS_ARRAY=$(printf '%s\n' "$ALL_FINDINGS_RAW" | grep -v '^$' | scanner_findings_array || echo '[]')
+  [ -z "$FINDINGS_ARRAY" ] && FINDINGS_ARRAY='[]'
+fi
 SUMMARY_OBJ=$(scanner_summary_object "$FINDINGS_ARRAY")
 
 # ─────────────────────────────────────────────────────────────────────

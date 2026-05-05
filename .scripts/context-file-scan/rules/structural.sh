@@ -292,17 +292,28 @@ EOF
   # Part B — removed-feature detection (flags, env vars, function names)
   local candidates
   candidates=$(awk '
-    BEGIN { fence = 0; ic = 0 }
+    BEGIN { fence = 0 }
     /^[[:space:]]*```/ { fence = 1 - fence; next }
     fence == 1 { next }
     {
       line = $0
-      # Inline code spans: collapse to placeholders so they do not double-match
+      # Inline code spans first: classify each span as FLAG / ENVVAR /
+      # FUNC depending on its shape so the per-kind dedup + filters
+      # downstream can apply.
       while (match(line, /`[^`]+`/)) {
         seg = substr(line, RSTART + 1, RLENGTH - 2)
-        print "INLINE\t" seg
+        if (seg ~ /^--[a-z]/) {
+          print "FLAG\t" seg
+        } else if (seg ~ /^\$/) {
+          envseg = seg
+          gsub(/^\$\{|\}$/, "", envseg); gsub(/^\$/, "", envseg)
+          print "ENVVAR\t" envseg
+        } else if (seg ~ /^[a-z_][a-z0-9_-]*\(/) {
+          print "FUNC\t" seg
+        }
         line = substr(line, 1, RSTART - 1) substr(line, RSTART + RLENGTH)
       }
+      # Bare matches outside inline code spans
       while (match(line, /--[a-z][a-z0-9-]+/)) {
         print "FLAG\t" substr(line, RSTART, RLENGTH)
         line = substr(line, 1, RSTART - 1) substr(line, RSTART + RLENGTH)
@@ -331,15 +342,10 @@ EOF
         # Skip very common shell vars
         case "$candidate" in PATH|HOME|USER|SHELL|TMPDIR|PWD|OLDPWD) continue ;; esac
         ;;
-      INLINE)
-        # Match function/command shape: bare word + optional () or trailing pattern
-        case "$candidate" in
-          *\(\)*) candidate="${candidate%%(*}" ;;
-          *\(*)   candidate="${candidate%%(*}" ;;
-          *) continue ;;
-        esac
+      FUNC)
+        # FUNC came from an inline code span like `name()`. Strip parens.
+        candidate="${candidate%%(*}"
         [ ${#candidate} -lt 3 ] && continue
-        # Only keep [a-z_][a-z0-9_-]*
         echo "$candidate" | grep -qE '^[a-z_][a-z0-9_-]*$' || continue
         ;;
       *) continue ;;
