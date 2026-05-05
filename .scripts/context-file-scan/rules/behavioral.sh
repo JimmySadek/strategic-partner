@@ -472,8 +472,13 @@ scanner_rule_B6() {
       [ -z "$heading" ] && continue
       local body
       body=$(awk -v s="$s" -v e="$e" 'NR>=s && NR<=e' "$abs_path")
+      # Codex finding #6: strip inline-code backticks from the
+      # lowercased body before matching catalog phrases. The spec
+      # § 4.B6 catalog shows phrases with backticks
+      # (`No \`console.log\``, `No \`print()\``, etc.); without
+      # stripping, the literal backticks defeat the regex.
       local body_lc
-      body_lc=$(scanner_lower "$body")
+      body_lc=$(scanner_lower "$body" | tr -d '`')
 
       _scanner_B6_check "$src" "$section" "$heading" "$rule_norm" \
         "$body_lc" "lint-detectable" \
@@ -483,9 +488,11 @@ scanner_rule_B6() {
         "$body_lc" "pre-commit-hook-detectable" \
         "never commit|no secrets in|no \\.env files in|all commits must|before commit|block commit if"
 
+      # Codex finding #6: "always use {format-rule-name}" is a spec
+      # § 4.B6 canonical phrase that the previous regex omitted.
       _scanner_B6_check "$src" "$section" "$heading" "$rule_norm" \
         "$body_lc" "format-style-enforcement" \
-        "tabs vs spaces|indent with|consistent spacing|max trailing newlines"
+        "tabs vs spaces|indent with|consistent spacing|max trailing newlines|always use [a-z]+"
 
       _scanner_B6_check "$src" "$section" "$heading" "$rule_norm" \
         "$body_lc" "type-check-detectable" \
