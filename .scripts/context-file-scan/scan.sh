@@ -114,25 +114,8 @@ resolve_target() {
 PRIMARY_ABS=$(resolve_target)
 
 # ─────────────────────────────────────────────────────────────────────
-# Encoding sanity (spec § 7.1)
-# ─────────────────────────────────────────────────────────────────────
-# Accept utf-8 / us-ascii only. Reject any other text encoding (Latin-1,
-# UTF-16, etc.) with exit 3 and the detected encoding in the message,
-# per Codex finding #2. Binary keeps its dedicated message.
-DETECTED_ENCODING=$(file -b --mime-encoding "$PRIMARY_ABS" 2>/dev/null | tr -d ' \t\n')
-case "$DETECTED_ENCODING" in
-  utf-8|us-ascii)
-    : ;;
-  binary)
-    echo "scanner: $PRIMARY_ABS appears to be binary; scanner expects UTF-8 markdown." >&2
-    exit 3 ;;
-  *)
-    echo "scanner: $PRIMARY_ABS uses unsupported text encoding (${DETECTED_ENCODING}); scanner expects UTF-8 or US-ASCII." >&2
-    exit 3 ;;
-esac
-
-# ─────────────────────────────────────────────────────────────────────
-# Compute relative path for source_file field
+# Compute relative path for source_file field (needed by edge-case
+# findings emitted before the rule pipeline runs).
 # ─────────────────────────────────────────────────────────────────────
 PRIMARY_REL="$PRIMARY_ABS"
 case "$PRIMARY_ABS" in
@@ -141,6 +124,77 @@ esac
 
 PRIMARY_CHARS=$(scanner_wc_chars "$PRIMARY_ABS")
 PRIMARY_BAND=$(scanner_size_band "$PRIMARY_CHARS")
+
+# ─────────────────────────────────────────────────────────────────────
+# Empty-file edge case (spec § 7.1, Codex finding #9)
+# ─────────────────────────────────────────────────────────────────────
+# A zero-byte target gets a single info finding and exits 0. The check
+# runs BEFORE the encoding probe because an empty file produces an
+# undefined mime-encoding result on macOS (often "binary"), which would
+# misroute to exit 3 in the encoding case below.
+PRELUDE_FINDINGS=""
+EMPTY_FILE=false
+if [ "$PRIMARY_CHARS" = "0" ]; then
+  EMPTY_FILE=true
+  empty_subs=$(jq -nc --arg msg "File exists but is empty. Add at least the project name and one rule, or remove the file." \
+    '{is_empty: true, message: $msg, N_chars: 0}')
+  empty_action=$(scanner_action_json acknowledge "" false false "")
+  empty_finding=$(scanner_emit_finding \
+    "S1" "structural" "info" "Empty file" \
+    "$PRIMARY_REL" "<root>" \
+    "size-0" \
+    "$empty_subs" "$empty_action" \
+    "[Acknowledge — file is intentionally empty]")
+  PRELUDE_FINDINGS="$empty_finding"
+fi
+
+# ─────────────────────────────────────────────────────────────────────
+# Encoding sanity (spec § 7.1)
+# ─────────────────────────────────────────────────────────────────────
+# Accept utf-8 / us-ascii only. Reject any other text encoding (Latin-1,
+# UTF-16, etc.) with exit 3 and the detected encoding in the message,
+# per Codex finding #2. Binary keeps its dedicated message.
+if [ "$EMPTY_FILE" = "false" ]; then
+  DETECTED_ENCODING=$(file -b --mime-encoding "$PRIMARY_ABS" 2>/dev/null | tr -d ' \t\n')
+  case "$DETECTED_ENCODING" in
+    utf-8|us-ascii)
+      : ;;
+    binary)
+      echo "scanner: $PRIMARY_ABS appears to be binary; scanner expects UTF-8 markdown." >&2
+      exit 3 ;;
+    *)
+      echo "scanner: $PRIMARY_ABS uses unsupported text encoding (${DETECTED_ENCODING}); scanner expects UTF-8 or US-ASCII." >&2
+      exit 3 ;;
+  esac
+fi
+
+# ─────────────────────────────────────────────────────────────────────
+# Long-line edge case (spec § 7.1, Codex finding #9)
+# ─────────────────────────────────────────────────────────────────────
+# A line >100K chars (no newlines) emits an additional warn finding.
+# The scan still runs normally — the user gets both the regular S1
+# size band finding AND the long-line warn signal.
+if [ "$EMPTY_FILE" = "false" ]; then
+  LONGEST_LINE=$(awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }' "$PRIMARY_ABS")
+  if [ "${LONGEST_LINE:-0}" -gt 100000 ]; then
+    long_subs=$(jq -nc --argjson n "$LONGEST_LINE" \
+      --arg msg "Extremely long single line detected — likely a serialized blob; consider extracting to a separate file." \
+      '{max_line_length: $n, message: $msg}')
+    long_action=$(scanner_action_json move_to_layer "external-file" false false "")
+    long_finding=$(scanner_emit_finding \
+      "S1" "structural" "warn" "Extremely long single line" \
+      "$PRIMARY_REL" "<root>" \
+      "long-line" \
+      "$long_subs" "$long_action" \
+      "[Acknowledge — line is intentionally a single block]")
+    if [ -n "$PRELUDE_FINDINGS" ]; then
+      PRELUDE_FINDINGS="${PRELUDE_FINDINGS}
+${long_finding}"
+    else
+      PRELUDE_FINDINGS="$long_finding"
+    fi
+  fi
+fi
 
 # ─────────────────────────────────────────────────────────────────────
 # Discover companions
@@ -178,21 +232,30 @@ LAYER_PROBE_JSON=$(scanner_probe_layers "$PROJECT_ROOT" "$SERENA_FLAG" "$CONTEXT
 # ─────────────────────────────────────────────────────────────────────
 ALL_FINDINGS_RAW=""
 
-# Structural rules per file (single-file behavior)
-while IFS=$'\t' read -r abs_path rel_path; do
-  [ -z "$abs_path" ] && continue
-  out=$(scanner_run_structural "$abs_path" "$rel_path" "$PROJECT_ROOT" "$LAYER_PROBE_JSON" "$COMPANIONS" 2>/dev/null || true)
-  if [ -n "$out" ]; then
-    ALL_FINDINGS_RAW="${ALL_FINDINGS_RAW}${out}
+# Seed with prelude findings (empty-file / long-line per spec § 7.1).
+if [ -n "$PRELUDE_FINDINGS" ]; then
+  ALL_FINDINGS_RAW="${PRELUDE_FINDINGS}
+"
+fi
+
+# Empty file: skip rules — the empty finding is the only signal needed.
+if [ "$EMPTY_FILE" = "false" ]; then
+  # Structural rules per file (single-file behavior)
+  while IFS=$'\t' read -r abs_path rel_path; do
+    [ -z "$abs_path" ] && continue
+    out=$(scanner_run_structural "$abs_path" "$rel_path" "$PROJECT_ROOT" "$LAYER_PROBE_JSON" "$COMPANIONS" 2>/dev/null || true)
+    if [ -n "$out" ]; then
+      ALL_FINDINGS_RAW="${ALL_FINDINGS_RAW}${out}
+"
+    fi
+  done <<<"$FILES_TSV"
+
+  # Behavioral rules: B1-B4 on primary only, B5-B8 cross-file
+  behav_out=$(scanner_run_behavioral "$PROJECT_ROOT" "$PRIMARY_ABS" "$PRIMARY_REL" "$FILES_TSV" 2>/dev/null || true)
+  if [ -n "$behav_out" ]; then
+    ALL_FINDINGS_RAW="${ALL_FINDINGS_RAW}${behav_out}
 "
   fi
-done <<<"$FILES_TSV"
-
-# Behavioral rules: B1-B4 on primary only, B5-B8 cross-file
-behav_out=$(scanner_run_behavioral "$PROJECT_ROOT" "$PRIMARY_ABS" "$PRIMARY_REL" "$FILES_TSV" 2>/dev/null || true)
-if [ -n "$behav_out" ]; then
-  ALL_FINDINGS_RAW="${ALL_FINDINGS_RAW}${behav_out}
-"
 fi
 
 # Strip blank lines, package as JSON array. When ALL_FINDINGS_RAW is
