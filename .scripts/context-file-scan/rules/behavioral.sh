@@ -113,16 +113,21 @@ scanner_rule_B2() {
   bg_line=$(scanner_bg_section_line "$abs_file")
   [ -z "$bg_line" ] && return 0
 
-  # Section length < 60 lines AND references .claude/rules/ → stub pattern
+  # Section length < 60 lines AND references a companion-file pointer
+  # → stub pattern. Codex finding #5: pointer extraction must be
+  # platform-agnostic — `.claude/rules/*.md`, `.codex/rules/*.md`,
+  # `.gemini/rules/*.md`, etc. Same regex as
+  # scanner_extract_companion_pointers in lib/file-discovery.sh.
   local body
   body=$(scanner_section_body "$abs_file" "$bg_line")
   local line_count
   line_count=$(printf '%s\n' "$body" | wc -l | tr -d ' ')
   [ "$line_count" -ge 60 ] && return 0
 
-  # Find rules-file pointers in the BG body
   local pointers
-  pointers=$(printf '%s\n' "$body" | grep -oE '\.claude/rules/[a-zA-Z0-9_-]+\.md' | sort -u)
+  pointers=$(printf '%s\n' "$body" \
+    | grep -oE '(\./|\.[a-zA-Z0-9_-]+/)[a-zA-Z0-9_./-]+\.md' \
+    | sort -u)
   [ -z "$pointers" ] && return 0
 
   while IFS= read -r ptr; do
