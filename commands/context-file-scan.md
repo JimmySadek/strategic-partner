@@ -176,6 +176,19 @@ template:
 
 ---
 
+## Defensive Exceptions (optional — omit if none)
+
+{Codex finding #12: render the contents of
+`release_gate.coverage.unused_exceptions` if any entries exist. These
+are exception entries whose fingerprint matched no current finding —
+typically because a prior bug was fixed or the source content shifted.
+The user reviews these to decide whether to remove or keep for forward
+coverage.}
+
+- {rule_id} on {source_file}/{section_anchor}: {subject} (accepted {accepted_at}, review {review_at})
+
+---
+
 ## Summary
 
 {One-paragraph plain-English summary; per-source-file breakdown when

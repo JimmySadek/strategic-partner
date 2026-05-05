@@ -256,6 +256,17 @@ if [ "$EMPTY_FILE" = "false" ]; then
     ALL_FINDINGS_RAW="${ALL_FINDINGS_RAW}${behav_out}
 "
   fi
+
+  # Codex finding #12 / spec § 7.5: emit info findings for any
+  # exceptions whose review_at date has passed.
+  EXCEPTIONS_FILE_DEFAULT="$PROJECT_ROOT/.scanner-exceptions.json"
+  if [ -e "$EXCEPTIONS_FILE_DEFAULT" ]; then
+    past_review_out=$(scanner_exceptions_past_review_findings "$EXCEPTIONS_FILE_DEFAULT" "$PRIMARY_REL" 2>/dev/null || true)
+    if [ -n "$past_review_out" ]; then
+      ALL_FINDINGS_RAW="${ALL_FINDINGS_RAW}${past_review_out}
+"
+    fi
+  fi
 fi
 
 # Strip blank lines, package as JSON array. When ALL_FINDINGS_RAW is
