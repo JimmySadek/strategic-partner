@@ -548,6 +548,63 @@ then proceed normally in degraded mode.
   Promote any to backlog, or continue — they carry forward."
   If no findings files exist: skip silently.
 
+- 🔍 **Context-file drift scan** (quiet-mode, fresh-session only): Run
+  the scanner non-interactively against the SP project's own
+  `CLAUDE.md` and surface a one-line summary if anything came up. Per
+  scanner-design-spec.md § 6:
+
+  **Trigger conditions:**
+  - Fresh `/strategic-partner` invocation (NOT continuation — `$ARGUMENTS`
+    does not contain a `.handoffs/` path).
+  - The `--no-scan-startup` env var is unset (escape hatch for the user).
+  - The `CLAUDE.md` exists in the SP project root.
+  - Only scans the SP project's own `CLAUDE.md` — never the project the
+    user is calling SP about.
+
+  **Dispatch (inline, fast — sub-200ms typical):**
+  ```bash
+  if [ -z "$SP_HANDOFF" ] && [ -z "$NO_SCAN_STARTUP" ]; then
+    SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+    [ -n "$SP_ANY_CMD" ] || return 0
+    SP_SKILL_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
+    [ -f "${SP_SKILL_DIR}/CLAUDE.md" ] || return 0
+    SCAN_JSON=$(bash "${SP_SKILL_DIR}/.scripts/context-file-scan/scan.sh" \
+      --file "${SP_SKILL_DIR}/CLAUDE.md" --report-only \
+      --serena-available "${has_serena_tools:-false}" \
+      --context7-available "${has_context7_tools:-false}" 2>/dev/null) || SCAN_JSON=""
+  fi
+  ```
+
+  **Output template (per spec § 6.3):**
+  ```
+  🔍 CLAUDE.md scan: {summary_phrase}. {action_phrase}.
+  ```
+
+  Substitution rules:
+  - `summary_phrase`:
+    - 0 findings → entire bullet OMITTED (no value in saying "nothing to report")
+    - 1+ findings, max severity warn → `{N}K chars, {N} drift patterns detected`
+    - 1+ findings, any surface-loudly → `{N}K chars, **{N} surface-loudly findings** + {N} other`
+  - `action_phrase`:
+    - 0 findings → omit the entire bullet entirely
+    - 1+ findings → `Run \`/strategic-partner:context-file-scan\` for details`
+
+  **Suppression rules (per spec § 6.4):**
+  - Scan errored (`SCAN_JSON` empty or jq parse fails) → log silently,
+    omit the bullet.
+  - 0 findings → omit (already covered above).
+  - `NO_SCAN_STARTUP` env var set → skip the dispatch entirely.
+  - Session-acked findings: if `.handoffs/.scan-acks-{session-uuid}`
+    exists from earlier in this session and matches the current finding
+    fingerprints, omit (don't re-surface findings the user already filed
+    or acknowledged).
+
+  **Examples:**
+  - *(0 findings)* — bullet omitted entirely; orientation continues without
+    mentioning the scan.
+  - `🔍 CLAUDE.md scan: 18K chars, 3 drift patterns detected. Run /strategic-partner:context-file-scan for details.`
+  - `🔍 CLAUDE.md scan: 41K chars, **1 surface-loudly finding** + 4 other. Run /strategic-partner:context-file-scan for details.`
+
 **Session setup recommendation** (include in orientation via `AskUserQuestion`):
 
 Suggest the user rename the session for meaningful `/resume` retrieval.
