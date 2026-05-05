@@ -150,11 +150,65 @@ _scanner_S2_section_scores() {
   d_score=$((d_score + d_headers * 2))
 
   # Architecture/schema shape
+  #
+  # Codex finding #4: pure pointer/navigation tables (Where-to-Look,
+  # Release Process runbook tables) fired S2 because table-row count
+  # alone scored ≥5. Two-part gate to suppress these false-positives
+  # while still catching real schema/architecture tables:
+  #
+  #   (a) Count rows whose 2nd column starts with `code` or a
+  #       [link](...) — those are navigation-shape rows (link →
+  #       description, not field → type).
+  #   (b) Count occurrences of schema-like terms — `type`, `schema`,
+  #       `interface`, `field`, `property`, `enum` — in the body OR
+  #       schema-keyword in the title.
+  #
+  # Skip the table-row contribution entirely when EITHER:
+  #   - schema-term count < 2 AND no schema-keyword title (avoids
+  #     incidental single mentions like "version: field" in a
+  #     navigation row), OR
+  #   - the navigation-shape row count is at least half the data rows
+  #     (the table is dominantly link-shaped).
+  #
+  # Code-block contributions (JSON, YAML, TypeScript, proto) keep
+  # firing regardless: those formats are inherently schema-like.
   local a_score=0
+  local schema_term_count
+  schema_term_count=$(printf '%s\n' "$body" | grep -ciE '\b(type|schema|interface|field|property|enum)\b' || true)
+  local title_has_schema_kw=0
+  echo "$title_lc" | grep -qE '\b(schema|architecture|data model|entities)\b' && title_has_schema_kw=1
+
   local a_rows
   a_rows=$(printf '%s\n' "$body" | grep -cE '^\|.*\|' || true)
   [ "$a_rows" -gt 8 ] && a_rows=8
-  a_score=$((a_score + a_rows))
+
+  local nav_rows
+  nav_rows=$(printf '%s\n' "$body" | awk '
+    /^\|/ {
+      if ($0 ~ /^\|[[:space:]]*[-:]+[[:space:]]*\|/) next
+      n = split($0, cols, "|")
+      if (n < 3) next
+      col2 = cols[3]
+      sub(/^[[:space:]]+/, "", col2); sub(/[[:space:]]+$/, "", col2)
+      if (col2 ~ /^`/ || col2 ~ /^\[/) count++
+    }
+    END { print count + 0 }
+  ')
+
+  local data_rows=$a_rows
+  [ "$data_rows" -gt 0 ] && data_rows=$((a_rows - 1))  # exclude header row roughly
+
+  local count_table_rows=1
+  if [ "$schema_term_count" -lt 2 ] && [ "$title_has_schema_kw" = "0" ]; then
+    count_table_rows=0
+  elif [ "$data_rows" -gt 0 ] && [ "$((nav_rows * 2))" -ge "$data_rows" ]; then
+    count_table_rows=0
+  fi
+
+  if [ "$count_table_rows" = "1" ]; then
+    a_score=$((a_score + a_rows))
+  fi
+
   local a_blocks
   a_blocks=$(printf '%s\n' "$body" | awk '
     BEGIN { fence=0; lang=""; lines=0; matched=0 }
