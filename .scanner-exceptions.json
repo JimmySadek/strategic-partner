@@ -1,0 +1,71 @@
+{
+  "schema_version": "v1",
+  "exceptions": [
+    {
+      "fingerprint": "da0be46eeb0c68f3",
+      "rule_id": "S2",
+      "source_file": "CLAUDE.md",
+      "section_anchor": "where-to-look",
+      "normalized_subject": "where-to-look-schema-or-architecture-shape",
+      "subject": "Where to Look navigation table",
+      "reason": "The Where-to-Look table is the canonical navigation index per CLAUDE.md § Where to Look — pointers to incident archaeology, CHANGELOG, release script, and version anchor. The table format is intentionally retained inline so the user can scan the four cross-reference targets without opening another file. Moving this to claudedocs/ would defeat the table's role as the in-CLAUDE.md routing index.",
+      "accepted_at": "2026-05-05",
+      "review_at": "2026-08-05"
+    },
+    {
+      "fingerprint": "3dedc2e5ef7cc417",
+      "rule_id": "S2",
+      "source_file": "CLAUDE.md",
+      "section_anchor": "release-process-mandatory-before-push",
+      "normalized_subject": "release-process-mandatory-before-push-schema-or-architecture-shape",
+      "subject": "Release Process runbook section",
+      "reason": "The Release Process section is a process runbook the SP follows on every push (CLAUDE.md § Release Process). The schema-shape detection fires because the runbook contains step-by-step substructure with tables for bump classification and file changes. Moving the runbook to claudedocs/ would split the SP's authoritative push procedure across two files. Accepted as intentional inline content.",
+      "accepted_at": "2026-05-05",
+      "review_at": "2026-08-05"
+    },
+    {
+      "fingerprint": "9c8d4abb27a540b8",
+      "rule_id": "S2",
+      "source_file": "CLAUDE.md",
+      "section_anchor": "2-classify-the-bump",
+      "normalized_subject": "2-classify-the-bump-schema-or-architecture-shape",
+      "subject": "SemVer bump classification table",
+      "reason": "Sub-step of the Release Process runbook (see exception above). The table maps change types to bump levels — load-bearing for the manual review the SP performs on every release. Sub-section of an accepted parent exception.",
+      "accepted_at": "2026-05-05",
+      "review_at": "2026-08-05"
+    },
+    {
+      "fingerprint": "d1b251dc6a9085fd",
+      "rule_id": "S2",
+      "source_file": "CLAUDE.md",
+      "section_anchor": "5-execute-the-bump",
+      "normalized_subject": "5-execute-the-bump-schema-or-architecture-shape",
+      "subject": "Release-bump file-change table",
+      "reason": "Sub-step of the Release Process runbook (see exception above). The table specifies which three files change at which lines for every release. Sub-section of an accepted parent exception.",
+      "accepted_at": "2026-05-05",
+      "review_at": "2026-08-05"
+    },
+    {
+      "fingerprint": "0749ef86a258262d",
+      "rule_id": "S3",
+      "source_file": "CLAUDE.md",
+      "section_anchor": "project-facts",
+      "normalized_subject": "claude",
+      "subject": "${CLAUDE_*} glob mentioned in Project Facts",
+      "reason": "The string `${CLAUDE_*}` appears in CLAUDE.md § Project Facts as a glob illustrating the family of env vars hooks must NOT use (per the Provisional Guard 'Don't use `${CLAUDE_*}` env vars in hook commands'). The literal `CLAUDE_*` glob is by design unimplemented anywhere — that is the rule's point. The S3 candidate-extraction slugifies the `CLAUDE_*` token to 'claude', so the fingerprint anchors on that normalized form. Intentional.",
+      "accepted_at": "2026-05-05",
+      "review_at": "2026-08-05"
+    },
+    {
+      "fingerprint": "00736452c9379252",
+      "rule_id": "S3",
+      "source_file": "CLAUDE.md",
+      "section_anchor": "don-t-use-claude-env-vars-in-hook-commands",
+      "normalized_subject": "claude-project-dir",
+      "subject": "${CLAUDE_PROJECT_DIR} cited in Provisional Guard scope",
+      "reason": "${CLAUDE_PROJECT_DIR} is named in the Provisional Guard scope list as one of the phantom env vars hooks must NOT rely on (per CHANGELOG v5.4.0 → v5.4.1 archaeology). The variable is intentionally not implemented anywhere in SP — the Guard documents that absence. The `claudedocs/INCIDENTS.md` reference and reference doc mentions of CLAUDE_PROJECT_DIR are documentation, not implementation. Intentional.",
+      "accepted_at": "2026-05-05",
+      "review_at": "2026-08-05"
+    }
+  ]
+}

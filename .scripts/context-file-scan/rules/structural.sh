@@ -325,7 +325,7 @@ EOF
         line = substr(line, 1, RSTART - 1) substr(line, RSTART + RLENGTH)
       }
     }
-  ' "$abs_file")
+  ' "$abs_file" | sort -u)
 
   # POSIX-flag deny-list
   local _posix_flags=" -h -v -x -l -r -a -A -e -f -n -p -s -t -i -d "
@@ -351,9 +351,13 @@ EOF
       *) continue ;;
     esac
 
-    # Build the exclusion list for grep: the target file + companions
+    # Build the exclusion list for grep: the target file + companions +
+    # the scanner's own exception file (meta — references to candidate
+    # tokens in `.scanner-exceptions.json` are findings about findings,
+    # not "is this feature implemented" evidence).
     local exclude_args=( "--exclude-dir=.git" "--exclude-dir=node_modules" \
-                         "--exclude-dir=.venv" "--exclude-dir=__pycache__" )
+                         "--exclude-dir=.venv" "--exclude-dir=__pycache__" \
+                         "--exclude=.scanner-exceptions.json" )
     # Run the grep across source files
     local hits
     hits=$(grep -rE --include='*.sh' --include='*.bash' --include='*.zsh' \
@@ -409,10 +413,10 @@ _scanner_section_for_line() {
         last_title = ""
         for (i = 3; i <= NF; i++) last_title = last_title (i == 3 ? "" : ":") $i
       } else {
-        print last_title; exit
+        print last_title; printed = 1; exit
       }
     }
-    END { if (last_title != "") print last_title }
+    END { if (last_title != "" && !printed) print last_title }
   ')
   if [ -z "$title" ]; then
     echo "<root>"
