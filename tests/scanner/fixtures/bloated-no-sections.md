@@ -6,20 +6,23 @@ This file is intentionally large to trigger S1 size bands.
 
 ### Old Guard
 
+Brief description.
+
 - **Source**: example
 - **Review**: 2024-01-01
 
 ### Coding Behavior
 
-Some content describing rules.
-
-When fixing a bug, never improve adjacent code without permission.
+- Never use mutable global state in production handlers; refactor away from it before merging.
+- Don't roll your own crypto without team review and an external audit.
+- Avoid blocking the event loop; if a long task is necessary, find another path.
 
 ## Decisions Log
 
 [2024-01-15] **Decision 1:** Adopt SemVer
 [2024-02-10] **Decision 2:** Use bash 3.2 for hooks
 [2024-03-05] **Decision 3:** Test-first for rules
+[2024-04-12] **Decision 4:** Atomic commits per logical unit
 
 ## Long Section
 
