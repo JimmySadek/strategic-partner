@@ -395,7 +395,14 @@ EOF
         } else if (seg ~ /^\$/) {
           envseg = seg
           gsub(/^\$\{|\}$/, "", envseg); gsub(/^\$/, "", envseg)
-          print "ENVVAR\t" envseg
+          # Codex finding #11: reject glob-style env-var families
+          # like `${CLAUDE_*}`. Real env-var names match
+          # ^[A-Z][A-Z0-9_]+$ — no wildcards, no character classes.
+          # Anything containing *, ?, [, or ] is a glob pattern,
+          # not a candidate for "removed feature" detection.
+          if (envseg ~ /^[A-Z][A-Z0-9_]+$/) {
+            print "ENVVAR\t" envseg
+          }
         } else if (seg ~ /^[a-z_][a-z0-9_-]*\(/) {
           print "FUNC\t" seg
         }
