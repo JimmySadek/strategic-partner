@@ -16,3 +16,12 @@ claudedocs/
 !claudedocs/INCIDENTS.md
 .serena/
 __pycache__/
+
+# v6.0.0 — dev-only files excluded from public ship.
+# These remain in the local working tree (untrack ≠ delete) but are not
+# part of what users get on `npx skills add` or `git clone`. See v6.0.0
+# CHANGELOG entry "Smaller install footprint" for rationale.
+tests/
+.lint-allowlist
+.scanner-exceptions.json
+hooks/lib/
