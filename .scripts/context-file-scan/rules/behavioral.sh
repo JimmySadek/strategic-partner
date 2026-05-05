@@ -564,11 +564,17 @@ EOR
     # (CLAUDE.md, AGENTS.md, GEMINI.md). This is the policy-recommended
     # stub+full split; flagging it as duplication would punish the
     # canonical structure.
+    #
+    # Codex finding #7 isolation reveals: relative paths from a fixture
+    # root start with `.claude/rules/...` (no leading slash). The
+    # absolute-prefix glob `*/.claude/rules/*` won't match those. Add
+    # the bare-prefix forms so the hybrid-skip works for project-root-
+    # relative paths.
     local has_rules_file=0 has_primary=0
     while IFS='|' read -r r_norm src section heading; do
       [ -z "$src" ] && continue
       case "$src" in
-        */.claude/rules/*|*/source-editing.md|*/coding-behavior.md|*/source-editing-rules.md)
+        */.claude/rules/*|.claude/rules/*|*/source-editing.md|source-editing.md|*/coding-behavior.md|coding-behavior.md|*/source-editing-rules.md|source-editing-rules.md)
           has_rules_file=1 ;;
         CLAUDE.md|AGENTS.md|GEMINI.md|*/CLAUDE.md|*/AGENTS.md|*/GEMINI.md)
           has_primary=1 ;;

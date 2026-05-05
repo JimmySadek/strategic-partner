@@ -7,8 +7,19 @@
 #   Echoes the absolute project root. Tries `git rev-parse --show-toplevel`
 #   first; falls back to START_DIR (default: cwd) when not in a git repo.
 #   Always echoes a path even when fallback is used; never errors out.
+#
+#   Codex finding #7: multi-file fixture tests need to scan a
+#   fixture-as-root rather than the enclosing SP repo. The
+#   `SCANNER_PROJECT_ROOT_OVERRIDE` env var (testing-only) takes
+#   precedence over both git-root and fallback resolution. Production
+#   code never sets this var; it's the test-isolation seam.
 scanner_project_root() {
   local start="${1:-$PWD}"
+  if [ -n "${SCANNER_PROJECT_ROOT_OVERRIDE:-}" ] \
+     && [ -d "${SCANNER_PROJECT_ROOT_OVERRIDE}" ]; then
+    printf '%s' "${SCANNER_PROJECT_ROOT_OVERRIDE}"
+    return 0
+  fi
   local root
   root=$(cd "$start" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
   if [ -n "$root" ] && [ -d "$root" ]; then

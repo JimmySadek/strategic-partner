@@ -18,13 +18,25 @@ scan_isolated() {
   ( cd "$tmp" && bash "$SCAN_SCRIPT" --file "$fixture" 2>/dev/null )
 }
 
-# scan_in_root_of FIXTURE_OR_DIR — scan fixture located inside DIR;
-# the scan runs from inside that dir so the scanner treats it as the
-# project root (useful for hybrid pair fixtures that need their .claude/
-# subdir to be visible to the layer probe).
+# scan_in_dir DIR REL_FILE — scan REL_FILE inside DIR with DIR
+# treated as the project root.
+#
+# Codex finding #7: the previous implementation just `cd`'d into DIR,
+# but `git rev-parse --show-toplevel` resolved to the enclosing SP
+# repo, so the layer probe and B2/B3/B5 cross-file rules saw SP's
+# real `.claude/rules/source-editing.md` (12,785 chars) rather than
+# the fixture's companion (666 chars). Fix: copy the fixture tree to
+# `mktemp -d` outside the SP repo, then scan from there. The git-root
+# resolution falls back to cwd → the tmp dir → no leak.
 scan_in_dir() {
   local dir="$1" rel_file="$2"
-  ( cd "$dir" && bash "$SCAN_SCRIPT" --file "$rel_file" 2>/dev/null )
+  local tmp
+  tmp=$(mktemp -d)
+  cp -R "$dir/." "$tmp/" 2>/dev/null
+  ( cd "$tmp" && bash "$SCAN_SCRIPT" --file "$rel_file" 2>/dev/null )
+  local rc=$?
+  \rm -rf "$tmp"
+  return $rc
 }
 
 # Assert that the scan output contains a finding with the given rule_id
