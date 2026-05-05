@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-5.18.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.0.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **New in v5.15.0** — The Strategic Partner is harder to drift. It receives a fresh snapshot of session state at session entry and subcommand transitions, catches missed startup signals and response-shape mistakes turn-by-turn, walks an 8-group closure check at session end, and makes update notifications reliable in fresh sessions. See [CHANGELOG](CHANGELOG.md) for the full set.
+> **New in v6.0.0** — The Strategic Partner now includes `/strategic-partner:context-file-scan`, a new command that detects 16 patterns of drift in your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` rules file. Plus the four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Verification not Specification) ship publicly with attribution to Andrej Karpathy's corpus, and the install footprint drops by ~115 files. See [CHANGELOG](CHANGELOG.md) for the full set.
 
 ---
 
@@ -363,6 +363,7 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.5) |
+| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (16 patterns, two output modes) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---
@@ -370,11 +371,12 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 ## Requirements
 
 - **Claude Code** — the skill runs inside Claude Code sessions
+- **`jq`** — required for `/strategic-partner:context-file-scan` (the scanner uses `jq` for JSON output assembly and exception coverage parsing). Install via `brew install jq` on macOS, `apt install jq` / `dnf install jq` on Linux. The scanner exits with a clear error if `jq` is missing; other SP features work without it.
 - **Serena MCP** (recommended) — for cross-session memory and semantic code navigation
 - **Context7 MCP** (optional) — for library documentation lookup
 - **Codex CLI** (optional) — for cross-model adversarial review via `/strategic-partner:codex-feedback`
 
-The skill works without Serena, but loses cross-session memory and semantic code navigation. CLAUDE.md ownership and prompt crafting work regardless. Codex CLI is only needed if you want independent cross-model review of high-stakes decisions.
+The skill works without Serena, but loses cross-session memory and semantic code navigation. CLAUDE.md ownership and prompt crafting work regardless. Codex CLI is only needed if you want independent cross-model review of high-stakes decisions. `jq` is the only hard runtime dependency outside Claude Code itself.
 
 ---
 

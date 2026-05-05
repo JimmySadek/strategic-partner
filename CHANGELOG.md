@@ -1,5 +1,27 @@
 # Changelog
 
+## [6.0.0] - 2026-05-05
+
+### Added
+
+- **Detect drift in your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`** with the new `/strategic-partner:context-file-scan` command. The scanner reads your project's rules file, follows pointers to a companion rules file when one exists (this "hybrid pattern" keeps the main file small while the full content loads only when needed), and flags 16 patterns of drift across two categories. **Structural problems**: oversized file, sections that belong in a separate doc (decision logs, architecture notes), stale path references to deleted files, expired Provisional Guards, inline shell blocks better off as scripts, re-asserted skill rules. **Behavioral problems**: missing source-editing rules in projects that produce code, broken hybrid pattern (stub without companion or vice versa), rules without examples, rules a linter or CI gate could enforce instead, duplicated rules, drift from the four behavioral principles (described in the next bullet).
+
+  Two output modes: an interactive walkthrough that proposes one fix per finding, or a single markdown report for offline review. Run `/strategic-partner:context-file-scan` to start.
+
+- **The four behavioral principles ship publicly**, with attribution to Andrej Karpathy's source corpus. The principles — Think Before Coding, Simplicity First, Surgical Changes, and Verification not Specification — apply whenever Claude is editing source files in a project that adopts the pattern. Worked examples live in a path-scoped rules file (a separate doc that only loads when source files are actually being edited), so the rules don't cost tokens during advisory or planning work.
+
+- **Quiet-mode scan at session start** — when you open a fresh SP session, the orientation now includes a one-line summary if the rules file in your current directory (`CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`) shows drift. The scanner auto-detects the file in CWD: invoke SP from your project's root and it scans your project's rules file; invoke from SP's own directory and it scans SP's own. Suppressed when the file is clean and during continuation sessions where a handoff path is already focused. To audit a specific file, use `/strategic-partner:context-file-scan --file <path>`.
+
+- **A release-gate mode** (`--release-gate` flag) for CI pipelines and pre-push checks. Returns a non-zero exit code if any warn-or-higher finding lacks a documented exception in your project's `.scanner-exceptions.json` (an opt-in file you maintain per project, one entry per finding you've decided to accept). Useful for teams that want their rules file to converge on the policy without breaking on every legitimate edge case.
+
+### Changed
+
+- **Smaller install footprint** — the SP install no longer includes the internal test suite (~115 files of test scripts, fixtures, and lint configuration). Users who installed via `npx skills add` or `git clone` will see those files removed on their next update. The test suite remains in active development as part of SP's own quality story; it just doesn't ship to every user. Roughly 10% byte reduction and 66% file-count reduction in the install footprint.
+
+### Note
+
+- **First public release with the scanner.** v5.17.0 and v5.18.0 were internal-only releases that prepared the policy SP now uses on its own files; v6.0 makes both the policy and the scanner available to anyone using Strategic Partner.
+
 ## [5.18.0] - 2026-05-05
 
 ### Added
