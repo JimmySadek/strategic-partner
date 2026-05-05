@@ -28,30 +28,64 @@ scanner_rule_S1() {
   threshold_value=$(scanner_size_band_threshold "$band")
 
   # Compute the 3 largest sections for the substitution.
+  #
+  # Codex finding #1 (BLOCKER, security): the previous implementation
+  # built an awk-internal shell command via string-concatenation of the
+  # filename, letting metacharacters in the filename execute during
+  # section-size calculation. The fix walks the file once with awk's
+  # native input handling — filenames are never interpreted by a shell.
+  #
+  # LC_ALL=C forces awk to count bytes (not multibyte chars) so
+  # `length($0)+1` matches the original `wc -c` semantics across
+  # macOS BWK awk and gawk.
   local largest_sections_json
   largest_sections_json=$(
-    scanner_list_h2_h3 "$abs_file" \
-      | awk -F: -v file="$abs_file" '
-          {
-            cmd = "awk -v start=" $1 " '\''" \
-                  "BEGIN{fence=0;in_section=0}" \
-                  "NR==start{if($0~/^### /){lvl=3}else if($0~/^## /){lvl=2}else{lvl=0}; in_section=1; next}" \
-                  "in_section==1{" \
-                  "  if($0 ~ /^[[:space:]]*```/){fence=1-fence; print; next}" \
-                  "  if(fence==0){" \
-                  "    if(lvl==2 && $0 ~ /^## /){exit}" \
-                  "    if(lvl==3 && ($0 ~ /^## /||$0 ~ /^### /)){exit}" \
-                  "  }" \
-                  "  print" \
-                  "}'\'' " file " | wc -c"
-            cmd | getline size
-            close(cmd)
-            sub(/^ +/, "", size); sub(/ +$/, "", size)
-            title = ""
-            for (i = 3; i <= NF; i++) title = title (i == 3 ? "" : ":") $i
-            printf "%d\t%s\n", size+0, title
-          }
-        ' \
+    LC_ALL=C awk '
+      BEGIN { fence = 0; n_open = 0 }
+      # Code-fence toggle line: still counts toward open sections.
+      /^[[:space:]]*```/ {
+        fence = 1 - fence
+        for (i = 0; i < n_open; i++) { sec_chars[i] += length($0) + 1 }
+        next
+      }
+      # H3 heading: closes any H3 currently open (a new H3 ends the
+      # previous H3 body but does not close enclosing H2 sections).
+      fence == 0 && /^### / {
+        while (n_open > 0 && sec_level[n_open - 1] >= 3) {
+          printf "%d\t%s\n", sec_chars[n_open - 1], sec_title[n_open - 1]
+          n_open--
+        }
+        title = $0; sub(/^### /, "", title)
+        sec_level[n_open] = 3
+        sec_title[n_open] = title
+        sec_chars[n_open] = 0
+        n_open++
+        next
+      }
+      # H2 heading: closes ALL open sections (H2 and H3).
+      fence == 0 && /^## / {
+        while (n_open > 0) {
+          printf "%d\t%s\n", sec_chars[n_open - 1], sec_title[n_open - 1]
+          n_open--
+        }
+        title = $0; sub(/^## /, "", title)
+        sec_level[n_open] = 2
+        sec_title[n_open] = title
+        sec_chars[n_open] = 0
+        n_open++
+        next
+      }
+      # Body line: every open section accumulates this line.
+      {
+        for (i = 0; i < n_open; i++) { sec_chars[i] += length($0) + 1 }
+      }
+      END {
+        while (n_open > 0) {
+          printf "%d\t%s\n", sec_chars[n_open - 1], sec_title[n_open - 1]
+          n_open--
+        }
+      }
+    ' "$abs_file" \
       | sort -rn -t$'\t' -k1 \
       | head -3 \
       | awk -F'\t' -v total="$n" '
