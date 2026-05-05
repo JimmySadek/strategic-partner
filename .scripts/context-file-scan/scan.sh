@@ -114,12 +114,22 @@ resolve_target() {
 PRIMARY_ABS=$(resolve_target)
 
 # ─────────────────────────────────────────────────────────────────────
-# Encoding / size sanity
+# Encoding sanity (spec § 7.1)
 # ─────────────────────────────────────────────────────────────────────
-if file -b --mime-encoding "$PRIMARY_ABS" 2>/dev/null | grep -qi 'binary'; then
-  echo "scanner: $PRIMARY_ABS appears to be binary; scanner expects UTF-8 markdown." >&2
-  exit 3
-fi
+# Accept utf-8 / us-ascii only. Reject any other text encoding (Latin-1,
+# UTF-16, etc.) with exit 3 and the detected encoding in the message,
+# per Codex finding #2. Binary keeps its dedicated message.
+DETECTED_ENCODING=$(file -b --mime-encoding "$PRIMARY_ABS" 2>/dev/null | tr -d ' \t\n')
+case "$DETECTED_ENCODING" in
+  utf-8|us-ascii)
+    : ;;
+  binary)
+    echo "scanner: $PRIMARY_ABS appears to be binary; scanner expects UTF-8 markdown." >&2
+    exit 3 ;;
+  *)
+    echo "scanner: $PRIMARY_ABS uses unsupported text encoding (${DETECTED_ENCODING}); scanner expects UTF-8 or US-ASCII." >&2
+    exit 3 ;;
+esac
 
 # ─────────────────────────────────────────────────────────────────────
 # Compute relative path for source_file field
