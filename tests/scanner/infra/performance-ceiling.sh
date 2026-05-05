@@ -41,22 +41,15 @@ echo "500K scan: ${ms_500k}ms"
 
 # Bash-only sub-second precision needs gdate. If we fell back to 1-second
 # resolution, the ceilings widen accordingly.
-# v1 ceilings — relaxed from the spec § 8.5 target of 500ms / 2s.
-# Profiling on macOS shows the bottleneck is per-finding jq subprocess
-# spawning + layer-probe array assembly (~485ms of overhead even on a
-# fixture with no findings). Per-rule detection cost is ~215ms total.
-# v6.1+ should optimize the JSON-assembly path (batch jq calls,
-# in-process sha256 if shasum subprocess overhead is significant) to
-# meet the spec target. Tracked in the v6.0 release notes as a known
-# v1 limitation; the scanner is still well under interactive-latency
-# budget for human-driven scans.
+# Spec § 8.5 ceilings restored after Codex finding #3 — S7 default skill
+# scanning was the ~420ms bottleneck, now reduced to a single awk pass.
 if command -v gdate >/dev/null 2>&1; then
-  ceiling_100k=1500
-  ceiling_500k=3000
+  ceiling_100k=500
+  ceiling_500k=2000
 else
   echo "⚠️  gdate not available — using 1-second precision; ceilings widened"
-  ceiling_100k=3000
-  ceiling_500k=5000
+  ceiling_100k=2000
+  ceiling_500k=3000
 fi
 
 if [ "$ms_100k" -lt "$ceiling_100k" ]; then

@@ -634,6 +634,13 @@ scanner_rule_S6() {
 # scanner_rule_S7 ABSOLUTE_FILE SOURCE_FILE [SKILLS_LIST_NEWLINE_SEP]
 #   SKILLS_LIST defaults to scanning ~/.claude/skills/ for installed
 #   skill names if not provided.
+#
+# Codex finding #3: the previous implementation spawned 4 subprocesses
+# per skill (~78 skills typical) just for matching, dominating the
+# 100K-fixture scan with ~420ms of S7 overhead. This rewrite collapses
+# the per-skill loop into a single awk pass that reads skill names
+# from stdin and walks the first 50 lines of the target file once.
+# Subshells are spawned only for headings that match (very rare path).
 scanner_rule_S7() {
   local abs_file="$1"
   local source_file="$2"
@@ -644,17 +651,36 @@ scanner_rule_S7() {
   fi
   [ -z "$skills" ] && return 0
 
-  # First 50 lines + their line numbers (for heading-level checks)
-  local first50
-  first50=$(awk 'NR <= 50' "$abs_file")
+  # Single awk pass: read skill names from stdin, then walk the first
+  # 50 lines of the target file. For each heading, check (in awk) every
+  # skill name via index() against the lowercased heading text. Output
+  # matches as "<line_no>\t<skill_name>" — bash iterates only the
+  # matched headings (which is empty for most files).
+  local matches
+  matches=$(printf '%s\n' "$skills" | LC_ALL=C awk -v file="$abs_file" '
+    { skill_lc[NR] = tolower($0); skill_orig[NR] = $0; n_skills = NR }
+    END {
+      lineno = 0
+      while ((getline line < file) > 0) {
+        lineno++
+        if (lineno > 50) break
+        if (line !~ /^#+[[:space:]]/) continue
+        h = tolower(line); sub(/^#+[[:space:]]+/, "", h)
+        for (i = 1; i <= n_skills; i++) {
+          if (skill_lc[i] != "" && index(h, skill_lc[i]) > 0) {
+            printf "%d\t%s\n", lineno, skill_orig[i]
+            break
+          }
+        }
+      }
+      close(file)
+    }
+  ')
+  [ -z "$matches" ] && return 0
 
-  while IFS= read -r skill; do
-    [ -z "$skill" ] && continue
-    # Check for a heading containing the skill name in first 50 lines
-    local heading_line
-    heading_line=$(echo "$first50" | grep -niE "^#{1,6} .*${skill}" | head -1 | cut -d: -f1)
+  # Rare path: matched headings get the section-body behavioral check.
+  while IFS=$'\t' read -r heading_line skill; do
     [ -z "$heading_line" ] && continue
-    # Check the section body for behavioral language
     local body
     body=$(scanner_section_body "$abs_file" "$heading_line")
     case "$(scanner_lower "$body")" in
@@ -671,7 +697,7 @@ scanner_rule_S7() {
       "$subs" "$action" \
       "[Acknowledge — kept intentionally for visibility]"
   done <<EOF
-$skills
+$matches
 EOF
 }
 
