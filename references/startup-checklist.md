@@ -550,28 +550,61 @@ then proceed normally in degraded mode.
 
 - 🔍 **Context-file drift scan** (quiet-mode, fresh-session only): Run
   the scanner non-interactively against the SP project's own
-  `CLAUDE.md` and surface a one-line summary if anything came up. Per
-  scanner-design-spec.md § 6:
+  `CLAUDE.md` and surface a one-line summary ONLY for findings that
+  exceed exception coverage. Per scanner-design-spec.md § 6 + Codex
+  finding #13:
 
   **Trigger conditions:**
-  - Fresh `/strategic-partner` invocation (NOT continuation — `$ARGUMENTS`
-    does not contain a `.handoffs/` path).
+  - Fresh `/strategic-partner` invocation (NOT continuation —
+    `SP_HANDOFF=0`).
   - The `--no-scan-startup` env var is unset (escape hatch for the user).
   - The `CLAUDE.md` exists in the SP project root.
   - Only scans the SP project's own `CLAUDE.md` — never the project the
     user is calling SP about.
 
-  **Dispatch (inline, fast — sub-200ms typical):**
+  **`SP_HANDOFF` definition (Codex finding #13):** the variable is
+  set to `1` ONLY when `/strategic-partner` is invoked with a
+  continuation path argument (a `.handoffs/`-prefixed path resolving
+  to an existing handoff note). Otherwise `SP_HANDOFF=0`. Set this
+  at the top of the slash command body before the orientation block:
   ```bash
-  if [ -z "$SP_HANDOFF" ] && [ -z "$NO_SCAN_STARTUP" ]; then
+  SP_HANDOFF=0
+  case " $ARGUMENTS " in
+    *" .handoffs/"*|*"  .handoffs/"*) SP_HANDOFF=1 ;;
+  esac
+  export SP_HANDOFF
+  ```
+
+  **Dispatch (inline, fast — sub-200ms typical):**
+
+  Codex finding #13: use `--release-gate` so the scanner applies
+  exception-aware coverage. The previous `--report-only` invocation
+  surfaced every finding regardless of whether `.scanner-exceptions.json`
+  already covered it, producing 25+ noise lines per session.
+
+  ```bash
+  if [ "${SP_HANDOFF:-0}" != "1" ] && [ -z "${NO_SCAN_STARTUP:-}" ]; then
     SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
     [ -n "$SP_ANY_CMD" ] || return 0
     SP_SKILL_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
     [ -f "${SP_SKILL_DIR}/CLAUDE.md" ] || return 0
     SCAN_JSON=$(bash "${SP_SKILL_DIR}/.scripts/context-file-scan/scan.sh" \
-      --file "${SP_SKILL_DIR}/CLAUDE.md" --report-only \
+      --file "${SP_SKILL_DIR}/CLAUDE.md" --release-gate \
       --serena-available "${has_serena_tools:-false}" \
       --context7-available "${has_context7_tools:-false}" 2>/dev/null) || SCAN_JSON=""
+
+    # Filter session-acked fingerprints (Codex finding #13).
+    SESSION_UUID="${CLAUDE_SESSION_ID:-${SP_SESSION_UUID:-}}"
+    ACKS_FILE=""
+    if [ -n "$SESSION_UUID" ]; then
+      ACKS_FILE="${SP_SKILL_DIR}/.handoffs/.scan-acks-${SESSION_UUID}"
+    fi
+    if [ -n "$SCAN_JSON" ] && [ -n "$ACKS_FILE" ] && [ -f "$ACKS_FILE" ]; then
+      SCAN_JSON=$(echo "$SCAN_JSON" | jq --slurpfile acks <(jq -R . "$ACKS_FILE") '
+        ($acks | map(.) | flatten) as $a |
+        .findings |= map(select(.fingerprint as $fp | ($a | index($fp)) | not))'
+      )
+    fi
   fi
   ```
 
@@ -580,28 +613,38 @@ then proceed normally in degraded mode.
   🔍 CLAUDE.md scan: {summary_phrase}. {action_phrase}.
   ```
 
-  Substitution rules:
+  Substitution rules use the post-coverage uncovered count
+  (`release_gate.coverage.uncovered_count`), NOT the raw findings
+  total:
   - `summary_phrase`:
-    - 0 findings → entire bullet OMITTED (no value in saying "nothing to report")
-    - 1+ findings, max severity warn → `{N}K chars, {N} drift patterns detected`
-    - 1+ findings, any surface-loudly → `{N}K chars, **{N} surface-loudly findings** + {N} other`
+    - 0 uncovered findings → entire bullet OMITTED (no value in
+      saying "nothing to report")
+    - 1+ uncovered, max severity warn → `{N}K chars, {N} drift
+      patterns detected`
+    - 1+ uncovered with any surface-loudly → `{N}K chars,
+      **{N} surface-loudly findings** + {N} other`
   - `action_phrase`:
-    - 0 findings → omit the entire bullet entirely
-    - 1+ findings → `Run \`/strategic-partner:context-file-scan\` for details`
+    - 0 uncovered → omit the entire bullet entirely
+    - 1+ uncovered → `Run \`/strategic-partner:context-file-scan\`
+      for details`
+
+  **Ack-file write path (Codex finding #13):** when the user picks
+  `[Acknowledge — ...]` on a finding inside the slash-command's
+  `AskUserQuestion` flow, append the finding's fingerprint to
+  `.handoffs/.scan-acks-${SESSION_UUID}`. The next quiet-mode scan
+  in the same session filters those fingerprints out per the
+  dispatch above.
 
   **Suppression rules (per spec § 6.4):**
   - Scan errored (`SCAN_JSON` empty or jq parse fails) → log silently,
     omit the bullet.
-  - 0 findings → omit (already covered above).
+  - 0 uncovered findings (after exception + ack filter) → omit.
   - `NO_SCAN_STARTUP` env var set → skip the dispatch entirely.
-  - Session-acked findings: if `.handoffs/.scan-acks-{session-uuid}`
-    exists from earlier in this session and matches the current finding
-    fingerprints, omit (don't re-surface findings the user already filed
-    or acknowledged).
+  - `SP_HANDOFF=1` (continuation session) → skip the dispatch entirely.
 
   **Examples:**
-  - *(0 findings)* — bullet omitted entirely; orientation continues without
-    mentioning the scan.
+  - *(0 uncovered findings)* — bullet omitted entirely; orientation
+    continues without mentioning the scan.
   - `🔍 CLAUDE.md scan: 18K chars, 3 drift patterns detected. Run /strategic-partner:context-file-scan for details.`
   - `🔍 CLAUDE.md scan: 41K chars, **1 surface-loudly finding** + 4 other. Run /strategic-partner:context-file-scan for details.`
 
