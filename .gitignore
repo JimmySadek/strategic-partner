@@ -7,8 +7,9 @@
 .backlog/
 .handoffs/
 .prompts/
-.scripts/
+.scripts/*
 !.scripts/release-publish.sh
+!.scripts/context-file-scan/
 awesome-list-submission.md
 .skillshare-meta.json
 claudedocs/
