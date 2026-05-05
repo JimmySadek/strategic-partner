@@ -114,6 +114,13 @@ if [ -d "$HOOKS_DIR" ]; then
   echo "✅ Hook scripts verified executable in ${HOOKS_DIR}"
 fi
 
+# ── Check for jq (hard dependency for context-file-scan) ───────────────
+if ! command -v jq >/dev/null 2>&1; then
+  echo "💡 \`jq\` not found in PATH — required for /strategic-partner:context-file-scan."
+  echo "   Install: \`brew install jq\` (macOS) or your package manager (Linux)."
+  echo "   Other SP features work without it."
+fi
+
 # ── Quick permission check ─────────────────────────────────────────────
 SETTINGS_FILE="${HOME}/.claude/settings.json"
 if [ -f "$SETTINGS_FILE" ]; then
