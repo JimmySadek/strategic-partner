@@ -103,9 +103,11 @@ Quick checks run inline during startup. No agents needed — these are observati
    If it exists, note in orientation: "{N} path-scoped rule files found."
    If it doesn't exist, don't mention it — it's optional.
 
-4. **CLAUDE.md size**: If CLAUDE.md exceeds ~200 lines, note in orientation:
-   "💡 CLAUDE.md is {N} lines (recommended: under 200). Consider splitting
-   path-specific rules into .claude/rules/ files."
+4. **CLAUDE.md size**: Read `g2.claude_md` from the floor sentinel output (see `references/floor.md` Group 2). The band field determines orientation rendering:
+   - `under-soft` → silent
+   - `soft-warn` → "💡 CLAUDE.md is {N} chars / {M} lines — growing toward the v6.0 policy threshold."
+   - `warn` → "⚠️ CLAUDE.md is {N} chars approaching the v6.0 size cap. Consider running `/strategic-partner:context-file-scan`."
+   - `surface-loudly` → "🚨 CLAUDE.md is {N} chars — over the v6.0 policy threshold (36,864 chars). Run `/strategic-partner:context-file-scan` for refactoring guidance."
 
 ### Target Model Detection (inline, not an agent)
 

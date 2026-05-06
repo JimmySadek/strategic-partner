@@ -60,8 +60,11 @@ Detects:
 
 Detects:
 
-- **`g2.claude_md`** — `present lines=N` if `$cwd/CLAUDE.md` exists,
-  `missing` otherwise
+- **`g2.claude_md`** — `present lines=N chars=M band=BAND` if `$cwd/CLAUDE.md` exists, `missing` otherwise. The `band` field mirrors the scanner's S1 size taxonomy from `.scripts/context-file-scan/lib/output.sh:18-29`:
+  - `under-soft` (< 16,384 chars) — orientation silent
+  - `soft-warn` (16,384–24,575 chars) — orientation surfaces 💡 informational
+  - `warn` (24,576–36,863 chars) — orientation surfaces ⚠️ caution
+  - `surface-loudly` (≥ 36,864 chars) — orientation surfaces 🚨 + suggests `/strategic-partner:context-file-scan`
 - **`g2.rules_dir`** — `present count=N` if `$cwd/.claude/rules/` exists,
   `missing` otherwise
 
@@ -166,10 +169,16 @@ stdout (which Claude Code injects into the model's context for the
 current turn):
 
 ```
-SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N git=clean|dirty version=current|behind|unreachable|unknown routing=fresh|stale|missing. Full results: /tmp/sp-floor-${KEY}.txt
+SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing. Full results: /tmp/sp-floor-${KEY}.txt
 ```
 
-The SP reads this line and acts on the seven status fields per the
+The `claudemd_band` field mirrors the scanner's S1 size taxonomy (see Group 2
+above for the band-to-threshold mapping). It is `none` when `$cwd/CLAUDE.md`
+is missing; otherwise it reports the band the file falls into. Orientation
+uses the band to decide whether to surface a size warning and at what
+volume.
+
+The SP reads this line and acts on the eight status fields per the
 Floor-Signal Handling table (SKILL.md § Floor-Signal Handling).
 
 For per-field remediation patterns (which agent to dispatch, which

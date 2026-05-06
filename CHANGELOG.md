@@ -1,5 +1,23 @@
 # Changelog
 
+## [6.0.1] - 2026-05-06
+
+### Fixed
+
+- **CHANGELOG v6.0.0 quiet-mode-scan description corrected** — the prior wording implied the quiet-mode scan auto-detects and scans your project's `CLAUDE.md`. It does not. The quiet-mode scan only scans SP's own `CLAUDE.md`; project-file scans require explicit `/strategic-partner:context-file-scan` invocation. The CHANGELOG text now matches the implementation.
+
+### Added
+
+- **Premise Challenge trigger #6 — context-file scan first.** When you ask SP to improve `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` or "our rules," SP now surfaces `/strategic-partner:context-file-scan` as Step 1 before any other routing. Closes a failure mode where the scanner shipped in v6.0 but SP failed to surface its own feature without three explicit user reminders.
+
+- **Floor sentinel size bands.** Orientation now shows a band-appropriate flag when your project's `CLAUDE.md` is large. Bands match the scanner's S1 thresholds: under-soft (silent), soft-warn (💡), warn (⚠️), surface-loudly (🚨 + scanner suggestion). One source of truth across SP — the floor and the scanner agree on what counts as "large."
+
+- **v6.0 Context-File Policy section in SKILL.md.** Short scannable summary of the Hybrid Pattern, the 16 rules, the size bands, and the canonical example (SP's own `CLAUDE.md`). Brings the policy from `commands/context-file-scan.md` (where the scanner reads it) into the SP's main behavioral surface (where SP reads it).
+
+### Note
+
+- **What this release does NOT do** — the BAM-MVP forensic report named 13 SP feature gaps. This release closes the 3 highest-leverage routing/orientation gaps (#1, #2, #4 from the report) plus the CHANGELOG inconsistency. The other 10 gaps (some routing/orientation polish, some plan-authoring discipline) are deferred to later releases.
+
 ## [6.0.0] - 2026-05-05
 
 ### Added
@@ -10,7 +28,7 @@
 
 - **The four behavioral principles ship publicly**, with attribution to Andrej Karpathy's source corpus. The principles — Think Before Coding, Simplicity First, Surgical Changes, and Verification not Specification — apply whenever Claude is editing source files in a project that adopts the pattern. Worked examples live in a path-scoped rules file (a separate doc that only loads when source files are actually being edited), so the rules don't cost tokens during advisory or planning work.
 
-- **Quiet-mode scan at session start** — when you open a fresh SP session, the orientation now includes a one-line summary if the rules file in your current directory (`CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`) shows drift. The scanner auto-detects the file in CWD: invoke SP from your project's root and it scans your project's rules file; invoke from SP's own directory and it scans SP's own. Suppressed when the file is clean and during continuation sessions where a handoff path is already focused. To audit a specific file, use `/strategic-partner:context-file-scan --file <path>`.
+- **Quiet-mode scan at session start** — when you open a fresh SP session, the orientation includes a one-line summary if SP's own `CLAUDE.md` shows policy drift. This catches drift in the SP install itself; it does not silently scan your project's `CLAUDE.md`. To scan your project's rules file, run `/strategic-partner:context-file-scan` (the scanner auto-detects `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` in your CWD). Suppressed when SP's own file is clean and during continuation sessions where a handoff path is already focused. (Note: v6.0.0 originally implied auto-detection-in-CWD for the quiet-mode scan; that wording was incorrect and was clarified in v6.0.1.)
 
 - **A release-gate mode** (`--release-gate` flag) for CI pipelines and pre-push checks. Returns a non-zero exit code if any warn-or-higher finding lacks a documented exception in your project's `.scanner-exceptions.json` (an opt-in file you maintain per project, one entry per finding you've decided to accept). Useful for teams that want their rules file to converge on the policy without breaking on every legitimate edge case.
 

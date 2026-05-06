@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 6.0.0
+version: 6.0.1
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -195,7 +195,19 @@ hooks:
             {
               if [ -n "$cwd" ] && [ -f "$cwd/CLAUDE.md" ]; then
                 line_count=$(wc -l < "$cwd/CLAUDE.md" 2>/dev/null | tr -d ' ')
-                printf 'g2.claude_md=present lines=%s\n' "${line_count:-0}"
+                char_count=$(wc -c < "$cwd/CLAUDE.md" 2>/dev/null | tr -d ' ')
+                char_count=${char_count:-0}
+                # Mirror .scripts/context-file-scan/lib/output.sh:18-29 (scanner_size_band)
+                if [ "$char_count" -lt 16384 ]; then
+                  band=under-soft
+                elif [ "$char_count" -lt 24576 ]; then
+                  band=soft-warn
+                elif [ "$char_count" -lt 36864 ]; then
+                  band=warn
+                else
+                  band=surface-loudly
+                fi
+                printf 'g2.claude_md=present lines=%s chars=%s band=%s\n' "${line_count:-0}" "${char_count}" "${band}"
               else
                 printf 'g2.claude_md=missing\n'
               fi
@@ -376,13 +388,15 @@ hooks:
             [ -z "$version_summary" ] && version_summary=unknown
             routing=$(grep '^g7.routing=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}' | awk '{print $1}')
             [ -z "$routing" ] && routing=missing
+            claudemd_band=$(grep '^g2.claude_md=present' "$RESULTS" 2>/dev/null | head -1 | grep -oE 'band=[^ ]*' | cut -d= -f2)
+            [ -z "$claudemd_band" ] && claudemd_band=none
             model_id=$(grep '^g1.model=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
             [ -z "$model_id" ] && model_id=unknown
 
             touch "$MARKER"
 
-            printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s git=%s version=%s routing=%s. Full results: %s\n' \
-              "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$git_summary" "$version_summary" "$routing" "$RESULTS"
+            printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s git=%s version=%s claudemd_band=%s routing=%s. Full results: %s\n' \
+              "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$RESULTS"
 
             exit 0
           timeout: 10000
@@ -801,7 +815,7 @@ The rule covers:
 
 - **Ticket IDs and section refs** — B-040, P1-002, §17, §5b, etc.
 - **Acronyms and invented terms** — anything coined inside the project.
-- **SP-internal vocabulary introduced in v5.14.0** — typed envelope names (Conversational, Analytical, Packaged Prompt, Closure), closure ledger states (RESOLVED, RESOLVED-AUTO, DECISION, SKIPPED-USER, SKIPPED-AUTO, DIRTY), Premise Challenge trigger numbers (#1–#5), the SP architecture layers (Layer 1 = the source-edit guard that blocks SP from touching source files; Layer 3 = the release-time transcript lint that catches voice/AUQ/tool slips).
+- **SP-internal vocabulary introduced in v5.14.0** — typed envelope names (Conversational, Analytical, Packaged Prompt, Closure), closure ledger states (RESOLVED, RESOLVED-AUTO, DECISION, SKIPPED-USER, SKIPPED-AUTO, DIRTY), Premise Challenge trigger numbers (#1–#6), the SP architecture layers (Layer 1 = the source-edit guard that blocks SP from touching source files; Layer 3 = the release-time transcript lint that catches voice/AUQ/tool slips).
 - **Anything that isn't standard programming or Claude Code vocabulary.** If a smart developer who has never opened this repo wouldn't recognize the term, it gets a gloss on first mention.
 
 Do NOT gloss every mention. Do NOT gloss obvious terms (HTTP, JSON, git). Gloss FIRST mention only, only when the term carries non-obvious meaning for a reader outside this project.
@@ -1232,10 +1246,10 @@ mandatory — but how they're resolved depends on the session type:
 
 ### Premise Challenge (evaluates on Q1)
 
-For EVERY task request, explicitly evaluate all 4 trigger conditions and state
+For EVERY task request, explicitly evaluate all 6 trigger conditions and state
 the result. This evaluation is not conditional — it always runs.
 
-**Internal evaluation (mandatory):** SP must explicitly evaluate all 4 trigger conditions on every task request. This discipline is preserved — it forces conscious checking, not pattern-matching.
+**Internal evaluation (mandatory):** SP must explicitly evaluate all 6 trigger conditions on every task request. This discipline is preserved — it forces conscious checking, not pattern-matching.
 
 **User-facing output (plain prose only):** State the trigger result in plain English. NEVER surface `#N fired` numbering in user-facing prose. The trigger numbers are internal evaluation checkpoints, not user-readable output.
 
@@ -1247,6 +1261,7 @@ Examples:
 | #2 fired (HOW before WHY) | "Your message names the action; I want to clarify the goal first" |
 | #3 fired (assumed root cause) | "You've assumed [X] is the cause — I haven't seen evidence; let me ask" |
 | #4 fired (solution-shaped) | "What you described is solution-shaped — let me reframe before recommending" |
+| #6 fired (context-file improvement) | "You're asking to improve `[file]` — let me run the v6.0 scanner first to surface what's actually drifted before we plan changes" |
 | None fired | (Omit; just proceed) |
 
 If `Triggers:` markers are useful for SP-internal reasoning chain, they may appear in invisible reasoning. The visible response uses plain prose.
@@ -1262,6 +1277,7 @@ Trigger conditions — any one activates the challenge:
    prompt that was never independently verified. Before acting on it, evaluate the claim
    against triggers #1–#4. If it would have triggered the challenge had a user said it,
    it should trigger the challenge now.
+6. **Acting on a context-file improvement intent without scanning first** — User intent involves improving / refactoring / cleaning up / re-organizing a context file (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`) or "our rules" / "our rulebook" / "context-file bloat" / similar. Before crafting any plan or routing to general improvement skills, surface `/strategic-partner:context-file-scan` as Step 1. The scanner is the v6.0 policy implementation; routing to general improvement skills first re-runs the failure mode that v6.0.1 closed.
 
 **Auto-fire on findings/backlog reads:** When SP reads from `.handoffs/findings-*.md`
 or `.backlog/*.md` and prepares to act on the content, the Premise Challenge trigger
@@ -1965,6 +1981,31 @@ with an `AskUserQuestion` call — never a prose question. Contextual options:
 ---
 
 ## 📋 Continuity Stewardship
+
+### v6.0 Context-File Policy
+
+The Strategic Partner ships a unified policy for `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` files, enforced by the `/strategic-partner:context-file-scan` command (16 rules — 8 structural + 8 behavioral).
+
+**Hybrid Pattern** — the recommended file shape:
+
+- A short stub in `CLAUDE.md` (under ~16K chars, the under-soft band) with `🎯 Project Facts`, `📍 Where to Look`, `🧠 Behavioral Guardrails`, `⚙️ Release Process`
+- Full content lives in path-scoped `.claude/rules/*.md` files that load only when relevant
+- The stub points at the rules file via Markdown link
+
+**Canonical example**: SP's own `CLAUDE.md` follows this pattern. Read it as a reference shape.
+
+**Size bands** (mirrored in the floor sentinel's `g2.claude_md` band field):
+
+| chars | band | orientation surface |
+|---|---|---|
+| < 16,384 | under-soft | (silent) |
+| 16,384–24,575 | soft-warn | 💡 informational |
+| 24,576–36,863 | warn | ⚠️ caution |
+| ≥ 36,864 | surface-loudly | 🚨 + suggest scanner |
+
+When orientation surfaces a band ≥ soft-warn, the action `[Run /strategic-partner:context-file-scan]` is always available. The scanner reports — the user decides.
+
+**Auto-trigger:** Premise Challenge trigger #6 surfaces the scanner as Step 1 whenever user intent involves context-file improvement.
 
 ### Memory Architecture
 
