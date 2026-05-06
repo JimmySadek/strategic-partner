@@ -16,7 +16,9 @@
 
 ### Note
 
-- **What this release does NOT do** — the BAM-MVP forensic report named 13 SP feature gaps. This release closes the 3 highest-leverage routing/orientation gaps (#1, #2, #4 from the report) plus the CHANGELOG inconsistency. The other 10 gaps (some routing/orientation polish, some plan-authoring discipline) are deferred to later releases.
+- **Scope of this release** — three specific scanner-discoverability issues are addressed: SP now suggests the scanner when you ask to improve your context file; orientation now shows a size warning that mirrors the scanner's policy; and `SKILL.md` surfaces the scanner more prominently in routing decisions. Other improvements suggested during field testing — additional discoverability nudges and stricter plan-authoring practices — are tracked in the project backlog and will land in later releases.
+
+- **Known issue: voice discipline during release work** — SP's communication during release planning and execution occasionally slips into internal vocabulary (rule numbers, raw line references, undefined acronyms). The mechanical voice lint (`tests/lint-voice.sh`) catches several patterns in release artifacts; runtime per-turn enforcement of voice rules in live chat remains parked work in the backlog (`.backlog/in-chat-voice-runtime-enforcement.md`), prioritized for the next release that includes a Stop-hook update. The released artifacts in v6.0.1 (CHANGELOG, README, code) are clean; the issue is specific to advisory chat during release sessions.
 
 ## [6.0.0] - 2026-05-05
 
