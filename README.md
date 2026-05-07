@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.2.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.2.1-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **What's new** — v6.2.0 ships a new **Strategic Partner Voice** output style (an installable Claude Code persona) that keeps advisor responses plain-spoken and well-structured: short sentences, functional emoji anchors, tables and ASCII diagrams when they help, and anti-sycophancy rules baked in at the model level. The setup script copies the style on install (existing user copies are preserved); a fresh session shows a one-time soft tip if the style isn't active. Builds on v6.1.0's SP-flavored framing detection in the project-file scanner, v6.0.0's `/strategic-partner:context-file-scan` (17 drift patterns across `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`), the four behavioral principles shipped publicly with attribution to Andrej Karpathy's corpus, and a leaner install footprint. See [CHANGELOG](CHANGELOG.md) for the full set.
+> **What's new** — v6.2.0 ships a new **Strategic Partner Voice** output style (an installable Claude Code persona) that keeps advisor responses plain-spoken and well-structured: short sentences, functional emoji anchors, tables and ASCII diagrams when they help, and anti-sycophancy rules baked in at the model level. The setup script copies the style on install (existing user copies are preserved); a fresh session shows a one-time soft tip if the style isn't active. v6.2.1 fixes a startup orientation bug where SP could misidentify the active Output Style when other plugins inject session-start announcements. Builds on v6.1.0's SP-flavored framing detection in the project-file scanner, v6.0.0's `/strategic-partner:context-file-scan` (17 drift patterns across `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`), the four behavioral principles shipped publicly with attribution to Andrej Karpathy's corpus, and a leaner install footprint. See [CHANGELOG](CHANGELOG.md) for the full set.
 
 ---
 

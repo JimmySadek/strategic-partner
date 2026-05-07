@@ -1,5 +1,15 @@
 # Changelog
 
+## [6.2.1] - 2026-05-07
+
+### Fixed
+
+- **Startup orientation now correctly identifies the active Output Style** even when other plugins inject "you are in X mode" guidance via SessionStart hooks. Strategic Partner used to read that injected text and report it as the active style — telling users to switch to a setting they'd already chosen. Orientation now reads the settings files directly (with the runtime `# Output Style:` header as the authority), and surfaces any disagreement between settings and runtime rather than silently picking one.
+
+### Note
+
+- v6.2.1 also includes the **Strategic Partner Voice** Output Style work originally tagged as v6.2.0 (which was not published as a GitHub Release). See the v6.2.0 entry below for what shipped in that commit. Users upgrading from v6.1.x to v6.2.1 receive both the Output Style and this orientation fix.
+
 ## [6.2.0] - 2026-05-07
 
 ### Added
