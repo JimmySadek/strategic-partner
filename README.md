@@ -8,7 +8,7 @@
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **New in v6.0.0** — The Strategic Partner now includes `/strategic-partner:context-file-scan`, a new command that detects 16 patterns of drift in your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` rules file. Plus the four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Verification not Specification) ship publicly with attribution to Andrej Karpathy's corpus, and the install footprint drops by ~115 files. See [CHANGELOG](CHANGELOG.md) for the full set.
+> **New in v6.0.0** — The Strategic Partner now includes `/strategic-partner:context-file-scan`, a new command that detects 17 patterns of drift in your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` rules file. Plus the four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Verification not Specification) ship publicly with attribution to Andrej Karpathy's corpus, and the install footprint drops by ~115 files. See [CHANGELOG](CHANGELOG.md) for the full set.
 
 ---
 
@@ -363,7 +363,7 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.5) |
-| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (16 patterns, two output modes) |
+| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (17 patterns, two output modes) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---

@@ -10,6 +10,10 @@
 
 - **The project's own rules now codify the same policy as a guard.** SP's `CLAUDE.md` gains a Provisional Guard naming SP-flavored framing in user project files as a policy violation rather than a strength. Closes a gap exposed during a v6.0.1 advisory session where SP rated such framing 9/10 as a feature instead of catching the duplication. The full archaeology lives in the project's incident archive.
 
+### Notes
+
+- The pre-push adversarial review (the cross-model second-pass that runs before any release push) returned a conditional approval on v6.1.0 with eight significant findings, three minor, and no blockers. A follow-up commit on top of the v6.1.0 release tag addresses three of the fixes: a false-positive case in the new SP-framing scanner check is tightened, an incident-archive note that overclaimed what the release ships is reworded, and a stale "16 patterns" count in the README is bumped to 17. The fourth observation — undefined internal vocabulary surfacing in advisory chat during the release session — is filed in the project backlog as continued evidence for the runtime voice-discipline enforcement work.
+
 ## [6.0.1] - 2026-05-06
 
 ### Fixed

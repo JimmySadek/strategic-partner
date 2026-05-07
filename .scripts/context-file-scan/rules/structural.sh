@@ -815,8 +815,16 @@ scanner_rule_S8() {
 #             SP's own H1 "# Strategic Partner — Project Rules" while
 #             still catching "# Strategic Partner Mode — ALWAYS
 #             ACTIVE" in user projects.
-#   Signal B: "ALWAYS ACTIVE" or "always active" + override-framing
-#             markers within the first 50 lines.
+#   Signal B: "ALWAYS ACTIVE" (case-sensitive) or "always active"
+#             (case-insensitive) co-occurring within the first 50
+#             lines with at least one pillar-framing token —
+#             "Strategic Partner", "overrides default" / "override
+#             default", "read this first" / "read this section
+#             first", "session start" / "every session", or "Mode"
+#             in a heading line. Single "ALWAYS ACTIVE" text without
+#             a pillar-framing co-occurrence does NOT fire (Codex
+#             round 1 false-positive fix; see CHANGELOG v6.1.0
+#             follow-up).
 #   Signal C: ≥3 distinct SP-pattern phrases anywhere outside fences.
 scanner_rule_S9() {
   local abs_file="$1"
@@ -824,13 +832,13 @@ scanner_rule_S9() {
 
   # Single awk pass collects all three signals. Output is one
   # tab-separated record:
-  #   <sig_a_fired>\t<sig_b_fired>\t<phrase_count>\t<sig_a_text>\t<sig_b_text>
+  #   <sig_a_fired>\t<sig_b_fired>\t<phrase_count>\t<sig_a_text>\t<sig_b_text>\t<sig_b_cooccurrence>
   local result
   result=$(LC_ALL=C awk '
     BEGIN {
       fence = 0
       sig_a_fired = 0; sig_a_text = ""
-      sig_b_fired = 0; sig_b_text = ""
+      sig_b_aa_seen = 0; sig_b_aa_text = ""; sig_b_cooccur = ""
       phrase_count = 0
       n_phrases = 9
       phrase[1] = "askuserquestion is your primary tool"
@@ -859,15 +867,31 @@ scanner_rule_S9() {
           }
         }
       }
-      # Signal B: first 50 lines only
+      # Signal B (Codex round 1): co-occurrence within first 50 lines.
+      # Track ALWAYS-ACTIVE hits and pillar-framing hits separately;
+      # fire only if both lists are non-empty (END block).
       if (NR <= 50) {
-        if ($0 ~ /ALWAYS ACTIVE/) {
-          if (sig_b_fired == 0) { sig_b_text = $0; sig_b_fired = 1 }
-        } else if (index(lc, "always active") > 0) {
-          if (index(lc, "overrides default") > 0 \
-              || index(lc, "read this first") > 0 \
-              || index(lc, "read this section first") > 0) {
-            if (sig_b_fired == 0) { sig_b_text = $0; sig_b_fired = 1 }
+        if (index(lc, "always active") > 0) {
+          if (sig_b_aa_text == "") sig_b_aa_text = $0
+          sig_b_aa_seen = 1
+        }
+        if (sig_b_cooccur == "") {
+          if (index(lc, "strategic partner") > 0) {
+            sig_b_cooccur = "Strategic Partner"
+          } else if (index(lc, "overrides default") > 0) {
+            sig_b_cooccur = "overrides default"
+          } else if (index(lc, "override default") > 0) {
+            sig_b_cooccur = "override default"
+          } else if (index(lc, "read this section first") > 0) {
+            sig_b_cooccur = "read this section first"
+          } else if (index(lc, "read this first") > 0) {
+            sig_b_cooccur = "read this first"
+          } else if (index(lc, "session start") > 0) {
+            sig_b_cooccur = "session start"
+          } else if (index(lc, "every session") > 0) {
+            sig_b_cooccur = "every session"
+          } else if ($0 ~ /^#{1,6} .* Mode/) {
+            sig_b_cooccur = "Mode (heading)"
           }
         }
       }
@@ -880,16 +904,20 @@ scanner_rule_S9() {
       }
     }
     END {
-      printf "%d\t%d\t%d\t%s\t%s\n", sig_a_fired, sig_b_fired, phrase_count, sig_a_text, sig_b_text
+      sig_b_fired = (sig_b_aa_seen && sig_b_cooccur != "") ? 1 : 0
+      sig_b_text = (sig_b_fired) ? sig_b_aa_text : ""
+      sig_b_co_out = (sig_b_fired) ? sig_b_cooccur : ""
+      printf "%d\t%d\t%d\t%s\t%s\t%s\n", sig_a_fired, sig_b_fired, phrase_count, sig_a_text, sig_b_text, sig_b_co_out
     }
   ' "$abs_file")
 
-  local sig_a sig_b sig_c_count sig_a_text sig_b_text
+  local sig_a sig_b sig_c_count sig_a_text sig_b_text sig_b_cooccur
   sig_a=$(printf '%s' "$result" | awk -F'\t' '{print $1}')
   sig_b=$(printf '%s' "$result" | awk -F'\t' '{print $2}')
   sig_c_count=$(printf '%s' "$result" | awk -F'\t' '{print $3}')
   sig_a_text=$(printf '%s' "$result" | awk -F'\t' '{print $4}')
   sig_b_text=$(printf '%s' "$result" | awk -F'\t' '{print $5}')
+  sig_b_cooccur=$(printf '%s' "$result" | awk -F'\t' '{print $6}')
 
   local sig_c=0
   [ "$sig_c_count" -ge 3 ] && sig_c=1
@@ -912,11 +940,13 @@ scanner_rule_S9() {
     --argjson signals_fired "$signals_json" \
     --arg sig_a_match "$sig_a_text" \
     --arg sig_b_match "$sig_b_text" \
+    --arg sig_b_cooccur "$sig_b_cooccur" \
     --argjson phrase_count "$sig_c_count" \
     '{
        signals_fired: $signals_fired,
        signal_a_match: (if $sig_a_match == "" then null else $sig_a_match end),
        signal_b_match: (if $sig_b_match == "" then null else $sig_b_match end),
+       signal_b_cooccurrence: (if $sig_b_cooccur == "" then null else $sig_b_cooccur end),
        signal_c_phrase_count: $phrase_count
      }')
 

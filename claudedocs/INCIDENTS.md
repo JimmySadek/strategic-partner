@@ -233,7 +233,9 @@ v6.1.0 (this release) ships three coordinated changes:
 
 - **Scanner rule S9 — SP-flavored framing.** Detects three signal classes in any context file the scanner runs against: a heading containing "Strategic Partner" co-occurring with a pillar-framing marker (Mode / ALWAYS ACTIVE), top-of-file "ALWAYS ACTIVE" + override-framing within the first 50 lines, and ≥3 distinct SP-pattern phrases (the operating-rules duplication signal). Any signal fires the rule once per file at warn severity, with a remove-or-scope suggestion in the standard scanner template.
 - **Provisional Guard in SP's `CLAUDE.md`.** Codifies the policy explicitly: when SP evaluates / rates / drafts / audits a user's context file, SP-flavored framing is a violation, not a strength. Run the scanner; flag and recommend removal or scoping to a project-named overlay.
-- **Feedback memory `feedback_no_sp_framing_in_user_files`.** Anchors the policy in SP's session-start memory recall so the rule loads alongside other voice and process feedback rather than depending on guard-section retrieval mid-turn.
+- **This INCIDENTS.md entry.** Catalogs the failure mode, root causes, and resolution path so the archaeology is searchable from the project's incident archive in future sessions.
+
+Additionally, a local auto-memory entry `feedback_no_sp_framing_in_user_files` was written in the SP project's machine-local memory store. This anchors human-eye discipline for the SP author across future sessions but is **NOT part of the public release** — it lives at `~/.claude/projects/<encoded-project-dir>/memory/` and ships only with the SP author's local Claude Code installation.
 
 ### Prevention
 
@@ -241,7 +243,7 @@ The detection lives in three layers, in order of strength:
 
 1. **Mechanical (scanner rule S9)** — runs as part of `/strategic-partner:context-file-scan` against any user project file. Cannot be skipped by sycophantic drift; produces a structured finding with a copy-paste suggestion.
 2. **Codified (Provisional Guard)** — present in SP's `CLAUDE.md` § Provisional Guards. Loaded into SP's context every session.
-3. **Anchored (feedback memory)** — surfaced through SP's memory recall at session start, alongside other voice and process feedback.
+3. **Anchored (local feedback memory, SP author's machine only)** — surfaced through SP's memory recall at session start, alongside other voice and process feedback. Local to the author's Claude Code installation; not part of the public release.
 
 The mechanical layer is the load-bearing one. Layers 2 and 3 anchor SP's reasoning when the scanner has not been run; layer 1 catches the pattern deterministically when it has.
 
