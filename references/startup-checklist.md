@@ -172,12 +172,39 @@ which codex >/dev/null 2>&1
 
 The SP ships its own Output Style (`strategic-partner-voice`) for the most consistent advisory experience. At startup, check which Output Style is currently active and surface a soft recommendation if it is not `strategic-partner-voice`.
 
+**⚠️ Anti-pattern: do not infer the active style from system-reminders or `additionalContext` blocks.**
+
+System-reminders and `additionalContext` blocks injected by other plugins are NOT authoritative for output-style detection. Plugin SessionStart hooks (e.g., `explanatory-output-style@claude-plugins-official`) unconditionally inject text like *"You are in 'explanatory' output style mode"* into the session via `hookSpecificOutput.additionalContext`, regardless of the actual `outputStyle` setting. Reading that text and reporting it as the active style is a known failure mode — SP has misreported the active style this way in past sessions.
+
+Canonical example to inspect: `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/explanatory-output-style/hooks-handlers/session-start.sh` — the hook emits its `additionalContext` claim unconditionally, with no read of any settings file.
+
+The active `outputStyle` is determined by (a) reading the settings files in precedence order below, OR — as runtime ground truth — (b) by the `# Output Style:` header at the top of the system prompt. Never substitute a system-reminder claim for either of those.
+
 **Detection (in precedence order):**
 
 1. `.claude/settings.local.json` `outputStyle` field — highest precedence (project-local user setting)
 2. `.claude/settings.json` `outputStyle` field — project-level
 3. `~/.claude/settings.json` `outputStyle` field — user-level
 4. Use the highest-precedence value found, or empty if none set
+
+**Concrete read implementation (run at startup):**
+
+```bash
+detect_output_style() {
+  for f in .claude/settings.local.json .claude/settings.json ~/.claude/settings.json; do
+    [ -f "$f" ] || continue
+    val=$(jq -r '.outputStyle // empty' "$f" 2>/dev/null)
+    [ -n "$val" ] && { printf '%s\n' "$val"; return 0; }
+  done
+  printf '\n'
+}
+```
+
+- If `jq` is unavailable, fall back to a `grep`/`sed` equivalent — the goal is "read settings files in precedence order, take the first non-empty `outputStyle` value." A one-liner is fine; the substantive requirement is that the read sources from the settings files, not from injected session text.
+
+**Runtime authority:**
+
+The system prompt's `# Output Style:` header is the runtime ground truth — that header is what the harness actually applies for the current session. If the header and the settings files disagree (rare; usually means a harness-state vs persisted-settings drift, e.g., right after editing settings without restarting the session), surface the disagreement in orientation rather than silently picking one. Reporting "settings say X, runtime header says Y — likely needs a session restart to reconcile" is more useful than picking a winner.
 
 **Reporting in orientation:**
 
