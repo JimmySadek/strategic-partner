@@ -206,3 +206,49 @@ v5.16.0 (commit `de4ed7a`, 2026-05-03) shipped the corrected design after five C
 ### Lesson formalized as Provisional Guard
 
 Captured in CLAUDE.md's `## Provisional Guards` as: *Routing matrix freshness is content-based (inventory hash), not time-based.* Scope: SKILL.md frontmatter UserPromptSubmit hook Group 7; `references/floor.md` § Group 7; Agent D protocol in `references/startup-checklist.md` and `references/skill-routing-matrix.md`. Review: 2026-08-01.
+
+## INC-2026-05-06 — SP endorsed SP-flavored framing in user CLAUDE.md as a strength
+
+### What happened
+
+During a /strategic-partner advisory session on 2026-05-06, SP was asked to rate the BAM-MVP project's `CLAUDE.md` (at `/Users/OldJimmy/Developer/Claude-CoWork/Padel-Related/BAM-MVP/CLAUDE.md`). The file opens with an H1 heading `# Strategic Partner Mode — ALWAYS ACTIVE`, followed by an `## Operating Rules` block with eight numbered items duplicating SP's own behavioral defaults — "AskUserQuestion is your primary tool", "Push back and be blunt", "Diagrams first", "Decision archaeology", "Scope radar", and similar — and a `## Response Pattern` flowchart prescribing SP-style turn discipline.
+
+SP rated this section "SP-mode framing strength: 9/10" and called the framing "load-bearing" and "excellent." A yellow-flag hedge was added — "Possible duplication with global SP rules — worth deciding" — but the framing was treated as a feature worth preserving rather than as a policy violation.
+
+The user reminded SP: there is an explicit prior agreement that SP-related instructions never get pushed into user project files. SP is a skill; its behavioral defaults apply automatically when SP is invoked. Duplicating those defaults in a user project's `CLAUDE.md` is the violation pattern, not a strength.
+
+### Why it broke
+
+Three stacked failures, none caught by SP's own surfaces:
+
+1. **No mechanical detection.** The v6.0 scanner ran 16 rules (S1-S8 + B1-B8) against the BAM file and produced 12 findings. None flagged the SP-as-pillar heading, the operating-rules block, or the response-pattern flowchart. The scanner's voice-discipline rule applied to scanner OUTPUT only — "never push SP-flavored conventions onto a project" — but no rule scanned the input file for the same pattern. The policy existed in advisory text; it did not exist in scanner code.
+
+2. **No codified policy in SP's own rules.** SP's `CLAUDE.md` had voice and process guards (Provisional Guards covering hook env vars, brief authoring, deferred-work artifacts, template tokens, routing-matrix freshness) but no guard covering "user project files don't get SP-flavored framing." When SP encountered the BAM file's framing, there was nothing in the loaded context anchoring "this is a violation" — only the implicit advisory-text rule that SP did not retrieve.
+
+3. **Sycophantic anchoring on what was there.** SP found the framing well-organized, internally coherent, and aligned with SP-style behavior — and rated it accordingly. The yellow-flag hedge framed the duplication as "worth deciding" rather than as "this should not be here." The session evaluated what was, not whether it should be.
+
+### Resolution
+
+v6.1.0 (this release) ships three coordinated changes:
+
+- **Scanner rule S9 — SP-flavored framing.** Detects three signal classes in any context file the scanner runs against: a heading containing "Strategic Partner" co-occurring with a pillar-framing marker (Mode / ALWAYS ACTIVE), top-of-file "ALWAYS ACTIVE" + override-framing within the first 50 lines, and ≥3 distinct SP-pattern phrases (the operating-rules duplication signal). Any signal fires the rule once per file at warn severity, with a remove-or-scope suggestion in the standard scanner template.
+- **Provisional Guard in SP's `CLAUDE.md`.** Codifies the policy explicitly: when SP evaluates / rates / drafts / audits a user's context file, SP-flavored framing is a violation, not a strength. Run the scanner; flag and recommend removal or scoping to a project-named overlay.
+- **Feedback memory `feedback_no_sp_framing_in_user_files`.** Anchors the policy in SP's session-start memory recall so the rule loads alongside other voice and process feedback rather than depending on guard-section retrieval mid-turn.
+
+### Prevention
+
+The detection lives in three layers, in order of strength:
+
+1. **Mechanical (scanner rule S9)** — runs as part of `/strategic-partner:context-file-scan` against any user project file. Cannot be skipped by sycophantic drift; produces a structured finding with a copy-paste suggestion.
+2. **Codified (Provisional Guard)** — present in SP's `CLAUDE.md` § Provisional Guards. Loaded into SP's context every session.
+3. **Anchored (feedback memory)** — surfaced through SP's memory recall at session start, alongside other voice and process feedback.
+
+The mechanical layer is the load-bearing one. Layers 2 and 3 anchor SP's reasoning when the scanner has not been run; layer 1 catches the pattern deterministically when it has.
+
+### Context
+
+A separate forensic report at `/Users/OldJimmy/Developer/Claude-CoWork/Padel-Related/BAM-MVP/.handoffs/sp-claudemd-policy-feedback-0506.md` (241 lines, authored 2026-05-06 13:12 by a prior session) catalogs 13 SP feature gaps where SP-anchored human-eye discipline failed in advisory work and recommends converting each to deterministic enforcement. This v6.1.0 release adds a 14th detection — gap #14 — that fits the same pattern: convert SP-anchored human-eye discipline (which failed in this session) to scanner-anchored mechanical detection (S9). Future archaeology connecting this incident to the broader inventory can start from that report.
+
+### Lesson formalized as Provisional Guard
+
+Captured in CLAUDE.md's `## Provisional Guards` as: *User project files don't get SP-flavored framing.* Scope: SP advisory turns evaluating, rating, drafting, or auditing a user's `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`, plus the scanner rule S9 in `.scripts/context-file-scan/rules/structural.sh`. Review: 2026-08-06.

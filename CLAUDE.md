@@ -431,3 +431,11 @@ Instead: compare an `inventory_hash` field in the matrix footer (sha256 of sorte
 - **Scope**: SKILL.md frontmatter UserPromptSubmit hook Group 7; `references/floor.md` § Group 7; Agent D protocol in `references/startup-checklist.md` and `references/skill-routing-matrix.md`.
 - **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-03-B — mtime + 1-hour staleness check + permanent rebuild loop in BAM-MVP, plus a Codex-caught hash-source bug in the first v5.16.0 dispatch.
 - **Review**: 2026-08-01.
+
+### User project files don't get SP-flavored framing
+
+Instead: when SP evaluates, drafts, or rates a user project's `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`, treat any SP-as-pillar declaration (a top-of-file heading framing SP as an always-active behavioral mode), or any operating-rules block duplicating SP's own behavioral defaults (the standard interaction-discipline directives that ship with SP itself), as a policy violation rather than a strength. SP is a skill — those defaults apply automatically when SP is invoked. Run `/strategic-partner:context-file-scan` against the project file to surface S9 findings; flag SP-flavored framing in user-authored content as something to remove or scope to a project-named overlay, never to endorse. The exact phrase set the scanner matches against lives in `.scripts/context-file-scan/rules/structural.sh` (the source of truth) — do not inline it here, since that would re-trigger the rule on SP's own context file.
+
+- **Scope**: SP advisory turns evaluating, rating, drafting, or auditing a user's `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` — and the scanner rule S9 in `.scripts/context-file-scan/rules/structural.sh` that mechanically detects the same pattern.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-06 — v6.0.1 BAM-MVP rating session scored "Strategic Partner Mode — ALWAYS ACTIVE" framing 9/10 as a strength when it was a policy violation; codified in v6.1.0 as scanner rule S9 plus this guard.
+- **Review**: 2026-08-06.

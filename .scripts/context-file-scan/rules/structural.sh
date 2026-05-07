@@ -801,7 +801,150 @@ scanner_rule_S8() {
 }
 
 # ─────────────────────────────────────────────────────────────────────
-# Convenience entry: run all S1-S8
+# S9 — SP-flavored framing (spec § 3.S9; INC-2026-05-06)
+# ─────────────────────────────────────────────────────────────────────
+
+# scanner_rule_S9 ABSOLUTE_FILE SOURCE_FILE
+#   Detects SP-flavored framing in user project context files. Three
+#   signal classes — any single signal fires the rule once per file.
+#
+#   Signal A: heading line (`^#{1,6} `) containing "Strategic Partner"
+#             AND a pillar-framing marker ("Mode" or "ALWAYS ACTIVE")
+#             in the same heading line. The dual-marker requirement
+#             (refinement of brief literal) avoids false-positives on
+#             SP's own H1 "# Strategic Partner — Project Rules" while
+#             still catching "# Strategic Partner Mode — ALWAYS
+#             ACTIVE" in user projects.
+#   Signal B: "ALWAYS ACTIVE" or "always active" + override-framing
+#             markers within the first 50 lines.
+#   Signal C: ≥3 distinct SP-pattern phrases anywhere outside fences.
+scanner_rule_S9() {
+  local abs_file="$1"
+  local source_file="$2"
+
+  # Single awk pass collects all three signals. Output is one
+  # tab-separated record:
+  #   <sig_a_fired>\t<sig_b_fired>\t<phrase_count>\t<sig_a_text>\t<sig_b_text>
+  local result
+  result=$(LC_ALL=C awk '
+    BEGIN {
+      fence = 0
+      sig_a_fired = 0; sig_a_text = ""
+      sig_b_fired = 0; sig_b_text = ""
+      phrase_count = 0
+      n_phrases = 9
+      phrase[1] = "askuserquestion is your primary tool"
+      phrase[2] = "no sycophancy"
+      phrase[3] = "push back and be blunt"
+      phrase[4] = "diagrams first"
+      phrase[5] = "decision archaeology"
+      phrase[6] = "scope radar"
+      phrase[7] = "never go into pure execution"
+      phrase[8] = "think before you execute"
+      phrase[9] = "ask before acting"
+      for (i = 1; i <= n_phrases; i++) phrase_seen[i] = 0
+    }
+    /^[[:space:]]*```/ { fence = 1 - fence; next }
+    fence == 1 { next }
+    {
+      lc = tolower($0)
+      # Signal A: heading + "Strategic Partner" + pillar marker
+      if ($0 ~ /^#{1,6} / && index(lc, "strategic partner") > 0) {
+        if (index(lc, "mode") > 0 || $0 ~ /ALWAYS ACTIVE/) {
+          if (sig_a_fired == 0) {
+            t = $0
+            sub(/^#+[[:space:]]+/, "", t)
+            sig_a_text = t
+            sig_a_fired = 1
+          }
+        }
+      }
+      # Signal B: first 50 lines only
+      if (NR <= 50) {
+        if ($0 ~ /ALWAYS ACTIVE/) {
+          if (sig_b_fired == 0) { sig_b_text = $0; sig_b_fired = 1 }
+        } else if (index(lc, "always active") > 0) {
+          if (index(lc, "overrides default") > 0 \
+              || index(lc, "read this first") > 0 \
+              || index(lc, "read this section first") > 0) {
+            if (sig_b_fired == 0) { sig_b_text = $0; sig_b_fired = 1 }
+          }
+        }
+      }
+      # Signal C: distinct phrase matches
+      for (i = 1; i <= n_phrases; i++) {
+        if (phrase_seen[i] == 0 && index(lc, phrase[i]) > 0) {
+          phrase_seen[i] = 1
+          phrase_count++
+        }
+      }
+    }
+    END {
+      printf "%d\t%d\t%d\t%s\t%s\n", sig_a_fired, sig_b_fired, phrase_count, sig_a_text, sig_b_text
+    }
+  ' "$abs_file")
+
+  local sig_a sig_b sig_c_count sig_a_text sig_b_text
+  sig_a=$(printf '%s' "$result" | awk -F'\t' '{print $1}')
+  sig_b=$(printf '%s' "$result" | awk -F'\t' '{print $2}')
+  sig_c_count=$(printf '%s' "$result" | awk -F'\t' '{print $3}')
+  sig_a_text=$(printf '%s' "$result" | awk -F'\t' '{print $4}')
+  sig_b_text=$(printf '%s' "$result" | awk -F'\t' '{print $5}')
+
+  local sig_c=0
+  [ "$sig_c_count" -ge 3 ] && sig_c=1
+
+  if [ "$sig_a" = "0" ] && [ "$sig_b" = "0" ] && [ "$sig_c" = "0" ]; then
+    return 0
+  fi
+
+  local signals_json
+  signals_json=$(jq -nc \
+    --argjson a "$sig_a" --argjson b "$sig_b" --argjson c "$sig_c" \
+    '[
+       (if $a == 1 then "A" else empty end),
+       (if $b == 1 then "B" else empty end),
+       (if $c == 1 then "C" else empty end)
+     ]')
+
+  local subs
+  subs=$(jq -nc \
+    --argjson signals_fired "$signals_json" \
+    --arg sig_a_match "$sig_a_text" \
+    --arg sig_b_match "$sig_b_text" \
+    --argjson phrase_count "$sig_c_count" \
+    '{
+       signals_fired: $signals_fired,
+       signal_a_match: (if $sig_a_match == "" then null else $sig_a_match end),
+       signal_b_match: (if $sig_b_match == "" then null else $sig_b_match end),
+       signal_c_phrase_count: $phrase_count
+     }')
+
+  local preview
+  preview=$(printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' \
+    "# This file declares SP-as-pillar or duplicates SP's behavioral defaults. SP is" \
+    "# a skill, not a project pillar. Recommended action:" \
+    "#   1. Remove the SP-flavored heading and operating-rules block from ${source_file}." \
+    "#   2. If any rules in the block are genuinely project-specific (not duplicating" \
+    "#      SP defaults), keep them under a project-named heading like \"## Project" \
+    "#      Operating Overlay\" — do NOT name SP or imply SP-mandated content." \
+    "#   3. Rely on SP's own SKILL.md for SP behavioral defaults (sycophancy ban," \
+    "#      AskUserQuestion-first, position discipline, etc.). They apply automatically" \
+    "#      whenever SP is invoked.")
+
+  local action
+  action=$(scanner_action_json remove_or_scope "" false false "$preview")
+
+  scanner_emit_finding \
+    "S9" "structural" "warn" "SP-flavored framing" \
+    "$source_file" "<root>" \
+    "sp-flavored-framing" \
+    "$subs" "$action" \
+    "[Acknowledge — this project legitimately uses SP terminology in a non-self-promoting context]"
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# Convenience entry: run all S1-S9
 # ─────────────────────────────────────────────────────────────────────
 
 # scanner_run_structural ABS_FILE SOURCE_FILE PROJECT_ROOT LAYER_PROBE_JSON [COMPANION_PATHS] [SKILLS]
@@ -821,4 +964,5 @@ scanner_run_structural() {
   scanner_rule_S6 "$abs_file" "$source_file"
   scanner_rule_S7 "$abs_file" "$source_file" "$skills"
   scanner_rule_S8 "$abs_file" "$source_file" "$project_root"
+  scanner_rule_S9 "$abs_file" "$source_file"
 }

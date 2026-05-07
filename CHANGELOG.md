@@ -1,5 +1,15 @@
 # Changelog
 
+## [6.1.0] - 2026-05-06
+
+### Added
+
+- **Scanner now flags SP-flavored framing in your project file** — When you run `/strategic-partner:context-file-scan` against your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`, the scanner now detects sections that declare Strategic Partner as an always-active project pillar (top-of-file headings framing SP as a behavioral mode), or operating-rules blocks duplicating SP's own interaction-discipline defaults. The new check fires once per file at warn severity with a copy-paste suggestion to remove the section or scope it to a project-named overlay. Strategic Partner is a skill — its behavioral defaults apply automatically whenever it is invoked, so they do not belong in your project's context file.
+
+### Changed
+
+- **The project's own rules now codify the same policy as a guard.** SP's `CLAUDE.md` gains a Provisional Guard naming SP-flavored framing in user project files as a policy violation rather than a strength. Closes a gap exposed during a v6.0.1 advisory session where SP rated such framing 9/10 as a feature instead of catching the duplication. The full archaeology lives in the project's incident archive.
+
 ## [6.0.1] - 2026-05-06
 
 ### Fixed

@@ -21,8 +21,8 @@
   "properties": {
     "rule_id": {
       "type": "string",
-      "pattern": "^(S[1-8]|B[1-8])$",
-      "description": "Rule identifier — S1-S8 (structural) or B1-B8 (behavioral) per spec §§ 3-4."
+      "pattern": "^(S[1-9]|B[1-8])$",
+      "description": "Rule identifier — S1-S9 (structural) or B1-B8 (behavioral) per spec §§ 3-4."
     },
     "rule_class": {
       "type": "string",
@@ -71,7 +71,7 @@
         "type": {
           "type": "string",
           "minLength": 1,
-          "description": "Action category. Common values: move_to_layer, remove, add_section, add_pointer, add_example, consolidate, document_deviation, extend_or_graduate, convert_to_pointer, draft_positive_direction."
+          "description": "Action category. Common values: move_to_layer, remove, remove_or_scope, add_section, add_pointer, add_example, consolidate, document_deviation, extend_or_graduate, convert_to_pointer, draft_positive_direction."
         },
         "layer_target": {
           "type": ["string", "null"],

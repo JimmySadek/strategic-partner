@@ -87,12 +87,13 @@ When neither `--report-only` nor `--release-gate` was set, render one
 6. **S8** — `@` imports of large files
 7. **S6** — Inline shell
 8. **S4** — Reactive without positive direction
-9. **B1** — Missing behavioral baseline (most common gap)
-10. **B2 / B3 / B4** — Hybrid pattern broken
-11. **B5** — Behavioral rule without example
-12. **B6** — Behavioral rule in wrong layer
-13. **B7** — Behavioral rule duplication
-14. **B8** — Drift from Karpathy baseline
+9. **S9** — SP-flavored framing
+10. **B1** — Missing behavioral baseline (most common gap)
+11. **B2 / B3 / B4** — Hybrid pattern broken
+12. **B5** — Behavioral rule without example
+13. **B6** — Behavioral rule in wrong layer
+14. **B7** — Behavioral rule duplication
+15. **B8** — Drift from Karpathy baseline
 
 For each finding, compose the AskUserQuestion using the locked C6
 template for that `rule_id`:
@@ -107,6 +108,7 @@ template for that `rule_id`:
 | S6 | Inline shell |
 | S7 | Re-asserted skill behavior |
 | S8 | `@` imports of large files |
+| S9 | SP-flavored framing |
 | B1 | Missing behavioral baseline |
 | B2 | Hybrid broken — stub without rules file |
 | B3 | Hybrid broken — rules file without stub |
