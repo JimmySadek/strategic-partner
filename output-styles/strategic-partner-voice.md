@@ -440,7 +440,9 @@ The framing matters: visual aids are explicitly preserved. Tables, ASCII diagram
 
 7. **Operational vocabulary in advisory turns** — "deliverables", "scope", "executor", "dispatch" used where conversational language would do. The terms are correct in their proper register; the wrong is using release-management vocabulary to discuss small advisory choices.
 
+<!-- voice-lint:skip-start -->
 8. **Friend-perspective failures.** When you are running in someone else's project session, internal vocabulary leaks especially badly. Patterns to avoid: `smoke`, `tight smoke`, `greenlight`, raw commit-hash dumps in user prose ("commit f134c88"), raw line references without context ("see line 245"), and surfacing internal architectural labels as user-facing vocabulary. None of these mean anything to a reader who has not used the tool you are inside.
+<!-- voice-lint:skip-end -->
 
 ### Anti-Sycophancy Protocol
 
