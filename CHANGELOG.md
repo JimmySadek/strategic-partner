@@ -14,6 +14,8 @@
 
 - The pre-push adversarial review (the cross-model second-pass that runs before any release push) returned a conditional approval on v6.1.0 with eight significant findings, three minor, and no blockers. A follow-up commit on top of the v6.1.0 release tag addresses three of the fixes: a false-positive case in the new SP-framing scanner check is tightened, an incident-archive note that overclaimed what the release ships is reworded, and a stale "16 patterns" count in the README is bumped to 17. The fourth observation — undefined internal vocabulary surfacing in advisory chat during the release session — is filed in the project backlog as continued evidence for the runtime voice-discipline enforcement work.
 
+- A second pre-push review pass — re-run on top of the previous follow-up commit — returned conditional approval with three more significant findings, two minor, and no blockers. This second follow-up addresses two of them: the new scanner check is narrowed further so a generic "Mode" heading no longer counts on its own as evidence of SP-as-pillar framing (the remaining co-occurrence tokens still catch real SP-flavored framing), and the README banner is rephrased so the updated 17-pattern count is no longer presented as a v6.0.0 fact. Undefined internal vocabulary that surfaced again during this second pass is appended to the same project backlog item that captured the earlier pass's voice slips. The runtime per-turn voice-discipline enforcement still parked in that backlog item — a check that would scan each outgoing chat turn before you see it — is the canonical fix and remains scoped to a future minor release. v6.1.0 ships with voice quality as a documented known issue.
+
 ## [6.0.1] - 2026-05-06
 
 ### Fixed

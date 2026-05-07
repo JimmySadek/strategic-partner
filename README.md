@@ -8,7 +8,7 @@
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **New in v6.0.0** — The Strategic Partner now includes `/strategic-partner:context-file-scan`, a new command that detects 17 patterns of drift in your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` rules file. Plus the four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Verification not Specification) ship publicly with attribution to Andrej Karpathy's corpus, and the install footprint drops by ~115 files. See [CHANGELOG](CHANGELOG.md) for the full set.
+> **Since v6.0.0** — The Strategic Partner now includes `/strategic-partner:context-file-scan`, a new command that detects 17 patterns of drift in your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` rules file. Plus the four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Verification not Specification) ship publicly with attribution to Andrej Karpathy's corpus, and the install footprint drops by ~115 files. See [CHANGELOG](CHANGELOG.md) for the full set.
 
 ---
 

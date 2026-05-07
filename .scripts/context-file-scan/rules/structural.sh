@@ -820,11 +820,12 @@ scanner_rule_S8() {
 #             lines with at least one pillar-framing token —
 #             "Strategic Partner", "overrides default" / "override
 #             default", "read this first" / "read this section
-#             first", "session start" / "every session", or "Mode"
-#             in a heading line. Single "ALWAYS ACTIVE" text without
-#             a pillar-framing co-occurrence does NOT fire (Codex
-#             round 1 false-positive fix; see CHANGELOG v6.1.0
-#             follow-up).
+#             first", or "session start" / "every session". Single
+#             "ALWAYS ACTIVE" text without a pillar-framing
+#             co-occurrence does NOT fire (Codex round 1
+#             false-positive fix; round 2 narrowed the token set
+#             further by removing generic "Mode in heading" — see
+#             CHANGELOG v6.1.0 follow-up notes).
 #   Signal C: ≥3 distinct SP-pattern phrases anywhere outside fences.
 scanner_rule_S9() {
   local abs_file="$1"
@@ -890,8 +891,6 @@ scanner_rule_S9() {
             sig_b_cooccur = "session start"
           } else if (index(lc, "every session") > 0) {
             sig_b_cooccur = "every session"
-          } else if ($0 ~ /^#{1,6} .* Mode/) {
-            sig_b_cooccur = "Mode (heading)"
           }
         }
       }
