@@ -168,6 +168,32 @@ which codex >/dev/null 2>&1
                  Only educates if user explicitly invokes the subcommand.
 ```
 
+### Output Style Detection (inline, not an agent)
+
+The SP ships its own Output Style (`strategic-partner-voice`) for the most consistent advisory experience. At startup, check which Output Style is currently active and surface a soft recommendation if it is not `strategic-partner-voice`.
+
+**Detection (in precedence order):**
+
+1. `.claude/settings.local.json` `outputStyle` field — highest precedence (project-local user setting)
+2. `.claude/settings.json` `outputStyle` field — project-level
+3. `~/.claude/settings.json` `outputStyle` field — user-level
+4. Use the highest-precedence value found, or empty if none set
+
+**Reporting in orientation:**
+
+| Active style | Action |
+|---|---|
+| `strategic-partner-voice` | Silent — already aligned, no mention |
+| Any other value (e.g., `adaptive-visual`) | Show in orientation: "💡 SP ships its own Output Style (`strategic-partner-voice`) tuned for advisory voice. Your current style is `{detected_value}`. To switch: run `/config` → Output Style → 'Strategic Partner Voice', or set `\"outputStyle\": \"strategic-partner-voice\"` in `~/.claude/settings.json`. Soft recommendation — your current setup works; this is the suggested baseline." |
+| Empty / no setting | Show in orientation: "💡 SP ships its own Output Style (`strategic-partner-voice`) tuned for advisory voice. No output style is currently set. To activate: run `/config` → Output Style → 'Strategic Partner Voice', or set `\"outputStyle\": \"strategic-partner-voice\"` in `~/.claude/settings.json`." |
+
+**Suppression rules:**
+
+- If `~/.claude/output-styles/strategic-partner-voice.md` does NOT exist (file not yet installed via setup), suppress the recommendation entirely.
+- If env var `NO_SP_OUTPUT_STYLE_HINT` is set, suppress.
+
+This is an informational note in orientation — soft recommendation, not enforcement.
+
 ### Version Check (inline, not an agent)
 
 Quick check against GitHub releases. Runs inline because it's a single curl

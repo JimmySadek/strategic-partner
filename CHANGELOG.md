@@ -1,5 +1,10 @@
 # Changelog
 
+## [6.2.0] - 2026-05-07
+
+### Added
+- **A new way to keep advisor responses readable and structured** (strategic-partner-voice Output Style) — Strategic Partner now ships an installable Output Style that activates a super-structured assistant persona for non-technical readers. The style applies plain-English language, deliberate visual formatting (functional emoji anchors, tables, ASCII diagrams), and anti-sycophancy rules at the model-instruction level — before responses are generated rather than after. The setup script now copies the style file to `~/.claude/output-styles/` on install (does not overwrite existing user copies). Activate via `/config` → Output Style → "Strategic Partner Voice", or set `outputStyle: strategic-partner-voice` in `~/.claude/settings.json`. Takes effect on next session start. On startup, SP also detects the active Output Style and surfaces a soft recommendation if it is not `strategic-partner-voice` — no enforcement, just a note pointing at the recommended setup so users know the option exists.
+
 ## [6.1.0] - 2026-05-06
 
 ### Added

@@ -114,6 +114,23 @@ if [ -d "$HOOKS_DIR" ]; then
   echo "✅ Hook scripts verified executable in ${HOOKS_DIR}"
 fi
 
+# ── Install Output Styles ──────────────────────────────────────────────
+OUTPUT_STYLES_SRC="${SKILL_DIR}/output-styles"
+OUTPUT_STYLES_DST="${HOME}/.claude/output-styles"
+if [ -d "$OUTPUT_STYLES_SRC" ]; then
+  mkdir -p "$OUTPUT_STYLES_DST"
+  for style in "${OUTPUT_STYLES_SRC}"/*.md; do
+    [ -f "$style" ] || continue
+    style_name="$(basename "$style")"
+    if [ ! -e "${OUTPUT_STYLES_DST}/${style_name}" ]; then
+      cp "$style" "${OUTPUT_STYLES_DST}/${style_name}"
+      echo "✅ Installed output style: ${style_name}"
+    else
+      echo "⚠️  Output style ${style_name} already present at ~/.claude/output-styles/ — preserving your version (delete it manually if you want the shipped version)"
+    fi
+  done
+fi
+
 # ── Check for jq (hard dependency for context-file-scan) ───────────────
 if ! command -v jq >/dev/null 2>&1; then
   echo "💡 \`jq\` not found in PATH — required for /strategic-partner:context-file-scan."
