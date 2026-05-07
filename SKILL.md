@@ -2371,6 +2371,7 @@ Delegation rules, model selection, and parallelization templates.
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI |
+| `/strategic-partner:context-file-scan` | Drift scanner for CLAUDE.md / AGENTS.md / GEMINI.md per the v6.0 policy |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---

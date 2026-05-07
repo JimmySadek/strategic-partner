@@ -8,7 +8,7 @@
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **Since v6.0.0** — The Strategic Partner now includes `/strategic-partner:context-file-scan`, a new command that detects 17 patterns of drift in your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` rules file. Plus the four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Verification not Specification) ship publicly with attribution to Andrej Karpathy's corpus, and the install footprint drops by ~115 files. See [CHANGELOG](CHANGELOG.md) for the full set.
+> **What's new** — v6.1.0 adds **SP-flavored framing detection** (rule S9): the scanner now flags when a user's project file declares Strategic Partner as an "always active" pillar or duplicates SP's own behavioral defaults — anti-pattern caught mechanically. Builds on v6.0.0's `/strategic-partner:context-file-scan`, which detects 17 patterns of drift in your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`. The four behavioral principles (Think Before Coding, Simplicity First, Surgical Changes, Verification not Specification) ship publicly with attribution to Andrej Karpathy's corpus, and the install footprint dropped by ~115 files. See [CHANGELOG](CHANGELOG.md) for the full set.
 
 ---
 
@@ -129,7 +129,7 @@ You paste Phase 1 into a **fresh Claude Code session**. It runs. You come back a
 
 This is where the value is. Before routing a single task, the SP runs several checks that prevent wasted effort:
 
-**Premise challenge** — Every request is evaluated against 4 trigger conditions: does it name a technology before stating a problem? Describe how before why? Assume a root cause without evidence? Frame a solution instead of a problem? When triggers fire, the SP pushes back with pointed questions before any work begins.
+**Premise challenge** — Every request is evaluated against 6 trigger conditions: does it name a technology before stating a problem? Describe how before why? Assume a root cause without evidence? Frame a solution instead of a problem? Carry forward an unverified claim from a previous session? Ask to improve a context file without scanning it first? When triggers fire, the SP pushes back with pointed questions before any work begins.
 
 **Forced alternatives** — For non-trivial tasks, the SP presents 3 distinct approaches before routing: Path A (minimal — smallest change), Path B (recommended — the SP's best judgment with rationale), and Path C (lateral — a reframing that might unlock a better outcome). You pick. Then it routes.
 
@@ -240,7 +240,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Per-turn rhythm enforcer** — At the end of every assistant turn, a hook scans the response for five common drift patterns: questions buried in prose (instead of using AskUserQuestion), missing identity-reset announcements after agent dispatches return, first-person tool-availability claims without an actual tool call, execution fences without expected handoff file write, and silent ignores of any non-clean signal from the startup floor. Violations carry forward to the next turn as a one-line note; SP self-corrects on next prompt.
 - **Floor-signal handling** — Each of the seven startup-floor signal fields has explicit guidance for how SP should respond when non-clean: routing matrix gets an immediate background Opus 4.7 dispatch; memory missing surfaces in orientation and asks before dispatching the heavier Serena onboarding; dirty git tree surfaces with explicit acknowledgment. Default model for any auto-remediation is Opus 4.7 — load-bearing decisions deserve the smartest model.
 - **Reliable update notifications** — Update checks against GitHub now correctly handle network slowness and pretty-printed JSON formats. Fresh sessions see real version status (current / behind / actual version string) instead of a silent "unreachable".
-- **Premise challenge system** — evaluates every request against 4 trigger conditions before accepting it at face value
+- **Premise challenge system** — evaluates every request against 6 trigger conditions before accepting it at face value
 - **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
 - **Model-aware prompt generation** — SP detects the active Claude model at startup (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, via both friendly names and exact model IDs) and selects reusable XML prompt blocks + effort recommendations per target model. Every crafted prompt inherits hallucination prevention, scope discipline, and model-appropriate patterns.
 - **Reusable prompt block library** — 7 Anthropic-authored XML blocks (`<investigate_before_answering>`, `<avoid_over_engineering>`, `<subagent_usage>`, `<use_parallel_tool_calls>`, `<conservative_actions>`, `<scope_explicit>`, `<context_awareness>`) can be composed into crafted prompts. Copy-safe for inline use. Default blocks auto-included in the template.
@@ -250,6 +250,7 @@ The SP operates through a lean core (SKILL.md) that loads reference material on 
 - **Fast Lane dispatch** — subordinate delivery mechanism for small, reversible tasks; requires Advisory Completion Gate to pass first; detailed mechanics loaded on demand from reference file
 - **[✅ SAFE]/[⚠️ RISK] confidence labels** — recommendations carry explicit confidence signals for executors
 - **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.5) for independent review on high-stakes decisions
+- **Context-file drift detection (v6.0+)** — `/strategic-partner:context-file-scan` scans your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` against 17 patterns of structural and behavioral drift (size breach, layer violations, stale entries, broken hybrid pattern, SP-flavored framing, and 12 others). The scanner reports; you decide what to act on. Three output modes: an interactive walk-through that asks per-finding, a report-only markdown render, and a release-gate run for CI use.
 - **Session findings and backlog stewardship** — automatic capture of feedback during advisory sessions, with two-layer persistence: lightweight session findings and curated backlog items with trigger-based surfacing at startup
 - **Cognitive patterns** — 14 named thinking heuristics wired to specific decision points with mandatory triggers (not a decorative table — they fire at the right moments)
 - **Context handoff management** — monitors context pressure and preserves full session state before it degrades
@@ -278,6 +279,14 @@ strategic-partner/
     guard-impl.sh                       # PreToolUse hook — blocks source edits in SP sessions
     lib/
       validators.sh                     # Shared validator logic (AUQ / tool-availability / fence-write coupling) — used by Layer 3 lint
+  .scripts/
+    context-file-scan/
+      scan.sh                           # Main scanner orchestrator
+      lib/                              # Helper functions (utils, output, layer probe, etc.)
+      rules/
+        structural.sh                   # S1-S9 structural detection rules
+        behavioral.sh                   # B1-B8 behavioral detection rules
+    release-publish.sh                  # GitHub release automation (Step 7 of release process)
   commands/
     help.md                             # Subcommand reference
     copy-prompt.md                      # Clipboard copy for fenced prompts
@@ -285,6 +294,7 @@ strategic-partner/
     status.md                           # Status briefing
     update.md                           # Version check + self-update
     codex-feedback.md                   # Cross-model adversarial review via Codex CLI
+    context-file-scan.md                # Drift scanner for CLAUDE.md / AGENTS.md / GEMINI.md per the v6.0 policy
     backlog.md                          # Backlog review — parked items with trigger evaluation
   references/
     startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
@@ -314,8 +324,13 @@ strategic-partner/
   assets/templates/
     prompt-template.md                  # Implementation prompt skeleton
     handoff-template.md                 # Session handoff skeleton (with /insights section)
+  schemas/
+    scanner-findings.json               # JSON schema contract for scanner findings (rule_id pattern, finding shape)
   docs/
     v4.0-implementation-decisions.md    # Decision log for audit findings F1-F12
+  claudedocs/
+    INCIDENTS.md                        # Incident archaeology — one entry per INC-YYYY-MM-DD ID, referenced by Provisional Guards
+    gstack-*.md                         # Reference research notes from gstack ecosystem analysis
   tests/
     RUNBOOK.md                          # Manual fixture-review protocol
     lint-transcripts.sh                 # Release-time lint — AUQ / tool-availability / fence-write coupling / identity-reset rules against JSONL transcripts and handoffs
@@ -363,7 +378,7 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.5) |
-| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (17 patterns, two output modes) |
+| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (17 patterns; interactive, report-only, and release-gate output modes) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---
