@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 6.2.1
+version: 6.3.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -105,7 +105,7 @@ hooks:
               skill_version=""
             fi
             [ -z "$skill_version" ] && skill_version="unknown"
-            floor_schema_version="v3"
+            floor_schema_version="v4"
             rule_schema_version="v1"
 
             # Portable timeout (gtimeout on macOS coreutils, timeout on Linux; empty if neither)
@@ -373,6 +373,35 @@ hooks:
               fi
             } >> "${RESULTS}.tmp" 2>/dev/null
 
+            # Group 8 — Output Style (settings-file resolved; runtime header
+            # disagreement detection lives on the model side, since the hook
+            # cannot read the system prompt's `# Output Style:` header).
+            {
+              os_value=""
+              # Precedence: project-local override → project → user.
+              for os_file in \
+                "${cwd:+$cwd/.claude/settings.local.json}" \
+                "${cwd:+$cwd/.claude/settings.json}" \
+                "${HOME}/.claude/settings.json"
+              do
+                [ -z "$os_file" ] && continue
+                [ -f "$os_file" ] || continue
+                if command -v jq >/dev/null 2>&1; then
+                  v=$(jq -r '.outputStyle // empty' "$os_file" 2>/dev/null)
+                else
+                  # grep/sed fallback: extract first "outputStyle":"..." value.
+                  v=$(grep -oE '"outputStyle"[[:space:]]*:[[:space:]]*"[^"]*"' "$os_file" 2>/dev/null \
+                      | head -1 | sed -E 's/.*"outputStyle"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/')
+                fi
+                if [ -n "$v" ]; then
+                  os_value="$v"
+                  break
+                fi
+              done
+              [ -z "$os_value" ] && os_value="none"
+              printf 'g8.output_style=%s\n' "$os_value"
+            } >> "${RESULTS}.tmp" 2>/dev/null
+
             # Atomic finalize + summary stdout (Claude sees stdout in context)
             mv "${RESULTS}.tmp" "$RESULTS" 2>/dev/null
 
@@ -392,11 +421,13 @@ hooks:
             [ -z "$claudemd_band" ] && claudemd_band=none
             model_id=$(grep '^g1.model=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
             [ -z "$model_id" ] && model_id=unknown
+            output_style=$(grep '^g8.output_style=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+            [ -z "$output_style" ] && output_style=unknown
 
             touch "$MARKER"
 
-            printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s git=%s version=%s claudemd_band=%s routing=%s. Full results: %s\n' \
-              "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$RESULTS"
+            printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s. Full results: %s\n' \
+              "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$RESULTS"
 
             exit 0
           timeout: 10000
@@ -1923,14 +1954,16 @@ always the answer.
 ### Floor-Signal Handling
 
 The startup-floor sentinel emits an `SP-FLOOR-COMPLETE` line at session
-entry and on subcommand transitions, with seven status fields. The hook
+entry and on subcommand transitions, with nine status fields. The hook
 fires on every UserPromptSubmit event but exits early once the floor has
 run for a given scope (session, cwd, skill version, prompt class), so the
 line is emitted only when SP enters a new scope — not on every user turn.
-Five of the seven fields are actionable — when they come back non-clean,
-the model MUST either (a) dispatch a remediation agent, or (b) explicitly
-acknowledge the signal in the response with a reason for deferring. Silent
-ignores are caught at the runtime layer by the Stop rhythm enforcer's
+Five of the nine fields are actionable when non-clean (the model MUST
+either dispatch a remediation agent or explicitly acknowledge with a
+reason for deferring). The remaining four are informational —
+`findings` and `backlog` surface counts; `output_style` always renders
+a permanent status row in orientation. Silent ignores of actionable
+signals are caught at the runtime layer by the Stop rhythm enforcer's
 rule 5 (`floor-signal-acknowledgment`).
 
 | Field          | Non-clean values    | Required action                                                       |
@@ -1942,6 +1975,7 @@ rule 5 (`floor-signal-acknowledgment`).
 | `routing`      | `missing`, `stale`  | Dispatch background Opus 4.7 matrix-build agent; notify on completion |
 | `findings`     | (count, always N≥0) | Informational; surface in orientation per existing protocol           |
 | `backlog`      | (count, always N≥0) | Informational; check triggers per existing protocol                   |
+| `output_style` | (always present)    | Render always-visible status row; ✅ active or ⚠️ not active + activation hint per `references/floor-signal-handling.md` |
 
 `memory=missing` is held to a higher bar than `routing=missing` — Serena
 onboarding writes 5+ memories with project analysis, which is a heavier

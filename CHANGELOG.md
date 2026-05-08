@@ -1,5 +1,15 @@
 # Changelog
 
+## [6.3.0] - 2026-05-09
+
+### Added
+
+- **Output Style is now a permanent row in your session orientation** — every fresh `/strategic-partner` session shows whether the recommended Strategic Partner Voice is active. When it is not, you see a two-line activation hint right in orientation: open `/config` and switch the Output Style, or set `outputStyle: strategic-partner-voice` in your user settings file. No questions, no nag — the row is informational and respects users who have explicitly chosen a different style. If the persisted settings disagree with the runtime style your session is actually using (rare, usually means you edited the file mid-session), the row also notes the mismatch so you can restart the session to reconcile.
+
+### Changed
+
+- **Output Style detection moves into the session-entry snapshot** (the one-time snapshot that already gathers project conventions, persistent memory, git state, and version freshness on session start). SP no longer runs a separate detection step at startup; the duplicated procedure in the internal startup checklist is replaced with a pointer to the snapshot. Sessions running an older snapshot during the transition fall back gracefully to a direct settings-file read; the fallback can be removed in 1-2 release cycles past v6.3.
+
 ## [6.2.1] - 2026-05-07
 
 ### Fixed

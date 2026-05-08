@@ -168,58 +168,26 @@ which codex >/dev/null 2>&1
                  Only educates if user explicitly invokes the subcommand.
 ```
 
-### Output Style Detection (inline, not an agent)
+### Output Style Detection (handled by the floor sentinel)
 
-The SP ships its own Output Style (`strategic-partner-voice`) for the most consistent advisory experience. At startup, check which Output Style is currently active and surface a soft recommendation if it is not `strategic-partner-voice`.
+Output Style detection is handled by the floor sentinel's Group 8.
+Orientation reads `g8.output_style` from the `SP-FLOOR-COMPLETE` line
+and renders an always-visible status row per
+`references/floor-signal-handling.md` § Pattern: output_style.
 
-**⚠️ Anti-pattern: do not infer the active style from system-reminders or `additionalContext` blocks.**
+**Runtime authority lives on the model side.** The hook reads settings
+files in precedence order (`.claude/settings.local.json` →
+`.claude/settings.json` → `~/.claude/settings.json`); the model
+compares that resolved value against the runtime `# Output Style:`
+header in its own system prompt and surfaces any disagreement. Never
+substitute a system-reminder or `additionalContext` block claim for
+either source — plugin SessionStart hooks inject those unconditionally
+and they are not authoritative.
 
-System-reminders and `additionalContext` blocks injected by other plugins are NOT authoritative for output-style detection. Plugin SessionStart hooks (e.g., `explanatory-output-style@claude-plugins-official`) unconditionally inject text like *"You are in 'explanatory' output style mode"* into the session via `hookSpecificOutput.additionalContext`, regardless of the actual `outputStyle` setting. Reading that text and reporting it as the active style is a known failure mode — SP has misreported the active style this way in past sessions.
-
-Canonical example to inspect: `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/explanatory-output-style/hooks-handlers/session-start.sh` — the hook emits its `additionalContext` claim unconditionally, with no read of any settings file.
-
-The active `outputStyle` is determined by (a) reading the settings files in precedence order below, OR — as runtime ground truth — (b) by the `# Output Style:` header at the top of the system prompt. Never substitute a system-reminder claim for either of those.
-
-**Detection (in precedence order):**
-
-1. `.claude/settings.local.json` `outputStyle` field — highest precedence (project-local user setting)
-2. `.claude/settings.json` `outputStyle` field — project-level
-3. `~/.claude/settings.json` `outputStyle` field — user-level
-4. Use the highest-precedence value found, or empty if none set
-
-**Concrete read implementation (run at startup):**
-
-```bash
-detect_output_style() {
-  for f in .claude/settings.local.json .claude/settings.json ~/.claude/settings.json; do
-    [ -f "$f" ] || continue
-    val=$(jq -r '.outputStyle // empty' "$f" 2>/dev/null)
-    [ -n "$val" ] && { printf '%s\n' "$val"; return 0; }
-  done
-  printf '\n'
-}
-```
-
-- If `jq` is unavailable, fall back to a `grep`/`sed` equivalent — the goal is "read settings files in precedence order, take the first non-empty `outputStyle` value." A one-liner is fine; the substantive requirement is that the read sources from the settings files, not from injected session text.
-
-**Runtime authority:**
-
-The system prompt's `# Output Style:` header is the runtime ground truth — that header is what the harness actually applies for the current session. If the header and the settings files disagree (rare; usually means a harness-state vs persisted-settings drift, e.g., right after editing settings without restarting the session), surface the disagreement in orientation rather than silently picking one. Reporting "settings say X, runtime header says Y — likely needs a session restart to reconcile" is more useful than picking a winner.
-
-**Reporting in orientation:**
-
-| Active style | Action |
-|---|---|
-| `strategic-partner-voice` | Silent — already aligned, no mention |
-| Any other value (e.g., `adaptive-visual`) | Show in orientation: "💡 SP ships its own Output Style (`strategic-partner-voice`) tuned for advisory voice. Your current style is `{detected_value}`. To switch: run `/config` → Output Style → 'Strategic Partner Voice', or set `\"outputStyle\": \"strategic-partner-voice\"` in `~/.claude/settings.json`. Soft recommendation — your current setup works; this is the suggested baseline." |
-| Empty / no setting | Show in orientation: "💡 SP ships its own Output Style (`strategic-partner-voice`) tuned for advisory voice. No output style is currently set. To activate: run `/config` → Output Style → 'Strategic Partner Voice', or set `\"outputStyle\": \"strategic-partner-voice\"` in `~/.claude/settings.json`." |
-
-**Suppression rules:**
-
-- If `~/.claude/output-styles/strategic-partner-voice.md` does NOT exist (file not yet installed via setup), suppress the recommendation entirely.
-- If env var `NO_SP_OUTPUT_STYLE_HINT` is set, suppress.
-
-This is an informational note in orientation — soft recommendation, not enforcement.
+See `references/floor.md` § Group 8 for the emission pattern, and
+`references/floor-signal-handling.md` § Pattern: output_style for the
+orientation rendering rules and the runtime-vs-settings reconciliation
+logic.
 
 ### Version Check (inline, not an agent)
 
@@ -563,6 +531,20 @@ and ask what the user wants to work on.
     `counts:` footer (Agent D was skipped, so use the existing matrix).
   - `routing=stale ...` or `routing=missing` → counts come from Agent D's
     return summary.
+- 📌 **Output Style status row** (always visible): read `g8.output_style`
+  from the floor signal and render the permanent status row per
+  `references/floor-signal-handling.md` § Pattern: output_style. The
+  row reads `📌 Output Style: ✅ active` when `strategic-partner-voice`
+  is active, or `📌 Output Style: ⚠️ not active (current: <name>)` plus
+  a two-line activation hint when a different style is active or none
+  is set. Compare against the runtime `# Output Style:` header in the
+  model's own system prompt; if they disagree, append a brief
+  settings/runtime mismatch line beneath the row. See the pattern doc
+  for full reconciliation rules. (Backwards-compat fallback: if the
+  floor signal does not carry `g8.output_style` — older sentinel during
+  the transition — orientation falls back to a direct settings-file
+  read using the same precedence order. Remove the fallback after 1-2
+  release cycles past v6.3.)
 - ⚡ Update available (from inline version check in Step 1.5): one-liner with version diff and update command
 - 🔧 **Context advisory** (1M-context sessions only): If the detected model
   has a 1M context window (Opus 4.7, or any model running with

@@ -8,7 +8,7 @@ discovery, orientation rendering) lives in
 The floor's UserPromptSubmit hook fires on every user prompt, but the
 floor walk itself runs **once per unique scope** — defined by (session,
 cwd, skill version, floor schema version, prompt class). When the hook
-detects a new scope it walks the seven groups and emits SP-FLOOR-COMPLETE;
+detects a new scope it walks the eight groups and emits SP-FLOOR-COMPLETE;
 otherwise it exits early to avoid duplicating the snapshot. See § Schema,
 Key, and RELAY_KEY below for the full key composition. The startup
 orientation runs only on first invocation. Splitting them clarifies which
@@ -20,7 +20,7 @@ protocol applies when.
 
 The floor sentinel is a Bash hook that fires on every UserPromptSubmit
 event. On the first prompt of a new scope (session, cwd, skill version,
-prompt class), it runs seven groups of cheap, parallel checks against
+prompt class), it runs eight groups of cheap, parallel checks against
 the project state, then emits a single summary line — `SP-FLOOR-COMPLETE`
 — that the SP reads as context-injected text in the same turn. On
 subsequent prompts within the same scope, the hook exits early to avoid
@@ -34,7 +34,7 @@ the same checks itself.
 
 ---
 
-## The Seven Groups
+## The Eight Groups
 
 Each group runs in a sub-shell so a failure in one cannot abort the
 others. All groups together must complete in well under the 10-second
@@ -159,17 +159,51 @@ Hash algorithm: sha256, truncated to 16 hex chars. Backend: `sha256sum`
 missing matrices in orientation per the Floor-Signal Handling table in
 SKILL.md.
 
+### Group 8 — Output Style
+
+Resolves the active Output Style from the settings files in precedence
+order. Detects:
+
+- **`g8.output_style`** — one of:
+  - `strategic-partner-voice` — SP's recommended Output Style is active.
+  - Any other style name (e.g., `explanatory`, `adaptive-visual`) — a
+    different Output Style is active.
+  - `none` — no `outputStyle` field is set in any settings file.
+
+The hook reads (in precedence order):
+
+1. `$cwd/.claude/settings.local.json` — project-local user override
+2. `$cwd/.claude/settings.json` — project-level
+3. `~/.claude/settings.json` — user-level
+
+The first non-empty `outputStyle` value wins. Implementation uses `jq`
+when available, with a `grep`/`sed` fallback so the hook works on
+machines without `jq` installed.
+
+**Hook scope is settings only.** The runtime ground truth — the
+`# Output Style:` header at the top of the system prompt — is not
+visible to shell hooks. The model side compares the floor's
+settings-resolved value against the runtime header it can see in its
+own system prompt and surfaces any disagreement in orientation. See
+`references/floor-signal-handling.md` § Pattern: output_style for the
+full rendering rules and the runtime-vs-settings reconciliation logic.
+
+This is the only floor signal that surfaces a **permanent row in
+orientation** regardless of state — other signals surface only when
+non-clean, but Output Style is always rendered so users can see and act
+on its activation state every session.
+
 ---
 
 ## Summary Line — `SP-FLOOR-COMPLETE`
 
-After all seven groups complete, the hook writes the full per-group
+After all eight groups complete, the hook writes the full per-group
 results to `/tmp/sp-floor-${KEY}.txt` and emits a single summary line on
 stdout (which Claude Code injects into the model's context for the
 current turn):
 
 ```
-SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing. Full results: /tmp/sp-floor-${KEY}.txt
+SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME. Full results: /tmp/sp-floor-${KEY}.txt
 ```
 
 The `claudemd_band` field mirrors the scanner's S1 size taxonomy (see Group 2
@@ -178,7 +212,12 @@ is missing; otherwise it reports the band the file falls into. Orientation
 uses the band to decide whether to surface a size warning and at what
 volume.
 
-The SP reads this line and acts on the eight status fields per the
+The `output_style` field carries the active Output Style name from the
+settings files (or `none` if no `outputStyle` field is set anywhere).
+Orientation always renders a status row from this field — see
+`references/floor-signal-handling.md` § Pattern: output_style.
+
+The SP reads this line and acts on the nine status fields per the
 Floor-Signal Handling table (SKILL.md § Floor-Signal Handling).
 
 For per-field remediation patterns (which agent to dispatch, which
@@ -210,11 +249,14 @@ The hook uses two stable identifiers:
 Both keys are deterministic for a given session — the same prompt
 shape in the same session always produces the same KEY/RELAY_KEY pair.
 
-The schema versions (`floor_schema_version="v3"`,
+The schema versions (`floor_schema_version="v4"`,
 `rule_schema_version="v1"`) bump when the protocol's emitted format
 changes in a way that requires Claude Code to invalidate the cached
 marker. Bumping the schema version forces the next prompt to re-run the
-floor / re-read the violations log.
+floor / re-read the violations log. The `v4` bump landed in v6.3.0 to
+add the Group 8 Output Style field; pre-upgrade markers are invalidated
+on first prompt of the new release so all sessions pick up the new
+field cleanly.
 
 ---
 

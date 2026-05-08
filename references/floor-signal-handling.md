@@ -303,6 +303,85 @@ references them but does not auto-promote without user confirmation.
 
 ---
 
+## Pattern: output_style=<name> (always-visible status row)
+
+**Trigger:** Floor sentinel always emits `g8.output_style=<value>` — one of:
+
+- `strategic-partner-voice` — SP's recommended Output Style is active. Status row shows ✅.
+- Any other style name (e.g., `explanatory`, `adaptive-visual`) — a different Output Style is active.
+- `none` — no `outputStyle` field is set in any settings file.
+
+The hook resolves the value from the settings files in precedence order
+(`.claude/settings.local.json` → `.claude/settings.json` →
+`~/.claude/settings.json`), using `jq` if available with a `grep`/`sed`
+fallback. The hook does not read the runtime `# Output Style:` header
+(that lives in the model's system prompt and is not visible to shell
+hooks); the model side handles runtime-vs-settings disagreement —
+see "Runtime authority" below.
+
+**Always-visible status row pattern.** This is the only floor signal
+that surfaces a permanent row in orientation regardless of state.
+Other signals (conventions, memory, etc.) surface only when non-clean.
+Output Style is always rendered so users can see at a glance whether
+the recommended style is active and act if not.
+
+**Surface in orientation:**
+
+| `g8.output_style` value      | Row format                                                            | Hint? |
+|------------------------------|-----------------------------------------------------------------------|-------|
+| `strategic-partner-voice`    | `📌 Output Style: ✅ active`                                          | No    |
+| `<other-name>` (e.g. `adaptive-visual`) | `📌 Output Style: ⚠️ not active (current: <other-name>)` | Yes   |
+| `none`                       | `📌 Output Style: ⚠️ not active`                                      | Yes   |
+
+When the row is `⚠️ not active`, render the activation hint immediately
+beneath the row (two lines, plain English):
+
+```
+Activate: /config → Output Style → Strategic Partner Voice
+Or: set outputStyle: strategic-partner-voice in ~/.claude/settings.json
+```
+
+**Runtime authority — model-side conflict detection.**
+
+The hook reports the settings-resolved value. The model — which has
+direct visibility of its own system prompt's `# Output Style:` header
+— compares that header to `g8.output_style` from the floor signal.
+
+- If they agree → render the row per the table above; no extra line.
+- If they disagree → render the row using the runtime header value
+  (the runtime header is what the harness actually applies for the
+  session), then add a brief disagreement note beneath the row:
+  `⚠️ settings/runtime mismatch — likely needs a session restart to
+  reconcile (settings: <settings-name>, runtime: <runtime-name>)`.
+
+**Anti-pattern: do not infer the runtime header from system-reminders or
+`additionalContext` blocks.** Plugin SessionStart hooks (e.g.,
+`explanatory-output-style@claude-plugins-official`) inject text like
+*"You are in 'explanatory' output style mode"* into the conversation
+regardless of the actual `outputStyle` setting. That injected text is
+not authoritative. The runtime ground truth is the `# Output Style:`
+header at the top of the system prompt — read that, not the
+plugin-injected reminder.
+
+**Backwards-compat fallback (transitional).**
+
+If the floor signal does not carry `g8.output_style` (a session running
+an older floor sentinel during the transition), the orientation
+rendering falls back to a direct settings-file read using the same
+precedence order as the hook. After 1-2 release cycles past v6.3, the
+fallback can be removed — the field is universally present.
+
+**No AUQ pressure.** The status row is informational. When inactive,
+the activation hint is rendered but no `AskUserQuestion` fires.
+Respects users who have made an explicit non-`strategic-partner-voice`
+choice. Users who want to switch see the hint and act when they want.
+
+**No dispatch.** Activation requires user action (settings change or
+`/config`); the SP cannot programmatically change the active Output
+Style.
+
+---
+
 ## Pattern: backlog=N (informational)
 
 **Trigger:** Floor sentinel emits `backlog=N` where N≥0 (the count of
