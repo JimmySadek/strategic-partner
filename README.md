@@ -8,7 +8,7 @@
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **What's new** — v6.3.1 makes Strategic Partner pause at every decision instead of bundling them, and surfaces which sub-agent it picked, and why, before any dispatch fires. The recommended Output Style picks up five new behavior rules: structured-choice discipline (no questions buried in prose), pause-at-each-transition on multi-step workflows, brief check-in coverage so even "does that work?" goes through the structured-choice tool, an explicit rule that transitions owing decisions must end with a structured choice (not a silent status sweep), and pre-dispatch routing transparency — the first specialist dispatch in a session is gated by a confirmation question whose option label names the chosen agent, so a wrong pick gets caught before the agent runs. v6.3.0 elevates the **Strategic Partner Voice** Output Style to a permanent row in your session orientation. Every fresh session shows whether the recommended voice is active and surfaces a two-line activation hint when it is not — no questions, no nag, and respects users who have explicitly chosen a different style. The detection itself moves into the same one-time session-entry snapshot that already covers project conventions, memory, git state, and version freshness, replacing the duplicate procedure in the internal startup checklist. v6.2.0 introduced the Strategic Partner Voice itself (an installable Claude Code persona that keeps advisor responses plain-spoken and well-structured: short sentences, functional emoji anchors, tables and ASCII diagrams when they help, and anti-sycophancy rules baked in at the model level). v6.2.1 fixed a startup orientation bug where SP could misidentify the active Output Style when other plugins inject session-start announcements. Builds on v6.1.0's SP-flavored framing detection in the project-file scanner, v6.0.0's `/strategic-partner:context-file-scan` (17 drift patterns across `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`), the four behavioral principles shipped publicly with attribution to Andrej Karpathy's corpus, and a leaner install footprint. See [CHANGELOG](CHANGELOG.md) for the full set.
+> **What's new** — v6.3.4 saves substantive decisions to long-term memory at the right moments (factual fixes save immediately as routine hygiene; substantive decisions save as one coherent block when an advisory stretch ends), and renders the end-of-session checklist in plain English with status emojis (✅ Checked, 🟡 Needs your input, ➖ Doesn't apply this session) instead of internal state names. The README itself is rewritten to a 300-line ceiling with plain-English vocabulary throughout. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 
@@ -26,17 +26,19 @@ The strategic partner fixes this by enforcing a separation: persistent advisory 
 
 ## Who is this for
 
-**Solo developers** — A second brain that interrogates your assumptions before you build, routes to the right tool, and remembers decisions across sessions so you don't re-litigate them.
+**Solo developers** — A second brain that interrogates your assumptions before you build, picks the right tool, and remembers decisions across sessions so you don't re-litigate them.
 
 **Team leads** — Consistent prompt quality across implementation sessions, with a decision log that survives context resets. Your architectural intent carries forward even when execution happens in fresh windows.
 
-**Non-technical PMs** — You can describe what you need in plain language. The SP handles the translation into technical prompts, breaks large features into phased delivery, and reports back in terms you can act on. You never need to know which skill or model is best for a task.
+**Non-technical PMs** — You can describe what you need in plain language. The advisor handles the translation into technical prompts, breaks large features into phased delivery, and reports back in terms you can act on. You never need to know which skill or model is best for a task.
 
 ---
 
 ## How it works
 
 ### Two sessions, one loop
+
+**Strategic Partner (SP for short)** runs the advisor in one session. Your installed implementation skills (or background agents) execute in another.
 
 ```
 +---------------------------------+     +---------------------------------+
@@ -66,9 +68,11 @@ You describe what you need. The SP asks clarifying questions, then delivers a se
 
 **The SP never builds. The executor never decides.** That separation is what makes both work.
 
-### Fast lane for small tasks
+Before routing a single task, the SP runs a few invisible checks. It premise-checks every request against six trigger conditions (solution-shaped framing, missing problem statement, unverified assumptions inherited from prior sessions, etc.), presents alternatives where decisions are warranted, and verifies a small set of completion conditions before any prompt or dispatch fires. After every implementation cycle, it explicitly returns to planning mode so implementation momentum doesn't bleed into the next decision. The walk-through below shows what this looks like in practice.
 
-For small mechanical tasks, the SP may offer to dispatch the prepared prompt to a background agent instead of asking you to paste it into a fresh session. Same roles, same separation: SP decides what gets built and why; the agent executes what SP specifies. Fast Lane is a delivery shortcut, not a personality change — the SP still thinks first, presents alternatives, and gets your consent before dispatching.
+### Optional background execution for small tasks
+
+For small mechanical tasks, the SP may offer to dispatch the prepared prompt to a background agent instead of asking you to paste it into a fresh session. Same roles, same separation: SP decides what gets built and why; the agent executes what SP specifies. This optional shortcut is a delivery mechanism, not a personality change — the SP still thinks first, presents alternatives, and gets your consent before dispatching.
 
 ---
 
@@ -104,9 +108,9 @@ You pick Path B. The SP delivers 3 ready-to-paste prompts:
 
 | Phase | Target skill | What it does |
 |-------|-------------|-------------|
-| **1 — Research** | *[from routing matrix]* | Read 5 files, map existing auth flow, identify where onboarding state should live |
-| **2 — Build UI** | *[from routing matrix]* | WelcomeScreen + 3-step wizard, mock data only, no backend calls yet |
-| **3 — Wire up** | *[from routing matrix]* | Connect wizard to user state, trigger welcome email on step 3 completion |
+| **1 — Research** | *[picked from your installed tools]* | Read 5 files, map existing auth flow, identify where onboarding state should live |
+| **2 — Build UI** | *[picked from your installed tools]* | WelcomeScreen + 3-step wizard, mock data only, no backend calls yet |
+| **3 — Wire up** | *[picked from your installed tools]* | Connect wizard to user state, trigger welcome email on step 3 completion |
 
 Each prompt includes: files to read first, constraints from CLAUDE.md, verification checklist, [✅ SAFE]/[⚠️ RISK] labels on key recommendations, expected commit message, and explicit NOT-in-scope exclusions.
 
@@ -119,31 +123,9 @@ You paste Phase 1 into a **fresh Claude Code session**. It runs. You come back a
 | **Planning** | Discovered mid-build | Surfaced before any work starts |
 | **Assumptions** | Unchallenged | Premise-checked, alternatives explored |
 | **Big tasks** | One session, degrades at scale | Phased prompts, each with full context |
-| **Knowledge** | Dies with the session | Persists via Serena memory and handoffs |
-| **Tool selection** | You pick | SP routes dynamically from your installed tools |
+| **Knowledge** | Dies with the session | Persists via saved project notes and handoff files |
+| **Tool selection** | You pick | SP picks dynamically from your installed tools |
 | **Confidence** | Implicit | [✅ SAFE]/[⚠️ RISK] labels on recommendations |
-
----
-
-## What the SP does before any work starts
-
-This is where the value is. Before routing a single task, the SP runs several checks that prevent wasted effort:
-
-**Premise challenge** — Every request is evaluated against 6 trigger conditions: does it name a technology before stating a problem? Describe how before why? Assume a root cause without evidence? Frame a solution instead of a problem? Carry forward an unverified claim from a previous session? Ask to improve a context file without scanning it first? When triggers fire, the SP pushes back with pointed questions before any work begins.
-
-**Forced alternatives** — For non-trivial tasks, the SP presents 3 distinct approaches before routing: Path A (minimal — smallest change), Path B (recommended — the SP's best judgment with rationale), and Path C (lateral — a reframing that might unlock a better outcome). You pick. Then it routes.
-
-**Confidence labels** — Recommendations within prompts carry [✅ SAFE] or [⚠️ RISK] labels so the executor knows which suggestions are well-supported and which involve judgment calls.
-
-**Advisory Completion Gate** — Before any prompt, dispatch, or script is crafted, the SP verifies 5 hard conditions: problem is framed, alternatives explored, trade-offs surfaced, user confirmed direction, and definition of done established. If any condition is unmet, the SP stays in advisory mode. This prevents the most common failure: jumping from brainstorming to implementation before thinking is done.
-
-**Advisory Reset** — After every implementation cycle (user runs a prompt, or an agent completes a dispatch), the SP explicitly resets to advisory mode. "Back in advisory mode. I am reviewing the result, not continuing the build." This prevents implementation momentum from carrying into the next decision.
-
-**Wired cognitive patterns** — 14 named thinking heuristics (Bezos one-way doors, Munger inversion, Jobs focus-as-subtraction, and 11 more) are wired to specific decision points with mandatory triggers and actions. They fire automatically at the right moments — not a decorative reference table.
-
-**Cross-model review** — For high-stakes decisions (irreversible changes, large blast radius, unresolved disagreements), the SP can dispatch a curated brief to OpenAI's Codex CLI for independent adversarial review, then synthesize a three-way perspective: your position, the SP's position, and Codex's position. Optional — requires Codex CLI installed.
-
-**Session findings and backlog** — Feedback captured during sessions is automatically logged to session findings. At natural boundaries, the SP offers to promote findings to a persistent backlog with trigger-based re-engagement. Items surface at startup when their triggers are met.
 
 ---
 
@@ -174,26 +156,12 @@ git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/
 
 ### Setup
 
-After installing, run the setup script:
-
 ```bash
 cd /path/to/strategic-partner
 ./setup
 ```
 
-This registers subcommands with Claude Code. The `/strategic-partner:update` subcommand re-runs setup automatically after each update.
-
-**Note on new subcommands:** When upgrading to a version that introduces new subcommands, restart your Claude Code session after running `./setup` (or after `/strategic-partner:update`). The CLI reads the registered subcommands at session startup; mid-session additions are not picked up until restart.
-
-After running setup, optionally audit your permissions for a frictionless SP experience:
-
-```bash
-# Check and fix permission gaps
-./setup --audit-permissions
-
-# Preview without changes
-./setup --audit-permissions --dry-run
-```
+Registers subcommands with Claude Code. Optional: `./setup --audit-permissions` checks for permission gaps that cause friction in advisory sessions.
 
 ### Run
 
@@ -201,9 +169,7 @@ After running setup, optionally audit your permissions for a frictionless SP exp
 /strategic-partner
 ```
 
-The skill loads an advisory persona, scans your project, and asks what you're working on.
-
-### Resume from a previous session
+Resume from a previous session by passing a handoff file path:
 
 ```
 /strategic-partner .handoffs/onboarding-flow-0304-1430.md
@@ -217,154 +183,26 @@ The skill loads an advisory persona, scans your project, and asks what you're wo
 
 ## What's included
 
-The SP operates through a lean core (SKILL.md) that loads reference material on demand:
+The advisor operates through a lean core (SKILL.md) that loads reference material on demand:
 
-### User-facing capabilities
-
-- **Strategic advisory and prompt crafting** — the core loop: discover, challenge premises, present alternatives, route, craft, review
-- **Asks only when it matters** — SP distinguishes decisions you should make from decisions already resolved by your CLAUDE.md rules, project memory, or canonical project artifacts. Less interruption; partnership questions reserved for real decision points.
-- **Plain English in every response** — SP's internal mechanics stay internal. Whether it asks a question, applies a rule, or proceeds silently, what you see is a plain explanation — not status codes or mechanism labels.
-- **Plain-English Default (v5.13.0)** — opening 1-2 sentences of every response readable by a non-technical reader; project IDs (B-040, P1-002, §17, etc.) glossed on first mention, identifier as handle thereafter; SP-internal bookkeeping (memory writes, decision-log appends) no longer surfaces as user output; Position lines capped at one plain sentence readable in isolation; A/B/C option labels (no Greek). Includes an explicit Token Efficiency override that carves SP voice out of the global compression bias regardless of in-context examples.
-- **Visual aids default (v5.13.0)** — ASCII diagrams, tables, or structured bullets for non-trivial responses (2+ options, flows, comparisons, status summaries). Emojis as functional anchors (status, scanability), not decoration; no artificial symbol-count cap. Visual aids NOT used for trivial answers.
-- **Multi-step workflow decomposition (v5.13.0)** — when a path contains multiple discrete deliverables or transitions (write artifact → test → dispatch), SP pauses and asks between each. Bundled "do task → return → next step → next step" responses are out; each transition is its own decision the user might want to redirect at.
-- **General-user default profile (v5.13.0)** — default partner profile is now General user / Product-minded user (was Engineer). Engineer/PM/Founder remain as profiles detected from user signals; the default — until signals emerge — leads with outcomes in plain English, not architecture or implementation framing.
-- **Comprehension fixtures (v5.13.0)** — five new fixtures (C1-C5) at `tests/fixtures/v5.13.0/` testing voice quality via reader-perspective Y/N criteria, complementing the existing label-pattern fixtures (F1-F5). RUNBOOK section explains in-role grading procedure.
-- **Plain-English Whole-Response Gate (v5.14.0)** — extends v5.13.0's opening-sentence rule to every visible block of a user-facing response (every paragraph, every AUQ option description, every Position line, every status summary). Concrete pre-send re-read mechanism named explicitly in the rule's text — not just an aspiration.
-- **Dryness Ban List (v5.14.0)** — eight named patterns banned from advisory turns: jargon-laden tables (D1/D2/D3 columns of internal vocabulary), numbered-deliverable framing in conversational chat, AUQ-as-ceremonial-padding (AUQ remains required for real decisions; the ban is on padding when there's nothing material to decide), code-style spec framing in advisory prose, friend-perspective failures from the V7 fixture, and more. Visual aids — tables, ASCII diagrams, structured bullets, bolding, spacing, functional emojis — are explicitly preserved as required for jargon-bridging; the ban targets misuses of structure, not structure itself.
-- **Anti-sycophancy contrarian-theater symmetric failure mode (v5.14.0)** — the Anti-Sycophancy Protocol now names both failure modes: agreeing for no reason (sycophancy) AND disagreeing for the appearance of independence (contrarian theater). Honest formulation: agree when SP genuinely tested the claim and agrees; push back when SP genuinely sees a problem; don't perform either.
-- **Typed Response Envelopes (v5.14.0)** — four-envelope taxonomy (Conversational, Analytical, Packaged Prompt, Closure) maps response shape to appropriate visual density. Conversational acks get low density; Analytical advisory turns get medium-high (tables for options, AUQ for decisions); Packaged Prompt executor briefs get maximum structure; Closure handoffs get scannable status. Picking the envelope first sets the right visual density.
-- **Closure Evidence Ledger (v5.14.0)** — six-state ledger (RESOLVED / RESOLVED-AUTO / DECISION / SKIPPED-USER / SKIPPED-AUTO / DIRTY) replaces the prior 8-row Visual Closure Checklist. AUQ fires only on DECISION rows; the rest resolve silently with explicit verification commands. Reconciles the SKILL.md hygiene-vs-decision boundary at category-vs-operation level.
-- **Premise Challenge trigger #5 (v5.14.0)** — auto-fires when SP is acting on a derivative finding from a previous session (e.g., a finding inherited via handoff that was never independently verified). Walk-through Scope Discipline subsection added separately — visuals labeled "Evidence" or "Action proposal," no mixing.
-- **Release-time transcript checker** — `tests/lint-transcripts.sh` enforces four behavioral rules (AUQ-must-be-AUQ, tool-availability claims, fence-write coupling, identity-reset announcement) against post-tag JSONL transcripts and SP-internal handoffs at release time. Backstops the runtime Stop hook layer; shared validator logic in `hooks/lib/validators.sh` keeps both enforcement paths in sync.
-- **Session-entry snapshot** — At session start and on each subcommand transition, a hook gathers a snapshot of session-relevant facts (model, project conventions, persistent memory, working memory counts, git state, version freshness, routing matrix freshness) and injects a single summary line into SP's context. The hook deduplicates within a session — once SP has the snapshot for a given context, repeat prompts skip the gather. SP can't miss session state because the floor surfaces it mechanically.
-- **Per-turn rhythm enforcer** — At the end of every assistant turn, a hook scans the response for five common drift patterns: questions buried in prose (instead of using AskUserQuestion), missing identity-reset announcements after agent dispatches return, first-person tool-availability claims without an actual tool call, execution fences without expected handoff file write, and silent ignores of any non-clean signal from the startup floor. Violations carry forward to the next turn as a one-line note; SP self-corrects on next prompt.
-- **Floor-signal handling** — Each of the seven startup-floor signal fields has explicit guidance for how SP should respond when non-clean: routing matrix gets an immediate background Opus 4.7 dispatch; memory missing surfaces in orientation and asks before dispatching the heavier Serena onboarding; dirty git tree surfaces with explicit acknowledgment. Default model for any auto-remediation is Opus 4.7 — load-bearing decisions deserve the smartest model.
-- **Reliable update notifications** — Update checks against GitHub now correctly handle network slowness and pretty-printed JSON formats. Fresh sessions see real version status (current / behind / actual version string) instead of a silent "unreachable".
-- **Premise challenge system** — evaluates every request against 6 trigger conditions before accepting it at face value
-- **Forced alternatives** — A/B/C path analysis before every non-trivial task, with trade-offs stated
-- **Model-aware prompt generation** — SP detects the active Claude model at startup (Opus 4.7 / Sonnet 4.6 / Haiku 4.5, via both friendly names and exact model IDs) and selects reusable XML prompt blocks + effort recommendations per target model. Every crafted prompt inherits hallucination prevention, scope discipline, and model-appropriate patterns.
-- **Reusable prompt block library** — 7 Anthropic-authored XML blocks (`<investigate_before_answering>`, `<avoid_over_engineering>`, `<subagent_usage>`, `<use_parallel_tool_calls>`, `<conservative_actions>`, `<scope_explicit>`, `<context_awareness>`) can be composed into crafted prompts. Copy-safe for inline use. Default blocks auto-included in the template.
-- **Fenced prompt emission + /copy-prompt** — every implementation prompt SP emits is written to `.handoffs/last-prompts/[N].md` at emission time. Retrieve the most recent prompt to the OS clipboard with `/strategic-partner:copy-prompt` — eliminates mouse-select friction on the handoff path. Cross-platform: pbcopy / xclip / xsel / clip.exe (with WSL detection).
-- **Notify on Backgrounded Completion** — when SP dispatches an agent with `run_in_background: true` (long-running reviews, multi-file patches), a single desktop notification fires at completion with the verdict or headline finding. Walk away during the 3-5 min window; come back to the conclusion, not a progress monologue. Fast Lane (foreground) dispatches do not notify — the user is still watching.
-- **Skill and MCP routing** — builds a routing matrix from your installed tools and picks the best match per task
-- **Fast Lane dispatch** — subordinate delivery mechanism for small, reversible tasks; requires Advisory Completion Gate to pass first; detailed mechanics loaded on demand from reference file
-- **[✅ SAFE]/[⚠️ RISK] confidence labels** — recommendations carry explicit confidence signals for executors
-- **Cross-model adversarial review** — dispatches curated briefs to Codex CLI (GPT-5.5) for independent review on high-stakes decisions
-- **Context-file drift detection (v6.0+)** — `/strategic-partner:context-file-scan` scans your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` against 17 patterns of structural and behavioral drift (size breach, layer violations, stale entries, broken hybrid pattern, SP-flavored framing, and 12 others). The scanner reports; you decide what to act on. Three output modes: an interactive walk-through that asks per-finding, a report-only markdown render, and a release-gate run for CI use.
-- **Session findings and backlog stewardship** — automatic capture of feedback during advisory sessions, with two-layer persistence: lightweight session findings and curated backlog items with trigger-based surfacing at startup
-- **Cognitive patterns** — 14 named thinking heuristics wired to specific decision points with mandatory triggers (not a decorative table — they fire at the right moments)
-- **Context handoff management** — monitors context pressure and preserves full session state before it degrades
-- **Closure rigor** — session-end detection triggers an 8-group closure floor walked in the body of `/strategic-partner:handoff`: staleness verification, architecture drift scan, routing matrix verification, persistent memory ledger, project conventions ledger, working memory ledger, workspace ledger (with active backlog management), and working tree closure. Each group runs a verification command, marks one of six states (RESOLVED / RESOLVED-AUTO / DECISION / SKIPPED-USER / SKIPPED-AUTO / DIRTY), and either takes hygiene actions automatically or asks only when there's a genuine call to make. Post-Handoff Verification gates the close with four lightweight checks (continuation prompt present, SP invocation included, findings file surfaced, .gitignore covers session-work directories) before the session ends.
-- **Provider-specific prompt formatting** — adapts prompt structure for Claude, OpenAI, and Gemini targets
+- **Strategic advisory and prompt crafting** — the core loop: discover, challenge premises, present alternatives, route, craft, review. Prompts adapt to the target model (Anthropic XML, OpenAI Markdown, Gemini Markdown) and include reusable hallucination-prevention and scope-discipline blocks.
+- **Pre-build decision discipline** — every request is premise-checked against six trigger conditions (solution-shaped framing, missing problem statement, unverified assumptions carried from prior sessions, etc.). Non-trivial tasks get three distinct alternatives (minimal / recommended / lateral) before any routing. Recommendations carry [✅ SAFE] or [⚠️ RISK] confidence labels so the executor knows which suggestions involve judgment.
+- **Plain-English partnership voice** — opening sentences readable by a non-technical reader; decision questions surfaced as structured choice prompts with explicit options (not buried in prose); pause-at-every-decision instead of bundling multi-step transitions; visual aids (tables, ASCII diagrams) where they help comprehension; anti-sycophancy rules that name both failure modes — agreeing for no reason AND disagreeing for the appearance of independence.
+- **Skill and tool picking** — the advisor builds an installed-tool picker from what you have available and selects the best match per task. The first specialist dispatch in a session is gated by a confirmation question whose option label names the chosen agent, so a wrong pick gets caught before the agent runs.
+- **Cross-model adversarial review** — for high-stakes decisions (irreversible changes, large blast radius, unresolved disagreements), the advisor can dispatch curated briefs to OpenAI's Codex CLI for an independent second opinion, then synthesize a three-way perspective (your position, the advisor's, Codex's). Optional — requires Codex CLI installed.
+- **Rules-file drift detection** — `/strategic-partner:context-file-scan` checks your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` against 17 patterns of structural and behavioral drift (size breach, stale references, broken hybrid pattern, etc.). Interactive walk-through, report-only, and release-gate output modes.
+- **Cross-session memory and handoffs** — saves substantive decisions to long-term memory at coherent stretches, captures session findings, promotes important findings to a persistent backlog with re-engagement at startup when conditions match, and produces full handoff files when context pressure rises so a fresh session can pick up exactly where the last one left off.
+- **Optional background execution for small tasks** — for small, reversible tasks, the advisor can dispatch a prepared prompt to a background agent and surface a desktop notification when it completes, so you can walk away during the 3-5 minute window and come back to the conclusion.
 
 ### Under the hood
 
-- **Implementation boundary** — the SP is not allowed to implement in its own session, enforced structurally via a PreToolUse hook (exit code 2 blocks Edit/Write/Bash mutations on source files) and 3 behavioral gates (Advisory Completion, Advisory Reset, Post-Dispatch Recovery)
-- **Memory architecture** — stewards all 4 persistence layers (CLAUDE.md, .claude/rules/, auto-memory, Serena) to ensure decisions survive across sessions
-- **13-item Post-Craft Verification visible checklist** — every crafted prompt renders a visible pass/fail table of 13 quality checks (skill routing, file context, deliverables, verification commands, commit message, format match, copy-safety, scope exclusions, model-aware blocks, etc.) BEFORE the fenced prompt. The check runs in the response, not in invisible reasoning — you can audit every crafted prompt without trusting hidden cognition.
-- **1M context advisory (Opus 4.7 sessions)** — on 1M-context models, SP surfaces a one-time orientation note: autocompact defaults to ~95% (~950K), known Anthropic issues cause erratic behavior above ~256K, and users can consider wrapping up or triggering handoff around 250K for reliable retrieval. Pure advisory; no settings changed.
+- **Implementation boundary** — a safety guard in Claude Code blocks accidental source edits in advisor sessions, paired with three behavioral gates (pre-build decision checklist, return-to-planning after execution, post-dispatch recovery)
+- **Memory architecture** — stewards four persistence layers (`CLAUDE.md`, `.claude/rules/`, auto-memory, Serena memory) so decisions survive across sessions
+- **Visible prompt quality checklist** — every crafted prompt renders a pass/fail table of 13 quality checks (skill routing, file context, deliverables, verification commands, etc.) before the prompt body, so dispatches can be audited without trusting hidden reasoning
+- **Startup status check** — at session start and on each subcommand, a hook gathers a one-line snapshot (model, project conventions, memory, git state, version freshness, installed-tool picker freshness) and injects it into the advisor's context
+- **1M context advisory (Opus 4.7)** — on 1M-context models, the advisor surfaces a one-time orientation note: known Anthropic issues cause erratic behavior above ~256K tokens; consider wrapping up or triggering handoff around 250K for reliable retrieval
 
-<!-- voice-lint:skip-start -->
-<details>
-<summary>Full file tree</summary>
-
-```
-strategic-partner/
-  SKILL.md                              # Lean hub — identity, core behaviors, routing dispatch
-  setup                                 # Command registration script (run after install/update)
-  audit-permissions                     # Permission audit helper (Python 3.6+)
-  .claude/rules/
-    source-editing.md                   # Path-scoped behavioral rules for editing SP source (loaded only when editing SKILL.md / hooks/ / references/ / commands/ / tests/)
-  hooks/
-    guard-impl.sh                       # PreToolUse hook — blocks source edits in SP sessions
-    lib/
-      validators.sh                     # Shared validator logic (AUQ / tool-availability / fence-write coupling) — used by Layer 3 lint
-  .scripts/
-    context-file-scan/
-      scan.sh                           # Main scanner orchestrator
-      lib/                              # Helper functions (utils, output, layer probe, etc.)
-      rules/
-        structural.sh                   # S1-S9 structural detection rules
-        behavioral.sh                   # B1-B8 behavioral detection rules
-    release-publish.sh                  # GitHub release automation (Step 7 of release process)
-  commands/
-    help.md                             # Subcommand reference
-    copy-prompt.md                      # Clipboard copy for fenced prompts
-    handoff.md                          # Context handoff trigger
-    status.md                           # Status briefing
-    update.md                           # Version check + self-update
-    codex-feedback.md                   # Cross-model adversarial review via Codex CLI
-    context-file-scan.md                # Drift scanner for CLAUDE.md / AGENTS.md / GEMINI.md per the v6.0 policy
-    backlog.md                          # Backlog review — parked items with trigger evaluation
-  references/
-    startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
-    floor.md                            # Startup-floor sentinel protocol (7 groups, summary line, carve-out rules)
-    floor-signal-handling.md            # Per-pattern remediation for non-clean floor signals (worked examples)
-    closure-floor.md                    # Closure-floor protocol (8 groups, state machine, anti-patterns)
-    prompt-crafting-guide.md            # Routing tree, parallelization check, quality gates
-    fast-lane.md                        # Simplicity scoring, consent flows, dispatch protocol
-    context-handoff.md                  # Env var baseline, two-tier thresholds, split writes
-    orchestration-playbook.md           # Model selection, parallelization heuristics, worktree isolation
-    skill-routing-matrix.md             # Dynamic discovery protocol, task categories, and routing rules
-    partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
-    hooks-integration.md                # Hook event reference and integration patterns
-    cognitive-patterns.md               # Named thinking heuristics for architecture and trade-offs
-    companion-script-spec.md            # Spec for the optional companion-script integration
-    pipeline/
-      bootstrap.md                      # Pipeline stage 1 — prereq check (Q1/Q4 fresh-session)
-      router.md                         # Pipeline stage 2 — 4-channel decision classification
-      egress.md                         # Pipeline stage 3 — composite materiality gate
-      asking-pattern.md                 # Pipeline stage 4 — AUQ depth modulation
-      silent-log.md                     # Silent-channel surfacing format + prohibitions
-      user-output-style.md              # Internal-vocabulary → plain-English translation layer
-    provider-guides/
-      anthropic.md                      # Claude XML prompt format template
-      openai.md                         # GPT-5.5 prompt format template
-      google.md                         # Gemini Markdown prompt format template
-  assets/templates/
-    prompt-template.md                  # Implementation prompt skeleton
-    handoff-template.md                 # Session handoff skeleton (with /insights section)
-  schemas/
-    scanner-findings.json               # JSON schema contract for scanner findings (rule_id pattern, finding shape)
-  docs/
-    v4.0-implementation-decisions.md    # Decision log for audit findings F1-F12
-  claudedocs/
-    INCIDENTS.md                        # Incident archaeology — one entry per INC-YYYY-MM-DD ID, referenced by Provisional Guards
-    gstack-*.md                         # Reference research notes from gstack ecosystem analysis
-  tests/
-    RUNBOOK.md                          # Manual fixture-review protocol
-    lint-transcripts.sh                 # Release-time lint — AUQ / tool-availability / fence-write coupling / identity-reset rules against JSONL transcripts and handoffs
-    lint-voice.sh                       # Release-time voice lint — scans CHANGELOG / README / commands/ for jargon-loaded patterns
-    fixtures/
-      v5.12.0/                          # F1-F5 regression fixtures for AUQ Materiality Gate
-        F1-alpha-beta-gamma-planning-reconciliation.md
-        F2-calendar-native-rehearsal-coordination.md
-        F3-calendar-native-internal-bookkeeping.md
-        F4-precedence-conflict-direct-rule-boundary.md
-        F5-bootstrap-fresh-session-context-shift.md
-      v5.13.0/                          # C1-C5 comprehension fixtures for voice overhaul
-        C1-plain-english-opening-and-glossing.md
-        C2-housekeeping-vs-user-status.md
-        C3-position-greek-visual-aids.md
-        C4-multi-step-workflow-decomposition.md
-        C5-partner-profile-general-user-default.md
-      v5.14.0/                          # V1-V7 regression fixtures for response envelopes + voice-fix
-        V1-conversational-acknowledgment.md
-        V2-closure-walk-through.md
-        V3-auq-must-be-auq.md
-        V4-hygiene-auto-execute.md
-        V5-fenced-prompt-emission.md
-        V6-analytical-dense-vocabulary.md
-        V7-friend-perspective-jargon.md
-      v5.15.0/                          # voice-lint and voice-transcript fixtures
-        voice-lint/
-        voice-transcript/
-```
-
-</details>
-<!-- voice-lint:skip-end -->
-
-Run `./setup` after installation to register subcommands. The update subcommand re-runs this automatically.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism detail.
 
 ---
 
@@ -373,12 +211,12 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 | Command | What it does |
 |---------|-------------|
 | `/strategic-partner:help` | List all subcommands |
-| `/strategic-partner:copy-prompt` | Copy a recently emitted fenced prompt to the OS clipboard |
+| `/strategic-partner:copy-prompt` | Copy a recently emitted prompt to the OS clipboard |
 | `/strategic-partner:handoff` | Trigger a context handoff with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.5) |
-| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (17 patterns; interactive, report-only, and release-gate output modes) |
+| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (17 patterns) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---
@@ -386,37 +224,18 @@ Run `./setup` after installation to register subcommands. The update subcommand 
 ## Requirements
 
 - **Claude Code** — the skill runs inside Claude Code sessions
-- **`jq`** — required for `/strategic-partner:context-file-scan` (the scanner uses `jq` for JSON output assembly and exception coverage parsing). Install via `brew install jq` on macOS, `apt install jq` / `dnf install jq` on Linux. The scanner exits with a clear error if `jq` is missing; other SP features work without it.
+- **`jq`** — required for `/strategic-partner:context-file-scan` (the scanner uses `jq` for JSON output assembly). Install via `brew install jq` (macOS) or `apt install jq` / `dnf install jq` (Linux). The scanner exits with a clear error if `jq` is missing; other features work without it.
 - **Serena MCP** (recommended) — for cross-session memory and semantic code navigation
 - **Context7 MCP** (optional) — for library documentation lookup
-- **Codex CLI** (optional) — for cross-model adversarial review via `/strategic-partner:codex-feedback`
+- **Codex CLI** (optional) — for cross-model adversarial review
 
-The skill works without Serena, but loses cross-session memory and semantic code navigation. CLAUDE.md ownership and prompt crafting work regardless. Codex CLI is only needed if you want independent cross-model review of high-stakes decisions. `jq` is the only hard runtime dependency outside Claude Code itself.
+The skill works without Serena, but loses cross-session memory and semantic code navigation. `jq` is the only hard runtime dependency outside Claude Code itself.
 
 ---
 
 ## Staying updated
 
-### Automatic check
-
-Every SP session checks for updates in the background. If a newer version exists:
-
-> Strategic Partner **v{latest}** available (you have v{current}). Run `/strategic-partner:update` to update.
-
-### Update command
-
-```
-/strategic-partner:update
-```
-
-Checks the latest version, shows what changed, and runs the update. Detects whether you installed via skills or git clone and uses the right method. After updating, it re-runs `./setup` to refresh command registrations.
-
-### GitHub notifications
-
-For release announcements with full changelogs:
-
-1. Go to [github.com/JimmySadek/strategic-partner](https://github.com/JimmySadek/strategic-partner)
-2. Click **Watch** > **Custom** > check **Releases** > **Apply**
+Every SP session checks for updates in the background and surfaces a one-line notice when a newer version is available. Run `/strategic-partner:update` to fetch the latest version — it detects whether you installed via skills or git clone, uses the right method, and re-runs `./setup` to refresh command registrations. When an update introduces new subcommands, restart your Claude Code session so the CLI picks up the new registrations.
 
 ---
 
@@ -425,9 +244,9 @@ For release announcements with full changelogs:
 | Scenario | What happens | What to do |
 |---|---|---|
 | **Serena MCP unavailable** | Cross-session memory and semantic navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
-| **Skills missing** | Routing matrix can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
-| **Context pressure undetected** | No PreCompact hook configured | SP uses self-assessed thresholds and periodic checks. A user-owned PreCompact hook can serve as an extra backstop if you choose to configure one. |
-| **Sub-agents hit permission walls** | Background agents can't prompt for approval | Specify `mode` on every agent spawn (see orchestration-playbook.md). Pre-approve `WebFetch(*)` and `WebSearch(*)` in `~/.claude/settings.json` for research agents. Run `./setup --audit-permissions` to check for missing permissions. |
+| **Skills missing** | The installed-tool picker can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
+| **No automatic warning before context fills up** | SP relies on self-assessed thresholds and periodic checks | A user-owned hook (Claude Code's pre-fill warning event) can serve as an extra backstop if you choose to configure one. |
+| **Sub-agents hit permission walls** | Background agents can't prompt for approval | Specify `mode` on every agent spawn. Pre-approve `WebFetch(*)` and `WebSearch(*)` in `~/.claude/settings.json` for research agents. Run `./setup --audit-permissions` to check for gaps. |
 | **Implementation session fails** | Executor reports errors or incomplete work | Report back to the SP. It will diagnose, rewrite the prompt with a different approach, and suggest retry. |
 | **Codex CLI not found** | Cross-model review unavailable | Install from [github.com/openai/codex](https://github.com/openai/codex) and run `codex login`. Feature is optional. |
 
