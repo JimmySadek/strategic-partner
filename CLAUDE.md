@@ -241,6 +241,27 @@ defect, not a docs nit.
 - Would a user be excited to install this after reading?
 - Are features from the last 3+ releases represented (not just the latest)?
 
+**Hard structural constraints (forcing function):**
+
+These apply BEFORE the Level 2 review fires. They prevent soft drift from
+re-accumulating release by release.
+
+- **Line ceiling: 300 lines.** README.md stays at or below 300 lines. If a
+  release pushes it over, structural cuts are part of the release — not
+  deferred.
+- **"What's new" capped at the current release only.** Older releases roll
+  into CHANGELOG.md (already linked from the badge). The README's "What's
+  new" names what the CURRENT release adds; prior versions get one combined
+  "see CHANGELOG for prior releases" pointer.
+- **"Under the hood" capped at 5 bullets.** Technical implementation detail
+  beyond that moves to a dedicated ARCHITECTURE.md or CONTRIBUTING.md. The
+  README is for what the tool is and why; not how it's built.
+- **SP-internal vocabulary forbidden without one-line gloss.** Terms like
+  "PreToolUse hook," "exit code 2," "Layer 1," "Bootstrap stage,"
+  "voice-lint skip block," and any term coined inside the project get a
+  one-line plain-English description on first mention. Same rule as the SP
+  voice rules; just explicit for README.
+
 **Delegation to Codex** (recommended for releases with new user-facing features):
 
 The README review may be delegated to Codex via
@@ -258,6 +279,17 @@ features (heuristic: any minor or major bump), Codex delegation is
 recommended because adversarial first-time-user reading catches drift
 the author cannot see.
 
+**Audit brief requirements:** When delegating to Codex, the brief MUST
+include:
+
+- The hard line ceiling and target reduction
+- A forcing question: "Would you install this after reading? Yes or no,
+  with the single biggest barrier to 'yes.'"
+- A request for the top 5 ranked cuts by impact, each naming the section,
+  the action, the line reduction, and one-line reasoning
+- Imperative output mode: "do not soften," "do not list more than 5,"
+  "do not use 'consider' or 'may want to'"
+
 **Findings disposition:**
 
 Fix Level 1 issues as part of the version bump commit.
@@ -266,6 +298,16 @@ Fix Level 2 issues as a dedicated commit (may require a separate
 implementation prompt). If Level 2 reveals issues warranting a README
 rewrite, propose it as a separate deliverable in the release — not a
 patch. Present findings to user via AskUserQuestion before proceeding.
+
+**Decision rule additions:**
+
+- Act on all top-ranked cuts unless each one receives an explicit
+  counter-argument documented in the release commit message or handoff.
+- "Noted, but for now…" is not a valid disposition. Cut or counter-argue
+  with reasoning.
+- If the install-or-skip judgment returns "no," the release is BLOCKED on
+  README revision. The single biggest barrier-to-install becomes the top
+  priority for the release.
 
 ### 5. Execute the Bump
 
