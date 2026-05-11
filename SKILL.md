@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 6.3.2
+version: 6.3.3
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -2256,7 +2256,8 @@ runs each ledger row's **verification command**, marks the row's state, and
 surfaces ONLY DECISION rows via `AskUserQuestion`. Rows are walked in order —
 not rendered as a visual and skipped silently.
 
-**Six-state machine:**
+**Six-state machine** (internal names — used by dispatch logic and reference docs;
+the rendering layer translates to plain-English phrases per the table below):
 
 | State | Meaning |
 |---|---|
@@ -2266,6 +2267,21 @@ not rendered as a visual and skipped silently.
 | **SKIPPED-USER** | User explicitly declined a DECISION row's AUQ "skip" option. SP records reason in handoff body. |
 | **SKIPPED-AUTO** | Row doesn't apply this session (determined by verification command). No AUQ. Logged briefly. |
 | **DIRTY** | Git row only — uncommitted source-file edits exist. Escalate explicitly via AUQ; handoff blocks until resolved. |
+
+**User-facing rendering** (translation map — used when surfacing the closure walk to
+the user, in chat and in the handoff file legend). Internal state names stay in the
+state machine and in reference docs; the rendering layer substitutes the plain-English
+phrase. Canonical map (mirrored in `references/closure-floor.md` § Visual Output
+Specification and `assets/templates/handoff-template.md`):
+
+| Internal state | User-facing rendering |
+|---|---|
+| `RESOLVED` | ✅ Checked, all clean |
+| `RESOLVED-AUTO` | ✅ Already handled |
+| `DECISION` | 🟡 Needs your input |
+| `SKIPPED-USER` | ⏭️ Skipped (you declined) |
+| `SKIPPED-AUTO` | ➖ Doesn't apply this session |
+| `DIRTY` | 🚨 Uncommitted source changes |
 
 **Ledger rows:**
 

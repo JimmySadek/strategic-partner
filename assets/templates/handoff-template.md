@@ -80,13 +80,14 @@ Run `/insights` before writing this file, then extract relevant items below.
 | 🔧 7c. Pending scripts            | [STATUS_EMOJI] | [one-line outcome] |
 | 🔀 8. Working tree closure        | [STATUS_EMOJI] | [one-line outcome] |
 
-State emoji mapping:
-- ✅ RESOLVED — group passed verification, no action needed
-- 🔄 RESOLVED-AUTO — group passed; SP took hygiene action automatically
-- 🟡 DECISION — user input required for this group's resolution
-- ⏸️ SKIPPED-USER — user explicitly declined this group's action
-- ⏭️ SKIPPED-AUTO — group not applicable this session
-- 🚨 DIRTY — git tree has source-edit blockers; handoff blocks until resolved
+State emoji legend (rendered plain-English; internal names live in `SKILL.md`
+§ Closure Evidence Ledger and `references/closure-floor.md`):
+- ✅ Checked, all clean — group passed verification, no action needed
+- ✅ Already handled — group passed; SP took hygiene action automatically
+- 🟡 Needs your input — user input required for this group's resolution
+- ⏭️ Skipped (you declined) — user explicitly declined this group's action
+- ➖ Doesn't apply this session — group not applicable this session
+- 🚨 Uncommitted source changes — git tree has source-edit blockers; handoff blocks until resolved
 
 > If invoked outside the 8-group walk (e.g., manual handoff at
 > context-pressure trigger), write "Walk not run — manual handoff path."

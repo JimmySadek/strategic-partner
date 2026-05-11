@@ -96,18 +96,24 @@ the handoff body's Closure Walk Status table.
 | **SKIPPED-AUTO** | Row doesn't apply this session — verification command's output rules out any work for this group | No | One-line note: "no work this session" |
 | **DIRTY** | Group 8 only — uncommitted source-file edits exist that the SP cannot resolve. Escalate via AUQ proposing executor dispatch; handoff blocks until resolved | Yes (escalation) | One-line note recording the blocker |
 
-State maps to emoji for the Closure Walk Status table:
+Internal state names above drive the state machine. When the closure walk surfaces
+state to the user (in chat or in the handoff file legend), the rendering layer
+translates each state to a plain-English phrase plus a status emoji:
 
-- ✅ RESOLVED
-- 🔄 RESOLVED-AUTO
-- 🟡 DECISION
-- ⏸️ SKIPPED-USER
-- ⏭️ SKIPPED-AUTO
-- 🚨 DIRTY
+| Internal state | User-facing rendering |
+|---|---|
+| `RESOLVED` | ✅ Checked, all clean |
+| `RESOLVED-AUTO` | ✅ Already handled |
+| `DECISION` | 🟡 Needs your input |
+| `SKIPPED-USER` | ⏭️ Skipped (you declined) |
+| `SKIPPED-AUTO` | ➖ Doesn't apply this session |
+| `DIRTY` | 🚨 Uncommitted source changes |
 
-The mapping is identical across all three render targets:
+The translation map is canonical across all three render targets:
 `assets/templates/handoff-template.md`, `commands/handoff.md` inline
-render, and the visual spec section below.
+render, and the visual spec section below. The state machine and the
+dispatch logic in the Eight Groups section keep using internal names —
+that's reference documentation.
 
 ---
 
@@ -133,16 +139,23 @@ identical row-anchor and state-emoji mappings.
 | 7c | 🔧 | Pending scripts |
 | 8 | 🔀 | Working tree closure |
 
-**State emoji mapping (one per state):**
+**User-facing state rendering (rendering layer translates internal name → emoji + plain-English phrase):**
 
-| State | Emoji |
-|---|---|
-| RESOLVED | ✅ |
-| RESOLVED-AUTO | 🔄 |
-| DECISION | 🟡 |
-| SKIPPED-USER | ⏸️ |
-| SKIPPED-AUTO | ⏭️ |
-| DIRTY | 🚨 |
+| Internal state | Emoji | Plain-English phrase |
+|---|---|---|
+| RESOLVED | ✅ | Checked, all clean |
+| RESOLVED-AUTO | ✅ | Already handled |
+| DECISION | 🟡 | Needs your input |
+| SKIPPED-USER | ⏭️ | Skipped (you declined) |
+| SKIPPED-AUTO | ➖ | Doesn't apply this session |
+| DIRTY | 🚨 | Uncommitted source changes |
+
+The Closure Walk Status table's Status column carries the emoji alone (one
+character — keeps the column narrow); the legend below the table carries the
+full `<emoji> <plain-English phrase>` pair so the reader can decode the
+column at a glance. Both RESOLVED and RESOLVED-AUTO render as ✅ — the
+distinction (verified clean vs. auto-handled) carries in the Detail column,
+not the Status column.
 
 **Render order:** top-to-bottom, Group 1 through Group 8.
 

@@ -462,13 +462,18 @@ outcome before persistence:
 | 🔀 8. Working tree closure        | [STATUS_EMOJI] | [one-line outcome] |
 ```
 
-Use the canonical state-emoji mapping (✅ RESOLVED, 🔄 RESOLVED-AUTO,
-🟡 DECISION, ⏸️ SKIPPED-USER, ⏭️ SKIPPED-AUTO, 🚨 DIRTY) and the
-canonical row-anchor emoji mapping (🧠 / 🏗️ / 🗺️ / 💾 / 📝 / 📋 /
-📦 / 📄 / 🔧 / 🔀, with 📦 / 📄 / 🔧 anchoring sub-rows 7a / 7b /
-7c respectively). The same table is also persisted to the handoff
-file body in Step 11. See `references/closure-floor.md` § Visual
-Output Specification for the canonical mapping; the mapping is
+Use the canonical user-facing state rendering (✅ Checked, all clean for
+RESOLVED; ✅ Already handled for RESOLVED-AUTO; 🟡 Needs your input for
+DECISION; ⏭️ Skipped (you declined) for SKIPPED-USER; ➖ Doesn't apply
+this session for SKIPPED-AUTO; 🚨 Uncommitted source changes for DIRTY)
+and the canonical row-anchor emoji mapping (🧠 / 🏗️ / 🗺️ / 💾 / 📝 / 📋
+/ 📦 / 📄 / 🔧 / 🔀, with 📦 / 📄 / 🔧 anchoring sub-rows 7a / 7b / 7c
+respectively). The Status column carries the emoji alone; the legend
+below the table carries the full `<emoji> <phrase>` pair. The internal
+state names (RESOLVED, RESOLVED-AUTO, etc.) stay in the dispatch logic
+above — only the rendering translates. The same table is also persisted
+to the handoff file body in Step 11. See `references/closure-floor.md`
+§ Visual Output Specification for the canonical mapping; the mapping is
 identical across all three render targets (this inline render, the
 handoff template, and the closure-floor reference).
 
@@ -550,7 +555,7 @@ Present in this exact format:
 
 ```
 ✅ Handoff written to `.handoffs/[filename]`
-🧾 Closure floor: [N]/8 RESOLVED, [M] RESOLVED-AUTO, [K] SKIPPED-AUTO, [J] DECISION
+🧾 Closure floor: [N]/8 checked, [M] handled automatically, [K] not applicable, [J] needs your input
 📁 Implementation prompts saved to `.prompts/[milestone]/` (if applicable)
 ```
 

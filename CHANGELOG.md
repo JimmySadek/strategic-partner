@@ -1,5 +1,11 @@
 # Changelog
 
+## [6.3.3] - 2026-05-11
+
+### Changed
+
+- **Closure-walk status names now read in plain English** — at session-end, Strategic Partner runs a verification checklist across project state (the "closure walk") and renders a status table summarizing what got checked, what got handled automatically, and what needs your input. Previously, that table surfaced internal state-machine names like `RESOLVED`, `RESOLVED-AUTO`, `SKIPPED-AUTO`, and `DIRTY` — terms that read clearly to the advisor but confused non-technical readers. The rendering layer now translates each state to a short plain-English phrase with a status emoji: ✅ Checked, all clean / ✅ Already handled / 🟡 Needs your input / ⏭️ Skipped (you declined) / ➖ Doesn't apply this session / 🚨 Uncommitted source changes. The internal state-machine logic that drives the walk is unchanged — only the user-facing rendering translates. The summary line at session-end also reads in plain English now ("3 of 8 checked, 2 handled automatically, 1 needs your input" rather than the previous state-name shorthand).
+
 ## [6.3.2] - 2026-05-11
 
 ### Changed
