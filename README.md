@@ -2,7 +2,7 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.3.3-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.3.4-blue)](CHANGELOG.md)
 
 # strategic-partner
 
@@ -156,8 +156,10 @@ git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/
 
 ### Setup
 
+After install completes, change into the install directory and run setup:
+
 ```bash
-cd /path/to/strategic-partner
+cd /path/to/strategic-partner    # the directory created by npx or git clone
 ./setup
 ```
 

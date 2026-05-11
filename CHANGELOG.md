@@ -1,5 +1,17 @@
 # Changelog
 
+## [6.3.4] - 2026-05-11
+
+### Added
+
+- **Hard structural constraints on README maintenance** (release process update) — `CLAUDE.md` § 4 now sets a 300-line README ceiling, caps "What's new" at the current release only, caps technical "Under the hood" detail at 5 bullets, and requires plain-English descriptions for SP-internal vocabulary on first mention. The Codex pre-release review brief must now include the line ceiling, a forcing question ("Would you install this after reading?"), and a request for the top 5 ranked structural cuts. If Codex returns "would not install," the release is blocked until the README is fixed. Prevents the soft drift that allowed the README to grow to 446 lines without each individual review catching it.
+
+- **New `ARCHITECTURE.md`** — maintainer-facing reference for the full file layout, behavioral gates, memory architecture, cognitive patterns, closure walk, cross-model review modes, context handoff, provider formatting, 1M context advisory, release-time lint layers, release process highlights, and pointer to Provisional Guards in `CLAUDE.md`. Receives content that previously lived inside README's "Under the hood" and "Full file tree" sections.
+
+### Changed
+
+- **README rewritten from 446 to 265 lines** (structural rewrite per Codex audit) — Stale version-history wall replaced with a one-line "What's new" naming the current release only. Maintainer-facing file tree and technical detail moved to the new `ARCHITECTURE.md`. 18 SP-internal terms replaced with plain-English phrases — for example, "structured question prompts" (formerly `AUQ`), "pre-build decision checklist" (formerly `Advisory Completion Gate`), "the safety guard that blocks accidental source edits" (formerly `PreToolUse hook`). Opening pitch and two-sessions diagram preserved verbatim; "key difference" table preserved with vocabulary fixes. Codex install-or-skip judgment moved from "would not install" pre-rewrite to expected "yes" post-rewrite.
+
 ## [6.3.3] - 2026-05-11
 
 ### Changed
