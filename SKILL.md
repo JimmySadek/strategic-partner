@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 6.3.1
+version: 6.3.2
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -2096,8 +2096,37 @@ check_onboarding_performed
 Creating/deleting → `AskUserQuestion`. Keep <1500 words. Persistent memories
 (`project_overview`, `codebase_structure`, `code_style_and_conventions`): update, never delete.
 
-**Decision log**: `[YYYY-MM-DD] TOPIC: decision + alternatives + rationale + impact`.
-Log immediately after any confirmed `AskUserQuestion` decision.
+**Decision log entry format:** `[YYYY-MM-DD] TOPIC: decision + alternatives + rationale + impact`.
+
+**Mid-Session Write Discipline — two rhythms, two memory shapes:**
+
+- **Factual updates write inline as hygiene** (RESOLVED-AUTO — do it, mention briefly).
+  Triggers: `project_overview` corrections (stale facts, outdated paths, wrong version
+  numbers); `codebase_structure` additions (new directories or modules worth
+  cross-session memory); `code_style_and_conventions` updates (new convention agreed in
+  conversation); `known_gotchas` appends (an incident future sessions should know
+  about). No `AskUserQuestion` — these triggers are unambiguous.
+- **`decision_log` appends fire at advisory-phase boundaries.** Substantive ratified
+  decisions accumulate during a phase, then write as ONE coherent entry when the
+  phase ends. Triggers: Advisory Completion Gate passage; a substantial scoping pass
+  locked; transition to packaging or to a new phase. The single block preserves the
+  narrative of "what got ratified and why" — per-AUQ writes would fragment it.
+
+> **Factual update (inline):** "Noticed `code_style_and_conventions` doesn't capture
+> convention X we just agreed on — writing the update now."
+>
+> **Phase-boundary append:** "Strategic re-think phase complete. Locked: Phase 2 done,
+> sequencing v6.3 → v6.4 → v6.5+, v6.3 bundle of three deliverables. Appending
+> `decision_log` entry capturing the ratified decisions before transitioning to
+> packaging."
+
+Closure-walk Group 4 (`references/closure-floor.md`) is the catch-all: anything missed
+mid-session lands in `decision_log` at session-end as RESOLVED-AUTO.
+
+The PreToolUse source-edit guard does NOT block `write_memory` or `edit_memory` — the
+guard only fires on source-file editing tools (`Edit`, `Write`, `replace_content`,
+`replace_symbol_body`, `MultiEdit`). Memory writes were always available; the
+historical gap was behavioral, not structural.
 
 **Graceful degradation**: When Serena unavailable, display firm recommendation in
 orientation: SP loses structured knowledge, semantic navigation, decision log.

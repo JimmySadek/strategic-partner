@@ -1,5 +1,15 @@
 # Changelog
 
+## [6.3.2] - 2026-05-11
+
+### Changed
+
+- **Strategic Partner now writes to its memory at smarter moments, not just at session-end** — the advisor follows a new two-rhythm rule for writing to Serena (its cross-session memory store). Factual corrections — file paths, version numbers, new conventions just agreed on — write immediately as routine hygiene with a brief mention in chat. Substantive decisions accumulate during a stretch of advisory work, then write as one coherent block when that stretch ends — when the advisor confirms the path forward and moves on to packaging or to a new topic. The single block keeps the story of "what got decided and why" together as one readable entry; one write per decision would scatter the same narrative across many tiny entries. The session-end closure checklist remains the catch-all, so anything missed during the session still lands before the session closes.
+
+### Fixed
+
+- **Internal premise corrected: the source-edit guard never blocked memory writes** — past internal framing implied that Strategic Partner's source-editing safeguard (the rule that stops the advisor from editing project source files directly) was also blocking writes to its memory store. It was not — memory writes were always available. The historical pattern of substantive decisions ending up in the handoff but never the cross-session record was always a behavioral gap, not a structural one, so fixing it took a behavioral rule (above), not a code change to the guard.
+
 ## [6.3.1] - 2026-05-11
 
 ### Added
