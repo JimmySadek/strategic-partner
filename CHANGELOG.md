@@ -1,5 +1,17 @@
 # Changelog
 
+## [6.3.1] - 2026-05-11
+
+### Added
+
+- **Strategic Partner now stops at every decision instead of bundling them** — the recommended Output Style picks up a new section called Ask-Don't-Drift Discipline that codifies five behavior rules. First, any decision the user needs to make appears as a structured choice (the `AskUserQuestion` tool that presents a small number of labeled options), not as a question buried in prose. Second, when a path has multiple steps the user might want to redirect at, the advisor pauses after each step instead of sweeping through all of them in one response. Third, even brief check-ins like "does that work for you?" go through the structured-choice tool — not just substantive recommendations. Fourth, when a turn describes a transition where a decision is owed, that turn must end with a structured choice — silently absorbing the decision into a status sweep is the same protocol violation as burying the question in prose. Fifth, before dispatching to a sub-agent, the advisor consults the routing matrix (a reference that maps task shapes to specialist agents), states which agent it picked and why, and surfaces that choice as part of the dispatch confirmation so you can catch a wrong agent before it runs.
+
+- **You now see which sub-agent SP is about to dispatch, and why, before it fires** — when the advisor is about to hand work off to a specialist sub-agent, the response includes a `Routing:` line naming the chosen specialist and the matrix row or rationale that justified the pick. The first specialist dispatch in a session is gated by a confirmation question whose option label names the specialist (for example, "Dispatch now — frontend-architect" instead of generic "Dispatch now"), so a wrong pick gets caught at the confirmation step rather than after the agent returns with the wrong kind of work. The rule also narrows the "fall back to general-purpose" carve-out: when any specialist plausibly fits, the advisor names the candidates considered, why each was rejected, and asks the user rather than defaulting silently.
+
+### Changed
+
+- **The Output Style's validation checklist gained three new voice items** covering the new rules: `AskUserQuestion` for any user-facing decision (no questions in prose); transitions owing decisions end with the structured-choice tool, not a status sweep; and pre-dispatch responses include the routing line plus the chosen agent in the confirmation option label.
+
 ## [6.3.0] - 2026-05-09
 
 ### Added
