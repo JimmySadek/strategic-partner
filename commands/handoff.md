@@ -295,40 +295,49 @@ This is the biggest group — splits into 4 sub-walks.
 # List all backlog items:
 ls .backlog/*.md
 
-# For each item, check trigger against current state:
-# - Read frontmatter (title, status, priority, trigger, added date)
-# - Determine if trigger has fired (e.g., "after v5.15.0 release"
-#   when v5.15.0 just shipped)
-# - Determine if item is stale (>30 days no status change AND no
-#   trigger movement)
+# For each item, check triggers against current state:
+# - Read frontmatter (title, state, labels, triggers, opened date,
+#   status_updated date)
+# - Determine if any listed trigger has fired against current
+#   state (e.g., a temporal trigger "after v5.15.0 release" when
+#   v5.15.0 just shipped, a mechanical trigger whose `check:` exits 0,
+#   or an event trigger whose signal appeared in this session)
+# - Determine if item is stale (>30 days since `status_updated` AND
+#   no trigger movement)
 ```
 
 State logic (grouped summary first, per-item only on opt-in — matches
 existing `commands/backlog.md` pattern):
 
 1. **Compute aggregate counts**: total items (N), items with met
-   triggers (X), items stale (>30 days no movement) (Y), items
-   recently added — last 7 days (Z), and items with `status:
-   completed` still in `.backlog/` (W).
+   triggers (X), items stale (>30 days since `status_updated`) (Y),
+   items recently opened — last 7 days (Z), and items with `state:
+   closed` still in `.backlog/` (W).
 
 2. **Emit aggregate-format summary in handoff body**. The Group 7a
    row's detail string MUST follow this format:
 
    ```
-   Backlog: N total. Met: X. Stale: Y. Recent: Z. Completed-parked: W.
+   Backlog: N total. Met: X. Stale: Y. Recent: Z. Closed-misplaced: W.
    ```
 
-   Where N = total `.backlog/*.md` files, X = items whose `trigger:`
-   fired against current state, Y = items >30 days no movement,
-   Z = items added in last 7 days, W = items with `status: completed`
-   still in the `.backlog/` directory.
+   Where N = total `.backlog/*.md` files, X = items with at least
+   one `triggers:` entry that fired against current state (per
+   `triggers_logic:` — `any` means one firing trigger is enough,
+   `all` means every listed trigger must fire), Y = items >30 days
+   since `status_updated`, Z = items with `opened:` in the last 7
+   days, W = items with `state: closed` still in the `.backlog/`
+   directory. Under the v6.4 schema closed items live in
+   `.handoffs/backlog-archive/`, so W is normally 0; W > 0 signals
+   a migration bug or a stalled archive move and must be surfaced
+   explicitly.
 
 3. **AUQ ONLY ONCE for the entire backlog** (not per-item):
    - If X + Y + W == 0 → no AUQ, mark RESOLVED with the summary line
    - If X > 0 OR W > 0 OR Y > 10 → AUQ with grouped options:
      - [Review met-trigger items now] — opens per-item walk for the X items
      - [Review stale items now] — opens per-item walk for the Y items
-     - [Archive completed-parked items now] — opens 7a-retirement-scan
+     - [Archive misplaced closed items now] — opens 7a-retirement-scan
        below for the W items
      - [Defer all to next session] — items carry forward in next orientation
      - [Drop accumulated stale items in bulk] — bulk action, single confirmation
@@ -342,30 +351,39 @@ existing `commands/backlog.md` pattern):
 
 ##### 7a-retirement-scan
 
-After the aggregate AUQ resolves, perform retirement scan:
+Under v6.4 the retirement scan is a sanity check, not routine
+cleanup — closed items should already live in
+`.handoffs/backlog-archive/`. The W set should be empty in clean
+state; this scan runs only when it isn't.
 
-1. For each item with `status: completed` in `.backlog/` (the W set),
-   propose archive to `.handoffs/backlog-archive/` via single batched
-   AUQ. User can approve all, opt into per-item review, or defer.
+After the aggregate AUQ resolves, perform the retirement scan:
 
-2. For each item still in `.backlog/` with `status: parked`,
+1. For each item with `state: closed` still in `.backlog/` (the W
+   set), propose archive to `.handoffs/backlog-archive/` via single
+   batched AUQ. User can approve all, opt into per-item review, or
+   defer. A non-empty W set signals a migration bug or a stalled
+   archive move; note this in the AUQ context.
+
+2. For each item still in `.backlog/` with `state: parked`,
    cross-reference the title and scope against this session's work
    artifacts (git log entries since last handoff, decision_log entries,
    user-stated completions during conversation). Heuristic: title
    keyword match against commit messages from this session.
 
-3. If matches found: propose marking matched items as completed via
-   batched AUQ. User can approve all, approve per-item, or reject all.
+3. If matches found: propose marking matched items as closed
+   (`state: closed`, `close_reason: completed`) and archiving them to
+   `.handoffs/backlog-archive/` via batched AUQ. User can approve all,
+   approve per-item, or reject all.
 
 State logic for 7a-retirement-scan:
 - W == 0 AND no parked-but-completed-by-session matches found →
-  SKIPPED-AUTO (no retirements needed)
+  SKIPPED-AUTO (no retirements needed; clean state)
 - W > 0 OR matches found → DECISION; user resolves via batched AUQ
 - All retirements approved and archived → RESOLVED-AUTO
 
-Anti-pattern: completed work silently piling up in `.backlog/`
-because nobody scanned for retirements. The 2026-05-01 audit found
-3 completed lint items still showing as parked.
+Anti-pattern: closed work silently piling up in `.backlog/` because
+nobody scanned for retirements. The 2026-05-01 audit found 3 closed
+lint items still showing as parked.
 
 After backlog pass, handle newly-promoted findings (from Group 6):
 - Items already ratified during conversation as "park this" →
@@ -456,7 +474,7 @@ outcome before persistence:
 | 💾 4. Persistent memory ledger    | [STATUS_EMOJI] | [one-line outcome] |
 | 📝 5. Project conventions ledger  | [STATUS_EMOJI] | [one-line outcome] |
 | 📋 6. Working memory ledger       | [STATUS_EMOJI] | [findings disposition format] |
-| 📦 7a. Backlog hygiene            | [STATUS_EMOJI] | [N total. Met: X. Stale: Y. Recent: Z. Completed-parked: W.] |
+| 📦 7a. Backlog hygiene            | [STATUS_EMOJI] | [N total. Met: X. Stale: Y. Recent: Z. Closed-misplaced: W.] |
 | 📄 7b. Pending prompts            | [STATUS_EMOJI] | [one-line outcome] |
 | 🔧 7c. Pending scripts            | [STATUS_EMOJI] | [one-line outcome] |
 | 🔀 8. Working tree closure        | [STATUS_EMOJI] | [one-line outcome] |
@@ -621,10 +639,11 @@ For awareness (the advisor monitors these during normal operation):
 
 Closure includes a backlog scan. As part of the closure flow (per
 SKILL.md § Closure Evidence Ledger, the Backlog row), the SP surfaces
-items in `.backlog/*.md` whose `trigger` field has fired against current
-project state, and offers to promote unresolved findings from this
-session if the user wants to park them as backlog items rather than let
-them carry forward in the next session's findings file.
+items in `.backlog/*.md` with at least one `triggers:` entry that has
+fired against current project state, and offers to promote unresolved
+findings from this session if the user wants to park them as backlog
+items rather than let them carry forward in the next session's
+findings file.
 
 Two layers, distinct purposes:
 
@@ -633,9 +652,10 @@ Two layers, distinct purposes:
   `.handoffs/findings-MMDD.md`. Carry forward to the next session's
   orientation by default.
 - **Backlog** — curated, selective, project-scoped. Items live in
-  `.backlog/*.md` with structured frontmatter (`title`, `status`,
-  `priority`, `trigger`). Reviewed via `/strategic-partner:backlog` or
-  surfaced at startup when triggers fire.
+  `.backlog/*.md` with structured v6.4 frontmatter (`title`, `state`,
+  `labels`, `opened`, `triggers`, `triggers_logic`). Reviewed via
+  `/strategic-partner:backlog` or surfaced at startup when triggers
+  fire. See `references/backlog-cycle.md` for the full schema.
 
 Handoff bridges them: at session-end, the SP looks at unresolved
 findings and asks (via `AskUserQuestion`, only when the promotion scope

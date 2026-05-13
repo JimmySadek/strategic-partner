@@ -229,12 +229,14 @@ migrate_one() {
   local triggers_block=""
   if [ -n "$old_trigger" ]; then
     triggers_block="triggers:"
-    local IFS_OLD="$IFS"
-    local trigger_text="$old_trigger"
-    # Split on " OR " (case insensitive). Use a sentinel char unlikely to appear.
-    trigger_text="$(echo "$trigger_text" | sed -E 's/ [Oo][Rr] /\x01/g')"
-    IFS=$'\x01'
-    for piece in $trigger_text; do
+    # Split on " OR " (case-insensitive) using awk — portable across BSD (macOS
+    # default) and GNU. awk's gsub treats "\n" in the replacement as a literal
+    # newline, so we get one trigger per line, then read line-by-line below.
+    # (The earlier sed-with-\x01-sentinel approach failed on BSD sed, which
+    # passed the literal four-character string "\x01" through to IFS-splitting.)
+    local trigger_text
+    trigger_text="$(echo "$old_trigger" | awk '{gsub(/ [Oo][Rr] /, "\n"); print}')"
+    while IFS= read -r piece; do
       piece="$(echo "$piece" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/^,//; s/,$//')"
       [ -z "$piece" ] && continue
       # Escape double-quotes in the piece.
@@ -242,8 +244,7 @@ migrate_one() {
       triggers_block="$triggers_block
   - type: event
     when: \"$piece_escaped\""
-    done
-    IFS="$IFS_OLD"
+    done <<< "$trigger_text"
   fi
 
   # Compose new frontmatter.

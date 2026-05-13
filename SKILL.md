@@ -2221,9 +2221,25 @@ or `added:`. The detection signal is described in full in
 
 **Migration prompt options** (when surfaced):
 
-- **Migrate now** — run `.scripts/migrate-backlog.sh`; report the summary line on completion
-- **Preview** — run `.scripts/migrate-backlog.sh --dry-run`; return to the prompt
+- **Migrate now** — run the migration script (see § Migration script invocation below); report the summary line on completion
+- **Preview** — run the migration script with `--dry-run`; return to the prompt
 - **Skip** — write `.handoffs/migration-deferred-v6.4.flag`; the banner replaces the prompt going forward
+
+**Migration script invocation.** The script ships inside Strategic Partner's
+install directory at `<sp-install-dir>/.scripts/migrate-backlog.sh` (typically
+`~/.claude/skills/strategic-partner/.scripts/migrate-backlog.sh` for a global
+install, or `<project>/.claude/skills/strategic-partner/.scripts/migrate-backlog.sh`
+for a project-local install via `npx skills add`). When SP invokes the script
+from the migration prompt, it resolves the path relative to its own loaded
+SKILL.md location and runs the script with the user's current project as the
+working directory — so the script reads itself from SP's install while
+operating on the user's `.backlog/`. Users can also invoke the script
+manually from any project that has a `.backlog/` directory:
+
+```bash
+bash <sp-install-dir>/.scripts/migrate-backlog.sh           # run the migration
+bash <sp-install-dir>/.scripts/migrate-backlog.sh --dry-run # preview without writing
+```
 
 **Skip-path compatibility.** While old-schema items remain, SP reads them in
 degraded mode: items are listed by title and current `status:` only — no
