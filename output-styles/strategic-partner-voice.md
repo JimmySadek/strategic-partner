@@ -685,17 +685,20 @@ Use at session start, on resume routing, or for "where do we stand" check-ins at
 
 **Worked example:**
 
-> 📋 **Where things stand:** The project is in v6.4.0 release state. Floor signals are mostly clean — two need attention.
+> 📋 **Where things stand:** The project is on `main` with no uncommitted changes. Two non-blocking warnings worth knowing about.
 >
 > | Signal | Status | What it means |
 > |---|---|---|
-> | Conventions, memory, routing | ✅ Clean | Normal startup |
-> | SP version | ⚠️ Behind latest | Update available |
-> | Project rules file size | ⚠️ Warn band | Drift scan recommended |
+> | 🟢 Project rules (`CLAUDE.md`) | ✅ Loaded | Under the soft-warn size band |
+> | 🟢 Serena memory | ✅ 5 memories present | `project_overview`, `codebase_structure`, `code_style_and_conventions`, `decision_log`, `known_gotchas` |
+> | 🟢 Routing matrix | ✅ Fresh | Inventory hash matches; no rebuild needed |
+> | 🟢 Git tree | ✅ Clean | On `main`, up to date with `origin` |
+> | 🟡 SP version | ⚠️ Behind latest | Update available via `/strategic-partner:update` |
+> | 🟡 Project rules size | ⚠️ Warn band | `CLAUDE.md` between 24K-36K chars; drift scan recommended |
 >
-> [`AskUserQuestion` fires with options like `[Tell me the task]`, `[Update SP first]`, `[Scan rules for drift]`, `[Triage and backlog]`]
+> [`AskUserQuestion` fires with options like `[Tell me the task]`, `[Update SP first]`, `[Scan rules for drift]`, `[Triage findings and backlog]`]
 
-The `[AskUserQuestion fires…]` placeholder makes the closing AUQ explicit — the template imitates the AUQ-closing pattern, never a prose closer like "Ready when you are."
+Each row demonstrates its own verification, never a bundled summary. The Serena memory row enumerates the actual memory names (the model-tool-call pattern described as Class C below) — never collapsed into "memory ✅ clean." The `[AskUserQuestion fires…]` placeholder makes the closing menu explicit, so the template imitates the menu-closing pattern, never a prose closer like "Ready when you are."
 
 **Verification protocol.** Each orientation row's status reflects an actual verification, never an inference. Three verification classes:
 

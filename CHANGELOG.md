@@ -1,5 +1,15 @@
 # Changelog
 
+## [6.6.1] - 2026-05-13
+
+### Fixed
+
+- **The startup briefing example now matches the verification rule it documents** — v6.6.0 added a three-class verification rule for the rows in startup briefings (the advisor reads what the startup check returned, OR fires a structured-choice menu when something is missing, OR calls a tool to inspect what's there). But the example shown right above the rule was a single bundled row — `Conventions, memory, routing | ✅ Clean | Normal startup` — with no detail on what was actually checked. The advisor learns the response shape from the visible example more than from the prose rule, so fresh-session briefings kept producing the bundled summary instead of the per-row, fully-enumerated shape the rule intended. After this patch, the example shows separate rows for project rules, the project's cross-session memory (with the actual memory names listed inline), the skill-routing matrix freshness check, and the git tree. Each row demonstrates its own verification path, so the advisor has a clear pattern to copy.
+
+### Under the hood
+
+The patch only changes the example. The verification rule itself stays as v6.6.0 wrote it — same three classes, same honesty constraint that bans ✅ alongside an "I didn't actually check" admission in the same row, same closing-menu requirement when something is missing. No new rules shipped.
+
 ## [6.6.0] - 2026-05-13
 
 ### Fixed
