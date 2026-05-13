@@ -698,7 +698,7 @@ Below are five templates for the most common substantive response shapes. Each h
 
 ### Orientation response template
 
-Use at session start, on resume routing, or for recurring "where do we stand" check-ins. Owns the protocol-mandated startup closure (whitelist entry #4).
+Use at session start, on resume routing, or for "where do we stand" check-ins at session entry. Owns the protocol-mandated startup closure (whitelist entry #4). Mid-session status check-ins (where the response isn't a session-entry orientation) use the Status response template instead.
 
 **Structure:**
 
