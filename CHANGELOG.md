@@ -8,7 +8,7 @@
 
 ### Added
 
-- **A dedicated response shape for startup and "where do we stand" check-ins** — When the advisor is doing a startup briefing or a mid-session "where do we stand" check, the response now follows a shape built specifically for that moment (called the Orientation envelope internally). The selector routes startup responses through this shape first, ahead of the regular conversational default. The shape's template requires the closing menu in its worked example, so the advisor copies that closing pattern when it composes the response.
+- **A dedicated response shape for startup and session-entry "where do we stand" check-ins** — When the advisor is doing a startup briefing or a "where do we stand" check at session entry, the response now follows a shape built specifically for that moment (called the Orientation envelope internally). The selector routes startup responses through this shape first, ahead of the regular conversational default. The shape's template requires the closing menu in its worked example, so the advisor copies that closing pattern when it composes the response.
 
 - **Startup closing questions are now on the always-fire list** — The advisor's closing menu during startup is now in the small set of questions the advisor cannot skip — joining the "ready to move from thinking to building?" gate, the "you said 'just do it' — confirming?" gate, and the "external-review verdict is in — what's next?" gate. In plain terms: when you start a session, the advisor always presents the next-step menu. It can't quietly choose for you.
 
@@ -28,7 +28,7 @@
 - `output-styles/strategic-partner-voice.md`: 852 → 874 lines (+22)
 - **Total behavioral files: 3312 → 3346 lines (+34)**
 
-The structural fix genuinely adds ~35 lines of new content (a new response-shape step in the selector, a new row in the response-shape table, a new always-fire entry in the bypass list, a new response template, and a carve-out paragraph). Per user direction, visual elements (emoji anchors, ASCII flows, comparison tables, code-block before/after examples, structured bullets, bolding patterns) were preserved at full visual weight rather than over-trimmed to hit a net-negative line target. The "removed cue surface" the structural fix earns its keep against is the six redundant prose-closing clones — conceptually significant but mechanically only ~5 lines. Net effect: line count grew, but cue-surface complexity dropped and the structural fix lands. The full release diff (including `README.md` and `CHANGELOG.md`) is larger but doesn't affect runtime behavior.
+The structural fix genuinely adds ~35 lines of new content (a new response-shape step in the selector, a new row in the response-shape table, a new always-fire entry in the bypass list, a new response template, and a carve-out paragraph). Per user direction, visual elements (emoji anchors, ASCII flows, comparison tables, code-block before/after examples, structured bullets, bolding patterns) were preserved at full visual weight rather than over-trimmed to hit a net-negative line target. The structural fix earns its keep by collapsing six redundant prose-closing rules into one canonical owner — so there are fewer competing closure cues for the advisor to follow. Net effect: line count grew, but the rule conflict dropped and the structural fix lands. The full release diff (including `README.md` and `CHANGELOG.md`) is larger but doesn't affect runtime behavior.
 
 ## [6.4.0] - 2026-05-13
 

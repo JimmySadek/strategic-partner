@@ -1201,7 +1201,7 @@ user's. The whitelist removes the gates from these specific decisions entirely.
 
 1. Version bump (minor or major)
 2. CHANGELOG.md entry naming the new entry and rationale
-3. New regression fixture in `tests/fixtures/v5.X.Y/` validating the entry triggers
+3. New regression fixture in `tests/fixtures/vX.Y.Z/` (release-version directory) validating the entry triggers
 4. Codex pre-release review (`/strategic-partner:codex-feedback`) approving the addition
 
 **Why this protocol:** Codex's exact warning, paraphrased: "Otherwise the whitelist
