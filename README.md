@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.5.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.6.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **What's new** — v6.5 fixes a real annoyance: when you start a Strategic Partner session, the advisor used to sometimes close its briefing with a bare prose line like "Ready when you are." instead of giving you a clickable menu of next-step options. Now startup briefings reliably end with a structured choice you pick from — the routing decision you owe goes in front of you, not in freeform. Under the hood, this is a new response shape built specifically for the startup moment plus a small set of bookkeeping cleanups that consolidate scattered rules into one canonical spot. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — v6.6 closes the second half of a startup briefing honesty problem (v6.5 closed the first). Before this release, the advisor could render a startup row like `Serena memory ✅ reachable / Haven't checked what exists for this specific project yet` — a green checkmark in the status column right next to text admitting the underlying check (which memories exist) didn't actually run. The orientation read as internally contradictory. After v6.6, rows show ⏳ checking… while a check is in flight, ❓ not verified if the deeper check is skipped, and ✅ only when the check actually ran. Sits on top of v6.5's startup-menu fix; together they close the family of misleading startup briefings. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 

@@ -1,5 +1,35 @@
 # Changelog
 
+## [6.6.0] - 2026-05-13
+
+### Fixed
+
+- **Startup briefings no longer claim verified status without running the verification** — Before this release, when you started a Strategic Partner session the advisor could render a status row like `Serena memory ✅ reachable / Haven't checked what exists for this specific project yet` — a green checkmark in the Status column alongside an in-row admission that the actual check (looking up which memories exist for the project) didn't run. The orientation read as internally contradictory. After this release, status rows reflect actual verification: ⏳ checking… while a check is in flight, ❓ not verified if the deeper check is skipped, and ✅ only when verification actually ran. Sits alongside v6.5.0 (which fixed the startup briefing closing with a prose line instead of a clickable menu).
+
+### Added
+
+- **Three verification classes for the rows in startup briefings** (the Verification protocol) — Each row in the startup briefing now belongs to one of three classes. Class A is verified by the startup hook directly (version, git, output style — the hook ran the check and the row reflects the result). Class B requires the advisor to ask the user via the structured-choice menu (when memory or routing or project rules are missing, the advisor surfaces the gap AND fires the menu asking what to do next). Class C requires the advisor to call a tool from the model side (when memory is present, the advisor reads the relevant memories to surface what's there). The class governs which verification path runs.
+
+- **An honesty constraint on status rows** — A row may render ⏳ checking… while its verification is in flight, or ❓ not verified if the deeper check is skipped. It may NEVER render ✅ alongside an in-row admission that the verification didn't happen. The rule reads simply but eliminates the family of contradictory rows that motivated this release.
+
+- **A release-time check for contradictory status rows** — The release-gate lint (the maintainer-side scanner that walks the CHANGELOG, README, recommended Output Style, and subcommand descriptions before every release) now catches the ✅-plus-admission shape mechanically. Patterns it flags include `✅ reachable / haven't checked`, `✅ fresh / didn't verify`, `✅ fresh / didn't actually verify`, and `✅ X / X is unknown`. Fail-closed: the lint exits non-zero on detection, blocking the release until the contradictory row is rewritten.
+
+- **Regression fixture extended with verification-before-claim cases** — The fixture from v6.5.0 gains three new case groups: positive cases showing deferred ⏳ rendering while a tool call is in flight, negative cases showing the contradictory-row pattern from the user screenshot, and a negative case showing a missing-memory signal surfaced without the closing structured-choice menu.
+
+- **Dryness Ban List pattern 9 in the recommended Output Style** — Contradictory status rows added as the ninth pattern in the list of dry, jargon-laden, memo-flavored response shapes the advisor avoids.
+
+### Changed
+
+- **Pre-existing verbose sections trimmed to honor the net-negative line target** — The four Response Template worked examples (Decision, Status, Analysis, Discovery) each dropped one trailing recap sentence that restated what the worked example already showed. The Formatting Playbook's Sparse-vs-Rich anchor demo was compressed from two parallel 15-line code blocks to one annotated comparison; the teaching point lands cleanly without the duplicate content.
+
+### Behavioral files net change
+
+- `SKILL.md`: 2472 → 2472 lines (no change)
+- `output-styles/strategic-partner-voice.md`: 874 → 847 lines (-27)
+- **Total behavioral files: 3346 → 3319 lines (-27 — target was ≤ 0)**
+
+The structural fix adds the Verification protocol (three verification classes plus the honesty constraint plus a closing-menu carve-out for missing-memory/missing-routing/missing-rules signals) and the Dryness Ban List entry to the Output Style, plus the contradictory-row pattern in the release-time voice lint and the regression fixture extension. Offsetting trim came from cutting four redundant trailing-recap sentences after the Response Template worked examples and consolidating the duplicate Sparse-vs-Rich code blocks in the Formatting Playbook into one annotated comparison.
+
 ## [6.5.0] - 2026-05-13
 
 ### Fixed
