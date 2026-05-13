@@ -330,3 +330,138 @@ happen when nothing is scanned" decision, you'd be guessing what to verify
 against. With the spec stated upfront, both the test AND the fix have a clear
 target — and the next person reading the diff understands why the change was
 made.
+
+═══════════════════════════════════════════════════════════════════
+
+## 5. Voice Discipline
+
+**Principle:** Every change to SP source applies SP's voice — plain English,
+deliberate visualization, functional emojis as section anchors, no
+project-internal jargon without a one-line gloss on first mention. This rule
+is source-edit-time enforcement, independent of whatever live-session output
+style is active.
+
+### Why
+
+The `strategic-partner-voice` output style file is today's enforcement layer
+for SP voice in live sessions. If Claude Code deprecates output styles, the
+user experience disappears unless SP source already carries voice on its
+own. This rule makes voice live in the source — durable independent of any
+single mechanism. The release-time voice lint (`tests/lint-voice.sh`) catches
+mechanical violations at pre-push; this rule catches the same patterns at
+edit-time so the lint stays clean.
+
+### What this means
+
+- **Plain English first.** Translate jargon as it appears. Gloss internal
+  terms on first mention. Standard vocabulary (HTTP, JSON, git, REST) needs
+  no gloss; project-coined terms always do.
+- **Visualization is required for non-trivial content.** Tables for
+  comparisons (two or more items being compared along the same dimensions),
+  ASCII diagrams for spatial / temporal / structural relationships,
+  structured bullets for enumerable items. Wall-of-text prose for
+  substantive content is the failure mode.
+- **Functional emojis as section anchors.** Match emoji to section meaning
+  (🎯 routing, 📋 status, 🔍 analysis, ⚠️ warning, 🛡️ guardrail, 🔧
+  configuration, 🏗️ architecture, 🎭 voice, ⚡ performance, 🚀 deploy).
+  Status emojis (✅ ❌ ⚠️ 🟢 🔴 🟡) inside tables and checklists. Not
+  decorative.
+- **Bold for key terms only.** First definition of a key term, the
+  recommendation in a Position line, decision points the reader scans for.
+  Never whole sentences or paragraphs.
+- **No project-internal jargon without first-mention gloss.** Every coined
+  term, every multi-letter project acronym, every version-stamped reference
+  gets a plain-English description on first use in the new content.
+
+### Anti-pattern
+
+- Dense paragraphs explaining mechanics that would read more clearly as a
+  table or ASCII diagram.
+- Project-internal vocabulary (terms like Bootstrap, Router, Egress, Closure
+  Floor, Premise Challenge trigger #N, Layer N) dropped without gloss.
+- Substantive multi-section content authored with no functional emoji
+  anchors at the section headings.
+- Bold sprayed across whole sentences for general emphasis rather than
+  anchoring a single key term.
+- Code-style spec framing (Constraints / Inputs / Outputs / Returns) used
+  in advisory or explanatory prose, where structured bullets or a table
+  would read better.
+
+### Corrected approach
+
+- Before writing, plan visual structure. Where does a table fit? Where
+  does an ASCII diagram carry flow? Where do structured bullets enumerate?
+  Where does prose serve best?
+- Gloss every project-coined term on its first mention; use the term as a
+  handle thereafter in the same block.
+- Anchor each substantive section with a functional emoji matched to
+  section meaning.
+- Bold sparingly. Anchor a key term, a recommendation, a decision point —
+  not surrounding sentences.
+- Read the edit as a smart non-developer would. If they would stop on any
+  block, simplify the language, gloss the term, or restructure before
+  shipping.
+
+### Worked example
+
+**Editing context:** A reference doc adds a new section explaining the
+`/strategic-partner:copy-prompt` subcommand — what it does, when to use it,
+how it works under the hood. User says: *"Document the copy-prompt
+subcommand."*
+
+❌ **Anti-pattern (dense prose, no visualization, jargon dropped):**
+
+> The copy-prompt subcommand reads from `.handoffs/last-prompts/`, wiped and
+> rewritten on every fenced emission per the Fenced Prompt Emission Protocol
+> in SKILL.md. The subcommand pipes the contents of `1.md` (or `2.md` if
+> argument is `2`) through `pbcopy`, bypassing the mouse-select fragility
+> inherent to terminal UI rendering of fenced markdown blocks.
+
+A reader who doesn't already know what fenced emission is, what the protocol
+does, or why mouse-select is fragile cannot follow this. No section anchor,
+no visualization, five pieces of project-internal vocabulary dropped without
+gloss.
+
+✅ **Corrected approach (anchored, visualized, glossed):**
+
+> ### 📋 What `/strategic-partner:copy-prompt` does
+>
+> When SP shows you a prompt inside the green/red bordered block (between
+> `═══` markers), the contents are also written to disk so you can copy
+> them reliably — without depending on terminal mouse-select, which often
+> drops characters or wraps lines unexpectedly.
+>
+> The subcommand copies that saved version to your OS clipboard:
+>
+> ```
+> SP emits fenced prompt → contents saved to disk
+>                                ↓
+>             /strategic-partner:copy-prompt
+>                                ↓
+>                contents → OS clipboard
+> ```
+>
+> **Argument behavior:**
+>
+> | Argument | What happens |
+> |---|---|
+> | (no argument) | Copies the first / only saved prompt |
+> | `2` | Copies the second saved prompt, if a response emitted multiple fences |
+>
+> The save location is wiped and rewritten on every response that emits
+> fences, so the subcommand always reads the most recent emission — there
+> is no history.
+
+The corrected version anchors with 📋, uses an ASCII diagram for the flow,
+a table for the argument behavior, and glosses every internal term inline.
+A reader unfamiliar with SP's internals can follow it.
+
+### Note on this file's own structure
+
+The four older principles in this file (## 1 through ## 4) use plain section
+headings without emoji anchors. Per Principle 3 (Surgical Changes), this
+fifth principle does not retrofit those headings. The voice policy applies
+to new substantive content authored from this point forward, not to
+backfilling existing structure for consistency's sake. When older content
+gets substantively rewritten in a future change, the policy applies to that
+rewrite.

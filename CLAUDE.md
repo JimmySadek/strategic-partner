@@ -45,6 +45,9 @@ When editing SP source files, follow these behavioral principles:
    4. **Verification, not Specification**  →  declarative verifiable outcomes
                                               over imperative step-by-step
                                               prescription
+   5. **Voice Discipline**       →  plain English, deliberate visualization,
+                                   functional emoji anchors, no internal
+                                   jargon without first-mention gloss
 
 📁 **Full rules + worked examples:** [`.claude/rules/source-editing.md`](.claude/rules/source-editing.md)
 [Path-scoped to source files; loads when Claude is editing SKILL.md, hooks/,
