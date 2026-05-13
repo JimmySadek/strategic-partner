@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.4.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.5.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **What's new** — v6.4 reshapes the backlog and findings cycle around five named lifecycle states (📥 inbox → 🔍 clarified → ⏳ parked → 🔄 active → ✅ closed) with typed triggers (mechanical shell expressions, observable events, or temporal cadence) so "trigger met" becomes a yes/no question instead of a judgment call. An auto-migration runs on first start after install — it offers Migrate, Preview, or Skip; the Skip path keeps existing items readable in a degraded mode until you migrate. SP source edits now follow a voice-discipline rule (plain English, deliberate visualization, functional emoji anchors, gloss-on-first-mention) so the voice lives in the source independently of any single output style. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — v6.5 fixes a real annoyance: when you start a Strategic Partner session, the advisor used to sometimes close its briefing with a bare prose line like "Ready when you are." instead of giving you a clickable menu of next-step options. Now startup briefings reliably end with a structured choice you pick from — the routing decision you owe goes in front of you, not in freeform. Under the hood, this is a new response shape built specifically for the startup moment plus a small set of bookkeeping cleanups that consolidate scattered rules into one canonical spot. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 

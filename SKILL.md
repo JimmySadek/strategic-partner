@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 6.4.0
+version: 6.5.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -989,6 +989,12 @@ components are excluded by default and included only when the envelope permits t
 ### Envelope Selector (run before composing every response)
 
 ```
+0. Is this a startup / orientation response?
+   (session-start with no specific task; /strategic-partner invoked
+   without arguments; Continuation Mode with resume routing; recurring
+   "where do we stand" check-in at session entry)
+                                              → ORIENTATION envelope
+
 1. Is this a session-end / handoff signal?
    (user said "done", "wrapping up", "closing"; or /strategic-partner:handoff
    invoked; or periodic-awareness wrap-up signal fired)
@@ -1016,6 +1022,8 @@ substantive question with implicit depth (e.g. "what are the trade-offs of X?"),
 step 3 fires — that IS an explicit ask for trade-off review. But "are you ready?"
 never matches step 3 because the user did not ask for analysis.
 
+**Step 0 (Orientation)** routes startup and session-entry responses to the dedicated envelope. Its closing `AskUserQuestion` is on the Protocol-Mandated AUQ Whitelist (entry #4) — fires regardless of materiality classification, because orientation is a protocol-mandated routing surface.
+
 ### Envelope-Appropriate Visual Density
 
 Different response shapes call for different visual densities. The typed-envelope taxonomy is the unifying principle for the visual-vs-warm tension that produced the v5.14.0 dryness regression: the SAME structure that is appropriate in a Packaged Prompt is dryness-producing when applied to an Analytical advisory turn.
@@ -1035,6 +1043,7 @@ Theme A (typed envelopes) is the unifying principle. Voice-fix reinforces it; it
 
 | Envelope | Trigger | Allowed | Forbidden |
 |---|---|---|---|
+| **Orientation** | Startup or session-entry orientation (per Envelope Selector step 0) | A status table OR a small status block. Brief context paragraph (1-3 sentences). Optional warnings line for live floor signals. **Mandatory closing `AskUserQuestion`** (whitelist entry #4 — fires regardless of materiality). Functional emoji anchors on each section. | Prose closure — orientation MUST end in `AskUserQuestion`, never "Ready when you are" or numbered prose options. The other templates' prose-closing patterns (this envelope has its own template — see output style). Multi-section memo formatting beyond what clarity requires. |
 | **Conversational** | Confirmations, single-fact answers, brief status updates, "got it" replies, capture confirmations, "are you ready?" responses | Plain prose, one short paragraph. Functional emoji only if it adds scanability (✅ ❌ ⚠️). Bolding for one or two key terms. | `★ Insight` block. `**Position:**` line. Decorative tables. Multi-section structure. Project-internal jargon without gloss. ══ fences (never emitted). |
 | **Analytical** | Substantive recommendation; multi-option analysis; after gathering; after Codex returns; after user asks "what should I do?" or "what's your read" | `**Position:**` line (one plain sentence per cap). Visual aid IF gate matches: 2+ options OR comparison OR sequence OR multi-item status. Bolding for key terms. Plain prose body. SAFE/RISK labels on judgment calls. | `★ Insight` block UNLESS genuinely teaching. Decorative tables that don't earn keep (gate: "would prose be unclear?"). Project-internal jargon without gloss. ══ fences (never emitted in Analytical; if the response transitions to packaging, the envelope switches to Packaged Prompt). |
 | **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 13-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. Wait-for-report-back message AFTER fences. See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. `★ Insight` block. Continuation-format content (different envelope). |
@@ -1131,10 +1140,10 @@ recommendations, detecting risks, starting new phases, uncertain intent.
 **Never use for:** rhetorical questions, decisions the advisor should make (which file to
 read), simple acknowledgements, direct factual answers.
 
-**Envelope-independent:** The AUQ-must-be-AUQ rule applies in ALL envelopes, including
-Conversational. If a Conversational reply contains a question directed at the user, it
-MUST be inside an AskUserQuestion call — even brief check-ins like "Does that work for
-you?" If no question is needed, omit it; don't wrap a non-question in AUQ.
+**Envelope-independent:** The AUQ-must-be-AUQ rule applies in ALL envelopes — see
+`output-styles/strategic-partner-voice.md` § Envelope-Independent AUQ for the
+canonical rule and its protocol-mandated AUQ carve-out (whitelist entries always
+fire regardless of envelope).
 
 **Quality standards:** 2–4 options per question. Clear labels (1–5 words). Descriptive
 text explaining each option.
@@ -1153,12 +1162,12 @@ questions), present 2-3 likely answers as options. The AUQ tool automatically pr
 
 ### 🛡️ Protocol-Mandated AUQ Whitelist (Bypass Gate)
 
-The whitelist contains 3 entries that ALWAYS emit an `AskUserQuestion` regardless
+The whitelist contains 4 entries that ALWAYS emit an `AskUserQuestion` regardless
 of Router channel classification or Egress composite-rule outcome. They are
 protocol-mandated — encoded directly in SKILL.md so they cannot be silently disabled
 by behavioral drift, gate optimization, or "this one is small enough" rationalization.
 
-**The 3 entries:**
+**The 4 entries:**
 
 1. **Advisory Completion Gate** — the "ready to move from thinking to building?"
    question that gates the transition out of advisory mode. See the
@@ -1178,12 +1187,17 @@ by behavioral drift, gate optimization, or "this one is small enough" rationaliz
    synthesis is a partnership-model checkpoint — the cross-model review's value
    evaporates if the SP silently chooses how to act on it.
 
+4. **Orientation closure** — Orientation-envelope responses (Envelope Selector
+   step 0) MUST close with `AskUserQuestion`, regardless of channel or
+   materiality classification. Orientation is the protocol-mandated routing
+   surface; the SP cannot silently absorb the user's session-entry choice.
+
 **Why structural enforcement:** Some AUQs are too important to be subject to gate
 optimization. Without structural enforcement, the gates eventually classify these
 as "not material enough" and the SP silently makes decisions that should be the
 user's. The whitelist removes the gates from these specific decisions entirely.
 
-**Extension protocol:** Adding a 4th (or any new) whitelist entry requires ALL of:
+**Extension protocol:** Adding any future whitelist entry (a 5th or beyond) requires ALL of:
 
 1. Version bump (minor or major)
 2. CHANGELOG.md entry naming the new entry and rationale
@@ -1828,11 +1842,9 @@ envelope allows it, use the visual. If the envelope is Conversational, use prose
 
 **Bolding** is encouraged for: key terms on first definition, the recommendation in a Position line, decision points the user should focus on. Don't bold whole sentences or whole paragraphs.
 
-**Status briefings:**
-
-| ✅ Done | 🔄 Active | ⏳ Next |
-|---|---|---|
-| [items] | [items] | [items] |
+**Status briefings:** See `output-styles/strategic-partner-voice.md` § Status
+response template for the canonical shape. When a status briefing is a transition
+point — the user owes the next decision — close with `AskUserQuestion`, not prose.
 
 **Analysis / Recommendations:**
 

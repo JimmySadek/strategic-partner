@@ -1,5 +1,35 @@
 # Changelog
 
+## [6.5.0] - 2026-05-13
+
+### Fixed
+
+- **Startup briefings now always end with a clickable menu instead of a bare prose line** — Before this release, when you started a Strategic Partner session the advisor could close its briefing with something like "Ready when you are." or "Let me know what you'd like to focus on." — leaving you to type a freeform direction when a clear pick-list would have been faster. After this release, the closing menu (the structured choice the advisor presents you with) reliably fires at session start, every time. The fix is structural rather than a patch on top: startup briefings now have their own dedicated response shape, with their own dedicated template, and the closing question is treated as protocol-mandated (it can never be silently absorbed into prose). Diagnosed via in-session root-cause analysis, validated by cross-model adversarial review (Codex GPT-5.5, xhigh reasoning effort).
+
+### Added
+
+- **A dedicated response shape for startup and "where do we stand" check-ins** — When the advisor is doing a startup briefing or a mid-session "where do we stand" check, the response now follows a shape built specifically for that moment (called the Orientation envelope internally). The selector routes startup responses through this shape first, ahead of the regular conversational default. The shape's template requires the closing menu in its worked example, so the advisor copies that closing pattern when it composes the response.
+
+- **Startup closing questions are now on the always-fire list** — The advisor's closing menu during startup is now in the small set of questions the advisor cannot skip — joining the "ready to move from thinking to building?" gate, the "you said 'just do it' — confirming?" gate, and the "external-review verdict is in — what's next?" gate. In plain terms: when you start a session, the advisor always presents the next-step menu. It can't quietly choose for you.
+
+### Changed
+
+- **Six scattered rules that licensed prose-closing were collapsed into one** — Before, the same rule ("don't wrap a non-question in the structured-choice tool") was repeated across both the main rules file and the voice file in slightly different phrasings. Together they were enough to license skipping the structured choice at startup (because the startup moment doesn't literally contain a `?` in prose). After, one place owns the rule and explicitly names the always-fire exceptions; the other places reference it or were removed.
+
+- **The Status response template's worked example now ends in a clickable menu** — When the advisor is giving a status briefing and the next step is a real decision, the closing line is now the structured-choice menu instead of a prose "What's next" plan. The advisor copies what the template demonstrates, so this propagates to live status briefings.
+
+- **A duplicate status-briefing pattern was removed from the main rules file** — The Done/Active/Next table that lived in two places (rules file and voice file) is now in one place only. The voice file owns the canonical shape; the rules file points to it.
+
+- **Adjacent prose compressed without touching visual elements** — The Plain-English Whole-Response Gate, Voice Discipline intro, and Anti-Sycophancy Symmetric failure mode were each rewritten with one fewer paragraph but no change to content. Emoji anchors, ASCII flows, before/after code blocks, side-by-side comparison tables, structured bullets, and bolding patterns are all preserved.
+
+### Behavioral files net change
+
+- `SKILL.md`: 2460 → 2472 lines (+12)
+- `output-styles/strategic-partner-voice.md`: 852 → 874 lines (+22)
+- **Total behavioral files: 3312 → 3346 lines (+34)**
+
+The structural fix genuinely adds ~35 lines of new content (a new response-shape step in the selector, a new row in the response-shape table, a new always-fire entry in the bypass list, a new response template, and a carve-out paragraph). Per user direction, visual elements (emoji anchors, ASCII flows, comparison tables, code-block before/after examples, structured bullets, bolding patterns) were preserved at full visual weight rather than over-trimmed to hit a net-negative line target. The "removed cue surface" the structural fix earns its keep against is the six redundant prose-closing clones — conceptually significant but mechanically only ~5 lines. Net effect: line count grew, but cue-surface complexity dropped and the structural fix lands. The full release diff (including `README.md` and `CHANGELOG.md`) is larger but doesn't affect runtime behavior.
+
 ## [6.4.0] - 2026-05-13
 
 ### Added
