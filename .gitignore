@@ -10,6 +10,7 @@
 .scripts/*
 !.scripts/release-publish.sh
 !.scripts/context-file-scan/
+!.scripts/migrate-backlog.sh
 awesome-list-submission.md
 .skillshare-meta.json
 claudedocs/

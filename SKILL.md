@@ -2201,6 +2201,35 @@ labels schema, file format, auto-migration): `references/backlog-cycle.md`.
   unavailable, `.backlog/` files are fully sufficient. SP never blocks on
   Serena for backlog operations.
 
+#### 📥 Backlog Auto-Migration (v6.4 install upgrade)
+
+After the existing startup backlog scan completes, SP also detects items
+written under the old (pre-v6.4) backlog schema and offers to migrate them.
+
+**Detection.** An item is old-schema if its frontmatter contains any of:
+`status:`, `trigger:` as prose, top-level `type:`, `priority:`, `severity:`,
+or `added:`. The detection signal is described in full in
+`references/backlog-cycle.md`.
+
+**Behavior:**
+
+| Condition | What SP does |
+|---|---|
+| No old-schema items found | Silent (this is the steady state) |
+| Old-schema items found AND `.handoffs/migration-deferred-v6.4.flag` doesn't exist | Surface a one-time migration prompt via `AskUserQuestion` |
+| Flag file exists AND old-schema items still present | Render a banner at orientation bottom: `N items in old schema; run .scripts/migrate-backlog.sh to upgrade` |
+
+**Migration prompt options** (when surfaced):
+
+- **Migrate now** — run `.scripts/migrate-backlog.sh`; report the summary line on completion
+- **Preview** — run `.scripts/migrate-backlog.sh --dry-run`; return to the prompt
+- **Skip** — write `.handoffs/migration-deferred-v6.4.flag`; the banner replaces the prompt going forward
+
+**Skip-path compatibility.** While old-schema items remain, SP reads them in
+degraded mode: items are listed by title and current `status:` only — no
+trigger evaluation, no triage scan over them. The user can run the migration
+manually any time, or delete the flag file to re-surface the prompt.
+
 ### Closure Evidence Ledger — Required on Session-End Signals
 
 When a session-end signal fires (see Context Handoff triggers below), the SP
