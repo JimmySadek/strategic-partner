@@ -2160,94 +2160,46 @@ verified at startup. If missing → warn immediately (security concern for publi
 
 ### Backlog Stewardship
 
-Two layers: lightweight session findings (capture) and curated backlog (promotion).
+Things SP notices move through five named states — 📥 inbox, 🔍 clarified,
+⏳ parked, 🔄 active, ✅ closed. Inbox capture lives in either of two
+storage shapes (lightweight findings or substantive backlog items); the
+other four states each have one home.
 
-- **Session Findings** (`.handoffs/findings-*.md`): lightweight, automatic, session-scoped
-- **Backlog** (`.backlog/*.md`): curated, selective, project-scoped
-- **Flow**: capture to findings → promote selected items to backlog at boundaries
-
-#### Session Findings
-
-File location: `.handoffs/findings-MMDD.md` (one file per session day).
-
-**Session ID extraction** (for traceability):
-
-```bash
-ENCODED_DIR=$(echo "$PWD" | tr '/' '-' | tr '.' '-' | sed 's/^-/-/')
-SESSION_ID=$(basename "$(ls -t "$HOME/.claude/projects/${ENCODED_DIR}/"*.jsonl 2>/dev/null | head -1)" .jsonl 2>/dev/null)
-```
-
-**File format** (ultra-lightweight, append-only):
-
-```markdown
-# Session Findings — YYYY-MM-DD
-Session: [session-uuid]
-Resume: claude --resume [session-uuid]
-
-## Issues
-1. [description] — [context: what was being discussed when identified]
-2. [description] — [context]
-
-## Promoted
-- #N promoted to .backlog/[slug].md
-```
-
-**Lifecycle:**
-- Created on first captured issue in a session
-- Appended to throughout the session
-- Referenced in handoff file at session end
-- Carried forward to continuation sessions
-- Cleaned up when all items are promoted or discarded
-
-#### Backlog Items
-
-**Item format** (`.backlog/[slug].md`):
-
-```yaml
----
-title: [descriptive title]
-status: parked | promoted | completed | stale
-priority: high | medium | low
-type: bug | feature | idea          # optional, default: idea
-severity: critical | high | medium | low  # optional, bugs only
-added: YYYY-MM-DD
-origin: [session name or context]
-trigger: [specific condition for re-engagement]
----
-
-[Freeform body — context, rationale, scope notes. No length constraint.]
-```
-
-**Bug-specific body content:** For `type: bug` items, the body should include:
-what was observed, where it was observed (if known), and any reproduction
-context from the conversation. The SP captures this from the session findings —
-extracting the user's description, the topic under discussion when the bug was
-mentioned, and any specifics provided.
-
-**Proactive Triggers:**
-
-| Signal | Action |
+| State | Storage |
 |---|---|
-| "park this" / "for later" / "not now" / "someday" | Promote directly to `.backlog/` from findings (or create new) |
-| Out-of-scope idea surfaces during advisory | Capture to findings, note as tangential |
-| 3+ findings accumulated in current session | "I have captured N issues so far. Continue, or pause to review?" |
-| Topic shifts to a new area with unresolved findings | "We covered N issues about [Topic A]. Promote any to backlog before moving on?" |
-| Session-end / handoff | Include findings reference in handoff. Offer promotion for unresolved items. |
-| Post-implementation review | Capture follow-up improvements to findings |
-| Version release / milestone completion | Surface BOTH backlog items AND unresolved findings |
+| 📥 inbox | `.handoffs/findings-MMDD.md` (lightweight) **or** `.backlog/[verb-prefix]-[slug].md` with `state: inbox` (substantive) |
+| 🔍 clarified, ⏳ parked, 🔄 active | `.backlog/[verb-prefix]-[slug].md` |
+| ✅ closed | `.handoffs/backlog-archive/` |
 
-**Orientation integration:** At startup, scan `.backlog/*.md`. Read frontmatter,
-check each trigger against current state (git log, file existence, version numbers).
-Surface items with met triggers by name. If none actionable: one-liner count
-("N backlog items parked, none actionable"). If `.backlog/` doesn't exist: say nothing.
+Triage fires on two events: automatically before every minor/major release,
+and on-demand whenever the user invokes `/strategic-partner:backlog`. Both
+events scan findings and `.backlog/` together — they are one logical inbox.
 
-**Review rhythm:** On-demand via `/strategic-partner:backlog`. SP proposes review after
-version releases or roadmap phase completions. More than 10 items triggers a prune
-recommendation.
+Full lifecycle reference (states, transitions, triggers, naming convention,
+labels schema, file format, auto-migration): `references/backlog-cycle.md`.
 
-**Serena enhancement:** When Serena is available, SP may also maintain a compact
-`project_backlog_index` memory for cross-session awareness. When unavailable,
-`.backlog/` files are fully sufficient. SP never blocks on Serena for backlog operations.
+**Operational rules SP runs at startup and triage:**
+
+- **Orientation scan** — read `.backlog/*.md` frontmatter; check each parked
+  item's triggers against current state (git log, file existence, version
+  numbers, the item's `check:` shell expressions for mechanical triggers).
+  Surface items with met triggers by name. If none actionable: one-liner
+  count. If `.backlog/` doesn't exist: say nothing.
+- **Findings capture rule** — the same observe-then-write rule as before:
+  see it, write it to `.handoffs/findings-MMDD.md`. Substantive items
+  (deserves a body) go straight to `.backlog/` with `state: inbox`.
+- **Promotion signals** — phrases like "park this", "for later", "not now",
+  "someday" move an inbox finding to a `.backlog/` item with `state: parked`
+  (or `state: clarified` if the user has already scoped it).
+- **Old-schema detection** — at startup, scan `.backlog/*.md` for old-schema
+  signatures (`status:`, `trigger:` prose, top-level `type:` / `priority:` /
+  `severity:` / `added:`). If any found and `.handoffs/migration-deferred-v6.4.flag`
+  doesn't exist, surface a one-time migration prompt (see § Backlog
+  Auto-Migration below).
+- **Serena enhancement** — when Serena is available, SP may also maintain a
+  compact `project_backlog_index` memory for cross-session awareness. When
+  unavailable, `.backlog/` files are fully sufficient. SP never blocks on
+  Serena for backlog operations.
 
 ### Closure Evidence Ledger — Required on Session-End Signals
 
