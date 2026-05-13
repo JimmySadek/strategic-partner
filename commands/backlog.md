@@ -69,8 +69,9 @@ For each `.backlog/*.md` file, extract YAML frontmatter:
 
 **Old-schema item detected** (any of `status:`, `trigger:` prose, top-level
 `type:` / `priority:` / `severity:` / `added:`): list in a separate "Old
-schema — needs migration" section; suggest the user run
-`.scripts/migrate-backlog.sh`.
+schema — needs migration" section; suggest the user run the migration
+script (see SKILL.md § Backlog Auto-Migration for the install-location-resolved
+invocation).
 
 ### Step 3 — Check triggers (parked items only)
 
@@ -148,7 +149,7 @@ on-demand path:
 |---|---|
 | `.backlog/` directory doesn't exist AND no findings file | Silent — friendly empty message |
 | Frontmatter malformed | Skip item; note in output |
-| Old-schema items detected | List under separate "Old schema — needs migration" section; suggest `.scripts/migrate-backlog.sh` |
+| Old-schema items detected | List under separate "Old schema — needs migration" section; suggest the migration script per SKILL.md § Backlog Auto-Migration |
 | Trigger `check:` expression fails (non-zero non-exit-1) | Treat as "not met" + warn once |
 | Serena unavailable | Proceed with file-only scan |
 

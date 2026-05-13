@@ -8,7 +8,7 @@ These rules apply whenever Claude is editing Strategic Partner source — `SKILL
 hooks, reference docs, commands, or tests. They load through path-scoping: absent
 when SP is in advisory mode, present when source content is actually changing.
 
-Four principles, each with a one-sentence statement, the anti-pattern that
+Five principles, each with a one-sentence statement, the anti-pattern that
 typically appears without the rule, the corrected approach, and a worked
 example drawn from SP's own domain.
 

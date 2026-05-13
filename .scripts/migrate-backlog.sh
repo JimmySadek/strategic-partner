@@ -8,7 +8,12 @@
 # labels: replacing the type/priority/severity fields).
 #
 # Idempotent — re-runs after a successful migration are no-ops.
-# Safe — pre-migration backup is universal; commit mode is atomic.
+# Safe — pre-migration backup is universal (works regardless of git state).
+# When .backlog/ is tracked by git, the script also lands a single atomic
+# commit you can revert. When .backlog/ is gitignored (the typical case,
+# since most projects treat backlog items as local working state), the
+# commit is empty / not created and rollback uses the backup directory
+# rather than git.
 #
 # Usage:
 #   .scripts/migrate-backlog.sh           # run the migration

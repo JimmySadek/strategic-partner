@@ -311,14 +311,21 @@ items are found. The user picks **Migrate now** (script runs immediately),
 SP renders a banner at orientation bottom until the user runs the migration
 manually).
 
-The migration script lives at `.scripts/migrate-backlog.sh`. It:
+The migration script lives at `.scripts/migrate-backlog.sh` (inside Strategic
+Partner's install directory — see SKILL.md § Backlog Auto-Migration for the
+canonical invocation pattern). It:
 
-- Runs safety preflights (dirty-tree check, git-repo check, pre-migration
-  backup to `.handoffs/pre-migration-backup-YYYYMMDD-HHMMSS/`)
+- Runs safety preflights — dirty-tree check, git-repo check, pre-migration
+  backup to `.handoffs/pre-migration-backup-YYYYMMDD-HHMMSS/`
 - Applies the per-item transformation (verb prefix added, frontmatter
   upgraded, trigger prose converted to a structured list)
-- Commits the result atomically when a git repo is present (no-commit mode
-  with backup-only rollback otherwise)
+- Lands a single atomic commit ONLY when `.backlog/` is tracked by git.
+  When `.backlog/` is gitignored — the typical case, since most projects
+  treat backlog items as local working state — the commit step is a no-op
+  and rollback uses the pre-migration backup directory rather than `git
+  revert`. The backup is the universal rollback path; the git commit is
+  an optional secondary path that only fires when the project tracks
+  `.backlog/`
 - Is idempotent — re-runs after a successful migration are no-ops
 
 See `.scripts/migrate-backlog.sh` for the implementation and the design
