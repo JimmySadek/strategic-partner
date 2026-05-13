@@ -1,5 +1,27 @@
 # Changelog
 
+## [6.4.0] - 2026-05-13
+
+### Added
+
+- **Backlog items now move through a named lifecycle instead of an ad-hoc taxonomy** — Strategic Partner's backlog and findings cycle is rebuilt around five named states with explicit transitions. Items start as 📥 inbox (a fresh capture you haven't thought through yet), become 🔍 clarified once they're scoped, sit ⏳ parked while waiting on a trigger, become 🔄 active when work starts, and close to ✅ closed with one of four reasons (completed, not-planned, duplicate, superseded). Each transition names a decision-maker, so the cycle is no longer "SP decides" by judgment — it's a small state machine you can audit. The full reference lives at `references/backlog-cycle.md`.
+
+- **Existing backlog items auto-upgrade to the new schema on first run after install** — when you start Strategic Partner for the first time after upgrading to v6.4, the advisor scans your project's backlog and offers a one-time prompt: Migrate now, Preview, or Skip. The migration script renames files under the new verb-prefix convention (fix-, add-, improve-, investigate-, migrate-, redesign-), upgrades frontmatter (`status:` becomes `state:`, `type:` / `priority:` / `severity:` fold into a `labels:` list, `added:` becomes `opened:`), and converts trigger prose into a structured triggers list. It runs safety preflights first — a dirty-tree check, a pre-migration backup under `.handoffs/pre-migration-backup-YYYYMMDD-HHMMSS/`, and a single atomic commit that you can revert with one command. If you pick Skip, the advisor reads your old-schema items in a degraded mode (no trigger evaluation) and shows a banner at orientation bottom until you migrate manually. The script is idempotent — re-runs after a successful migration are no-ops.
+
+- **Triggers are now typed instead of prose** — every parked item names its triggers with one of three types: **mechanical** (a shell expression like `[ $(wc -l < SKILL.md) -gt 1500 ]` that the advisor runs directly), **event** (something observable in findings, recent handoffs, or the current session), or **temporal** (a version or cadence comparison). Composite triggers default to OR semantics (`triggers_logic: any`); rare items that genuinely need AND semantics set `triggers_logic: all`. The result: "trigger met" is a yes/no question, not a read.
+
+### Changed
+
+- **Triage now fires on a known cadence instead of opportunistically** — two events drive backlog triage. The advisor walks the inbox automatically before every minor or major release (catching parked items whose triggers fired and inbox findings worth promoting), and the same walk runs on-demand any time you invoke `/strategic-partner:backlog`. Per-session lightweight scans are not part of the cadence — they added noise without earning their keep for a single-user-ish project.
+
+- **Filenames now carry intent at-a-glance via verb prefixes** — every active backlog item is named with one of six lowercase verb prefixes: `fix-` (defects), `add-` (new capabilities), `improve-` (refinements), `investigate-` (open questions), `migrate-` (moving between approaches), `redesign-` (rare deep rewrites). No date stamps, no version stamps, no type tags in filenames — that metadata lives in frontmatter. For items spanning multiple verbs, a precedence ladder picks the primary intent (fix > migrate > add > improve > investigate > redesign) and secondary intents go into the `labels:` field.
+
+- **The `/strategic-partner:backlog` subcommand groups items by lifecycle state** — items render under their state's functional emoji anchor (📥 inbox, 🔍 clarified, ⏳ parked, 🔄 active), with closed items deferred to the archive. The triage menu now offers five actions: discard (for inbox findings), promote to clarified, promote to active, set a trigger and park, or close with one of the four reasons. The subcommand walks both the lightweight findings file (`.handoffs/findings-MMDD.md`) and substantive items (`.backlog/*.md`) as one logical inbox — they are two storage shapes serving the same lifecycle stage.
+
+- **`.claude/rules/source-editing.md` Principle 5 emoji list adds 📥 intake** — the canonical functional-emoji anchor list used by the voice rules now includes 📥 between 🎯 routing and 📋 status, giving the new inbox state a documented home.
+
+- **Strategic Partner's own 20 backlog items rewritten under the new schema** — every item that lived in this repo's `.backlog/` was renamed under a verb prefix and rewritten under the v6.4 schema. Two items were reclassified per the design spec's manual-migration intelligence: `routing-quality-improvement` (was `type: feature`, really an enhancement) became `improve-routing-quality`, and `codex-feedback-improvements` became `improve-codex-feedback-patterns`. The two partial-state items now carry meaningful `progress:` summaries naming exactly what shipped and what remains.
+
 ## [6.3.4] - 2026-05-11
 
 ### Added
