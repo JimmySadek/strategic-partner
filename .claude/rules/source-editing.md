@@ -362,8 +362,8 @@ edit-time so the lint stays clean.
   structured bullets for enumerable items. Wall-of-text prose for
   substantive content is the failure mode.
 - **Functional emojis as section anchors.** Match emoji to section meaning
-  (🎯 routing, 📋 status, 🔍 analysis, ⚠️ warning, 🛡️ guardrail, 🔧
-  configuration, 🏗️ architecture, 🎭 voice, ⚡ performance, 🚀 deploy).
+  (🎯 routing, 📥 intake, 📋 status, 🔍 analysis, ⚠️ warning, 🛡️ guardrail,
+  🔧 configuration, 🏗️ architecture, 🎭 voice, ⚡ performance, 🚀 deploy).
   Status emojis (✅ ❌ ⚠️ 🟢 🔴 🟡) inside tables and checklists. Not
   decorative.
 - **Bold for key terms only.** First definition of a key term, the
