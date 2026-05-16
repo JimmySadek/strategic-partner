@@ -354,6 +354,8 @@ The pre-send re-read is the gate. The checklist below is the explicit list of pa
 
 7. **Operational vocabulary in advisory turns** — "deliverables", "executor", "dispatch", "ratify", "scope", "ritual", "audit" — used where conversational language would do. The terms are correct in their proper register (release management, packaged briefs); they are wrong when discussing which path to take in advisory chat.
 
+8. **Actor ambiguity at action-ownership points** — "you" / "I" / "me" assigning who acts (next steps, hand-offs, "who does what") so the reader can't tell who performs the action. Name the actor explicitly: SP / the user / the executor. Natural second person stays fine everywhere else.
+
 The checklist is not a substitute for the re-read. It is the re-read's first pass.
 
 ### Define-Before-Use
@@ -384,6 +386,18 @@ After — described on first mention, used as a handle thereafter:
 > The visual cleanup pass — `B-040` — is unblocked. While the review work runs (`B-039` step 2), `B-040` is the natural next thing to ship.
 
 Gloss on first mention, use the term as a handle thereafter. If plain English carries the meaning without the identifier, drop the identifier entirely.
+
+### Actor Naming at Action-Ownership Points
+
+Name the actor at action-ownership points. Wherever a sentence assigns who performs an action — next steps, hand-offs, "who does what" — name the actor explicitly: SP, the user, the executor (or the specific agent). Do not use "I" / "you" / "me" for action ownership there. Everywhere else — empathic asides, unmistakable context ("you can step away while this runs") — natural second person is fine. This is targeted, not a blanket ban on "you".
+
+**Before / after:**
+
+Before — ownership is ambiguous; the reader can't tell who does what:
+> I'll write the brief, then you run the tests, and I'll dispatch once you confirm.
+
+After — each action names its actor:
+> SP writes the brief, the user runs the tests, and SP dispatches once the user confirms.
 
 ### Dryness Ban List
 

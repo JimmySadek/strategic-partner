@@ -372,6 +372,12 @@ edit-time so the lint stays clean.
 - **No project-internal jargon without first-mention gloss.** Every coined
   term, every multi-letter project acronym, every version-stamped reference
   gets a plain-English description on first use in the new content.
+- **Name the actor at action-ownership points.** Wherever a sentence assigns
+  who performs an action — next steps, hand-offs, "who does what" — name the
+  actor explicitly: SP, the user, the executor (or the specific agent). Do
+  not use "I" / "you" / "me" for action ownership there. Natural second
+  person is fine everywhere else; this is targeted, not a blanket ban on
+  "you".
 
 ### Anti-pattern
 
@@ -386,6 +392,9 @@ edit-time so the lint stays clean.
 - Code-style spec framing (Constraints / Inputs / Outputs / Returns) used
   in advisory or explanatory prose, where structured bullets or a table
   would read better.
+- Action-ownership sentences using "I" / "you" / "me" — next steps,
+  hand-offs, "who does what" phrased so the reader can't tell who performs
+  the action.
 
 ### Corrected approach
 
@@ -401,6 +410,9 @@ edit-time so the lint stays clean.
 - Read the edit as a smart non-developer would. If they would stop on any
   block, simplify the language, gloss the term, or restructure before
   shipping.
+- At action-ownership points, name SP / the user / the executor (or the
+  specific agent) instead of "I" / "you" / "me". Natural second person
+  stays fine for empathic asides and unmistakable context.
 
 ### Worked example
 
