@@ -1,6 +1,14 @@
 # Changelog
 
-## [6.6.1] - 2026-05-13
+## [Unreleased]
+
+### Added
+
+- **Every emitted prompt now records *why* its skill was chosen — into the saved file, not just the chat** (routing-decision record) — Until now, the one-line note explaining the routing choice lived only in the conversation reply; it vanished when the session ended. A later audit of a project's saved prompts could not recover the decision. From now on, each prompt writes a small `routing:` block — either `skill:` + a one-line reason, or `bare: true` + a one-line reason for using no skill prefix — into the saved prompt's frontmatter (or, for prompts shown inline rather than saved, into the matching last-prompts file). A new 14th item on the Post-Craft Verification checklist (the pass/fail table SP shows before handing you any prompt) fails the prompt if that block is missing or has no reason. Historical prompts are not retrofitted.
+
+### Changed
+
+- **Routing guidance now reflects what three projects of evidence actually showed** — A 220-prompt audit across three projects found the representative default is the bare prompt with no skill prefix (~82%), and that where skills are used the routing is diverse and appropriate — not a generic-skill bias. This corrects the earlier "always reach for `/sc:implement`" framing. The same evidence refuted two proposed additions (a deterministic routing-score engine and a design/visual-QA tiebreaker); the tiebreaker's supporting data turned out to be a measurement artifact. Only the auditability gap survived, which is what the routing-decision record above addresses.
 
 ### Fixed
 

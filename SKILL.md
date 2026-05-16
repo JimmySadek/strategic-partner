@@ -1046,8 +1046,8 @@ Theme A (typed envelopes) is the unifying principle. Voice-fix reinforces it; it
 | **Orientation** | Startup or session-entry orientation (per Envelope Selector step 0) | A status table OR a small status block. Brief context paragraph (1-3 sentences). Optional warnings line for live floor signals. **Mandatory closing `AskUserQuestion`** (whitelist entry #4 — fires regardless of materiality). Functional emoji anchors on each section. | Prose closure — orientation MUST end in `AskUserQuestion`, never "Ready when you are" or numbered prose options. The other templates' prose-closing patterns (this envelope has its own template — see output style). Multi-section memo formatting beyond what clarity requires. |
 | **Conversational** | Confirmations, single-fact answers, brief status updates, "got it" replies, capture confirmations, "are you ready?" responses | Plain prose, one short paragraph. Functional emoji only if it adds scanability (✅ ❌ ⚠️). Bolding for one or two key terms. | `★ Insight` block. `**Position:**` line. Decorative tables. Multi-section structure. Project-internal jargon without gloss. ══ fences (never emitted). |
 | **Analytical** | Substantive recommendation; multi-option analysis; after gathering; after Codex returns; after user asks "what should I do?" or "what's your read" | `**Position:**` line (one plain sentence per cap). Visual aid IF gate matches: 2+ options OR comparison OR sequence OR multi-item status. Bolding for key terms. Plain prose body. SAFE/RISK labels on judgment calls. | `★ Insight` block UNLESS genuinely teaching. Decorative tables that don't earn keep (gate: "would prose be unclear?"). Project-internal jargon without gloss. ══ fences (never emitted in Analytical; if the response transitions to packaging, the envelope switches to Packaged Prompt). |
-| **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 13-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. Wait-for-report-back message AFTER fences. See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. `★ Insight` block. Continuation-format content (different envelope). |
-| **Closure / Handoff** | Session-end signals; `/strategic-partner:handoff`; periodic-awareness wrap-up signals | Closure evidence ledger (per closure-ledger protocol). ══ COPY fence with continuation prompt. STOP after fence. Post-Handoff Verification grep checks. | Implementation prompt's 13-row table (different fence class — see fence discriminator). `★ Insight` block. Decorative tables for what fits in prose. |
+| **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 14-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. Wait-for-report-back message AFTER fences. See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. `★ Insight` block. Continuation-format content (different envelope). |
+| **Closure / Handoff** | Session-end signals; `/strategic-partner:handoff`; periodic-awareness wrap-up signals | Closure evidence ledger (per closure-ledger protocol). ══ COPY fence with continuation prompt. STOP after fence. Post-Handoff Verification grep checks. | Implementation prompt's 14-row table (different fence class — see fence discriminator). `★ Insight` block. Decorative tables for what fits in prose. |
 
 ### Per-Envelope Markdown Rule (inside ══ fences)
 
@@ -1069,7 +1069,7 @@ To determine which gate applies when ══ fences are present:
 2. If the first non-empty line is a backtick code fence opener (three or more backticks, optionally with a language tag), descend into the wrapper — the command line is the first non-empty line INSIDE the wrapper. Otherwise the command line is the first non-empty line directly inside the ══ markers.
 3. Classify:
    - `/strategic-partner [path-to-.handoffs-file]` → **Handoff continuation** → require Closure evidence ledger preceding.
-   - `/<any-skill-name>` followed by prompt body content → **Implementation prompt** → require 13-row Post-Craft Verification table + routing blockquote preceding, and a write to `.handoffs/last-prompts/[N].md` earlier in the same turn.
+   - `/<any-skill-name>` followed by prompt body content → **Implementation prompt** → require 14-row Post-Craft Verification table + routing blockquote preceding, and a write to `.handoffs/last-prompts/[N].md` earlier in the same turn.
    - Empty or unrecognized command line → **Documentation / example** — skip gate.
 
 ### Insight Block Suppression Rule
@@ -1509,10 +1509,47 @@ Scope: applies to all paths that emit fences — inline prompts, saved-prompt
 references, continuation prompts in handoffs, and Fast Lane dispatches that surface
 a copy block. No history is kept: each response wipes and rewrites the directory.
 
+### Routing-Decision Record
+
+Every prompt SP emits must record *why* it chose the skill it chose — or why it
+chose no skill — into the durable artifact, not only into the chat reply. The
+chat-reply `> 🎯 Routing:` blockquote (added in v5.13.0) is ephemeral; it
+disappears with the conversation. A future audit of a project's `.prompts/`
+cannot recover the routing decision from the saved file. This record makes the
+default (the ~82% of prompts that ship with no skill prefix) an *auditable
+decision* instead of an invisible absence.
+
+**Where it goes:**
+
+| Prompt is... | Record location |
+|---|---|
+| Saved to `.prompts/[milestone]/[descriptor].md` | A `routing:` block in that file's YAML frontmatter |
+| Inline (not saved) | A `routing:` block at the top of the matching `.handoffs/last-prompts/[N].md` file (written per the Fenced Prompt Emission Protocol above) |
+
+**The record is exactly one of two shapes** (`routing:` is the field name in
+both — byte-identical, no `route:` / `routing_decision:` variants):
+
+```
+routing:
+  skill: /<name>
+  rationale: <one line — why this skill fits this task>
+```
+
+```
+routing:
+  bare: true
+  rationale: <one line — why no skill prefix was the right call>
+```
+
+Use the `skill:` shape when the prompt's line 1 is a skill command. Use the
+`bare: true` shape when the prompt has no skill prefix (a self-contained
+spec-shaped executor brief). The `rationale:` is mandatory in both shapes —
+a `routing:` block with no rationale fails Post-Craft Verification check 14.
+
 <gate name="post-craft-verification">
 ### Post-Craft Verification (Mandatory — Run Before Presenting ANY Prompt)
 
-Every prompt must pass all 13 checks. Fix failures before presenting.
+Every prompt must pass all 14 checks. Fix failures before presenting.
 
 | # | Check | Fails if... |
 |---|-------|-------------|
@@ -1529,6 +1566,7 @@ Every prompt must pass all 13 checks. Fix failures before presenting.
 | 11 | Not-in-scope for multi-file | Missing or vague platitudes |
 | 12 | SAFE/RISK labels on recommendations | Opinions presented as fact |
 | 13 | Relevant blocks included for target model/task | Missing blocks when task shape or target model clearly warrants them (e.g., multi-file refactor without `<subagent_usage>`, pattern-application task without `<scope_explicit>`, long agentic task without `<context_awareness>`) |
+| 14 | Routing decision recorded in artifact | Fails if the routing: block is absent or missing its rationale |
 
 **The checklist output is an auditable artifact.** Present it as a visible
 pass/fail table in the response, NOT inline in reasoning. The user must be

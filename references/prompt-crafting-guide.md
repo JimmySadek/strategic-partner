@@ -285,9 +285,49 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 | 11 | `<not-in-scope>` present for multi-file prompts with specific exclusions (see NOT-in-Scope Sections) | Missing for multi-file prompt, or contains vague platitudes ("keep changes minimal") instead of naming specific files, functions, or patterns to leave alone |
 | 12 | Recommendations within the prompt are labeled [✅ SAFE] or [⚠️ RISK] where applicable | Opinionated recommendation presented as fact without signaling confidence level |
 | 13 | Relevant blocks included for target model/task (see Reusable Prompt Blocks) | Missing blocks when task shape or target model clearly warrants them (e.g., multi-file refactor without `<subagent_usage>`, pattern-application task without `<scope_explicit>`, long agentic task without `<context_awareness>`) |
+| 14 | Routing decision recorded in artifact (see Routing Record Format) | The `routing:` block is absent from the saved `.prompts/*.md` frontmatter (or, for an inline prompt, from the matching `.handoffs/last-prompts/[N].md`), OR the block is present but has no `rationale:` line |
 
 **🚨 If any row fails**: Fix the prompt before presenting. Do not present with
 a note saying "you might want to add..." — the prompt must be complete.
+
+### Routing Record Format
+
+Check 14 fails silently unless the routing decision is written into the
+durable artifact. The chat-reply `> 🎯 Routing:` blockquote is ephemeral —
+it does not survive into the saved file, so a later audit of a project's
+`.prompts/` cannot recover *why* a skill was (or was not) chosen. Recording
+it makes the bare-prompt default an auditable decision rather than an
+invisible absence.
+
+**Where the record lives:**
+
+| Prompt is... | Record location |
+|---|---|
+| Saved to `.prompts/[milestone]/[descriptor].md` | A `routing:` block in that file's YAML frontmatter |
+| Inline (not saved to `.prompts/`) | A `routing:` block at the top of the matching `.handoffs/last-prompts/[N].md` file (written per the Fenced Prompt Emission Protocol in SKILL.md) |
+
+**Two permitted shapes** — `routing:` is the field name in both, spelled
+byte-identically (no `route:` / `routing_decision:` variants):
+
+```
+routing:
+  skill: /<name>
+  rationale: <one line — why this skill fits this task>
+```
+
+```
+routing:
+  bare: true
+  rationale: <one line — why no skill prefix was the right call>
+```
+
+Use the `skill:` shape when the prompt's line 1 is a skill command. Use the
+`bare: true` shape when the prompt is a self-contained spec-shaped executor
+brief with no skill prefix. The `rationale:` line is mandatory in both
+shapes — its absence is a check-14 failure.
+
+Retrofitting the ~220 historical prompts that predate this requirement is
+NOT required. The record applies to prompts emitted from this point forward.
 
 ---
 
@@ -735,7 +775,7 @@ Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execu
 - First line inside fence: bare skill command (no backticks) — dynamic per task
 - Nothing else outside the fences EXCEPT the two mandatory pre-fence artifacts below — no headers, no summaries, no backticks around commands
 - When multiple prompts exist, each gets its own START/END block
-- **Post-Craft Verification Checklist is mandatory FIRST** — a visible pass/fail table rendering all 13 checks (see SKILL.md Post-Craft Verification gate). Renders as the very first output element before anything else.
+- **Post-Craft Verification Checklist is mandatory FIRST** — a visible pass/fail table rendering all 14 checks (see SKILL.md Post-Craft Verification gate). Renders as the very first output element before anything else.
 - **Routing rationale is mandatory AFTER the checklist, BEFORE the fences** — a `> 🎯 Routing:` blockquote explaining why this skill was chosen (or why no skill was needed). This educates the user on SP routing decisions
 - **Required order**: checklist table → routing blockquote → fenced prompt(s) → wait-for-report-back message (outside fences)
 

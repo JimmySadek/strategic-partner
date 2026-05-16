@@ -1,3 +1,14 @@
+<!-- Saved-prompt frontmatter. The routing: block is mandatory (Post-Craft -->
+<!-- Verification check 14). Use exactly ONE of the two shapes below; the    -->
+<!-- field name is `routing:` byte-for-byte (no route:/routing_decision:).   -->
+<!-- Shape A (skill chosen):  routing:\n  skill: /<name>\n  rationale: <one line> -->
+<!-- Shape B (no skill):      routing:\n  bare: true\n  rationale: <one line — why bare> -->
+---
+routing:
+  skill: /[skill-name]
+  rationale: [one line — why this skill fits, OR replace this block with the bare: true shape]
+---
+
 /[skill-name]
 
 Read and execute the implementation prompt below.
