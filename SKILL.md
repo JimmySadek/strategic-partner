@@ -1606,6 +1606,15 @@ Use Fast Lane only when ALL are true:
 If any condition fails, do not dispatch. Craft the full prompt instead.
 After any dispatch, run Post-Dispatch Identity Recovery immediately.
 
+When Claude Code's experimental Agent Teams switch is enabled
+(`agent_teams_available` is true — see `references/startup-checklist.md`
+§ Agent Teams Flag Detection), SP also stores the `agentId` from the
+`Agent()` dispatch response, session-scoped, so a small post-dispatch gap
+can be corrected on the same warm agent instead of a fresh dispatch. When
+the switch is absent, SP captures nothing and Fast Lane behaves exactly as
+it does today. Mechanics: `references/fast-lane.md` § Dispatch Protocol and
+§ SendMessage Correction Path.
+
 <load_reference file="fast-lane.md">
 Simplicity scoring, consent flow, agent selection, dispatch protocol, and review procedure.
 </load_reference>
@@ -1664,6 +1673,18 @@ calls by default" makes it tempting to skip the verification reads; do not.
 If the agent failed, do NOT retry automatically. Present the issue via
 `AskUserQuestion`: `[Retry with adjusted prompt]` `[Give me the prompt to run manually]`
 `[Investigate first]`
+
+If the agent succeeded but review found a small, correctable gap AND
+`agent_teams_available` is true (the experimental Agent Teams switch was
+detected at startup — see `references/startup-checklist.md` § Agent Teams
+Flag Detection), present `AskUserQuestion`: `[Send correction to same
+agent]` `[Dispatch fresh]` `[Accept as-is]`. Decide whether the gap counts
+as "small" using the routing table in `references/fast-lane.md`
+§ SendMessage Correction Path; on `[Send correction to same agent]`, SP
+sends one `SendMessage` to the stored `agentId` and re-runs the
+post-dispatch review loop. When `agent_teams_available` is false, this
+branch does not exist — the cycle stays accept-or-dispatch-fresh exactly as
+today, and SendMessage is never mentioned.
 
 ### Post-Dispatch Identity Recovery
 
@@ -1768,6 +1789,12 @@ was dispatched — they need to know IT FINISHED, not WHAT IT WAS.
 - `[Result looks good — proceed]`
 - `[Show me the diff first]`
 - `[Result needs adjustment — retry]`
+
+When `agent_teams_available` is true and the adjustment is a small,
+correctable gap, `[Result needs adjustment — retry]` is served by the
+same-agent correction path (`references/fast-lane.md` § SendMessage
+Correction Path) rather than a fresh dispatch. When `agent_teams_available`
+is false, "retry" means a fresh dispatch, exactly as today.
 
 Only propose the next decision (not task) AFTER the user accepts.
 

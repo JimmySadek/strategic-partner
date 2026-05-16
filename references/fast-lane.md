@@ -129,6 +129,17 @@ Agent(
 4. Agent runs in **foreground** (user sees permission prompts)
 5. Agent returns result → SP proceeds to Post-Dispatch Review
 
+**Capture the agent's ID when Agent Teams is enabled:** If
+`agent_teams_available` is true (the experimental Agent Teams switch was
+detected at startup — see `references/startup-checklist.md` § Agent Teams
+Flag Detection), SP stores the `agentId` returned in the `Agent()` dispatch
+response for the rest of this session. That stored ID is what lets SP send a
+one-line correction to the same warm agent later instead of re-dispatching
+the whole brief (see § SendMessage Correction Path). The ID is session-scoped
+only — SP never reuses it across sessions. When `agent_teams_available` is
+false, SP captures nothing here and Fast Lane behaves exactly as it does
+today.
+
 If user wants the prompt instead: standard `══` fence delivery.
 If user says "bigger than it looks": escalate to full prompt with design phase.
 
@@ -181,6 +192,30 @@ calls by default" makes it tempting to skip the verification reads; do not.
 - An agent failure does NOT mean "try the same thing in the user's session" —
   investigate why it failed before deciding the delivery mechanism
 
+**If the agent succeeded but the result has a small, correctable gap —
+only when `agent_teams_available` is true:**
+
+The agent did the work and committed, but review found a minor miss: wrong
+commit convention, a skipped constraint, formatting drift. The original
+agent still holds warm context. When the experimental Agent Teams switch
+was detected at startup (see `references/startup-checklist.md` § Agent
+Teams Flag Detection), present:
+
+`AskUserQuestion`:
+- `[Send correction to same agent]` — one-line fix to the warm agent; no context re-upload
+- `[Dispatch fresh]` — a new agent with an updated brief
+- `[Accept as-is]` — the gap is not worth correcting
+
+Before offering this, use the small-delta-vs-fresh routing table in
+§ SendMessage Correction Path to decide whether the gap actually counts as
+"small". Large delta or broken state → do not offer same-agent; route to
+fresh dispatch.
+
+**When `agent_teams_available` is false, this branch does not exist.**
+Post-dispatch review stays binary — accept the result or dispatch fresh,
+exactly as it works today — and nothing about SendMessage is mentioned to
+the user.
+
 **Anti-pattern:** Dispatching an agent and immediately moving on without reviewing.
 
 → After review, return to the SKILL.md **Post-Dispatch Identity Recovery** protocol.
@@ -200,3 +235,71 @@ If a Fast Lane dispatch grows past ~60s or surfaces unexpected latency,
 that's signal to either (a) re-scope the task toward a background dispatch,
 or (b) add a timer-based notification on that specific flow — but not as
 a blanket Fast Lane rule.
+
+---
+
+## SendMessage Correction Path
+
+Everything in this section is conditional on `agent_teams_available` being
+true — the experimental Agent Teams switch
+(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) was detected at startup (see
+`references/startup-checklist.md` § Agent Teams Flag Detection). When the
+switch is absent, none of this exists.
+
+When a Fast Lane dispatch returns an almost-right result, SP can send a
+one-line correction to the same warm agent instead of re-dispatching the
+whole brief to a fresh agent. The original agent still holds the task
+context, so the fix lands without re-uploading everything.
+
+### When "same agent" vs "fresh dispatch"
+
+The decision table below is **reproduced verbatim** from its canonical
+source, `.handoffs/backlog-archive/add-sendmessage-fast-lane-correction-MERGED-0516.md`.
+That archived file is the single source of truth — do not redesign or
+re-author the table here. It is mirrored inline only so SP has it at hand
+during post-dispatch review.
+
+**When "same agent" vs "fresh dispatch"**
+
+| Situation | Route |
+|---|---|
+| Commit message convention mismatch | Same agent |
+| Formatting off by whitespace or emoji | Same agent |
+| Missed a small constraint (e.g., "don't touch file X") | Same agent |
+| Produced the wrong deliverable entirely | Fresh dispatch |
+| Agent reported an error | Fresh dispatch (likely environment issue) |
+| Correction requires significant new context | Fresh dispatch |
+
+The rule: small delta → same agent; large delta or broken state → fresh.
+
+### Wiring the correction
+
+On `[Send correction to same agent]`:
+
+1. SP calls `SendMessage(to: storedAgentId, message: "Correction: <specific
+   fix>")` — `storedAgentId` is the `agentId` captured at dispatch (see
+   § Dispatch Protocol).
+2. SP re-runs the post-dispatch review loop on the corrected result —
+   `git log --oneline -3`, `git diff HEAD~1`, check against the brief. The
+   same mandatory Bash verification as the first review; never an inference
+   from the agent's reply.
+3. SP reports the re-reviewed result and proceeds to the Acceptance Gate.
+
+The correction is one line scoped to the specific fix — not a fresh brief,
+not a multi-turn conversation. One correction, then re-review.
+
+### Graceful degradation — flag absent is the default, not an error
+
+`agent_teams_available = false` is the normal, expected state, exactly like
+`codex_available = false` or Serena being unavailable. When the switch is
+off:
+
+- The correction branch never appears in post-dispatch review.
+- No `agentId` is captured at dispatch.
+- SendMessage is never mentioned to the user.
+- Post-dispatch review is byte-for-byte today's behavior — accept the
+  result, or dispatch a fresh agent.
+
+Silent fallback, not a degraded mode and not an error. SP says nothing
+about the missing switch — the same posture SP uses for the Codex CLI and
+Serena: present when detected, invisible when not.

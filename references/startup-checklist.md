@@ -168,6 +168,26 @@ which codex >/dev/null 2>&1
                  Only educates if user explicitly invokes the subcommand.
 ```
 
+### Agent Teams Flag Detection (inline, not an agent)
+
+The same-agent post-dispatch correction path (see `references/fast-lane.md`
+§ SendMessage Correction Path) exists only when Claude Code's experimental
+Agent Teams switch — the environment variable
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` — is enabled. Detect it once at
+startup and keep it silent, exactly like the Codex check above.
+
+```
+[ -n "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ] && [ "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" != "0" ]
+  ├─ True → Set internal flag: agent_teams_available = true
+  │        Do NOT mention in orientation output
+  │        SP may offer a same-agent correction at post-dispatch review
+  │        (see references/fast-lane.md § SendMessage Correction Path)
+  └─ False / unset → agent_teams_available = false
+                     Feature never surfaces. Totally silent.
+                     Post-dispatch review is unchanged — accept or
+                     dispatch fresh, exactly as today.
+```
+
 ### Output Style Detection (handled by the floor sentinel)
 
 Output Style detection is handled by the floor sentinel's Group 8.
