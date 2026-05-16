@@ -1553,7 +1553,7 @@ Every prompt must pass all 14 checks. Fix failures before presenting.
 
 | # | Check | Fails if... |
 |---|-------|-------------|
-| 1 | Skill on line 1 from routing tree | Copied from memory or example |
+| 1 | Routing matches shape: skill prompt has the matching skill command on line 1, OR bare prompt has `routing: bare: true` + non-empty `rationale:` | Routing copied from memory or example, not derived for this task |
 | 2 | Context lists specific files | Says "read the codebase" |
 | 3 | Numbered deliverables with paths | Vague like "update the tests" |
 | 4 | Orchestration when genuine parallelism warrants it | Missing when Q1-3 indicated independent subtasks with no shared state |

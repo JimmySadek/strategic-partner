@@ -1,17 +1,34 @@
 <!-- Saved-prompt frontmatter. The routing: block is mandatory (Post-Craft -->
 <!-- Verification check 14). Use exactly ONE of the two shapes below; the    -->
 <!-- field name is `routing:` byte-for-byte (no route:/routing_decision:).   -->
-<!-- Shape A (skill chosen):  routing:\n  skill: /<name>\n  rationale: <one line> -->
-<!-- Shape B (no skill):      routing:\n  bare: true\n  rationale: <one line — why bare> -->
+<!-- Shape A — skill chosen: keep the routing: skill: block AND the          -->
+<!--   /[skill-name] launcher line.                                          -->
+<!-- Shape B — no skill (bare): replace the routing: block with the bare:    -->
+<!--   true form AND delete the /[skill-name] line entirely so the prompt    -->
+<!--   opens directly with "Read and execute…".                              -->
+<!-- Pick exactly one shape; the frontmatter block and the body must match.  -->
+
+<!-- Shape A — skill chosen: -->
 ---
 routing:
   skill: /[skill-name]
-  rationale: [one line — why this skill fits, OR replace this block with the bare: true shape]
+  rationale: [one line — why this skill fits]
 ---
 
 /[skill-name]
 
 Read and execute the implementation prompt below.
+
+<!-- Shape B — no skill (bare): use this frontmatter instead and emit NO -->
+<!-- /[skill-name] line; the body starts at "Read and execute…":         -->
+<!--                                                                      -->
+<!-- ---                                                                  -->
+<!-- routing:                                                             -->
+<!--   bare: true                                                         -->
+<!--   rationale: [one line — why no skill prefix was the right call]      -->
+<!-- ---                                                                  -->
+<!--                                                                      -->
+<!-- Read and execute the implementation prompt below.                    -->
 
 ---
 

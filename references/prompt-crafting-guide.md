@@ -13,7 +13,7 @@ Discovery Protocol → Alternatives Analysis → Routing Decision Tree → Paral
 
 Every implementation prompt must:
 
-1. **Skill resolved via the routing decision tree** (see `references/skill-routing-matrix.md` for the base matrix) — walk the scope + complexity tree (see Mandatory Pre-Craft Analysis) before writing line 1. Never default to a remembered skill name or copy one from an example. The first line must be the bare skill command — no backticks, no headers above it, no "Run:" prefix
+1. **Routing resolved via the decision tree** (see `references/skill-routing-matrix.md` for the base matrix) — walk the scope + complexity tree (see Mandatory Pre-Craft Analysis) before writing line 1. Never default to a remembered skill name or copy one from an example. For a skill prompt, the first line must be the bare skill command — no backticks, no headers above it, no "Run:" prefix. For a bare prompt (`routing: bare: true`), there is no skill line; the prompt opens directly with its content
 2. **Be fully self-contained** — the implementer has no access to the advisor conversation
 3. **Specify exactly which files to read** — before touching anything
 4. **List deliverables precisely** — files, functions, tests, CHANGELOG entries
@@ -272,7 +272,7 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 
 | # | Check | ❌ Fails If... |
 |---|-------|---------------|
-| 1 | Skill command on line 1 matches routing decision tree | Copied from memory or example |
+| 1 | Routing matches shape: skill prompt has the matching skill command on line 1, OR bare prompt has `routing: bare: true` + non-empty `rationale:` | Routing copied from memory or example, not derived for this task |
 | 2 | `<context>` lists specific files with what to look for | Says "read the codebase" or "see relevant files" |
 | 3 | `<instructions>` has numbered deliverables with file paths | Vague like "update the tests" |
 | 4 | `<orchestration>` present if genuine parallelism warrants it | Q1-3 indicated independent subtasks with no shared state but no orchestration section |
@@ -765,14 +765,14 @@ copy-paste into a new Claude Code session:
 **COPY THIS INTO NEW SESSION:**
 
 ══════════════════ START 🟢 COPY ══════════════════
-/[skill-name]
+/[skill-name]                  ← skill-shape only; omit this line entirely for a bare prompt
 
 Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execute all deliverables.
 ══════════════════= END 🛑 COPY ═══════════════════
 
 ### Requirements (both formats)
 - Label ("COPY THIS INTO NEW SESSION") is always outside the ═══ fence
-- First line inside fence: bare skill command (no backticks) — dynamic per task
+- First line inside fence: for a skill prompt, the bare skill command (no backticks) — dynamic per task. A bare prompt (`routing: bare: true`) has no skill command; its fence opens directly with the launcher's read-and-execute line.
 - Nothing else outside the fences EXCEPT the two mandatory pre-fence artifacts below — no headers, no summaries, no backticks around commands
 - When multiple prompts exist, each gets its own START/END block
 - **Post-Craft Verification Checklist is mandatory FIRST** — a visible pass/fail table rendering all 14 checks (see SKILL.md Post-Craft Verification gate). Renders as the very first output element before anything else.
