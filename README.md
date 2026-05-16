@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.6.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.7.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **What's new** — v6.6 closes the second half of a startup briefing honesty problem (v6.5 closed the first). Before this release, the advisor could render a startup row like `Serena memory ✅ reachable / Haven't checked what exists for this specific project yet` — a green checkmark in the status column right next to text admitting the underlying check (which memories exist) didn't actually run. The orientation read as internally contradictory. After v6.6, rows show ⏳ checking… while a check is in flight, ❓ not verified if the deeper check is skipped, and ✅ only when the check actually ran. Sits on top of v6.5's startup-menu fix; together they close the family of misleading startup briefings. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — v6.7 makes prompt routing auditable. Until now, the one-line note explaining why the advisor picked a particular skill (or deliberately picked none) lived only in the chat reply and vanished when the session ended — a later look back at a project's saved prompts couldn't recover the reasoning. From v6.7 on, every crafted prompt records that reasoning in the saved file itself, and a new checklist item refuses any prompt that's missing it. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 
@@ -200,7 +200,7 @@ The advisor operates through a lean core (SKILL.md) that loads reference materia
 
 - **Implementation boundary** — a safety guard in Claude Code blocks accidental source edits in advisor sessions, paired with three behavioral gates (pre-build decision checklist, return-to-planning after execution, post-dispatch recovery)
 - **Memory architecture** — stewards four persistence layers (`CLAUDE.md`, `.claude/rules/`, auto-memory, Serena memory) so decisions survive across sessions
-- **Visible prompt quality checklist** — every crafted prompt renders a pass/fail table of 13 quality checks (skill routing, file context, deliverables, verification commands, etc.) before the prompt body, so dispatches can be audited without trusting hidden reasoning
+- **Visible prompt quality checklist** — every crafted prompt renders a pass/fail table of 14 quality checks (skill routing, file context, deliverables, verification commands, the recorded routing decision, etc.) before the prompt body, so dispatches can be audited without trusting hidden reasoning
 - **Startup status check** — at session start and on each subcommand, a hook gathers a one-line snapshot (model, project conventions, memory, git state, version freshness, installed-tool picker freshness) and injects it into the advisor's context
 - **1M context advisory (Opus 4.7)** — on 1M-context models, the advisor surfaces a one-time orientation note: known Anthropic issues cause erratic behavior above ~256K tokens; consider wrapping up or triggering handoff around 250K for reliable retrieval
 

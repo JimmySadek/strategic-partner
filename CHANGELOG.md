@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [6.7.0] - 2026-05-16
 
 ### Added
 
@@ -9,6 +9,8 @@
 ### Changed
 
 - **Routing guidance now reflects what three projects of evidence actually showed** — A 220-prompt audit across three projects found the representative default is the bare prompt with no skill prefix (~82%), and that where skills are used the routing is diverse and appropriate — not a generic-skill bias. This corrects the earlier "always reach for `/sc:implement`" framing. The same evidence refuted two proposed additions (a deterministic routing-score engine and a design/visual-QA tiebreaker); the tiebreaker's supporting data turned out to be a measurement artifact. Only the auditability gap survived, which is what the routing-decision record above addresses.
+
+## [6.6.1] - 2026-05-13
 
 ### Fixed
 
