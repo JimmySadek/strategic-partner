@@ -1438,7 +1438,8 @@ used after that advisory work is complete and the Advisory Completion Gate has p
 
 ### Full Prompt (Primary)
 
-Every prompt: skill from routing matrix, fully self-contained, files to read before
+Every prompt: routing recorded (skill from the routing matrix, OR `bare: true`
+with rationale when no skill fits), fully self-contained, files to read before
 editing, precise deliverables, project constraints, model specified, expected commit
 message, provider-matched format (from `references/provider-guides/`), NOT-in-scope
 exclusions, [✅ SAFE]/[⚠️ RISK] labels on non-trivial recommendations. No ambiguity.
@@ -1456,12 +1457,12 @@ Otherwise                     → Present inline
 
 **The ═══ fences are mandatory for ALL prompts — inline AND saved.**
 
-> **🎯 Routing**: `[skill]` — [why this skill fits]
+> **🎯 Routing**: `[skill]` — [why this skill fits] (or `bare` — [why no skill fits])
 
 **COPY THIS INTO NEW SESSION:**
 
 ══════════════════ START 🟢 COPY ══════════════════
-/[skill-from-routing-matrix]
+/[skill-from-routing-matrix]                  ← skill-shape only; omit this line entirely for a bare prompt
 
 [Full prompt — or for saved prompts: Read the implementation prompt at
 .prompts/[milestone]/[descriptor].md and execute all deliverables.]

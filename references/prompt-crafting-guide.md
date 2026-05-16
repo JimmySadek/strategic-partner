@@ -164,8 +164,11 @@ What is the complexity?
     └── Generate BOTH: .scripts/ for mechanical part, .prompts/ for judgment part
 ```
 
-**After routing**: The skill command on line 1 of the prompt MUST match the
-decision tree output. If it doesn't, re-route — don't rationalize a mismatch.
+**After routing**: For a skill prompt, the skill command on line 1 MUST match
+the decision tree output. For a bare prompt (`routing: bare: true`), there is
+no skill line — the decision tree output is the bare-prompt decision itself.
+If the shape doesn't match the routing decision, re-route — don't rationalize
+a mismatch.
 
 ### Step 2: Parallelization Check (Thinking Tool)
 
@@ -732,7 +735,7 @@ question needed.
 
 ══════════════════ START 🟢 COPY ══════════════════
 ````
-/[skill-name]
+/[skill-name]                  ← skill-shape only; omit this line entirely for a bare prompt
 
 <context>
   ...
@@ -803,11 +806,11 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Vague deliverables**: "update the tests" → specify which test file, which cases
 - ❌ **Missing context**: "fix the auth bug" → specify the symptom, file, line range
 - ❌ **Assumed knowledge**: "use the same pattern as before" → spell it out
-- ❌ **Skill omission**: starting with implementation details → start with skill invocation
+- ❌ **Skill omission**: for a skill prompt, starting with implementation details instead of the skill invocation → a skill prompt opens with its skill command (a bare prompt, `routing: bare: true`, has no skill line and is exempt)
 - ❌ **Hardcoded skill names**: copying a skill name from examples, memory, or prior prompts → always look up the routing matrix (see `references/skill-routing-matrix.md`) for the best match for THIS specific task
 - ❌ **Ambiguous ordering**: "also do X" → explicitly state if X is sequential or parallel
-- ❌ **Backtick-wrapped commands**: wrapping the skill command in backticks renders as code, not executable → bare command on line 1
-- ❌ **Headers before skill command**: `# Implementation Prompt` above the command → skill command must be line 1
+- ❌ **Backtick-wrapped commands**: for a skill prompt, wrapping the skill command in backticks renders as code, not executable → emit the bare command on line 1 (does not apply to a bare prompt, which has no skill command)
+- ❌ **Headers before skill command**: for a skill prompt, `# Implementation Prompt` above the command → the skill command must be line 1 (a bare prompt has no skill line; its content opens directly)
 - ❌ **No launcher for saved prompts**: "go read .prompts/v1.5/phase1.md" → provide COPY-PASTEABLE LAUNCHER block
 - ❌ **Missing model specification**: "Spawn an agent" without specifying sonnet/opus
 - ❌ **Missing mode on agent spawns**: Background agents fail silently without mode specification → always include `mode` parameter
@@ -823,7 +826,7 @@ Resume only when they report back. Neither side skips their turn.
 - ❌ **Skipped parallelization check**: Writing prompt without answering the 4-question checklist → ALWAYS complete the parallelization check before writing
 - ❌ **Missing orchestration when genuinely parallel**: Q1-3 indicated independent subtasks with no shared state, but no `<orchestration>` section → add one. Conversely, don't force `<orchestration>` when Q1-3 fires on incidental parallelism — an unnecessary block adds noise
 - ❌ **Skipped routing decision tree**: Picking a skill from memory instead of walking the scope + complexity tree → ALWAYS route through the decision tree
-- ❌ **Skipped post-craft verification**: Presenting prompt without running the 13-item checklist → ALWAYS verify before presenting
+- ❌ **Skipped post-craft verification**: Presenting prompt without running the 14-item checklist → ALWAYS verify before presenting
 - ❌ **Intuitive routing**: "This feels like a quick-task" without walking the tree → trust the tree, not intuition
 - ❌ **Markdown in inline prompts**: Using bold, `-` bullets, or `| tables |` inside ══ fences — stripped on copy-paste → use XML tags + numbered plain text instead
 - ❌ **Missing not-in-scope**: Multi-file prompt without a `<not-in-scope>` section → executors fill silence with features; name the specific adjacent changes to leave alone
