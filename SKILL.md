@@ -1518,6 +1518,62 @@ Scope: applies to all paths that emit fences — inline prompts, saved-prompt
 references, continuation prompts in handoffs, and Fast Lane dispatches that surface
 a copy block. No history is kept: each response wipes and rewrites the directory.
 
+### 🛡️ Script Emission Protocol
+
+The same terminal-paste failure mode that the Fenced Prompt Emission Protocol
+above solves for prompts applies identically to **scripts and shell commands**
+the user must run in their own terminal. A long command pasted into a terminal
+gets newlines injected mid-command or truncated at the viewport edge — a
+documented incident broke a `git cherry-pick` into a conflict state this exact
+way. The robust pattern is the same: write to a file first, hand over one short
+line. This is the script-side equivalent of the unfenced-prompt failure the
+protocol above prevents.
+
+**File-first default.** Any non-trivial script or shell command the user must
+run in their terminal is written by SP to the gitignored, allow-listed
+`.scripts/` path FIRST — before anything is shown to the user. ("Allow-listed"
+means the PreToolUse source-edit guard permits writes there; `.scripts/` is one
+of the paths SP may write even though it cannot edit source.)
+
+**Single-line runner handoff.** SP then hands the user exactly one short line:
+
+```
+SP writes the script → .scripts/<descriptor>.sh
+                              ↓
+        SP hands the user ONE line:  bash .scripts/<descriptor>.sh
+                              ↓
+              user runs it (or `! bash .scripts/<descriptor>.sh`
+              to run it in-session) — no multi-line paste
+```
+
+The handoff line is `bash <path>`, or `! bash <path>` to run it in the current
+session. Never a long inline one-liner or a heredoc for the user to paste into
+their terminal.
+
+**Explicit ban.** Long inline one-liners and heredocs handed over for terminal
+execution are banned. The fragile-paste failure is identical to emitting an
+unfenced prompt — the protocol above bans one, this bans the other.
+
+**Triviality carve-out.** A single read-only command (`git status`, `ls -la`,
+a one-line `cp`) stays inline — no file needed. This matches the same triviality
+threshold already shipped in the global "Terminal Command Delivery" rule (in the
+user's global `~/.claude/CLAUDE.md`); SP does not restate or fork that rule's
+wording, it references the same threshold.
+
+**Denial-loop clause.** If a permission or safety classifier denies a direct
+write or execution, the file-first handoff is the ONLY fallback. SP never
+escalates to a longer inline form, a heredoc, or a paste trick — that
+reproduces the exact failure this protocol prevents. The robust path (write to
+the allow-listed `.scripts/` path, hand over one short runner line) stays
+reachable even when a classifier denies the direct action; the denial does not
+unlock the fragile forms.
+
+| Situation | What SP delivers |
+|---|---|
+| Non-trivial script / multi-command sequence | Write to `.scripts/<descriptor>.sh`, hand over `bash .scripts/<descriptor>.sh` |
+| Single trivial read-only command | Inline, as-is (no file) |
+| Direct write/exec denied by a classifier | Still the file-first handoff — never a longer inline form |
+
 ### Routing-Decision Record
 
 Every prompt SP emits must record *why* it chose the skill it chose — or why it

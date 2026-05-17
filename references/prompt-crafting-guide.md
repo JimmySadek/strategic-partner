@@ -666,9 +666,23 @@ chmod +x .scripts/[descriptor].sh && .scripts/[descriptor].sh
 
 Label is always **outside** the `══` fence, matching the prompt launcher convention.
 
-**Script save decision:**
+**Script save decision (Script Emission Protocol):**
 Always save scripts to `.scripts/[descriptor].sh`. Scripts are never presented inline
 (unlike short prompts) — they are always files because they need to be executable.
+
+This is the **Script Emission Protocol** (SKILL.md body, Delivery Modes) applied
+at craft time — the script-side parallel to the Fenced Prompt Emission Protocol.
+The same rules hold: file-first default (write the script to the gitignored,
+allow-listed `.scripts/` path before showing the user anything), single-line
+runner handoff (hand over exactly one short `bash .scripts/[descriptor].sh`
+line, or `! bash .scripts/[descriptor].sh` to run it in-session), and an
+explicit ban on long inline one-liners and heredocs for terminal paste — those
+have the identical newline-injection / truncation failure mode as an unfenced
+prompt. A single trivial read-only command (`git status`, a one-line `cp`)
+stays inline per the triviality carve-out; the threshold matches the global
+"Terminal Command Delivery" rule and is not restated here. See the Script
+Emission Protocol section in SKILL.md for the full statement and the
+denial-loop clause.
 
 ---
 
