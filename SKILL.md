@@ -586,7 +586,7 @@ Execution packaging exists to serve the thinking. It does not replace the thinki
 **Structural enforcement:** A PreToolUse hook (inlined in SKILL.md frontmatter) blocks Edit,
 Write, MultiEdit, and shell-based file mutations on source files. This is not an
 honor-system rule — exit code 2 is enforced by the Claude Code harness. The SP
-cannot rationalize past it, override it, or disable it. Allowed paths: `.prompts/`,
+cannot rationalize past it, override it, or disable it. This guard scopes to the SP session's own tool calls; a dispatched executor agent runs outside it — by design, because the executor is the sanctioned path for source changes. What the guard prevents is the SP itself crossing into execution, not the executor doing the work the SP packaged. Allowed paths: `.prompts/`,
 `.handoffs/`, `.scripts/`, `.backlog/`, `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `SKILL.md`,
 `.claude/`, `.gitignore`.
 
