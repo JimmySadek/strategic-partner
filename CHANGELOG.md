@@ -1,5 +1,16 @@
 # Changelog
 
+## [6.8.0] - 2026-05-17
+
+### Added
+
+- **The advisor now names who does each action** (actor-ownership voice rule) — at hand-off points where a step is assigned, the advisor states explicitly whether the advisor, you, or the executor performs it, instead of an ambiguous "I'll do this, then you do that." Natural second person is unchanged everywhere else.
+- **An almost-right delegated result can be corrected with one message instead of a full re-run** (flag-gated SendMessage corrections) — when a small delegated task comes back needing a minor fix (wrong commit wording, a missed constraint, formatting drift), the advisor can send a one-line correction to the same still-warm agent rather than re-dispatching the whole brief from a cold start. Gated behind Claude Code's experimental Agent Teams switch: when the switch is off (the default), behaviour is exactly as before — no new prompts, no mention of it. Same silent-fallback posture the advisor already uses for other optional tools.
+
+### Fixed
+
+- **Corrected the Pre-Send voice-checklist count** — the plain-English voice checklist gained an eighth item but a sentence still referred to "seven"; the count now matches.
+
 ## [6.7.0] - 2026-05-16
 
 ### Added

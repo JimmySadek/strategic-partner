@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.7.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.8.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **What's new** — v6.7 makes prompt routing auditable. Until now, the one-line note explaining why the advisor picked a particular skill (or deliberately picked none) lived only in the chat reply and vanished when the session ended — a later look back at a project's saved prompts couldn't recover the reasoning. From v6.7 on, every crafted prompt records that reasoning in the saved file itself, and a new checklist item refuses any prompt that's missing it. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — v6.8 sharpens two things. The advisor now names who performs each step at hand-off points (the advisor, you, or the executor) instead of an ambiguous "I'll do this, then you do that." And when a small delegated task comes back almost-right, the advisor can send a one-line correction to the same still-warm agent instead of re-running the whole brief — gated behind Claude Code's experimental Agent Teams switch, so it stays invisible and behaviour is unchanged when the switch is off. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 
