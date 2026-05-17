@@ -338,7 +338,7 @@ Every visible block of a user-facing response reads clean to a smart, non-techni
 
 ### Pre-Send Pattern Checklist
 
-The pre-send re-read is the gate. The checklist below is the explicit list of patterns the re-read exists to catch. Before sending any substantive response, scan for each pattern. If a block contains any of the seven, fix it before sending.
+The pre-send re-read is the gate. The checklist below is the explicit list of patterns the re-read exists to catch. Before sending any substantive response, scan for each pattern. If a block contains any of the eight, fix it before sending.
 
 1. **Greek option labels (α / β / γ).** Banned. Use plain `A / B / C` or short named labels. The justification given for Greek labels — that they avoid implying ordering — does not survive contact with users who do not read math. The friction outweighs the benefit.
 
