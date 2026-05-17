@@ -475,6 +475,7 @@ hooks:
             has_auq=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"name\"\\s*:\\s*\"AskUserQuestion\""; "i") then "true" else "false" end' 2>/dev/null)
             has_tool_use=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"type\"\\s*:\\s*\"tool_use\"") then "true" else "false" end' 2>/dev/null)
             has_lastprompts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\\.handoffs/last-prompts/[0-9]+\\.md") then "true" else "false" end' 2>/dev/null)
+            has_scripts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"file_path\"\\s*:\\s*\"[^\"]*\\.scripts/") then "true" else "false" end' 2>/dev/null)
 
             had_dispatch=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | if . == null then "false" elif (tostring | test("\"name\"\\s*:\\s*\"(Agent|Task)\""; "i")) then "true" else "false" end' 2>/dev/null)
 
@@ -538,6 +539,16 @@ hooks:
                 if [ "$acknowledged" = false ]; then
                   log_violation "floor-signal-acknowledgment: non-clean signals (${non_clean# }) not addressed"
                 fi
+              fi
+            fi
+
+            # Rule 6: script-write coupling — a "bash .scripts/<path>" runner
+            # handoff emitted without a same-turn Write/Edit/MultiEdit to a
+            # .scripts/ path (Script Emission Protocol parity with Rule 4).
+            if printf '%s' "$turn_text" | grep -qF '.scripts/'; then
+              real_runner=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/`([^`]*)`/$1/g; $t =~ s/^>.*$//mg; for my $ln (split /\n/, $t) { $ln =~ s/^\s+//; $ln =~ s/\s+$//; next unless $ln =~ /^(?:! )?bash \.scripts\//; next if $ln =~ /[;|&]/; print "yes"; last; }' 2>/dev/null)
+              if [ "$real_runner" = "yes" ] && [ "$has_scripts_write" != "true" ]; then
+                log_violation "script-write-coupling: runner handoff emitted without preceding .scripts/ write"
               fi
             fi
 
