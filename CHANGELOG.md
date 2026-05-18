@@ -1,10 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [6.9.0] - 2026-05-18
 
 ### Added
 
 - **Scripts and terminal commands now get the same robust hand-off prompts already got** (Script Emission Protocol) — When a session needs you to run a non-trivial script or a multi-command sequence in your terminal, the advisor now writes it to a file first and hands you exactly one short line to run it (`bash <path>`), instead of a long inline one-liner or a paste-in heredoc. Long commands pasted into a terminal get newlines injected mid-command or truncated at the edge — the identical failure the prompt hand-off already solved by writing the prompt to a file before showing it. A single trivial read-only command (`git status`, a one-line `cp`) still stays inline. If a permission prompt blocks a direct write or run, the file-first hand-off is the only fallback — the advisor never falls back to a fragile longer inline form, which is exactly what reproduces the original breakage.
+- **A quiet self-check flags it when that hand-off discipline is skipped** (script-write-coupling check) — if a runnable command is handed over without having been written to a file first, the advisor's end-of-turn self-check records a note about it for later review. It mirrors the existing check that does the same for prompt hand-offs. It only logs a note — it never blocks the turn or stops the command.
+- **Clearer scope on the source-edit safety guard** — the guard that stops the advisor from editing source code itself governs only the advisor's own actions; a delegated executor is the intended way source changes get made and runs outside that guard by design. This is a one-sentence clarification of what was always true, not a loosening of the rule.
 
 ## [6.8.0] - 2026-05-17
 

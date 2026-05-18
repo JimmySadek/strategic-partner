@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.8.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.9.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **What's new** — v6.8 sharpens two things. The advisor now names who performs each step at hand-off points (the advisor, you, or the executor) instead of an ambiguous "I'll do this, then you do that." And when a small delegated task comes back almost-right, the advisor can send a one-line correction to the same still-warm agent instead of re-running the whole brief — gated behind Claude Code's experimental Agent Teams switch, so it stays invisible and behaviour is unchanged when the switch is off. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — v6.9 extends the robustness the advisor already had for hand-off prompts to scripts and terminal commands: anything non-trivial gets written to a file first and handed to you as one short line to run, instead of a long fragile paste that terminals mangle. A quiet self-check flags it if that discipline is skipped, and one sentence clarifies that the source-edit safety guard governs the advisor's own actions — a delegated executor is the intended path and runs outside it. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 
