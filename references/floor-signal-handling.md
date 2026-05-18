@@ -407,6 +407,59 @@ full table; orientation only flags actionable items.
 
 ---
 
+## Pattern: oldschema=N (migration offer)
+
+**Trigger:** Floor sentinel emits `oldschema=N` (N≥0) — the count of
+`.backlog/*.md` items still written under the pre-v6.4 backlog schema
+(see `references/floor.md` § Group 4 for the detection; the predicate is
+the canonical one from `.scripts/migrate-backlog.sh`, referenced not
+restated).
+
+This replaces the old soft startup-prose trigger. Previously the
+migration offer was model-behavior prose chained to the orientation
+flow; continuation-heavy sessions abbreviated past it, so it had zero
+field adoption. The offer is now driven off this deterministic floor
+field, which the model acts on reliably.
+
+**Surface in orientation:**
+
+| Condition | What SP does |
+|---|---|
+| `oldschema=0` | Silent. Steady state — say nothing. |
+| `oldschema=N>0` AND `.handoffs/migration-deferred-v6.4.flag` absent | Surface the existing one-time migration prompt via `AskUserQuestion` — options **Migrate now** / **Preview** / **Skip**, unchanged from § Backlog Auto-Migration in SKILL.md. |
+| `oldschema=N>0` AND the defer flag present | Quiet one-line banner only (the existing banner), NOT the full prompt: `N items in old schema; run the migration script to upgrade`. |
+
+The prompt, the defer-flag mechanism, the banner copy, and
+`.scripts/migrate-backlog.sh` are reused exactly as-is — only the
+trigger moved from startup prose to this floor field.
+
+**Scope and disclosure:**
+
+- The offer is surfaced only when SP runs in the project (SP-session
+  scoped) — it is not a global background migration.
+- The count covers old-schema **frontmatter** items only.
+  Frontmatter-less `.backlog/*.md` files are a separately-tracked,
+  out-of-scope blind spot — the prompt/banner must not imply
+  "migration handled" generally.
+
+**No dispatch.** Migration is the user's choice via the prompt; SP
+never auto-migrates.
+
+**Rule-5 coverage — intentionally not extended (read this):** the Stop
+rhythm enforcer's rule 5 (`floor-signal-acknowledgment`) is the runtime
+backstop that catches silently-ignored actionable floor signals.
+`oldschema` is deliberately **not** added to rule 5's covered-signal set
+in this change. This is not an oversight. The reliable handling of this
+signal rests on the floor + orientation path, which is empirically
+verified (real BAM-MVP transcripts show the model acts on actionable
+floor signals at a high rate, versus the prior prose trigger's 0%).
+Extending the audit backstop to `oldschema` is a tracked hardening
+follow-up (`.backlog/harden-migration-signal-stop-rule-backstop.md`),
+not part of this scope. A future reader should not conclude rule-5
+coverage was forgotten.
+
+---
+
 ## When to Add a New Pattern
 
 Add a new pattern entry when:

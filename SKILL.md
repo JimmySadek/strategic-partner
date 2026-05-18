@@ -105,7 +105,7 @@ hooks:
               skill_version=""
             fi
             [ -z "$skill_version" ] && skill_version="unknown"
-            floor_schema_version="v4"
+            floor_schema_version="v5"
             rule_schema_version="v1"
 
             # Portable timeout (gtimeout on macOS coreutils, timeout on Linux; empty if neither)
@@ -252,6 +252,7 @@ hooks:
               if [ -n "$cwd" ] && [ -d "$cwd/.backlog" ]; then
                 backlog_count=$(ls "$cwd/.backlog/"*.md 2>/dev/null | wc -l | tr -d ' ')
                 printf 'g4.backlog_count=%s\n' "${backlog_count:-0}"
+                oldschema_count=0
                 for f in "$cwd/.backlog/"*.md; do
                   [ -f "$f" ] || continue
                   bn=$(basename "$f" .md)
@@ -259,9 +260,21 @@ hooks:
                   status_field=$(awk '/^-{3}$/{c++; next} c==1 && /^status:/{sub(/^status:[[:space:]]*/,""); print; exit}' "$f" 2>/dev/null | head -c 30)
                   trigger=$(awk '/^-{3}$/{c++; next} c==1 && /^trigger:/{sub(/^trigger:[[:space:]]*/,""); print; exit}' "$f" 2>/dev/null | head -c 100)
                   printf 'g4.backlog_item name=%s status=%s title=%s\n' "$bn" "${status_field:-unknown}" "${title:-unknown}"
+                  # Old-schema detection — canonical predicate, byte-identical
+                  # to .scripts/migrate-backlog.sh (frontmatter region only).
+                  if awk 'BEGIN{infm=0} /^---$/{infm=!infm; next} infm && /^(status|trigger|type|priority|severity|added): /{print "MATCH"; exit}' "$f" 2>/dev/null | grep -q MATCH; then
+                    # Exclude old-schema closed-state markers — migrate-backlog.sh
+                    # treats status: completed|stale|superseded as closed and
+                    # refuses to migrate them, so they must not be nagged.
+                    if ! awk 'BEGIN{infm=0} /^---$/{infm=!infm; next} infm && /^status:[[:space:]]+(completed|stale|superseded)[[:space:]]*$/{print "C"; exit}' "$f" 2>/dev/null | grep -q C; then
+                      oldschema_count=$((oldschema_count + 1))
+                    fi
+                  fi
                 done
+                printf 'g4.oldschema=%s\n' "${oldschema_count:-0}"
               else
                 printf 'g4.backlog_count=0\n'
+                printf 'g4.oldschema=0\n'
               fi
             } >> "${RESULTS}.tmp" 2>/dev/null
 
@@ -411,6 +424,8 @@ hooks:
             [ -z "$findings" ] && findings=0
             backlog=$(grep '^g4.backlog_count=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
             [ -z "$backlog" ] && backlog=0
+            oldschema=$(grep '^g4.oldschema=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+            [ -z "$oldschema" ] && oldschema=0
             git_summary=$(grep '^g5.status=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}' | awk '{print $1}')
             [ -z "$git_summary" ] && git_summary=missing
             version_summary=$(grep '^g6.diff=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
@@ -426,8 +441,8 @@ hooks:
 
             touch "$MARKER"
 
-            printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s. Full results: %s\n' \
-              "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$RESULTS"
+            printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s oldschema=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s. Full results: %s\n' \
+              "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$oldschema" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$RESULTS"
 
             exit 0
           timeout: 10000
@@ -2107,17 +2122,22 @@ always the answer.
 ### Floor-Signal Handling
 
 The startup-floor sentinel emits an `SP-FLOOR-COMPLETE` line at session
-entry and on subcommand transitions, with nine status fields. The hook
+entry and on subcommand transitions, with ten status fields. The hook
 fires on every UserPromptSubmit event but exits early once the floor has
 run for a given scope (session, cwd, skill version, prompt class), so the
 line is emitted only when SP enters a new scope — not on every user turn.
-Five of the nine fields are actionable when non-clean (the model MUST
+Six of the ten fields are actionable when non-clean (the model MUST
 either dispatch a remediation agent or explicitly acknowledge with a
 reason for deferring). The remaining four are informational —
 `findings` and `backlog` surface counts; `output_style` always renders
 a permanent status row in orientation. Silent ignores of actionable
 signals are caught at the runtime layer by the Stop rhythm enforcer's
-rule 5 (`floor-signal-acknowledgment`).
+rule 5 (`floor-signal-acknowledgment`) — with one deliberate exception:
+the `oldschema` field is intentionally not in rule 5's covered set in
+this release (its reliable handling rests on the empirically-verified
+floor + orientation path; extending the backstop is a tracked hardening
+follow-up). See `references/floor-signal-handling.md` § Pattern:
+oldschema.
 
 | Field          | Non-clean values    | Required action                                                       |
 |----------------|---------------------|-----------------------------------------------------------------------|
@@ -2128,6 +2148,7 @@ rule 5 (`floor-signal-acknowledgment`).
 | `routing`      | `missing`, `stale`  | Dispatch background Opus 4.7 matrix-build agent; notify on completion |
 | `findings`     | (count, always N≥0) | Informational; surface in orientation per existing protocol           |
 | `backlog`      | (count, always N≥0) | Informational; check triggers per existing protocol                   |
+| `oldschema`    | `N>0`               | Surface the migration offer (prompt if no defer flag; quiet banner if the defer flag is set) per `references/floor-signal-handling.md` § Pattern: oldschema |
 | `output_style` | (always present)    | Render always-visible status row; ✅ active or ⚠️ not active + activation hint per `references/floor-signal-handling.md` |
 
 `memory=missing` is held to a higher bar than `routing=missing` — Serena
@@ -2344,11 +2365,15 @@ labels schema, file format, auto-migration): `references/backlog-cycle.md`.
 - **Promotion signals** — phrases like "park this", "for later", "not now",
   "someday" move an inbox finding to a `.backlog/` item with `state: parked`
   (or `state: clarified` if the user has already scoped it).
-- **Old-schema detection** — at startup, scan `.backlog/*.md` for old-schema
-  signatures (`status:`, `trigger:` prose, top-level `type:` / `priority:` /
-  `severity:` / `added:`). If any found and `.handoffs/migration-deferred-v6.4.flag`
-  doesn't exist, surface a one-time migration prompt (see § Backlog
-  Auto-Migration below).
+- **Old-schema detection** — the floor sentinel emits an `oldschema=N`
+  field on every SP session entry / subcommand transition (the count of
+  pre-v6.4-schema items, detected via the canonical predicate in
+  `.scripts/migrate-backlog.sh`). When `oldschema>0` and
+  `.handoffs/migration-deferred-v6.4.flag` doesn't exist, surface the
+  one-time migration prompt (see § Backlog Auto-Migration below). The
+  trigger is the floor field, not a startup prose step — so the offer
+  is reliable even in continuation-heavy sessions. Offered whenever SP
+  runs in the project; it is not a global background migration.
 - **Serena enhancement** — when Serena is available, SP may also maintain a
   compact `project_backlog_index` memory for cross-session awareness. When
   unavailable, `.backlog/` files are fully sufficient. SP never blocks on
@@ -2356,13 +2381,24 @@ labels schema, file format, auto-migration): `references/backlog-cycle.md`.
 
 #### 📥 Backlog Auto-Migration (v6.4 install upgrade)
 
-After the existing startup backlog scan completes, SP also detects items
-written under the old (pre-v6.4) backlog schema and offers to migrate them.
+Whenever SP runs in a project, the floor sentinel reports how many
+`.backlog/` items are still written under the old (pre-v6.4) schema, and
+SP offers to migrate them. The trigger is the floor's `oldschema` field
+(emitted on session entry and subcommand transitions), not a startup
+prose step — so the offer surfaces reliably, not only on a remembered
+first-run scan.
 
-**Detection.** An item is old-schema if its frontmatter contains any of:
-`status:`, `trigger:` as prose, top-level `type:`, `priority:`, `severity:`,
-or `added:`. The detection signal is described in full in
-`references/backlog-cycle.md`.
+**Detection.** An item is old-schema if, inside its frontmatter region,
+it carries any of `status:`, `trigger:` as prose, top-level `type:`,
+`priority:`, `severity:`, or `added:`. This is the canonical predicate
+defined in `.scripts/migrate-backlog.sh` and surfaced as the floor's
+`oldschema` count (see `references/floor.md` § Group 4 and
+`references/backlog-cycle.md`); it is referenced, not restated as
+divergent prose. The count covers old-schema **frontmatter** items only —
+frontmatter-less `.backlog/` files are a separately-tracked, out-of-scope
+blind spot, so the prompt and banner describe what they cover as
+"old-schema frontmatter items" and do not imply migration is handled
+generally.
 
 **Behavior:**
 

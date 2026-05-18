@@ -87,6 +87,17 @@ frontmatter. Detects:
 - **`g4.backlog_count`** — count of `.backlog/*.md` files
 - **`g4.backlog_item`** — one line per backlog item with `name`, `status`,
   `title` extracted from YAML frontmatter
+- **`g4.oldschema`** — count of `.backlog/*.md` items written under the
+  pre-v6.4 schema and not closed. Detection uses the canonical old-schema
+  predicate defined in `.scripts/migrate-backlog.sh` (a frontmatter-region
+  match on `status:` / `trigger:` / `type:` / `priority:` / `severity:` /
+  `added:`); items carrying a closed-state `status:` marker
+  (`completed` / `stale` / `superseded`, which that script also refuses to
+  migrate) are excluded. The count is computed inside the existing
+  `.backlog/` loop — no extra file pass. `oldschema=0` when there are no
+  old-schema items, no `.backlog/` directory, or any item is unparseable
+  (fail-open). The predicate is referenced, not restated as divergent
+  prose; the script remains the single source of truth.
 
 ### Group 5 — Git State
 
@@ -203,7 +214,7 @@ stdout (which Claude Code injects into the model's context for the
 current turn):
 
 ```
-SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME. Full results: /tmp/sp-floor-${KEY}.txt
+SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N oldschema=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME. Full results: /tmp/sp-floor-${KEY}.txt
 ```
 
 The `claudemd_band` field mirrors the scanner's S1 size taxonomy (see Group 2
@@ -249,14 +260,17 @@ The hook uses two stable identifiers:
 Both keys are deterministic for a given session — the same prompt
 shape in the same session always produces the same KEY/RELAY_KEY pair.
 
-The schema versions (`floor_schema_version="v4"`,
+The schema versions (`floor_schema_version="v5"`,
 `rule_schema_version="v1"`) bump when the protocol's emitted format
 changes in a way that requires Claude Code to invalidate the cached
 marker. Bumping the schema version forces the next prompt to re-run the
 floor / re-read the violations log. The `v4` bump landed in v6.3.0 to
-add the Group 8 Output Style field; pre-upgrade markers are invalidated
-on first prompt of the new release so all sessions pick up the new
-field cleanly.
+add the Group 8 Output Style field; the `v5` bump adds the Group 4
+`oldschema` field so existing sessions re-run the floor and pick up the
+new field. The version is a sha256 input to `KEY` only — no consumer
+branches on its literal value, so the bump is purely a cache-invalidation
+signal. Pre-upgrade markers are invalidated on first prompt of the new
+release so all sessions pick up the new field cleanly.
 
 ---
 

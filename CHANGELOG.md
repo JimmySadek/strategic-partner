@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- **Old backlog items now get the upgrade offer reliably, instead of being silently skipped** — If you have backlog items saved in the pre-v6.4 format, the advisor offers a one-time, opt-in migration to the current format. That offer used to depend on the advisor remembering to run a check during start-up; in real usage it almost never fired, so projects quietly accumulated dozens of un-upgraded items. The offer is now driven by the always-on session check (the same lightweight check that already reports your project's state at session entry), so it surfaces every time the advisor runs in a project that has old-format items — not only on a remembered first scan. Nothing about the migration itself changed: same opt-in prompt (Migrate now / Preview / Skip), same one-time "skip" that turns it into a quiet one-line reminder, same script. Only the trigger became reliable. The offer covers items that have old-format frontmatter (the small settings block at the top of each item file); backlog files with no frontmatter at all remain a separate, known gap and are not implied to be handled.
+
 ## [6.9.0] - 2026-05-18
 
 ### Added
