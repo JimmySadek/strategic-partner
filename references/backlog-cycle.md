@@ -69,16 +69,21 @@ Eleven transitions; events explicit; decision-maker named on each row.
 | 🔍 clarified | Triage decides "defer + set trigger" | ⏳ parked | User |
 | 🔍 clarified | Triage decides "do now" | 🔄 active | User |
 | ⏳ parked | Trigger condition fires | 🔄 active | SP-detected → user confirms |
-| 🔄 active | Work ships (see below) | ✅ closed (`completed`) | SP-detected → user confirms |
+| (any non-closed: `inbox`/`clarified`/`parked`/`active`) | Work ships (see below) | ✅ closed (`completed`) | SP-detected → user confirms |
 | (any non-closed) | Decision: not pursuing | ✅ closed (`not-planned`) | User |
 | (any non-closed) | Decision: covered elsewhere | ✅ closed (`duplicate`) | User |
 | (any non-closed) | Decision: replaced by new approach | ✅ closed (`superseded`) | User |
 
 **"Work ships" defined.** A commit lands on `main` that implements the
-item's scope. SP detects by scanning recent commit messages and diffs for
-references to the item's filename or title; on match, SP surfaces a
-confirmation prompt to close. Release tagging is NOT required — the commit
-landing is enough.
+item's scope. A commit landing is enough — release tagging is NOT required.
+SP detects by scanning, within the scan window, **both** the commit text
+(subject **and** body) **and** the commit diff (changed file paths **and**
+hunk content) — plus any release `CHANGELOG` entry inside the window —
+against the item's title, filename slug, labels, origin, and progress. On a
+confident match SP surfaces a confirmation prompt to close. Detection never
+auto-closes; the user confirms every close. (The shipped-work scan in
+`/strategic-partner:backlog` Step 3.5 is the single implementation of this;
+the release process invokes the same scan.)
 
 **Reopen rule.** Closed → active is not in the v1 transition set. If a
 closed item needs reopening, file a NEW item that names the closed one in
@@ -86,6 +91,38 @@ its `origin:` field (example: `origin: "Successor to
 .handoffs/backlog-archive/fix-foo-bar.md — first attempt did not resolve the
 underlying issue"`). A formal reopen transition may be added later if a real
 need emerges.
+
+### 🧪 Shipped-work scan — validation
+
+The shipped-work scan (Step 3.5 in `/strategic-partner:backlog`) is
+validated against **real tracked git history plus documented synthetic edge
+checks** — not committed fixture files. (`.backlog/`, `.handoffs/`, and
+`tests/` are gitignored, so synthetic example items cannot be durably
+tracked; the procedure and the pass thresholds are tracked here instead, and
+the run is a reproducible dry-run.)
+
+**Procedure — run and report:**
+
+1. **Recall on the real closed set.** Run the scan over `v6.7.0..HEAD` plus
+   commit `49c2cff`. It MUST surface 100% of the items archived in the
+   2026-05-18 session (`.handoffs/backlog-archive/*-DONE-0518.md`, 4 items)
+   as close-candidates. Report which matched and on what evidence.
+2. **Noise bound.** Across the current open `.backlog/` items (~22), no more
+   than 3 false co-surfaced candidates per scan. Report the count and which.
+3. **No-repeat.** Add a dismissed pair, re-run, confirm it does not
+   resurface.
+4. **Synthetic edge checks** on a throwaway scratch branch (delete after; do
+   not commit fixtures): (a) a reverted commit → NO close candidate; (b) a
+   partial-scope commit → "update progress (partial)", NOT "close
+   completed"; (c) a generic docs commit with a bland subject → still caught
+   via changed paths / diff, not subject text.
+
+**Acceptance gate.** The scan is correct only if recall on the 4-item
+closed set is 100% AND false co-surfaced ≤ 3 AND no-repeat holds AND all
+three edge cases behave as specified. If recall < 100% or noise > 3, the
+deterministic feature weighting is iterated until it holds — the optional
+semantic escape hatch is not a substitute for a correct deterministic
+matcher.
 
 ---
 

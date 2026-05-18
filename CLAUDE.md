@@ -63,7 +63,9 @@ Every push to remote MUST go through this process.
 (README, CLAUDE.md, comments, internal references — no functional changes to SKILL.md
 behavior, hooks, commands, or references that affect runtime), the push may skip version
 bump, tag, and GitHub Release. Users receive the fixes silently on next update.
-This avoids notification noise for trivial changes.
+This avoids notification noise for trivial changes. The backlog close-out scan
+(Step 1a) is **not** skipped by this exception — a docs-only commit can still ship
+a backlog item's scope.
 
 ### 1. Fetch & Compare
 
@@ -73,6 +75,17 @@ git log origin/main..HEAD --oneline    # commits to push
 git log HEAD..origin/main --oneline    # commits we're missing
 git diff origin/main..HEAD --stat      # files changed
 ```
+
+### 1a. Backlog close-out scan
+
+Run the shared shipped-work scan against the release range
+(`<previous-tag>..HEAD`, or `<last-push>..HEAD` for a docs-only push) to
+catch backlog items whose scope shipped in this batch. This runs **even when
+the docs-only exception applies** — a documentation commit can still close an
+item. Algorithm and per-candidate confirmation live in
+`references/backlog-cycle.md` ("Work ships" + the shipped-work scan
+validation) and `/strategic-partner:backlog` Step 3.5. Surface candidates for
+confirmation only; never auto-close.
 
 ### 2. Classify the Bump
 
