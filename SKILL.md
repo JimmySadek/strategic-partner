@@ -2171,7 +2171,7 @@ with an `AskUserQuestion` call — never a prose question. Contextual options:
 
 ### v6.0 Context-File Policy
 
-The Strategic Partner ships a unified policy for `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` files, enforced by the `/strategic-partner:context-file-scan` command (16 rules — 8 structural + 8 behavioral).
+The Strategic Partner ships a unified policy for `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` files, enforced by the `/strategic-partner:context-file-scan` command (17 rules — 9 structural + 8 behavioral).
 
 **Hybrid Pattern** — the recommended file shape:
 

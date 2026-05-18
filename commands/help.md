@@ -32,7 +32,7 @@ Key behaviors:
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.5) |
-| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` (16 patterns, interactive or report mode) |
+| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` (17 patterns, interactive or report mode) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work |
 
 ## Usage

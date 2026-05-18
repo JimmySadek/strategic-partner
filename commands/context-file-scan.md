@@ -22,8 +22,8 @@ headings.
 
 Runs `.scripts/context-file-scan/scan.sh` against a target context file,
 discovers companion files via depth-1 pointer-following from the file's
-Behavioral Guardrails section, runs the locked 16-rule detection set
-(8 structural + 8 behavioral), and renders findings using the policy
+Behavioral Guardrails section, runs the locked 17-rule detection set
+(9 structural + 8 behavioral), and renders findings using the policy
 C6 templates from `.handoffs/claudemd-policy-v1-draft-0504.md` Part C.
 
 The scanner is **always advisory**. Per policy C2, the scanner reports;
