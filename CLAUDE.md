@@ -143,6 +143,22 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    (before enforcement was added), document them as expected baseline and
    verify new transcripts are clean.
 
+7. **Frontmatter-hook lint (v6.10.0+)**: run the fail-closed check that no
+   literal triple-dash (three or more hyphens, `---`) appears anywhere inside
+   the `SKILL.md` YAML frontmatter except the two delimiter lines. A stray
+   triple-dash there — even in an awk pattern or a comment — is read by the
+   YAML parser as a document separator, truncating the inline session hook
+   and blocking every new session:
+   ```
+   bash tests/lint-frontmatter-hook.sh
+   ```
+   Exit 0 = clean. Exit 1 = a triple-dash was found (or the frontmatter is
+   malformed/unterminated); address before proceeding. Same blocking posture
+   as the transcript lint above — a mechanical violation blocks the release.
+   This guards the session-breaking incident introduced by commit `c53d530`
+   and missed by its first fix `fd6dff7`, where every human and agent review
+   layer inspected the change and missed the invariant.
+
 **Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. See the Provisional Guard *Don't use `${CLAUDE_*}` env vars in hook commands* at the bottom of this file; `claudedocs/INCIDENTS.md` has the v5.4.0→v5.4.1 archaeology. Layer 1 (the PreToolUse source-edit guard, predates v5.14.0) and Layer 3 (the release-time transcript lint) are the only enforcement layers in play; Layer 2 (a runtime PostToolUse / Stop validator family that was prototyped during v5.14.0) was pulled before release after the hook surface proved fragile, so the transcript lint is the sole post-execution backstop for the AUQ, tool-availability, and fence-write-coupling rules.
 
 ### 2b. Codex Pre-Release Review (Mandatory for non-docs-only pushes)
