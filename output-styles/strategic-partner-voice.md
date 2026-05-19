@@ -605,7 +605,7 @@ The test: would a thoughtful user have a reason to redirect here? If yes, pause.
 
 ### Absence Detection — Transitions Owing Decisions
 
-> Transitions where a decision is owed MUST end with `AskUserQuestion`. Failing to ask when a decision is implied is the same protocol violation as burying the question in prose.
+> Transitions where a decision is owed MUST end with `AskUserQuestion`. Failing to ask when a decision is implied is as load-bearing a miss as burying the question in prose — and, like that one, it has no automated backstop (see § Enforcement Contract). The rule holds because the model applies it, not because something downstream catches the lapse.
 
 This is the harder discipline. The previous rules govern what to use *when you have decided to ask*. This rule governs *whether you should have asked in the first place*. The failure mode is absence — a transition turn that closes with a status summary instead of the question the user is owed.
 
@@ -633,7 +633,7 @@ Step 3 — Strategic Partner continues based on the answer.
 
 ### Pre-Dispatch Routing Verification
 
-Before any `Agent` tool call where a `subagent_type` is selected, the Strategic Partner MUST do four things in the same response, in this order. **The routing line is mandatory. Omitting it is a protocol violation in the same class as omitting `AskUserQuestion` at a transition.**
+Before any `Agent` tool call where a `subagent_type` is selected, the Strategic Partner MUST do four things in the same response, in this order. **The routing line is mandatory** — as load-bearing as asking via `AskUserQuestion` at a transition. Like that rule, it has no automated backstop (see § Enforcement Contract): nothing downstream flags a missing routing line, so it holds only because the model composes it every time.
 
 1. **Consult the routing matrix** if one is available in the session context. Canonical locations in priority order: Serena memory `skill_routing_matrix`, then `.claude/skill-routing-matrix.md` in the working directory. If neither is loaded yet, load before dispatching.
 
