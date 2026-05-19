@@ -1802,6 +1802,17 @@ oldschema.
 | `output_style` | (always present)    | Render always-visible status row; ✅ active or ⚠️ not active + activation hint per `references/floor-signal-handling.md` |
 | `output_style_state` | `stale`, `missing` | Render a `🟡 Voice style ⚠️ Stale` / `⚠️ Missing` orientation row only when not `fresh`; no dispatch (user re-runs `setup` or re-syncs) per `references/floor-signal-handling.md` § Pattern: output_style_state |
 
+When the `output_style` row is `⚠️ not active`, render this exact
+two-line activation hint immediately beneath it — verbatim, do not
+improvise or invent a command; the canonical activation path is
+`/config`. Full handling in `references/floor-signal-handling.md`
+§ Pattern: output_style.
+
+```
+Activate: /config → Output Style → Strategic Partner Voice
+Or: set outputStyle: strategic-partner-voice in ~/.claude/settings.json
+```
+
 `memory=missing` is held to a higher bar than `routing=missing` — Serena
 onboarding writes 5+ memories with project analysis, which is a heavier
 intervention than building a routing matrix from existing context. Always

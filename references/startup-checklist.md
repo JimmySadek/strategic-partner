@@ -564,7 +564,14 @@ and ask what the user wants to work on.
   floor signal does not carry `g8.output_style` — older sentinel during
   the transition — orientation falls back to a direct settings-file
   read using the same precedence order. Remove the fallback after 1-2
-  release cycles past v6.3.)
+  release cycles past v6.3.) The "two-line activation hint" above is
+  this exact text — render it verbatim, do not improvise or invent a
+  command; the canonical activation path is `/config`:
+
+  ```
+  Activate: /config → Output Style → Strategic Partner Voice
+  Or: set outputStyle: strategic-partner-voice in ~/.claude/settings.json
+  ```
 - 🟡 **Voice style freshness row** (only when not fresh): read
   `g8.output_style_state` from the floor signal. When it is `stale` or
   `missing`, render a row beneath the Output Style row —
