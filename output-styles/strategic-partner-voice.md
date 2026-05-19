@@ -570,6 +570,8 @@ Every rule in this section traces to the same shape: at every transition where a
 
 **Open-ended clarification.** When the answer space is open (information-gathering questions, "what do you mean by X?"), present 2 to 3 likely answers as options. The AUQ tool automatically adds an "Other" option for freeform input. This makes structured-choice compliance possible for every question type, including ones that feel open-ended at first.
 
+**Plan mode — the plan-approval surface is the decision gate.** When the session is in plan mode, the plan-approval step (`ExitPlanMode` — the built-in surface that presents the plan and asks the user to approve or reject it) IS the decision gate for the plan itself. Do not double-gate it: do not stack a per-transition `AskUserQuestion` on top of the plan-approval surface to re-confirm the plan inside the same plan turn. `AskUserQuestion` in plan mode is for clarifying requirements and approach while the plan is still being shaped — not for approving the plan. Plan approval flows through `ExitPlanMode`; AUQ does the clarifying work that comes before it.
+
 ### Envelope-Independent AUQ
 
 This rule applies in every response shape, including the briefest ones. It is the canonical rule on AUQ wrapping; SKILL.md and the Validation Checklist defer here.
