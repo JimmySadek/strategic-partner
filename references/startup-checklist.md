@@ -69,7 +69,7 @@ inline Bash check (not an agent) — it runs in ~15ms when everything is in sync
 # symlink back to the source commands/ in the install dir.
 SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
 if [ -n "$SP_ANY_CMD" ]; then
-  SP_SKILL_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
+  SP_SKILL_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
   CMD_COUNT=$(ls "${SP_SKILL_DIR}/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
   LINK_COUNT=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | wc -l | tr -d ' ')
   [ "$CMD_COUNT" = "$LINK_COUNT" ] || bash "${SP_SKILL_DIR}/setup"
@@ -218,7 +218,7 @@ returning one version string — agent overhead adds fragility with no benefit.
 # Resolve SP install dir (same pattern as self-repair check)
 SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
 if [ -n "$SP_ANY_CMD" ]; then
-  SP_SKILL_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
+  SP_SKILL_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
   local_version=$(grep '^version:' "${SP_SKILL_DIR}/SKILL.md" | head -1 | awk '{print $2}')
   remote_version=$(curl --max-time 8 -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -oE '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
   if [ -z "$remote_version" ]; then
@@ -659,7 +659,7 @@ then proceed normally in degraded mode.
   if [ "${SP_HANDOFF:-0}" != "1" ] && [ -z "${NO_SCAN_STARTUP:-}" ]; then
     SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
     [ -n "$SP_ANY_CMD" ] || return 0
-    SP_SKILL_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
+    SP_SKILL_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
     [ -f "${SP_SKILL_DIR}/CLAUDE.md" ] || return 0
     SCAN_JSON=$(bash "${SP_SKILL_DIR}/.scripts/context-file-scan/scan.sh" \
       --file "${SP_SKILL_DIR}/CLAUDE.md" --release-gate \

@@ -12,7 +12,7 @@ fi
 
 SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
 if [ -n "$SP_ANY_CMD" ]; then
-  SP_SKILL_PATH=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")/SKILL.md
+  SP_SKILL_PATH=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")/SKILL.md
   skill_version=$(grep '^version:' "$SP_SKILL_PATH" 2>/dev/null | head -1 | awk '{print $2}')
 else
   SP_SKILL_PATH=""

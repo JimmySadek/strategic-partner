@@ -87,7 +87,7 @@ hooks:
           command: |
             SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
             if [ -n "$SP_ANY_CMD" ]; then
-              SP_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
+              SP_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
               F="$SP_DIR/hooks/floor-check.sh"
               [ -r "$F" ] && exec bash "$F"
             fi
@@ -107,7 +107,7 @@ hooks:
 
             SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
             if [ -n "$SP_ANY_CMD" ]; then
-              SP_SKILL_PATH=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")/SKILL.md
+              SP_SKILL_PATH=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")/SKILL.md
               skill_version=$(grep '^version:' "$SP_SKILL_PATH" 2>/dev/null | head -1 | awk '{print $2}')
             else
               skill_version=""

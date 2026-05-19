@@ -4,7 +4,7 @@ set -euo pipefail
 # ── Native Windows fail-loud detection ──────────────────────────────────
 # Per OS-compatibility audit (2026-04-22) decision D: SP is WSL-first on
 # Windows. Native Git Bash / MSYS2 / Cygwin can silently downgrade ln -s
-# to file copies, breaking the readlink -f-based install-dir resolution.
+# to file copies, breaking the symlink-based install-dir resolution.
 # Require explicit opt-in to avoid silent-failure cascades.
 case "${OSTYPE:-}" in
     msys*|cygwin*|MINGW*)

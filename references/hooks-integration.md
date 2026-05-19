@@ -74,7 +74,7 @@ Two patterns work in place of it:
    ```bash
    SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
    if [ -n "$SP_ANY_CMD" ]; then
-     SP_SKILL_DIR=$(dirname "$(dirname "$(readlink -f "$SP_ANY_CMD")")")
+     SP_SKILL_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
      # ... use $SP_SKILL_DIR ...
    fi
    ```
@@ -85,11 +85,14 @@ Two patterns work in place of it:
    `bash script.sh` invocation would hit an error. This is the same pattern
    used by `references/startup-checklist.md`.
 
-   `readlink -f` resolves the symlink chain to the actual command file path;
-   two `dirname` calls walk up from `commands/some.md` to the install dir. This
-   works on all install paths (skillshare, git clone, alternate dirs) because
-   `setup` always creates the symlinks at that canonical `$HOME/.claude/commands/strategic-partner/`
-   location.
+   The `perl -MCwd=abs_path` call resolves the symlink chain to the actual
+   command file path; two `dirname` calls walk up from `commands/some.md` to
+   the install dir. `perl` is base on every macOS and Linux, so this works
+   without GNU coreutils — unlike `readlink -f`, whose `-f` flag is a GNU
+   extension that stock/older macOS `readlink` lacks. This works on all
+   install paths (skillshare, git clone, alternate dirs) because `setup`
+   always creates the symlinks at that canonical
+   `$HOME/.claude/commands/strategic-partner/` location.
 
 > **Historical note:** CHANGELOG v5.4.1 documents the discovery that
 > `${CLAUDE_SKILL_DIR}` is not honored by Claude Code; the PreToolUse guard was
