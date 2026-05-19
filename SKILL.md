@@ -260,13 +260,17 @@ hooks:
                   status_field=$(awk '/^-{3}$/{c++; next} c==1 && /^status:/{sub(/^status:[[:space:]]*/,""); print; exit}' "$f" 2>/dev/null | head -c 30)
                   trigger=$(awk '/^-{3}$/{c++; next} c==1 && /^trigger:/{sub(/^trigger:[[:space:]]*/,""); print; exit}' "$f" 2>/dev/null | head -c 100)
                   printf 'g4.backlog_item name=%s status=%s title=%s\n' "$bn" "${status_field:-unknown}" "${title:-unknown}"
-                  # Old-schema detection — canonical predicate, byte-identical
-                  # to .scripts/migrate-backlog.sh (frontmatter region only).
-                  if awk 'BEGIN{infm=0} /^---$/{infm=!infm; next} infm && /^(status|trigger|type|priority|severity|added): /{print "MATCH"; exit}' "$f" 2>/dev/null | grep -q MATCH; then
+                  # Old-schema detection — same field set/logic as
+                  # .scripts/migrate-backlog.sh, BUT the frontmatter delimiter is
+                  # written /^-{3}$/ NOT literal /^---$/. A literal --- line is a
+                  # YAML document separator that truncates this inline hook (it
+                  # broke every new session, c53d530). Do NOT "restore
+                  # byte-identical" here — that re-introduces the break.
+                  if awk 'BEGIN{infm=0} /^-{3}$/{infm=!infm; next} infm && /^(status|trigger|type|priority|severity|added): /{print "MATCH"; exit}' "$f" 2>/dev/null | grep -q MATCH; then
                     # Exclude old-schema closed-state markers — migrate-backlog.sh
                     # treats status: completed|stale|superseded as closed and
                     # refuses to migrate them, so they must not be nagged.
-                    if ! awk 'BEGIN{infm=0} /^---$/{infm=!infm; next} infm && /^status:[[:space:]]+(completed|stale|superseded)[[:space:]]*$/{print "C"; exit}' "$f" 2>/dev/null | grep -q C; then
+                    if ! awk 'BEGIN{infm=0} /^-{3}$/{infm=!infm; next} infm && /^status:[[:space:]]+(completed|stale|superseded)[[:space:]]*$/{print "C"; exit}' "$f" 2>/dev/null | grep -q C; then
                       oldschema_count=$((oldschema_count + 1))
                     fi
                   fi
