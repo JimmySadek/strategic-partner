@@ -260,12 +260,14 @@ hooks:
                   status_field=$(awk '/^-{3}$/{c++; next} c==1 && /^status:/{sub(/^status:[[:space:]]*/,""); print; exit}' "$f" 2>/dev/null | head -c 30)
                   trigger=$(awk '/^-{3}$/{c++; next} c==1 && /^trigger:/{sub(/^trigger:[[:space:]]*/,""); print; exit}' "$f" 2>/dev/null | head -c 100)
                   printf 'g4.backlog_item name=%s status=%s title=%s\n' "$bn" "${status_field:-unknown}" "${title:-unknown}"
-                  # Old-schema detection — same field set/logic as
-                  # .scripts/migrate-backlog.sh, BUT the frontmatter delimiter is
-                  # written /^-{3}$/ NOT literal /^---$/. A literal --- line is a
-                  # YAML document separator that truncates this inline hook (it
-                  # broke every new session, c53d530). Do NOT "restore
-                  # byte-identical" here — that re-introduces the break.
+                  # Old-schema detection: same field set and logic as
+                  # .scripts/migrate-backlog.sh. The frontmatter delimiter is
+                  # matched as /^-{3}$/ (brace-count form). It MUST NOT be
+                  # written as a literal triple-dash token: a literal
+                  # triple-dash anywhere in this inline hook (even inside a
+                  # comment) is read as a YAML document separator and
+                  # truncates the hook, blocking every new session (incident
+                  # c53d530, fix fd6dff7). Do not "restore byte-identical".
                   if awk 'BEGIN{infm=0} /^-{3}$/{infm=!infm; next} infm && /^(status|trigger|type|priority|severity|added): /{print "MATCH"; exit}' "$f" 2>/dev/null | grep -q MATCH; then
                     # Exclude old-schema closed-state markers — migrate-backlog.sh
                     # treats status: completed|stale|superseded as closed and
