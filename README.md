@@ -8,7 +8,7 @@
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The advisory persona is the primary deliverable, not the prompts.
 
-> **What's new** — v6.9 extends the robustness the advisor already had for hand-off prompts to scripts and terminal commands: anything non-trivial gets written to a file first and handed to you as one short line to run, instead of a long fragile paste that terminals mangle. A quiet self-check flags it if that discipline is skipped, and one sentence clarifies that the source-edit safety guard governs the advisor's own actions — a delegated executor is the intended path and runs outside it. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — 6.10.0 sharpens how the advisor talks and how it keeps itself healthy. The voice that shapes every reply got a clarity revision (one consolidated pre-send checklist, an honest account of what is actually enforced vs. discipline-only, and stricter plain-English rules). The advisor now tells you if your installed voice file is out of date, and states the real activation steps instead of inventing a command that does not exist. Backlog review now spots work that already shipped and asks before closing it. Under the hood: the startup check moved into its own file (closing a class of session-breaking accident), gained a portability fix so it no longer goes silent on macOS without extra tools, and now reports eleven pieces of project state with no gaps. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 
@@ -163,7 +163,7 @@ cd /path/to/strategic-partner    # the directory created by npx or git clone
 ./setup
 ```
 
-Registers subcommands with Claude Code and installs the voice style (the formatting/tone profile that makes replies scannable for non-technical readers). If you already have a copy of the voice style, `setup` keeps yours and just warns when the shipped one is newer — it never overwrites your version. Optional: `./setup --audit-permissions` checks for permission gaps that cause friction in advisory sessions.
+Registers subcommands with Claude Code and installs the voice style (the formatting/tone profile that makes replies scannable for non-technical readers). If you already have a copy of the voice style, `setup` keeps yours and warns — without overwriting — when your installed copy is stale, unstamped (an older copy with no version marker), or missing. Optional: `./setup --audit-permissions` checks for permission gaps that cause friction in advisory sessions.
 
 ### Run
 
@@ -193,7 +193,7 @@ The advisor operates through a lean core (SKILL.md) that loads reference materia
 - **Skill and tool picking** — the advisor builds an installed-tool picker from what you have available and selects the best match per task. The first specialist dispatch in a session is gated by a confirmation question whose option label names the chosen agent, so a wrong pick gets caught before the agent runs.
 - **Cross-model adversarial review** — for high-stakes decisions (irreversible changes, large blast radius, unresolved disagreements), the advisor can dispatch curated briefs to OpenAI's Codex CLI for an independent second opinion, then synthesize a three-way perspective (your position, the advisor's, Codex's). Optional — requires Codex CLI installed.
 - **Rules-file drift detection** — `/strategic-partner:context-file-scan` checks your project's `CLAUDE.md`, `AGENTS.md`, or `GEMINI.md` against 17 patterns of structural and behavioral drift (size breach, stale references, broken hybrid pattern, etc.). Interactive walk-through, report-only, and release-gate output modes.
-- **Cross-session memory and handoffs** — saves substantive decisions to long-term memory at coherent stretches, captures session findings, promotes important findings to a persistent backlog with re-engagement at startup when conditions match, and produces full handoff files when context pressure rises so a fresh session can pick up exactly where the last one left off.
+- **Cross-session memory and handoffs** — saves substantive decisions to long-term memory at coherent stretches, captures session findings, promotes important findings to a persistent backlog with re-engagement at startup when conditions match, and produces full handoff files (a saved snapshot a fresh session can resume from) when context pressure rises so a new session can pick up exactly where the last one left off. Backlog review also scans recent commits, changed files, diffs, and changelog text for backlog items whose work has already shipped, and asks before closing them — so finished items don't silently linger.
 - **Optional background execution for small tasks** — for small, reversible tasks, the advisor can dispatch a prepared prompt to a background agent and surface a desktop notification when it completes, so you can walk away during the 3-5 minute window and come back to the conclusion.
 
 ### Under the hood
@@ -201,7 +201,7 @@ The advisor operates through a lean core (SKILL.md) that loads reference materia
 - **Implementation boundary** — a safety guard in Claude Code blocks accidental source edits in advisor sessions, paired with three behavioral gates (pre-build decision checklist, return-to-planning after execution, post-dispatch recovery)
 - **Memory architecture** — stewards four persistence layers (`CLAUDE.md`, `.claude/rules/`, auto-memory, Serena memory) so decisions survive across sessions
 - **Visible prompt quality checklist** — every crafted prompt renders a pass/fail table of 14 quality checks (skill routing, file context, deliverables, verification commands, the recorded routing decision, etc.) before the prompt body, so dispatches can be audited without trusting hidden reasoning
-- **Startup status check** — at session start and on each subcommand, a hook gathers a one-line snapshot (model, project conventions, memory, git state, version freshness, installed-tool picker freshness) and injects it into the advisor's context
+- **Startup status check** — at session start and on each subcommand, a hook (a small script Claude Code runs automatically at those moments) gathers a one-line snapshot of eleven project-state fields and injects it into the advisor's context: project conventions, cross-session memory, captured findings, the backlog count, the old-format-backlog count, git state, version freshness, the project-rules-file size band, routing matrix freshness, which output style is active, and whether the installed voice file is fresh/stale/missing
 - **1M context advisory (Opus 4.7)** — on 1M-context models, the advisor surfaces a one-time orientation note: known Anthropic issues cause erratic behavior above ~256K tokens; consider wrapping up or triggering handoff around 250K for reliable retrieval
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism detail.
@@ -219,14 +219,14 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism de
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.5) |
 | `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (17 patterns) |
-| `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
+| `/strategic-partner:backlog` | Triage the project backlog (items grouped by lifecycle state, with an action menu) — including a scan that flags backlog work which has already shipped and asks before closing it |
 
 ---
 
 ## Requirements
 
 - **Claude Code** — the skill runs inside Claude Code sessions
-- **`jq`** — required for `/strategic-partner:context-file-scan` (the scanner uses `jq` for JSON output assembly). Install via `brew install jq` (macOS) or `apt install jq` / `dnf install jq` (Linux). The scanner exits with a clear error if `jq` is missing; other features work without it.
+- **`jq`** (a small command-line JSON processor) — required for `/strategic-partner:context-file-scan`, and used by the startup/status and session-end check hooks to read Claude Code's input. Install via `brew install jq` (macOS) or `apt install jq` / `dnf install jq` (Linux). Without `jq`: the rules-file scanner hard-fails with a clear error; the startup/status and stop-rule hooks degrade or fail open (they do not block you, but the startup snapshot is reduced) — they do not work fully without it.
 - **Serena MCP** (recommended) — for cross-session memory and semantic code navigation
 - **Context7 MCP** (optional) — for library documentation lookup
 - **Codex CLI** (optional) — for cross-model adversarial review
