@@ -84,6 +84,9 @@ After updating, re-run the setup script to refresh command registrations:
 3. The setup script handles:
    - Creating/updating command symlinks in ~/.claude/commands/strategic-partner/
    - Detecting stale legacy installations
+   - Installing the voice output style if absent, or warning if the
+     installed copy is stale (a different `style-version` than the
+     shipped one) — your copy is preserved, not overwritten
 4. Final message: "Start a new session to use the updated skill."
 
 ## Boundaries

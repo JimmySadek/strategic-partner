@@ -1769,15 +1769,17 @@ always the answer.
 ### Floor-Signal Handling
 
 The startup-floor sentinel emits an `SP-FLOOR-COMPLETE` line at session
-entry and on subcommand transitions, with ten status fields. The hook
+entry and on subcommand transitions, with eleven status fields. The hook
 fires on every UserPromptSubmit event but exits early once the floor has
 run for a given scope (session, cwd, skill version, prompt class), so the
 line is emitted only when SP enters a new scope — not on every user turn.
-Six of the ten fields are actionable when non-clean (the model MUST
+Six of the eleven fields are actionable when non-clean (the model MUST
 either dispatch a remediation agent or explicitly acknowledge with a
-reason for deferring). The remaining four are informational —
-`findings` and `backlog` surface counts; `output_style` always renders
-a permanent status row in orientation. Silent ignores of actionable
+reason for deferring). The remaining five are informational —
+`findings` and `backlog` surface counts; `claudemd_band` reports the
+project-rules size band; `output_style` always renders a permanent
+status row in orientation; `output_style_state` reports whether the
+installed voice style is fresh, stale, or missing. Silent ignores of actionable
 signals are caught at the runtime layer by the Stop rhythm enforcer's
 rule 5 (`floor-signal-acknowledgment`) — with one deliberate exception:
 the `oldschema` field is intentionally not in rule 5's covered set in
@@ -1795,8 +1797,10 @@ oldschema.
 | `routing`      | `missing`, `stale`  | Dispatch background Opus 4.7 matrix-build agent; notify on completion |
 | `findings`     | (count, always N≥0) | Informational; surface in orientation per existing protocol           |
 | `backlog`      | (count, always N≥0) | Informational; check triggers per existing protocol                   |
+| `claudemd_band`| (always present)    | Informational; the project-rules (`CLAUDE.md`) size band — orientation uses it to decide whether to surface a size warning and at what volume |
 | `oldschema`    | `N>0`               | Surface the migration offer (prompt if no defer flag; quiet banner if the defer flag is set) per `references/floor-signal-handling.md` § Pattern: oldschema |
 | `output_style` | (always present)    | Render always-visible status row; ✅ active or ⚠️ not active + activation hint per `references/floor-signal-handling.md` |
+| `output_style_state` | `stale`, `missing` | Render a `🟡 Voice style ⚠️ Stale` / `⚠️ Missing` orientation row only when not `fresh`; no dispatch (user re-runs `setup` or re-syncs) per `references/floor-signal-handling.md` § Pattern: output_style_state |
 
 `memory=missing` is held to a higher bar than `routing=missing` — Serena
 onboarding writes 5+ memories with project analysis, which is a heavier

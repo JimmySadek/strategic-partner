@@ -214,7 +214,7 @@ stdout (which Claude Code injects into the model's context for the
 current turn):
 
 ```
-SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N oldschema=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME. Full results: /tmp/sp-floor-${KEY}.txt
+SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N oldschema=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME output_style_state=fresh|stale|missing. Full results: /tmp/sp-floor-${KEY}.txt
 ```
 
 The `claudemd_band` field mirrors the scanner's S1 size taxonomy (see Group 2
@@ -228,7 +228,17 @@ settings files (or `none` if no `outputStyle` field is set anywhere).
 Orientation always renders a status row from this field — see
 `references/floor-signal-handling.md` § Pattern: output_style.
 
-The SP reads this line and acts on the nine status fields per the
+The `output_style_state` field reports whether the installed voice
+style is current. The sentinel compares the `style-version` stamp in
+the repo source file against the stamp in the installed
+`~/.claude/output-styles/` copy: `fresh` when they match (or when the
+source carries no stamp to compare), `stale` when they differ or the
+installed copy predates the stamp (an unstamped legacy copy is `stale`,
+never `missing`), and `missing` only when there is no installed copy at
+all. Orientation surfaces a row only when not `fresh` — see
+`references/floor-signal-handling.md` § Pattern: output_style_state.
+
+The SP reads this line and acts on the eleven status fields per the
 Floor-Signal Handling table (SKILL.md § Floor-Signal Handling).
 
 For per-field remediation patterns (which agent to dispatch, which
@@ -265,12 +275,17 @@ The schema versions (`floor_schema_version="v5"`,
 changes in a way that requires Claude Code to invalidate the cached
 marker. Bumping the schema version forces the next prompt to re-run the
 floor / re-read the violations log. The `v4` bump landed in v6.3.0 to
-add the Group 8 Output Style field; the `v5` bump adds the Group 4
-`oldschema` field so existing sessions re-run the floor and pick up the
-new field. The version is a sha256 input to `KEY` only — no consumer
-branches on its literal value, so the bump is purely a cache-invalidation
-signal. Pre-upgrade markers are invalidated on first prompt of the new
-release so all sessions pick up the new field cleanly.
+add the Group 8 Output Style field. `v5` is the in-flight (not yet
+released) release's combined floor-format change: it covers the Group 4
+`oldschema` field AND the Group 8 output-style freshness fields
+(`output_style_src` / `output_style_installed` / `output_style_state`).
+Both sets of fields ship under the single `v5` bump — the schema does
+not bump again per field within the same unreleased release, so existing
+sessions re-run the floor once and pick up every new field together. The
+version is a sha256 input to `KEY` only — no consumer branches on its
+literal value, so the bump is purely a cache-invalidation signal.
+Pre-upgrade markers are invalidated on first prompt of the new release
+so all sessions pick up the new fields cleanly.
 
 ---
 

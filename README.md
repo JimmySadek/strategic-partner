@@ -163,7 +163,7 @@ cd /path/to/strategic-partner    # the directory created by npx or git clone
 ./setup
 ```
 
-Registers subcommands with Claude Code. Optional: `./setup --audit-permissions` checks for permission gaps that cause friction in advisory sessions.
+Registers subcommands with Claude Code and installs the voice style (the formatting/tone profile that makes replies scannable for non-technical readers). If you already have a copy of the voice style, `setup` keeps yours and just warns when the shipped one is newer — it never overwrites your version. Optional: `./setup --audit-permissions` checks for permission gaps that cause friction in advisory sessions.
 
 ### Run
 
@@ -237,7 +237,7 @@ The skill works without Serena, but loses cross-session memory and semantic code
 
 ## Staying updated
 
-Every SP session checks for updates in the background and surfaces a one-line notice when a newer version is available. Run `/strategic-partner:update` to fetch the latest version — it detects whether you installed via skills or git clone, uses the right method, and re-runs `./setup` to refresh command registrations. When an update introduces new subcommands, restart your Claude Code session so the CLI picks up the new registrations.
+Every SP session checks for updates in the background and surfaces a one-line notice when a newer version is available. Run `/strategic-partner:update` to fetch the latest version — it detects whether you installed via skills or git clone, uses the right method, and re-runs `./setup` to refresh command registrations and flag a stale voice style if your installed copy is behind the shipped one. When an update introduces new subcommands, restart your Claude Code session so the CLI picks up the new registrations.
 
 ---
 

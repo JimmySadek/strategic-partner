@@ -460,6 +460,52 @@ coverage was forgotten.
 
 ---
 
+## Pattern: output_style_state=<fresh|stale|missing>
+
+**Trigger:** Floor sentinel emits `output_style_state` on the
+`SP-FLOOR-COMPLETE` line. It compares the `style-version` stamp in the
+repo source voice file against the stamp in the installed
+`~/.claude/output-styles/strategic-partner-voice.md` copy:
+
+- `fresh` — stamps match (or the source carries no stamp to compare against).
+- `stale` — stamps differ, OR the installed copy predates the stamp
+  (an unstamped legacy copy is `stale`, never `missing`).
+- `missing` — there is no installed copy at all.
+
+This is distinct from `output_style` (Pattern above), which reports
+*which* style is active. `output_style_state` reports whether the
+installed SP voice file is *current* — the voice file does not
+auto-update when SP updates, so a drifted copy is otherwise invisible.
+
+**Surface in orientation:**
+
+| Condition | What SP does |
+|---|---|
+| `output_style_state=fresh` | Silent. Steady state — say nothing extra (the always-visible `output_style` row from the Pattern above still renders). |
+| `output_style_state=stale` | Add a `🟡 Voice style ⚠️ Stale` row beneath the `output_style` row, with a one-line plain-English note: the installed voice file is behind the shipped one; re-run `setup` (or re-sync the installed copy) to refresh it. |
+| `output_style_state=missing` | Add a `🟡 Voice style ⚠️ Missing` row: no installed voice file found; run `setup` to install it. |
+
+**Disclosure constraint.** The row is informational and must not imply
+SP can fix it programmatically — activation and refresh are user
+actions (`setup` re-run, or a manual re-copy). Mirror the
+`output_style` pattern's "no AUQ pressure" stance: surface the state
+and the one-line remedy, but do not fire `AskUserQuestion` and do not
+nag a user who has deliberately customized their installed copy.
+
+**No dispatch.** SP cannot programmatically refresh the installed
+output-style file; the remedy is a user-run `setup` (which now
+copies-if-absent-or-stale) or a manual re-sync. No remediation agent
+is dispatched for this signal.
+
+**Rule-5 coverage — not extended.** Like `oldschema`, `output_style_state`
+is deliberately **not** added to the Stop rhythm enforcer's rule 5
+covered-signal set in this change. It is purely informational (no
+required remediation action — the user chooses whether to refresh), so
+the standard surface-and-reference path is sufficient and no runtime
+backstop is warranted. This is not an oversight.
+
+---
+
 ## When to Add a New Pattern
 
 Add a new pattern entry when:

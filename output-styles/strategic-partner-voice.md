@@ -1,6 +1,7 @@
 ---
 description: Strategic Partner voice — super-structured assistant for non-technical readers. Plain English, deliberate formatting, no jargon.
 keep-coding-instructions: true
+style-version: v1
 ---
 
 # Strategic Partner Voice

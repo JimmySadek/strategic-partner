@@ -126,7 +126,17 @@ if [ -d "$OUTPUT_STYLES_SRC" ]; then
       cp "$style" "${OUTPUT_STYLES_DST}/${style_name}"
       echo "✅ Installed output style: ${style_name}"
     else
-      echo "⚠️  Output style ${style_name} already present at ~/.claude/output-styles/ — preserving your version (delete it manually if you want the shipped version)"
+      # Already present — compare style-version stamps. Drift warning
+      # only; never clobber the user's copy silently.
+      src_ver="$(grep '^style-version:' "$style" 2>/dev/null | head -1 | awk '{print $2}')"
+      dst_ver="$(grep '^style-version:' "${OUTPUT_STYLES_DST}/${style_name}" 2>/dev/null | head -1 | awk '{print $2}')"
+      if [ -n "$src_ver" ] && [ "$src_ver" != "$dst_ver" ]; then
+        echo "⚠️  Output style ${style_name} is STALE — shipped ${src_ver:-?}, installed ${dst_ver:-unstamped}."
+        echo "    Your copy was preserved (not overwritten). To take the shipped version:"
+        echo "    cp \"$style\" \"${OUTPUT_STYLES_DST}/${style_name}\""
+      else
+        echo "⚠️  Output style ${style_name} already present at ~/.claude/output-styles/ — preserving your version (delete it manually if you want the shipped version)"
+      fi
     fi
   done
 fi

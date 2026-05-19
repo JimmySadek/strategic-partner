@@ -565,6 +565,15 @@ and ask what the user wants to work on.
   the transition — orientation falls back to a direct settings-file
   read using the same precedence order. Remove the fallback after 1-2
   release cycles past v6.3.)
+- 🟡 **Voice style freshness row** (only when not fresh): read
+  `g8.output_style_state` from the floor signal. When it is `stale` or
+  `missing`, render a row beneath the Output Style row —
+  `🟡 Voice style ⚠️ Stale` (installed voice file behind the shipped
+  one; re-run `setup` to refresh) or `🟡 Voice style ⚠️ Missing` (no
+  installed voice file; run `setup` to install). When `fresh`, render
+  nothing extra. Informational only — no `AskUserQuestion`, no
+  dispatch; the remedy is a user-run `setup`. Full handling in
+  `references/floor-signal-handling.md` § Pattern: output_style_state.
 - ⚡ Update available (from inline version check in Step 1.5): one-liner with version diff and update command
 - 🔧 **Context advisory** (1M-context sessions only): If the detected model
   has a 1M context window (Opus 4.7, or any model running with

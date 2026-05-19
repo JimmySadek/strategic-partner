@@ -333,6 +333,50 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
   done
   [ -z "$os_value" ] && os_value="none"
   printf 'g8.output_style=%s\n' "$os_value"
+
+  # Output-style freshness: compare the style-version stamp in the repo
+  # source file against the stamp in the installed ~/.claude copy.
+  # Path resolution is deterministic via SP_SKILL_PATH (the proven
+  # ~/.claude/commands symlink → readlink → dirname cascade resolved
+  # above) — NO ${CLAUDE_*} env vars (they are not real Claude Code
+  # variables; see CHANGELOG v5.4.0→v5.4.1 and v6.x hook-path entries).
+  if [ -n "$SP_SKILL_PATH" ] && [ -f "$SP_SKILL_PATH" ]; then
+    SP_STYLE_SRC_FILE="$(dirname "$SP_SKILL_PATH")/output-styles/strategic-partner-voice.md"
+  else
+    SP_STYLE_SRC_FILE=""
+  fi
+  SP_STYLE_INSTALLED_FILE="${HOME}/.claude/output-styles/strategic-partner-voice.md"
+
+  os_src=""
+  if [ -n "$SP_STYLE_SRC_FILE" ] && [ -f "$SP_STYLE_SRC_FILE" ]; then
+    os_src=$(grep '^style-version:' "$SP_STYLE_SRC_FILE" 2>/dev/null | head -1 | awk '{print $2}')
+  fi
+  [ -z "$os_src" ] && os_src="none"
+
+  if [ -f "$SP_STYLE_INSTALLED_FILE" ]; then
+    os_installed=$(grep '^style-version:' "$SP_STYLE_INSTALLED_FILE" 2>/dev/null | head -1 | awk '{print $2}')
+    # Installed copy exists but carries no stamp (predates the
+    # style-version field) → treat as stale, never missing. missing is
+    # reserved for "no installed copy at all".
+    [ -z "$os_installed" ] && os_installed="unstamped"
+  else
+    os_installed="none"
+  fi
+
+  if [ "$os_installed" = "none" ]; then
+    os_state="missing"
+  elif [ "$os_src" = "none" ]; then
+    # No source stamp to compare against — cannot prove staleness.
+    os_state="fresh"
+  elif [ "$os_installed" = "$os_src" ]; then
+    os_state="fresh"
+  else
+    os_state="stale"
+  fi
+
+  printf 'g8.output_style_src=%s\n' "$os_src"
+  printf 'g8.output_style_installed=%s\n' "$os_installed"
+  printf 'g8.output_style_state=%s\n' "$os_state"
 } >> "${RESULTS}.tmp" 2>/dev/null
 
 # Atomic finalize + summary stdout (Claude sees stdout in context)
@@ -358,10 +402,12 @@ model_id=$(grep '^g1.model=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print 
 [ -z "$model_id" ] && model_id=unknown
 output_style=$(grep '^g8.output_style=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
 [ -z "$output_style" ] && output_style=unknown
+output_style_state=$(grep '^g8.output_style_state=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+[ -z "$output_style_state" ] && output_style_state=unknown
 
 touch "$MARKER"
 
-printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s oldschema=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s. Full results: %s\n' \
-  "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$oldschema" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$RESULTS"
+printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s oldschema=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s output_style_state=%s. Full results: %s\n' \
+  "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$oldschema" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$output_style_state" "$RESULTS"
 
 exit 0

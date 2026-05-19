@@ -4,10 +4,12 @@
 
 ## 🎯 Project Facts
 
-- **Versioning** — SemVer. The version-bump procedure touches three files
-  together (`SKILL.md`, `README.md`, `CHANGELOG.md`); see § Release Process
-  Step 5 for the canonical "what changes where." (Where to Look points to
-  the current version's location.)
+- **Versioning** — SemVer. The version-bump procedure touches four files
+  together (`SKILL.md`, `README.md`, `CHANGELOG.md`, and — when its content
+  changed this release — `output-styles/strategic-partner-voice.md`, whose
+  `style-version` stamp the floor uses to detect a stale installed copy);
+  see § Release Process Step 5 for the canonical "what changes where."
+  (Where to Look points to the current version's location.)
 - **Commit style** — Conventional commits (`feat:`, `fix:`, `refactor:`,
   `docs:`, `release:`). Release commits use `release: vX.Y.Z — one-line summary`
   per § Release Process Step 6.
@@ -247,7 +249,7 @@ Before modifying any files, show:
 - List of commits being pushed
 - Proposed version: `current → new` with rationale
 - Draft CHANGELOG entry (summary of changes)
-- Files that will be modified: `SKILL.md`, `README.md`, `CHANGELOG.md`
+- Files that will be modified: `SKILL.md`, `README.md`, `CHANGELOG.md` (and `output-styles/strategic-partner-voice.md` if the voice style content changed this release — bump its `style-version`)
 
 **Wait for explicit user confirmation before proceeding.**
 
@@ -350,11 +352,16 @@ Update these files (all three, every time):
 | `SKILL.md` | Line 11, `version:` field | `version: X.Y.Z` |
 | `README.md` | Line 5, badge URL | `version-X.Y.Z-blue` |
 | `CHANGELOG.md` | Top of file, new section | `## [X.Y.Z] - YYYY-MM-DD` with categorized entries |
+| `output-styles/strategic-partner-voice.md` | Frontmatter `style-version:` field | Bump `style-version` **only if the voice style content changed this release** (the floor compares this stamp to the installed copy to flag staleness; an unchanged release leaves it as-is) |
 
 ### 6. Commit, Tag, Push
 
 ```
 git add SKILL.md README.md CHANGELOG.md
+# Also stage the voice style file IF its content changed this release
+# (its bumped style-version is what the floor uses to flag a stale
+# installed copy):
+# git add output-styles/strategic-partner-voice.md
 git commit -m "release: vX.Y.Z — [one-line summary]"
 git tag vX.Y.Z
 git push origin main --tags
