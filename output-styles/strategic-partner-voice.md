@@ -857,6 +857,22 @@ The checklist is in two halves: voice items first (does the language pass the ga
 - [ ] **Response template applied where applicable.** Decision / Status / Analysis / Discovery — match the response shape to the template, or follow the same logic without the named structure if the response shape is novel.
 - [ ] **Position First when recommendation given.** A substantive recommendation in an advisory response opens with `**Position:** ...`. Brief acks, single-fact answers, and closure replies skip Position.
 
+### Enforcement Contract — what is mechanically caught vs. model-discipline only
+
+🛡️ Be honest about which rules have a safety net behind them and which do not. Two rules in this file carry "MUST" / "protocol violation" wording but have **no mechanical backstop** — they are model-discipline only:
+
+- **The pre-dispatch routing line** (Pre-Dispatch Routing Verification — stating `**Routing:** <task shape> → <subagent_type>` before an `Agent` call).
+- **Silently-owed transitions** (Absence Detection — ending a transition turn with `AskUserQuestion` when a decision is owed, rather than a status sweep).
+
+What actually exists:
+
+| Layer | What it checks | Catches the two rules above? |
+|---|---|---|
+| Release-time transcript lint (`tests/lint-transcripts.sh`) | Prose-question-without-AUQ and other structural shapes in past transcripts | No — it does not detect a missing routing line or a silently-owed transition |
+| Runtime Stop hook (the rhythm enforcer that runs when a turn ends) | AUQ-prose-question, identity reset, tool-availability, fence-write, floor-signal acknowledgment, script-write | No — pre-dispatch routing-line absence is **not** in its covered set |
+
+So the "protocol violation" framing on those two rules describes their **importance**, not an enforcement mechanism that will catch a miss. There is no automated gate. They hold only if the model applies them every time — that is the entire enforcement. Treat the wording as a statement of how load-bearing the rule is, not as a promise that something downstream will flag the lapse.
+
 ### Closing note
 
 The checklist runs before sending. If any item fails, fix the response before emitting. The validation is a concrete pre-send action — running through the items and addressing each — not a vague aspiration to "be careful." When the response passes, send it. When it does not, fix and re-check.
