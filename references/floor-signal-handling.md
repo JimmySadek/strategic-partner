@@ -493,9 +493,10 @@ and the one-line remedy, but do not fire `AskUserQuestion` and do not
 nag a user who has deliberately customized their installed copy.
 
 **No dispatch.** SP cannot programmatically refresh the installed
-output-style file; the remedy is a user-run `setup` (which now
-copies-if-absent-or-stale) or a manual re-sync. No remediation agent
-is dispatched for this signal.
+output-style file; the remedy is a user-run `setup` (which installs the
+file if absent and warns — without overwriting — if the installed copy
+is stale) or a manual re-sync. No remediation agent is dispatched for
+this signal.
 
 **Rule-5 coverage — not extended.** Like `oldschema`, `output_style_state`
 is deliberately **not** added to the Stop rhythm enforcer's rule 5
