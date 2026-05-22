@@ -1,5 +1,19 @@
 # Changelog
 
+## [6.11.0] - 2026-05-22
+
+### Added
+
+- **Fresh installs now complete themselves in-session, no separate terminal step required** — When you invoke `/sp` on a fresh install where the one-time `./setup` step has not yet run, the advisor notices the missing setup, shows a row in the session-opening status saying so, and offers to finish setup for you with a single yes/no prompt. On yes, it runs `./setup` on your behalf and then tells you to restart Claude Code so the new commands and the voice style (the formatting profile that makes replies scannable) activate. The previous behaviour — install via `npx skills add` or `git clone`, miss the manual `./setup` step, then wonder why `/strategic-partner:*` commands do not autocomplete and the voice style does not show up under `/config` — is gone. Existing installs experience zero new noise: the offer only appears when the commands are genuinely missing.
+
+### Fixed
+
+- **The session-startup check now fires on fresh installs, where it was silently doing nothing** — The check used to find where the advisor lives by walking one of the registered subcommand shortcuts. On a fresh install those shortcuts do not exist yet (they are what `./setup` creates), so the check could not find itself, produced no startup state, and the advisor had no signal to react to. The check now resolves its own location directly from where its own script lives on disk, with the older shortcut-walk preserved as a fallback for installs in non-standard locations. Without this fix, the new fresh-install completion flow above had no startup signal to trigger on.
+
+### Changed
+
+- **The session-startup status line now carries a twelfth field, recording whether the install is fully set up** — The always-on check that reports your project's state at session entry (branch, memory, version, output style, and so on) now distinguishes "the subcommands are registered" (the state `./setup` leaves behind) from "the subcommands are not registered yet" (a fresh install). The check's internal cache stamp bumped accordingly — your next session after this update re-runs the check once to pick up the new field, then resumes normal cached behaviour. Nothing else about the check changed.
+
 ## [6.10.0] - 2026-05-19
 
 ### Added

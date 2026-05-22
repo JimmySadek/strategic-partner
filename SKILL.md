@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 6.10.0
+version: 6.11.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -85,12 +85,21 @@ hooks:
     - hooks:
         - type: command
           command: |
-            SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
-            if [ -n "$SP_ANY_CMD" ]; then
-              SP_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
-              F="$SP_DIR/hooks/floor-check.sh"
-              [ -r "$F" ] && exec bash "$F"
+            SP_DIR=""
+            for D in "${HOME}/.claude/skills/strategic-partner" "$(pwd)/.claude/skills/strategic-partner"; do
+              if [ -r "$D/hooks/floor-check.sh" ]; then
+                SP_DIR="$D"
+                break
+              fi
+            done
+            if [ -z "$SP_DIR" ]; then
+              SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+              if [ -n "$SP_ANY_CMD" ]; then
+                SP_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
+              fi
             fi
+            F="$SP_DIR/hooks/floor-check.sh"
+            [ -r "$F" ] && exec bash "$F"
             exit 0
           timeout: 10000
   Stop:
@@ -1769,11 +1778,11 @@ always the answer.
 ### Floor-Signal Handling
 
 The startup-floor sentinel emits an `SP-FLOOR-COMPLETE` line at session
-entry and on subcommand transitions, with eleven status fields. The hook
+entry and on subcommand transitions, with twelve status fields. The hook
 fires on every UserPromptSubmit event but exits early once the floor has
 run for a given scope (session, cwd, skill version, prompt class), so the
 line is emitted only when SP enters a new scope — not on every user turn.
-Six of the eleven fields are actionable when non-clean (the model MUST
+Seven of the twelve fields are actionable when non-clean (the model MUST
 either dispatch a remediation agent or explicitly acknowledge with a
 reason for deferring). The remaining five are informational —
 `findings` and `backlog` surface counts; `claudemd_band` reports the
@@ -1801,6 +1810,7 @@ oldschema.
 | `oldschema`    | `N>0`               | Surface the migration offer (prompt if no defer flag; quiet banner if the defer flag is set) per `references/floor-signal-handling.md` § Pattern: oldschema |
 | `output_style` | (always present)    | Render always-visible status row; ✅ active or ⚠️ not active + activation hint per `references/floor-signal-handling.md` |
 | `output_style_state` | `stale`, `missing` | Render a `🟡 Voice style ⚠️ Stale` / `⚠️ Missing` orientation row only when not `fresh`; no dispatch (user re-runs `setup` or re-syncs) per `references/floor-signal-handling.md` § Pattern: output_style_state |
+| `commands_registered` | `no`           | Render `🟡 Install incomplete ⚠️ Setup not run` orientation row; surface `AskUserQuestion` offering to run `./setup`; on user yes, SP invokes setup via Bash and tells user to restart Claude Code per `references/floor-signal-handling.md` § Pattern: commands_registered |
 
 When the `output_style` row is `⚠️ not active`, render this exact
 two-line activation hint immediately beneath it — verbatim, do not

@@ -55,6 +55,12 @@ Detects:
   otherwise
 - **`g1.auto_memory`** — `available` if `${HOME}/.claude/projects` exists,
   `unknown` otherwise
+- **`g1.commands_registered`** — `yes` if
+  `~/.claude/commands/strategic-partner/` contains the expected
+  subcommand symlinks, `no` otherwise. Distinguishes a fully set-up
+  install (subcommands available via `/strategic-partner:*`) from a
+  fresh install where `./setup` has not yet run. Action when `no`: see
+  `references/floor-signal-handling.md` § Pattern: commands_registered.
 
 ### Group 2 — Project Conventions
 
@@ -214,7 +220,7 @@ stdout (which Claude Code injects into the model's context for the
 current turn):
 
 ```
-SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N oldschema=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME output_style_state=fresh|stale|missing. Full results: /tmp/sp-floor-${KEY}.txt
+SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N oldschema=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME output_style_state=fresh|stale|missing commands_registered=yes|no. Full results: /tmp/sp-floor-${KEY}.txt
 ```
 
 The `claudemd_band` field mirrors the scanner's S1 size taxonomy (see Group 2
@@ -238,7 +244,16 @@ never `missing`), and `missing` only when there is no installed copy at
 all. Orientation surfaces a row only when not `fresh` — see
 `references/floor-signal-handling.md` § Pattern: output_style_state.
 
-The SP reads this line and acts on the eleven status fields per the
+The `commands_registered` field reports whether the SP install is fully
+set up. It is `yes` when `~/.claude/commands/strategic-partner/` contains
+the expected subcommand symlinks (the state `./setup` leaves behind), and
+`no` for fresh installs where `./setup` has not yet run. Orientation
+surfaces a `🟡 Install incomplete ⚠️ Setup not run` row and an
+`AskUserQuestion` offering to run `./setup` from inside the session when
+the field is `no` — see `references/floor-signal-handling.md` § Pattern:
+commands_registered.
+
+The SP reads this line and acts on the twelve status fields per the
 Floor-Signal Handling table (SKILL.md § Floor-Signal Handling).
 
 For per-field remediation patterns (which agent to dispatch, which
@@ -270,22 +285,20 @@ The hook uses two stable identifiers:
 Both keys are deterministic for a given session — the same prompt
 shape in the same session always produces the same KEY/RELAY_KEY pair.
 
-The schema versions (`floor_schema_version="v5"`,
+The schema versions (`floor_schema_version="v6"`,
 `rule_schema_version="v1"`) bump when the protocol's emitted format
 changes in a way that requires Claude Code to invalidate the cached
 marker. Bumping the schema version forces the next prompt to re-run the
 floor / re-read the violations log. The `v4` bump landed in v6.3.0 to
-add the Group 8 Output Style field. `v5` is the in-flight (not yet
-released) release's combined floor-format change: it covers the Group 4
-`oldschema` field AND the Group 8 output-style freshness fields
+add the Group 8 Output Style field. `v5` landed in v6.10.0: the combined
+Group 4 `oldschema` field AND the Group 8 output-style freshness fields
 (`output_style_src` / `output_style_installed` / `output_style_state`).
-Both sets of fields ship under the single `v5` bump — the schema does
-not bump again per field within the same unreleased release, so existing
-sessions re-run the floor once and pick up every new field together. The
-version is a sha256 input to `KEY` only — no consumer branches on its
-literal value, so the bump is purely a cache-invalidation signal.
-Pre-upgrade markers are invalidated on first prompt of the new release
-so all sessions pick up the new fields cleanly.
+`v6` lands in v6.11.0 to add the Group 1 `commands_registered` field
+(distinguishes fresh installs from set-up installs). The version is a
+sha256 input to `KEY` only — no consumer branches on its literal value,
+so the bump is purely a cache-invalidation signal. Pre-upgrade markers
+are invalidated on first prompt of the new release so all sessions pick
+up the new fields cleanly.
 
 ---
 

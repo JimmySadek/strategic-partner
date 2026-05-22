@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.10.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.11.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The lasting value is the thinking partner you keep open across a project — the prompts it hands off are just the output of that partnership.
 
-> **What's new** — 6.10.0 sharpens how the advisor talks and how it keeps itself healthy. The voice that shapes every reply got a clarity revision (one consolidated pre-send checklist, an honest account of what is actually enforced vs. discipline-only, and stricter plain-English rules). The advisor now tells you if your installed voice file is out of date, and states the real activation steps instead of inventing a command that does not exist. Backlog review now spots work that already shipped and asks before closing it. Under the hood: the startup check moved into its own file (closing a class of session-breaking accident), gained a portability fix so it no longer goes silent on macOS without extra tools, and now reports eleven pieces of project state with no gaps. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — 6.11.0 closes a long-standing rough edge for new users: fresh installs now complete themselves in-session. If you skip the one-time `./setup` step and just run `/sp`, the advisor notices, offers to finish setup for you with a single yes/no prompt, and tells you to restart Claude Code afterwards so the new commands and voice style activate. Under the hood: the session-startup check now resolves its own install location (no longer dependent on a registered shortcut that does not exist on fresh installs), and gained a new field recording whether your install is fully set up. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 
@@ -151,6 +151,8 @@ cd /path/to/strategic-partner    # the directory created by npx or git clone
 ```
 
 Registers subcommands with Claude Code and installs the voice style (the formatting/tone profile that makes replies scannable for non-technical readers). If you already have a copy of the voice style, `setup` keeps yours and warns — without overwriting — when your installed copy is stale, unstamped (an older copy with no version marker), or missing. Optional: `./setup --audit-permissions` checks for permission gaps that cause friction in advisory sessions.
+
+> **New in 6.11.0:** You can also skip this terminal step. When you invoke `/strategic-partner` in Claude Code for the first time, the advisor detects the missing setup and offers to run it for you with a single yes/no prompt. The manual `./setup` invocation above remains the bootstrap-safe path — still the right choice for headless installs or scripted setup.
 
 ### Run
 

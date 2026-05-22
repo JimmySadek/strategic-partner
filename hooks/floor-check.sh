@@ -10,16 +10,28 @@ if printf '%s' "$prompt" | perl -e 'undef $/; $_=<STDIN>; exit($_ =~ /\A\s*\/(st
   exit 0
 fi
 
-SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
-if [ -n "$SP_ANY_CMD" ]; then
-  SP_SKILL_PATH=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")/SKILL.md
+# Resolve SP install dir from this script's own path (self-locating).
+# Falls back to the legacy command-symlink walk only when the self-locating
+# resolution returns nothing — guarantees the floor still fires on fresh
+# installs (no registered command symlinks yet).
+THIS_SCRIPT=$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$0" 2>/dev/null)
+if [ -n "$THIS_SCRIPT" ] && [ -f "$THIS_SCRIPT" ]; then
+  SP_INSTALL_DIR=$(dirname "$(dirname "$THIS_SCRIPT")")
+  SP_SKILL_PATH="$SP_INSTALL_DIR/SKILL.md"
   skill_version=$(grep '^version:' "$SP_SKILL_PATH" 2>/dev/null | head -1 | awk '{print $2}')
 else
   SP_SKILL_PATH=""
   skill_version=""
 fi
+if [ -z "$skill_version" ]; then
+  SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+  if [ -n "$SP_ANY_CMD" ]; then
+    SP_SKILL_PATH=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")/SKILL.md
+    skill_version=$(grep '^version:' "$SP_SKILL_PATH" 2>/dev/null | head -1 | awk '{print $2}')
+  fi
+fi
 [ -z "$skill_version" ] && skill_version="unknown"
-floor_schema_version="v5"
+floor_schema_version="v6"
 rule_schema_version="v1"
 
 # Portable timeout (gtimeout on macOS coreutils, timeout on Linux; empty if neither)
@@ -102,6 +114,12 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
     printf 'g1.auto_memory=available\n'
   else
     printf 'g1.auto_memory=unknown\n'
+  fi
+
+  if [ -d "${HOME}/.claude/commands/strategic-partner" ] && [ -n "$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null)" ]; then
+    printf 'g1.commands_registered=yes\n'
+  else
+    printf 'g1.commands_registered=no\n'
   fi
 } >> "${RESULTS}.tmp" 2>/dev/null
 
@@ -404,10 +422,12 @@ output_style=$(grep '^g8.output_style=' "$RESULTS" 2>/dev/null | head -1 | awk -
 [ -z "$output_style" ] && output_style=unknown
 output_style_state=$(grep '^g8.output_style_state=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
 [ -z "$output_style_state" ] && output_style_state=unknown
+commands_registered=$(grep '^g1.commands_registered=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+[ -z "$commands_registered" ] && commands_registered=unknown
 
 touch "$MARKER"
 
-printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s oldschema=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s output_style_state=%s. Full results: %s\n' \
-  "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$oldschema" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$output_style_state" "$RESULTS"
+printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s oldschema=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s output_style_state=%s commands_registered=%s. Full results: %s\n' \
+  "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$oldschema" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$output_style_state" "$commands_registered" "$RESULTS"
 
 exit 0

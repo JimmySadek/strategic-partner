@@ -507,6 +507,128 @@ backstop is warranted. This is not an oversight.
 
 ---
 
+## Pattern: commands_registered
+
+**Trigger:** Floor sentinel emits `commands_registered=no` on the
+`SP-FLOOR-COMPLETE` line. The field is `no` when
+`~/.claude/commands/strategic-partner/` is missing or empty.
+
+**Cause:** The user invoked `/strategic-partner` (or one of its aliases)
+before running `./setup`, so the subcommand symlinks were never
+registered. This is the normal fresh-install state for users who ran
+`npx skills add` or `git clone` and then opened a Claude Code session
+without completing the manual setup step.
+
+**Orientation surface:** Render an install-incomplete row BEFORE the
+normal status table:
+
+```
+🟡 Install incomplete  ⚠️  Setup not run — /strategic-partner:* subcommands and the voice style are not yet installed
+```
+
+Then surface an `AskUserQuestion` with the three options below. The
+question, header, and option text are user-facing strings — emit them
+verbatim:
+
+- **Question:** `Your install isn't complete — finish setup now?`
+- **Header:** `Install`
+- **Options:**
+  - `[Yes, finish setup]` — Description: *"Registers /strategic-partner:* subcommands and installs the voice style profile. Takes ~5 seconds. After it completes, you'll need to restart Claude Code so the runtime picks up the new commands and style."*
+  - `[Tell me what setup does first]` — Description: *"Plain-English explanation of what setup will do before I run it. Then you can decide."*
+  - `[Skip for now]` — Description: *"SP still works without subcommands and the voice style — you just won't have access to /strategic-partner:* commands or the visual formatting profile. I won't ask again this session."*
+
+**On user picks `[Yes, finish setup]`:**
+
+SP invokes `bash <SP_INSTALL_DIR>/setup` via the Bash tool. The install
+directory is resolved from the same path the floor sentinel uses
+(`~/.claude/skills/strategic-partner` → project-local fallback → command-
+symlink fallback). SP captures stdout and stderr, reports the result to
+the user in plain English, and on successful exit (code 0) renders this
+exact message:
+
+```
+🚨 One more thing — Claude Code needs a restart to pick up the new subcommands and voice style:
+
+   1. Close all Claude Code sessions
+   2. Reopen Claude Code
+   3. Optional: open /config → Output Style → select "Strategic Partner Voice"
+
+When you're back, /sp will work fully.
+```
+
+**On user picks `[Tell me what setup does first]`:**
+
+SP explains in 3–5 plain-English bullets what `./setup` does:
+
+- Registers the `/strategic-partner:*` subcommands by symlinking the
+  files in `commands/` into `~/.claude/commands/strategic-partner/`
+- Installs the `strategic-partner-voice` output style profile into
+  `~/.claude/output-styles/` (or warns without overwriting if you
+  already have a copy)
+- Marks the hook scripts executable
+- Checks for `jq` (a small command-line JSON processor) and prints an
+  install hint if it is missing
+- Warns about legacy install paths (a stale copy at
+  `~/.claude/skills/strategic-partner` that is a real directory rather
+  than a symlink, which `./setup` will not touch automatically)
+
+After explaining, SP re-presents the same `AskUserQuestion` without the
+`[Tell me what setup does first]` option (so only `[Yes, finish setup]`
+and `[Skip for now]` remain). The loop is bounded — one explainer pass
+per session.
+
+**On user picks `[Skip for now]`:**
+
+SP confirms the trade-off in one sentence (`Skipping setup for now —
+SP works without subcommands and the voice style.`) and continues into
+normal orientation. SP sets an in-session marker so the install AUQ is
+not re-surfaced for the rest of this session; it re-surfaces on next
+session entry if `commands_registered=no` still holds.
+
+**On setup failure (non-zero exit code from `./setup`):**
+
+SP renders this error pattern:
+
+```
+🚨 Setup failed: <one-line summary>
+
+Error output:
+<stderr content, indented two spaces>
+
+To fix manually:
+1. Verify ~/.claude/ is writable: `ls -la ~/.claude/`
+2. If not, fix permissions: `chmod u+w ~/.claude/`
+3. Try again: `bash ~/.claude/skills/strategic-partner/setup`
+```
+
+Then surfaces a follow-up `AskUserQuestion` with three options:
+`[Try again]`, `[Show me the full setup script first]`,
+`[Skip — I'll fix it manually]`.
+
+**Interaction with `output_style` / `output_style_state` fields:**
+
+When `commands_registered=no` AND `output_style_state=missing` (the
+typical fresh-install combination — no command symlinks and no voice
+style file installed), the install `AskUserQuestion` implicitly covers
+both: `./setup` installs the voice style as part of the same run, so
+the user is not double-prompted. The voice-style row stays informational
+only — it never triggers its own `AskUserQuestion`, even when missing.
+
+**No dispatch.** SP does not dispatch a background agent for this
+signal. The remediation is a direct Bash invocation of `./setup` from
+the SP session itself.
+
+**Rule-5 coverage — not extended.** Like `oldschema` and
+`output_style_state`, `commands_registered` is deliberately **not**
+added to the Stop rhythm enforcer's rule 5 covered-signal set in this
+release. The reliable handling rests on the floor + orientation path —
+the install AUQ fires before SP composes any other response, so silent
+ignore is not the relevant failure mode. Extending the runtime backstop
+to `commands_registered` is a tracked hardening follow-up if real-world
+adoption shows the AUQ being skipped.
+
+---
+
 ## When to Add a New Pattern
 
 Add a new pattern entry when:
