@@ -86,17 +86,22 @@ hooks:
         - type: command
           command: |
             SP_DIR=""
-            for D in "${HOME}/.claude/skills/strategic-partner" "$(pwd)/.claude/skills/strategic-partner"; do
-              if [ -r "$D/hooks/floor-check.sh" ]; then
-                SP_DIR="$D"
-                break
-              fi
-            done
-            if [ -z "$SP_DIR" ]; then
-              SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
-              if [ -n "$SP_ANY_CMD" ]; then
-                SP_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
-              fi
+            # Tier 1: command-symlink resolution (v6.10.0 behavior; preserves
+            # existing installs where stale legacy ~/.claude/skills/strategic-partner
+            # real directories may exist alongside valid command symlinks).
+            SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+            if [ -n "$SP_ANY_CMD" ]; then
+              SP_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
+            fi
+            # Tier 2 + 3: standard skill paths (for fresh installs without
+            # registered command symlinks yet).
+            if [ -z "$SP_DIR" ] || [ ! -r "$SP_DIR/hooks/floor-check.sh" ]; then
+              for D in "${HOME}/.claude/skills/strategic-partner" "$(pwd)/.claude/skills/strategic-partner"; do
+                if [ -r "$D/hooks/floor-check.sh" ]; then
+                  SP_DIR="$D"
+                  break
+                fi
+              done
             fi
             F="$SP_DIR/hooks/floor-check.sh"
             [ -r "$F" ] && exec bash "$F"

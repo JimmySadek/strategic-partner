@@ -116,8 +116,19 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
     printf 'g1.auto_memory=unknown\n'
   fi
 
-  if [ -d "${HOME}/.claude/commands/strategic-partner" ] && [ -n "$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null)" ]; then
-    printf 'g1.commands_registered=yes\n'
+  # commands_registered: yes only when source commands count equals registered
+  # links count AND both non-zero. Mirrors the g1.self_repair count-comparison
+  # pattern above so partial installs (some links missing or stale-from-source)
+  # report no, matching the documented "fully set up" / "expected subcommand
+  # symlinks" claim in CHANGELOG.md and references/floor.md.
+  if [ -n "$SP_INSTALL_DIR" ] && [ -d "$SP_INSTALL_DIR/commands" ]; then
+    CR_CMD_COUNT=$(ls "$SP_INSTALL_DIR/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
+    CR_LINK_COUNT=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | wc -l | tr -d ' ')
+    if [ "${CR_CMD_COUNT:-0}" -gt 0 ] && [ "$CR_CMD_COUNT" = "$CR_LINK_COUNT" ]; then
+      printf 'g1.commands_registered=yes\n'
+    else
+      printf 'g1.commands_registered=no\n'
+    fi
   else
     printf 'g1.commands_registered=no\n'
   fi
