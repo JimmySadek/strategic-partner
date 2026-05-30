@@ -25,6 +25,7 @@ Every implementation prompt must:
 10. **Specify the target branch** — if the project uses feature branches, name the branch in the prompt's `<context>` section so the implementer works in the right place
 11. **Include NOT-in-scope exclusions** for multi-file prompts — name specific adjacent temptations the executor will face (optional for single-file fixes)
 12. **Label recommendations [✅ SAFE] or [⚠️ RISK]** — signal whether a recommendation is established practice or an opinionated position (skip for factual statements)
+13. **Describe the capability, not a preloaded tool** — when the executor needs a tool, state the capability it needs ("search the web," "edit files," "send a desktop notification") rather than asserting a specific tool is already available. In current Claude Code, built-in and MCP tools may be **deferred** — surfaced by name but not callable until loaded via `ToolSearch` (a search step that fetches a deferred tool's schema so it can be invoked). Calling a deferred tool blind fails. If a specific tool is required, instruct the executor to load it via `ToolSearch` first. (This extends the existing capability-over-tool rule SP already applies to `PushNotification`.)
 
 ---
 
@@ -573,6 +574,14 @@ Prompt chain (run in order):
   3. Build — /[implementation skill] → implements from spec
   4. Review — /[review skill] → validates before merge
 ```
+
+> **Coverage-first review/audit briefs (Opus 4.8):** When the chain includes a
+> review or audit step, phrase that brief to ask for coverage — report every
+> finding with a confidence level and severity; a separate step filters. On
+> Opus 4.8, conservative review instructions suppress real findings: "be
+> conservative," "only high-severity," or "don't nitpick" make the model find
+> real issues and then withhold them below the stated bar. Ask for the full
+> set with severity tags; filter afterward.
 
 ---
 

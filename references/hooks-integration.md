@@ -131,6 +131,19 @@ correct here — the guard needs to fire only while the SP is active (that is
 when it must block SP-initiated source edits); PreToolUse hooks fire during
 tool calls made while the skill is invoked, which matches the desired scope.
 
+> **🔮 Future consideration — `permissionDecision` for clearer block reasons.**
+> The current guard blocks with a bare exit code 2 (a non-zero exit that tells
+> Claude Code to stop the tool call). Claude Code hooks docs
+> (https://code.claude.com/docs/en/hooks) confirm PreToolUse hooks can return a
+> richer control surface instead: a `hookSpecificOutput.permissionDecision`
+> field accepting `allow` / `deny` / `ask` / `defer`, paired with a
+> `permissionDecisionReason` string. Migrating the guard from raw exit-2 to
+> `permissionDecision: deny` with a reason would let it surface WHY a source
+> edit was blocked rather than just blocking it. This is a note only — the
+> working guard is unchanged in this release, and the no-`${CLAUDE_*}`-env-vars
+> guard (see the Skill-dir resolution section above) applies regardless of
+> which block mechanism is used.
+
 ---
 
 ### 🚀 SessionStart — investigated in v5.9.0, pending cold-start re-verification (2026-04-30 update)
@@ -191,7 +204,7 @@ deliberately avoids.
 or any model run with `SP_CONTEXT_WINDOW=1M` exported — opusplan's plan phase
 stays 200K), the SP surfaces an informational
 note in orientation: retrieval reliability degrades above ~256K tokens
-(known Anthropic autocompact issues #34332, #42375, #43989, #50204 make the
+(known Anthropic autocompact issues #34332, #42375, #43989 make the
 default ~95% threshold behave inconsistently above that point), so the user
 may want to plan handoff timing accordingly. No settings are changed, no
 commands are run. The note is situational awareness; the SP's session-end
@@ -598,6 +611,22 @@ PreToolUse fires during tool calls while the skill is active — correct for
 blocking source edits initiated by the SP. UserPromptSubmit and Stop fire as
 session-level events; both confirmed firing from frontmatter on CC 2.1.123 per
 2026-04-30 audit (see trace log in the Stop section above).
+
+> **⏱️ UserPromptSubmit timeout — floor sentinel must stay under 30s.**
+> UserPromptSubmit hooks have a shorter timeout than other events: 30 seconds
+> for `command` hooks, versus the 600-second default elsewhere (per Claude Code
+> hooks docs, https://code.claude.com/docs/en/hooks). The floor sentinel runs
+> on this event, so its bash must complete well inside that window. By
+> inspection it does: the SKILL.md hook declares `timeout: 10000` (10s), the
+> full check runs only once per session (a `/tmp` marker short-circuits every
+> later turn), the single network call is `curl --max-time 8` against the
+> GitHub releases API, and the git probes are each bounded to 1s via
+> `gtimeout`/`timeout`. Worst case is the curl's ~8s, comfortably under 30s.
+> Anything added to `hooks/floor-check.sh` must preserve that headroom — no
+> unbounded network or filesystem step. The hook stdin JSON also carries
+> `effort` and `permission_mode` fields on supporting events (docs above); the
+> floor sentinel does not read them today, but they are available if a future
+> check needs the current permission mode.
 
 **Layer 3 (release-time transcript lint):** `tests/lint-transcripts.sh` runs
 four behavioral checks plus a voice-pattern scan at release time over

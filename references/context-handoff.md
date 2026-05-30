@@ -73,7 +73,6 @@ outside SP's control:
 - https://github.com/anthropics/claude-code/issues/34332
 - https://github.com/anthropics/claude-code/issues/42375
 - https://github.com/anthropics/claude-code/issues/43989
-- https://github.com/anthropics/claude-code/issues/50204
 
 The SP's advisory note at session start (see Environment Baseline above) and
 session-end handoff protocol together mitigate the impact — the user is

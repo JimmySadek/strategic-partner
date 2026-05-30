@@ -155,7 +155,7 @@ explicitly calls for a different setting than the default.
 ### Context Window Sanity Check (inline, one-time per session)
 
 Known Anthropic-side autocompact bugs on 1M-context sessions remain open
-(anthropics/claude-code#34332, #42375, #43989, #50204). If autocompact is
+(anthropics/claude-code#34332, #42375, #43989). If autocompact is
 observed firing at unexpectedly low context usage, those issues are the first
 place to look. The SP does not ship a calibrator for this; the Step 5
 "Context advisory" bullet surfaces the relevant situational awareness on
@@ -591,8 +591,8 @@ and ask what the user wants to work on.
   has a 1M context window (Opus 4.8 or Opus 4.7, or any model running with
   `SP_CONTEXT_WINDOW=1M`), display this informational note in orientation:
   "📌 **1M context advisory:** Autocompact defaults to ~95% of your window
-  (~950K tokens), and known Anthropic issues (#34332, #42375, #43989,
-  #50204) cause erratic behavior above ~256K. For reliable retrieval and
+  (~950K tokens), and known Anthropic issues (#34332, #42375, #43989)
+  cause erratic behavior above ~256K. For reliable retrieval and
   clean handoffs, consider wrapping up or triggering handoff around 250K
   tokens. The SP will prompt for handoff on session-end signals regardless;
   this note is just situational awareness. No settings are changed."
