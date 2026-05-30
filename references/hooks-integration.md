@@ -187,8 +187,9 @@ into user shells — changing it globally would cause surprise compaction in
 long sessions users want to keep running. That is a footgun the SP
 deliberately avoids.
 
-**What the SP does instead**: On 1M-context sessions (Opus 4.7 or any model
-run with `SP_CONTEXT_WINDOW=1M` exported), the SP surfaces an informational
+**What the SP does instead**: On 1M-context sessions (Opus 4.8 or Opus 4.7,
+or any model run with `SP_CONTEXT_WINDOW=1M` exported — opusplan's plan phase
+stays 200K), the SP surfaces an informational
 note in orientation: retrieval reliability degrades above ~256K tokens
 (known Anthropic autocompact issues #34332, #42375, #43989, #50204 make the
 default ~95% threshold behave inconsistently above that point), so the user

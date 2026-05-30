@@ -274,7 +274,7 @@ closure must REDISCOVER, not just check freshness — stale matrices
 that "look fresh" by mtime but reference removed skills are the
 failure mode this group prevents.
 
-**Verification (run as a focused background dispatch — Opus 4.7,
+**Verification (run as a focused background dispatch — Opus 4.8 (current GA),
 `run_in_background: true`):**
 
 ```
@@ -294,7 +294,7 @@ current: 87 skills, 4 agents, 3 MCPs."
 
 **Sample RESOLVED-AUTO output:** cached matrix shows 87 skills;
 current shows 89 (two new skills added in last session). SP
-dispatches background Opus 4.7 rebuild. → State: RESOLVED-AUTO.
+dispatches background Opus 4.8 rebuild. → State: RESOLVED-AUTO.
 Handoff body: "routing matrix updated: +2 skills (`skill-a`,
 `skill-b`)."
 
@@ -302,7 +302,7 @@ Handoff body: "routing matrix updated: +2 skills (`skill-a`,
 
 - Cached matrix exists AND no diff → RESOLVED
 - Cached matrix exists BUT diff detected → RESOLVED-AUTO; dispatch
-  background Opus 4.7 rebuild (matrix construction is hygiene per
+  background Opus 4.8 rebuild (matrix construction is hygiene per
   the `feedback_opus_max_for_substantive_work` Serena memory feedback
   pattern); summarize diff in handoff body
 - Cached matrix MISSING → DECISION, AUQ proposing immediate

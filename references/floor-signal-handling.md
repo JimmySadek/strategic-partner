@@ -10,7 +10,7 @@ The summary table in SKILL.md tells the SP **what** to do for each signal.
 This document tells the SP **how** — exact dispatch parameters, prompt
 shapes, and verification commands the model should run.
 
-Default model for any remediation dispatch is **Opus 4.7** with
+Default model for any remediation dispatch is **Opus 4.8 (current GA)** with
 `run_in_background: true`. These are load-bearing decisions that
 propagate through every downstream session, so synthesis quality
 matters more than dispatch speed.

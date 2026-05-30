@@ -1322,9 +1322,9 @@ Every prompt must pass all 14 checks. Fix failures before presenting.
 
 **The checklist output is an auditable artifact.** Present it as a visible
 pass/fail table in the response, NOT inline in reasoning. The user must be
-able to see each check resolved before accepting the prompt. Opus 4.7 uses
-reasoning more and calls fewer tools by default — without an explicit visible
-table, the checklist runs invisibly and the quality bar becomes unverifiable.
+able to see each check resolved before accepting the prompt. An invisible
+checklist can't be audited; the visible table makes the quality bar verifiable
+regardless of how the active model reasons.
 
 **Placement is fixed**: the checklist table renders FIRST, then the
 `> 🎯 Routing:` blockquote, then the fenced prompt(s). This is the only
@@ -1410,8 +1410,8 @@ When a task was dispatched via agent (Fast Lane), the review cycle is immediate:
 **These Bash calls are mandatory — do not infer from commit message or agent
 self-report.** The SP must call `git log --oneline -3` and `git diff HEAD~1`
 directly via the Bash tool. Reasoning about what the agent did from its
-summary is not a substitute for reading the diff. Opus 4.7's "fewer tool
-calls by default" makes it tempting to skip the verification reads; do not.
+summary is not a substitute for reading the diff. Verify directly via Bash,
+every time — a summary is not evidence.
 
 If the agent failed, do NOT retry automatically. Present the issue via
 `AskUserQuestion`: `[Retry with adjusted prompt]` `[Give me the prompt to run manually]`
@@ -1808,7 +1808,7 @@ oldschema.
 | `memory`       | `missing`           | Surface in orientation; ask user before dispatching Serena onboarding |
 | `git`          | `dirty changed=N`   | Acknowledge dirty state in orientation; confirm intent                |
 | `version`      | `behind`            | Show update notice in orientation; recommend `:update` subcommand     |
-| `routing`      | `missing`, `stale`  | Dispatch background Opus 4.7 matrix-build agent; notify on completion |
+| `routing`      | `missing`, `stale`  | Dispatch background Opus 4.8 (current GA) matrix-build agent; notify on completion |
 | `findings`     | (count, always N≥0) | Informational; surface in orientation per existing protocol           |
 | `backlog`      | (count, always N≥0) | Informational; check triggers per existing protocol                   |
 | `claudemd_band`| (always present)    | Informational; the project-rules (`CLAUDE.md`) size band — orientation uses it to decide whether to surface a size warning and at what volume |
@@ -1833,7 +1833,7 @@ onboarding writes 5+ memories with project analysis, which is a heavier
 intervention than building a routing matrix from existing context. Always
 ask the user before dispatching onboarding.
 
-Default model for any remediation dispatch is **Opus 4.7** with
+Default model for any remediation dispatch is **Opus 4.8 (current GA)** with
 `run_in_background: true`. These are load-bearing decisions that propagate
 through every downstream session, so synthesis quality matters more than
 dispatch speed. See auto-memory `feedback_opus_max_for_substantive_work`
@@ -2277,9 +2277,21 @@ Dynamic discovery protocol and task category taxonomy.
 - **Sonnet**: implementation, review, testing, documentation, code quality (default)
 - **Haiku**: quick lookups, transcript fetching, low-depth tasks
 
+**Effort heuristics** (the `/effort` setting — how hard Claude Code reasons per
+turn). The full Claude Code effort ladder, lowest to highest, is `low` /
+`medium` / `high` / `xhigh` / `max` / `ultracode` (`ultracode` = `xhigh`
+plus automatic dynamic-workflow orchestration; it is a Claude-Code-only
+setting, NOT an API effort value, so it must not appear in API-targeted
+briefs).
+- **Opus 4.8**: Claude Code defaults to `high`, not `xhigh`. Set `xhigh`
+  explicitly for coding/agentic work — it is the recommended starting point,
+  not the silent default.
+- **Sonnet 4.6**: `high` (the API default); `medium` for latency-sensitive work.
+- **Haiku 4.5**: `low` to `medium` depending on task complexity.
+
 **Target model override**: SP detects the current Claude model at startup and
 uses it as the default target for crafted prompts. To override for a specific
-prompt (e.g., the executor will run on Sonnet 4.6 while SP is on Opus 4.7),
+prompt (e.g., the executor will run on Sonnet 4.6 while SP is on Opus),
 state the target explicitly in the crafting context: "Target executor: Sonnet 4.6".
 SP adjusts block selection (see `references/prompt-crafting-guide.md` §
 Model-Aware Block Selection) and effort recommendations accordingly.

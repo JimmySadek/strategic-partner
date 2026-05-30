@@ -191,7 +191,7 @@ The advisor operates through a lean core (SKILL.md) that loads reference materia
 - **Memory architecture** — stewards four persistence layers (`CLAUDE.md`, `.claude/rules/`, auto-memory, Serena memory) so decisions survive across sessions
 - **Visible prompt quality checklist** — every crafted prompt renders a pass/fail table of 14 quality checks (skill routing, file context, deliverables, verification commands, the recorded routing decision, etc.) before the prompt body, so dispatches can be audited without trusting hidden reasoning
 - **Startup status check** — at session start and on each subcommand, a hook (a small script Claude Code runs automatically at those moments) gathers a one-line snapshot of eleven project-state fields and injects it into the advisor's context: project conventions, cross-session memory, captured findings, the backlog count, the old-format-backlog count, git state, version freshness, the project-rules-file size band, routing matrix freshness, which output style is active, and whether the installed voice file is fresh/stale/missing
-- **1M-context session advisory** — on 1M-context sessions (such as Opus 4.7's 1M mode), the advisor surfaces a one-time orientation note: known Anthropic issues cause erratic behavior above ~256K tokens; consider wrapping up or triggering a handoff around 250K for reliable retrieval
+- **1M-context session advisory** — on 1M-context sessions (such as Opus 4.8's 1M mode), the advisor surfaces a one-time orientation note: known Anthropic issues cause erratic behavior above ~256K tokens; consider wrapping up or triggering a handoff around 250K for reliable retrieval
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism detail.
 

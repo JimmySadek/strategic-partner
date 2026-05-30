@@ -41,8 +41,9 @@ programmatically.
 
 What the SP **does** do:
 
-- Detect the active model and its context window at startup (Opus 4.7 → 1M;
-  other current models → 200K by default)
+- Detect the active model and its context window at startup (Opus 4.8 or
+  Opus 4.7 → 1M; opusplan's plan phase stays 200K; other current models →
+  200K by default)
 - On 1M-context sessions, surface an informational advisory in orientation
   noting the ~256K retrieval reliability cliff — see Step 5 "Context advisory"
   bullet for the exact copy and trigger rules
@@ -116,15 +117,16 @@ prompt crafting. Default assumption: the executor running SP's crafted prompts
 will be on the same model unless the user specifies otherwise.
 
 Detection — match any of the following in the runtime declaration (case-insensitive):
-- Friendly names: "Opus 4.7", "Sonnet 4.6", "Haiku 4.5"
+- Friendly names: "Opus 4.8", "Opus 4.7", "Sonnet 4.6", "Haiku 4.5"
 - Exact model IDs:
+  - `claude-opus-4-8` (Opus 4.8; the 1M-context build reports as `claude-opus-4-8[1m]`)
   - `claude-opus-4-7` (Opus 4.7)
   - `claude-sonnet-4-6` (Sonnet 4.6)
   - `claude-haiku-4-5-20251001` (Haiku 4.5)
-- If detected: store the normalized family (Opus 4.7 / Sonnet 4.6 / Haiku 4.5) as session-active target model
-- If multiple models mentioned or unclear: default to Opus 4.7 (current GA) with a note
+- If detected: store the normalized family (Opus 4.8 / Opus 4.7 / Sonnet 4.6 / Haiku 4.5) as session-active target model
+- If multiple models mentioned or unclear: default to Opus 4.8 (current GA) with a note
 
-Report in orientation ONLY if target model differs from Opus 4.7 default OR
+Report in orientation ONLY if target model differs from Opus 4.8 default OR
 user explicitly asked:
 "📌 Target model for crafted prompts: [detected model]. Override per prompt if
 executor will run on a different model."
@@ -134,6 +136,9 @@ the SP uses this to decide which reusable blocks to embed in crafted prompts.
 
 **`/effort` guidance by model** (used when the SP recommends runtime flags,
 not by hook):
+- **Opus 4.8**: Claude Code defaults to `high`, not `xhigh`. Set
+  `/effort xhigh` explicitly for coding/agentic work — it is the
+  recommended starting point, not the silent default.
 - **Opus 4.7**: `xhigh` is the Claude Code default for all plans — no action
   needed. `/effort high` only makes sense as a deliberate downgrade for
   latency-sensitive sessions.
@@ -583,7 +588,7 @@ and ask what the user wants to work on.
   `references/floor-signal-handling.md` § Pattern: output_style_state.
 - ⚡ Update available (from inline version check in Step 1.5): one-liner with version diff and update command
 - 🔧 **Context advisory** (1M-context sessions only): If the detected model
-  has a 1M context window (Opus 4.7, or any model running with
+  has a 1M context window (Opus 4.8 or Opus 4.7, or any model running with
   `SP_CONTEXT_WINDOW=1M`), display this informational note in orientation:
   "📌 **1M context advisory:** Autocompact defaults to ~95% of your window
   (~950K tokens), and known Anthropic issues (#34332, #42375, #43989,

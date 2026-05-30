@@ -174,8 +174,9 @@ a mismatch.
 
 Answer all four questions before writing the prompt body. Record answers explicitly.
 Use this as a thinking tool to decide whether `<orchestration>` adds value — not as
-a hard fail gate. Opus 4.7 plans parallelism well by default; `<orchestration>` is
-for cases where the executor needs explicit coordination instructions.
+a hard fail gate. Modern Claude models plan straightforward parallelism on their
+own; `<orchestration>` is for cases where the executor needs explicit
+coordination instructions.
 
 | # | Question | If YES → | If NO → |
 |---|----------|----------|---------|
@@ -568,7 +569,7 @@ Example (resolve each skill from the routing matrix — see `references/skill-ro
 ```
 Prompt chain (run in order):
   1. Explore — Agent(Sonnet 4.6, [explorer-agent]) → produces architecture notes
-  2. Design — Agent(Opus 4.7, [architect-agent]) → produces component spec
+  2. Design — Agent(Opus, [architect-agent]) → produces component spec
   3. Build — /[implementation skill] → implements from spec
   4. Review — /[review skill] → validates before merge
 ```
@@ -865,8 +866,8 @@ Never speculate about code you have not opened. If the user references a specifi
 </investigate_before_answering>
 ```
 **Trigger**: Any prompt where the executor will make claims about existing code (investigation, review, refactoring, implementation touching existing files).
-**Models**: Universal — applies to Opus 4.7, Sonnet 4.6, Haiku 4.5. Particularly valuable for hallucination-prone workloads.
-**Source**: Anthropic official Opus 4.7 prompting guide.
+**Models**: Universal — applies to Opus 4.8, Sonnet 4.6, Haiku 4.5. Particularly valuable for hallucination-prone workloads.
+**Source**: Anthropic official Opus 4.8 prompting guidance.
 
 ### Block 2: `<avoid_over_engineering>`
 
@@ -882,7 +883,7 @@ Only make changes that are directly requested or clearly necessary. Keep solutio
 </avoid_over_engineering>
 ```
 **Trigger**: Any implementation prompt (bug fix, feature add, refactor). Especially important on Opus 4.5+ which has an overengineering tendency.
-**Models**: Universal, most relevant for Opus 4.5/4.6/4.7.
+**Models**: Universal, most relevant across the Opus 4.5+ family (4.5/4.6/4.7/4.8).
 **Source**: Anthropic official guide "Overeagerness" section.
 
 ### Block 3: `<subagent_usage>`
@@ -897,8 +898,8 @@ Spawn multiple subagents in the same turn when fanning out across items or readi
 </subagent_usage>
 ```
 **Trigger**: Any prompt where the executor may spawn agents. Multi-file refactors, research tasks, fan-out work.
-**Models**: Most valuable on Opus 4.7 (spawns fewer subagents by default — needs explicit guidance when fan-out IS warranted). Also useful on Opus 4.6 (overuses subagents — needs restraint).
-**Source**: Anthropic official Opus 4.7 guide, Subagent orchestration section.
+**Models**: Most valuable on Opus 4.8 — favoring fewer subagents by default is a stable Opus-family trait (carried forward through 4.8), so explicit guidance is what tells the model when fan-out IS warranted. Also useful on Opus 4.6 (the opposite prior-gen tendency: overuses subagents — needs restraint).
+**Source**: Anthropic official Opus 4.8 prompting guidance, Subagent orchestration section.
 
 ### Block 4: `<use_parallel_tool_calls>`
 
@@ -939,8 +940,8 @@ When encountering obstacles, do not use destructive actions as a shortcut. Do no
 Apply [DIRECTIVE] to [SCOPE]. [COUNTER-EXAMPLE if useful: "not just the first section" / "every file matching this pattern" / etc.].
 </scope_explicit>
 ```
-**Trigger**: Pattern-application prompts where scope could be ambiguous ("format all headings", "update every example in this file"). Required on Opus 4.7 because literal instruction following means the model won't generalize silently.
-**Models**: Critical on Opus 4.7 (literal interpretation). Helpful on all 4.x models.
+**Trigger**: Pattern-application prompts where scope could be ambiguous ("format all headings", "update every example in this file"). Required on Opus 4.8 because literal instruction following — a stable Opus-family trait — means the model won't generalize silently.
+**Models**: Critical on Opus 4.8 (literal interpretation, a carried-forward family trait). Helpful on all 4.x models.
 **Source**: Anthropic official guide, "More literal instruction following" section.
 
 ### Block 7: `<context_awareness>`
@@ -952,7 +953,7 @@ Your context window will be automatically compacted as it approaches its limit, 
 </context_awareness>
 ```
 **Trigger**: Long-horizon agentic tasks that may span multiple context windows. Implementation plans with 5+ deliverables, multi-day refactors, large migrations.
-**Models**: Opus 4.7, Sonnet 4.6, Haiku 4.5 (all context-aware). NOT for single-task prompts that fit comfortably in one context.
+**Models**: Opus 4.8, Sonnet 4.6, Haiku 4.5 (all context-aware). NOT for single-task prompts that fit comfortably in one context.
 **Source**: Anthropic official guide, "Context awareness and multi-window workflows" section.
 
 ### How to use this library
@@ -970,14 +971,20 @@ When crafting a prompt, consider which blocks the TARGET model benefits from mos
 
 | Target Model | Essential Blocks | Useful Blocks | Skip |
 |---|---|---|---|
-| Opus 4.7 | investigate_before_answering, avoid_over_engineering, subagent_usage, scope_explicit | use_parallel_tool_calls, conservative_actions, context_awareness | — |
+| Opus 4.8 | avoid_over_engineering, subagent_usage, scope_explicit (the overengineering, fewer-subagents, and literal-instruction tendencies these address are stable Opus-family traits, carried forward to 4.8) | investigate_before_answering (still a useful hallucination guard, though 4.8 calls needed tools more reliably than 4.7), use_parallel_tool_calls, conservative_actions, context_awareness | — |
 | Sonnet 4.6 | investigate_before_answering, avoid_over_engineering, use_parallel_tool_calls | conservative_actions, context_awareness | subagent_usage (less critical — Sonnet orchestrates well) |
 | Haiku 4.5 | investigate_before_answering | avoid_over_engineering | subagent_usage, context_awareness (Haiku is for narrow tasks) |
 
-Effort recommendations also differ:
-- **Opus 4.7**: xhigh (Claude Code default) for coding/agentic; high minimum for intelligence-sensitive
+Effort recommendations also differ. The full Claude Code effort ladder
+(how hard the model reasons per turn), lowest to highest, is `low` /
+`medium` / `high` / `xhigh` / `max` / `ultracode` — where `ultracode` =
+`xhigh` plus automatic dynamic-workflow orchestration, a Claude-Code-only
+setting (NOT an API effort value, so do not put it in API-targeted briefs):
+- **Opus 4.8**: Claude Code defaults to `high`, not `xhigh`. Set `xhigh`
+  explicitly for coding/agentic work — it is the recommended starting point,
+  not the silent default. `high` is the floor for intelligence-sensitive work.
 - **Sonnet 4.6**: high (API default); medium for latency-sensitive
 - **Haiku 4.5**: low to medium depending on task
 
-If target model is unknown or mixed, default to Opus 4.7's essential blocks —
+If target model is unknown or mixed, default to Opus 4.8's essential blocks —
 they work on all 4.x models.

@@ -311,7 +311,7 @@ When crafting prompts or routing to specific models, use these exact IDs:
 
 | Model | ID | Use For |
 |---|---|---|
-| Opus 4.7 | `claude-opus-4-7` | Architecture, system design, debugging, deep research, security, multi-expert |
+| Opus 4.8 | `claude-opus-4-8` | Architecture, system design, debugging, deep research, security, multi-expert (the 1M-context build is addressed as `claude-opus-4-8[1m]`) |
 | Sonnet 4.6 | `claude-sonnet-4-6` | Implementation, review, testing, documentation, code quality (default) |
 | Haiku 4.5 | `claude-haiku-4-5-20251001` | Quick lookups, transcript fetching, low-depth narrow tasks |
 

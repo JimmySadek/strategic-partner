@@ -85,14 +85,14 @@ Only make changes that are directly requested or clearly necessary. Keep solutio
 
 <!-- Include <orchestration> ONLY when (a) subtasks are clearly independent with
      no shared state, (b) user explicitly requested multi-agent decomposition,
-     or (c) latency-hiding is the primary goal. Skip otherwise — Opus 4.7 plans
-     parallelism well by default. -->
+     or (c) latency-hiding is the primary goal. Skip otherwise — modern Claude
+     models plan straightforward parallelism on their own. -->
 <orchestration>
   Phase 1 (parallel):
     Agent A (Sonnet 4.6): [task + expected output]
     Agent B (Sonnet 4.6): [task + expected output]
   Phase 2 (sequential):
-    Agent C (Opus 4.7): [synthesis task]
+    Agent C (Opus): [synthesis task]
 </orchestration>
 
 <verification>

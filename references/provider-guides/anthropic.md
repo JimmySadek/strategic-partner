@@ -40,13 +40,13 @@ to Claude and provide the most reliable structure for complex prompts.
 <orchestration>
   [Include ONLY when (a) subtasks are clearly independent with no shared state,
    (b) user explicitly requested multi-agent decomposition, or
-   (c) latency-hiding is the primary goal. Skip otherwise — Opus 4.7 plans
-   parallelism well by default.]
+   (c) latency-hiding is the primary goal. Skip otherwise — modern Claude
+   models plan straightforward parallelism on their own.]
   Phase 1 (parallel):
     Agent A (Sonnet 4.6, mode: "auto"): [task + expected output]
     Agent B (Sonnet 4.6, mode: "auto"): [task + expected output]
   Phase 2 (sequential):
-    Agent C (Opus 4.7, mode: "acceptEdits"): [synthesis task]
+    Agent C (Opus, mode: "acceptEdits"): [synthesis task]
 </orchestration>
 
 <verification>
@@ -95,11 +95,12 @@ Conditional section — include ONLY when one of these conditions applies:
 2. User explicitly requested multi-agent decomposition
 3. Latency-hiding via parallel work is the primary goal
 
-Skip otherwise. Opus 4.7 plans parallelism well by default; an unnecessary
-`<orchestration>` block adds noise without value. When included, structure as phases:
+Skip otherwise. Modern Claude models plan straightforward parallelism on their
+own; an unnecessary `<orchestration>` block adds noise without value. When
+included, structure as phases:
 - **Parallel phases**: agents that can run simultaneously
 - **Sequential phases**: agents that depend on prior phase output
-- Each agent spawn requires explicit **model** (Sonnet 4.6, Opus 4.7) and **mode** parameter
+- Each agent spawn requires explicit **model** (Sonnet 4.6, Opus) and **mode** parameter
 
 ### `<verification>`
 
@@ -135,21 +136,22 @@ prompts should be structured:
 | Orchestration | `<orchestration>` for multi-agent coordination — only when subtasks are genuinely independent, user requested decomposition, or latency-hiding matters |
 | Tag parsing | Native XML understanding — tags provide reliable structure |
 
-### Opus 4.7 Specific Patterns
+### Opus 4.8 Specific Patterns
 
-Opus 4.7 (released 2026-04-16) has behavior changes that benefit from specific
-prompt patterns. These patterns are codified as reusable blocks — see
+Opus 4.8 (released 2026-05-28, the current GA Opus) carries forward the
+stable Opus-family behaviors that benefit from specific prompt patterns.
+These patterns are codified as reusable blocks — see
 `references/prompt-crafting-guide.md` § Reusable Prompt Blocks for the full
 library with verbatim XML.
 
 | Behavior | Recommended block(s) | Why |
 |---|---|---|
-| More literal instruction following | `<scope_explicit>` | Model won't infer generalization |
-| Fewer subagents by default | `<subagent_usage>` | Explicit guidance when fan-out IS warranted |
-| Overengineering tendency | `<avoid_over_engineering>` | Constrain scope expansion |
-| Potential hallucinations on unopened code | `<investigate_before_answering>` | Require investigation before claims |
-| Conservative mode for shared state | `<conservative_actions>` | Reversibility gate |
-| Context-aware long tasks | `<context_awareness>` | Enable compaction continuity |
+| Literal instruction following (stable family trait) | `<scope_explicit>` | Model won't infer generalization |
+| Favors fewer subagents by default (stable family trait) | `<subagent_usage>` | Explicit guidance when fan-out IS warranted |
+| Overengineering tendency (stable Opus 4.5+ trait) | `<avoid_over_engineering>` | Constrain scope expansion |
+| Claims about unopened code | `<investigate_before_answering>` | Hallucination guard — useful even though 4.8 calls needed tools more reliably than 4.7 |
+| Shared-state operations | `<conservative_actions>` | Reversibility gate |
+| Long, multi-window tasks | `<context_awareness>` | Enable compaction continuity |
 
 Block XML is not duplicated here — load the main crafting guide section for
 the verbatim snippets and per-model selection heuristics.

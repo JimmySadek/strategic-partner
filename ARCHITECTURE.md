@@ -286,7 +286,7 @@ Provider guides live in `references/provider-guides/`.
 
 ## 1M context advisory
 
-On 1M-context models (Opus 4.7), the advisor surfaces a one-time orientation note: autocompact defaults to ~95% (~950K), known Anthropic issues cause erratic behavior above ~256K tokens, and users can consider wrapping up or triggering handoff around 250K for reliable retrieval. Pure advisory; no settings changed.
+On 1M-context models (Opus 4.8), the advisor surfaces a one-time orientation note: autocompact defaults to ~95% (~950K), known Anthropic issues cause erratic behavior above ~256K tokens, and users can consider wrapping up or triggering handoff around 250K for reliable retrieval. Pure advisory; no settings changed.
 
 ---
 

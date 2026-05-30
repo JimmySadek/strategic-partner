@@ -39,8 +39,9 @@ The SP does NOT set or recommend changes to this value. Changing it globally
 would cause surprise compaction in long sessions users want to keep running.
 The SP's role regarding autocompact is purely informational:
 
-- **Detect** the active model and context window at startup (Opus 4.7 → 1M,
-  other current models → 200K by default)
+- **Detect** the active model and context window at startup (Opus 4.8 or
+  Opus 4.7 → 1M; opusplan's plan phase stays 200K; other current models →
+  200K by default)
 - **Surface** a session-start advisory on 1M-context sessions noting that
   retrieval reliability degrades above ~256K tokens — known Anthropic
   autocompact bugs on 1M make the default ~95% threshold behave
