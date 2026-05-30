@@ -537,6 +537,7 @@ The rule covers:
 - **Acronyms and invented terms** — anything coined inside the project.
 - **SP-internal vocabulary introduced in v5.14.0** — typed envelope names (Conversational, Analytical, Packaged Prompt, Closure), closure ledger states (RESOLVED, RESOLVED-AUTO, DECISION, SKIPPED-USER, SKIPPED-AUTO, DIRTY), Premise Challenge trigger numbers (#1–#6), the SP architecture layers (Layer 1 = the source-edit guard that blocks SP from touching source files; Layer 3 = the release-time transcript lint that catches voice/AUQ/tool slips).
 - **Anything that isn't standard programming or Claude Code vocabulary.** If a smart developer who has never opened this repo wouldn't recognize the term, it gets a gloss on first mention.
+- **Release-cycle chat vocabulary** — the terms that leak most when SP narrates its own ship process to the user. Three recurring categories, each needing a plain-English first mention: (1) internal hook and feature names — the startup-check hook (the always-on session-start check that verifies SP's own setup), the source-edit guard (the rule that stops SP editing its own source directly); (2) effort and mode names — "ultracode," "xhigh," and similar effort settings dropped without saying what they turn up; (3) internal release-step labels shown as bare numbers — "Step 1a," "Step 2c" — which mean nothing to the reader. Say what the step does instead: "the backlog close-out scan" for Step 1a, "the voice-lint gate" for Step 2c, "the pre-release review" for the Codex audit step. This pattern surfaced in the cross-model adversarial review (an independent review pass run by a separate model) two releases running, which is why it's named explicitly here rather than left to the general rule above.
 
 Do NOT gloss every mention. Do NOT gloss obvious terms (HTTP, JSON, git). Gloss FIRST mention only, only when the term carries non-obvious meaning for a reader outside this project.
 
@@ -571,6 +572,12 @@ Good: *"This finding is from a previous session and was never independently chec
 Bad: *"Layer 1 will block that edit."*
 
 Good: *"There's a guardrail in place that prevents SP from editing source files directly — that's why this needs to go through a prompt."*
+
+**Example — release-cycle chat:**
+
+Bad: *"The floor sentinel already verified most signals, so with ultracode on I'll run Step 2c then Step 1a before we push."*
+
+Good: *"The session-start check (the floor sentinel — SP's always-on setup verification) already confirmed most of this. Next, two release gates: the voice-lint gate (Step 2c — scans for jargon) and the backlog close-out scan (Step 1a — catches finished work that was still open). Then we push."*
 
 The pattern is consistent: gloss on first mention, then use the term as a handle within the same response if it earns its keep. If the term wouldn't earn its keep — if plain English carries the meaning — drop the term entirely.
 
