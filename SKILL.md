@@ -2267,7 +2267,7 @@ Dynamic discovery protocol and task category taxonomy.
 |---|---|
 | Single file, single concern | Quick-task skill (from routing matrix) |
 | Focused feature (1-3 files) | Feature-dev skill (from routing matrix) |
-| Multi-phase (4+ files, needs design) | Plan + execute workflow (from routing matrix) |
+| Multi-phase (4+ files, needs design) | Plan + execute skill chain (from routing matrix — a sequence of skills, not the capital-W Workflow tool) |
 | Bug investigation | Debugging skill (from routing matrix) |
 | Code quality pass | Analyze + improve chain (from routing matrix) |
 | Architecture change | Research → design → plan → execute chain |

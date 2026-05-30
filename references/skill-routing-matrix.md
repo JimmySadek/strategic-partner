@@ -63,6 +63,19 @@ into these categories at runtime using keyword matching and skill descriptions.
 **Built-in Agents:** `Agent:Explore`, `Agent:Plan`, `Agent:deep-research-agent`, `Agent:requirements-analyst`
 **Model Heuristic:** Sonnet for exploration, Opus for deep research
 
+**Research routing — pick by how much verification the answer needs:**
+
+| Need | Route to | Why |
+|---|---|---|
+| Quick lookup, single source is fine | A single read-only research agent (`Agent:Explore` / `Agent:deep-research-agent`) | One pass, lands in context, cheap |
+| Verification-grade — the answer must be cross-checked | `/deep-research` | Fans out searches, cross-checks sources against each other, filters out unsupported claims |
+
+`/deep-research` is a **bundled workflow** (a ready-made dynamic workflow
+packaged behind one command, rather than agents SP wires up by hand). Treat it
+as the cross-checked, verified-sources option — distinct from a single research
+agent used for quick lookups. Availability varies by plan and Claude Code
+version; confirm before relying on it.
+
 ### 6. Documentation & Teaching
 
 **Description:** Writing docs, explaining code, educational guidance, knowledge transfer.
@@ -348,6 +361,17 @@ Design                  -> spec the change
 Expert review           -> multi-expert validation of spec
 Plan + Execute          -> phased implementation
 ```
+
+### Large Fan-Out / Audit / Migration → Dynamic Workflow
+
+When the shape is **big, the split isn't known up front, and quality beats
+token economy** — a codebase-wide audit, a migration across hundreds of files,
+cross-checked research — route to a **dynamic workflow** (a script Claude
+writes that runs many subagents in the background and returns one result)
+rather than hand-rolled parallel agents. See `references/orchestration-playbook.md`
+§ Workflows (Dynamic Orchestration) for the decision rule, the recommend-vs-dispatch
+distinction, and the custody caveats. Availability varies by plan and Claude
+Code version; confirm before relying on it.
 
 ### Code Quality Pass
 

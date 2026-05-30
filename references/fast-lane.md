@@ -288,6 +288,22 @@ On `[Send correction to same agent]`:
 The correction is one line scoped to the specific fix — not a fresh brief,
 not a multi-turn conversation. One correction, then re-review.
 
+**Robustness — never block or retry against a dead teammate.** If a SendMessage
+to a stored `agentId` fails, or the session was resumed or rewound (in-process
+teammates are NOT restored after `/resume` or `/rewind`, so the stored ID
+points at nothing), SP falls back to the standard fresh-brief path — a new
+`Agent()` dispatch with a complete brief. SP does not retry the dead teammate
+and does not stall waiting on it. The correction path is an optimization; its
+failure mode is "dispatch fresh," exactly as if the Agent Teams switch were
+off.
+
+**Team-brief caveat — teammates are not worktree-isolated.** Agent Teams
+teammates share the working tree; they are **not** worktree-isolated the way a
+worktree spawn is. So any SP-crafted team brief must **partition the files** so
+each teammate owns a different set — this reinforces SP's existing
+"don't parallelize on shared files" anti-pattern. If two teammates would touch
+the same file, that work is sequential or single-agent, not a team.
+
 ### Graceful degradation — flag absent is the default, not an error
 
 `agent_teams_available = false` is the normal, expected state, exactly like

@@ -45,6 +45,136 @@ Reserve Opus for:
 
 ---
 
+## 🏗️ Workflows (Dynamic Orchestration)
+
+A **dynamic workflow** is a script Claude writes on the fly that runs many
+subagents in parallel in the background. The script — not Claude's chat
+context — holds the plan and all the intermediate results; Claude gets back
+only the final answer. That keeps a huge job (hundreds of files, dozens of
+sources) from ever loading into one context window, and lets the agents
+cross-check each other's work along the way.
+
+It is the dispatch primitive the older patterns in this file predate. Patterns
+1–4 below describe Claude orchestrating a handful of agents **turn by turn**,
+with each agent's output landing back in context. A workflow is the opposite:
+fire a large fan-out, keep the bookkeeping in the script, return one result.
+
+> ⚠️ **Availability varies by plan and Claude Code version.** Dynamic workflows
+> ship as a research preview and need a recent Claude Code version; sources
+> disagree on the exact plan gate. **Confirm the user actually has it before
+> recommending or relying on it** — never present it as universally available.
+
+### 🎯 Which vehicle holds the plan?
+
+The deciding axis is *who holds the plan and the intermediate state*. Match the
+task to the smallest vehicle that fits.
+
+| Vehicle | Who holds the plan | Use when |
+|---|---|---|
+| **Inline (Claude directly)** | Claude's own context | 1–2 files, fits one context window |
+| **Single Agent / a few subagents** (Patterns 1–4 below) | Claude, turn by turn — results land in context | A handful of delegated tasks Claude coordinates and reads back |
+| **Dynamic Workflow** | The script (context-cheap) | The task is too big for one context **AND** the split strategy isn't known in advance **AND** quality matters more than token economy |
+| **Fresh execution session** (SP's existing handoff) | A clean new session | Focused build work that benefits from a clean context |
+
+```
+Does it fit one context window?
+├─ YES → Inline, or a few subagents (Patterns 1–4) if work splits cleanly
+└─ NO  → Is the split strategy known up front AND token economy the priority?
+         ├─ YES → Phased subagents (Patterns 1–4) or a fresh session
+         └─ NO  → Dynamic Workflow  (big + unknown split + quality-first)
+```
+
+A workflow is the right call for a codebase-wide audit, a migration touching
+hundreds of files, cross-checked research, or drafting a plan from several
+competing angles — anywhere the split emerges as the work proceeds and you want
+agents adversarially checking each other rather than a single pass.
+
+### ⚠️ What a workflow cannot do mid-run
+
+A workflow **cannot take user input while it runs.** Any human sign-off has to
+be staged as a *separate* workflow — run stage one, review the output, then
+launch stage two. SP must design recommended workflows around this: never
+assume a workflow can pause for an approval.
+
+### 🎭 Two modes: SP recommends vs. SP dispatches
+
+SP relates to workflows in two distinct ways. Keep them separate.
+
+| Mode | What happens | Boundary |
+|---|---|---|
+| **SP recommends** | SP frames the task and hands the user a workflow to run; the user runs it. SP does **not** implement source edits. | Same implementation boundary as every SP recommendation |
+| **SP dispatches** | SP runs a workflow itself for its **own advisory work** — multi-source research, codebase audits, backlog triage. | In-bounds advisory work, **not** a boundary crossing |
+
+SP already uses workflows this way for its own research and audit passes.
+Dispatching a workflow to *gather* advisory findings is no different from
+spawning Explore agents (Patterns A–E below) — it is reading-and-reasoning
+work, not editing the user's source.
+
+### 🛡️ Custody and permissions caveat
+
+Workflow subagents follow a **different permission model** from `Agent()`
+dispatch — do not blur the two:
+
+- Workflow subagents **always run in `acceptEdits` mode** and inherit the
+  user's tool allowlist, **regardless of the session's permission mode**. File
+  edits are auto-approved across every spawned agent.
+- `ultracode` (see below) skips the launch-approval gate entirely.
+
+This is NOT the `Agent()` model. The "specify `mode` on every spawn — a
+background agent with no mode fails silently" rule in § Agent Permission Modes
+applies to `Agent()` dispatch only; it does not describe workflow subagents,
+which carry `acceptEdits` for you whether you want it or not.
+
+**Advisory takeaway SP hands the user before a large workflow:**
+- Work on a **git worktree or a throwaway branch** so auto-approved edits are
+  contained and discardable.
+- **Pre-approve** the shell / web / MCP commands the workflow will need in
+  `~/.claude/settings.json` so stages don't stall waiting on a prompt they
+  can't surface.
+
+### ⚡ Cost shaping inside a workflow
+
+The "parallel workers on Sonnet, synthesizer on Opus" cost principle from
+§ Model Selection still holds — but in a workflow it is expressed as
+**per-stage model routing inside the script** rather than a per-agent `model`
+argument SP picks.
+
+Advisory phrasing SP hands the user (SP frames it; SP does not execute it):
+- Check `/model` before a large run.
+- State in the task description **which stages can use a cheaper model** — e.g.
+  "fan-out workers on Sonnet, final synthesis on Opus."
+
+### 📋 Observing background work
+
+When SP dispatches non-blocking work or recommends a workflow, point the user
+at the right monitor surface:
+
+| Surface | Watches |
+|---|---|
+| `/workflows` | Workflow runs |
+| `/tasks` | In-session background work |
+| `claude agents` | Dispatched background sessions |
+
+### 🔧 `ultracode` in the orchestration context
+
+`ultracode` is the top rung of the Claude Code effort ladder. Its full
+definition — `xhigh` effort plus automatic dynamic-workflow orchestration, a
+Claude-Code-only session setting that is **not** an API effort value — is
+glossed once in `references/prompt-crafting-guide.md` § Model-Aware Block
+Selection and SKILL.md's effort heuristics. (Not repeated here.)
+
+In orchestration terms, `ultracode` means **every substantive task auto-spawns
+a dynamic workflow** rather than running inline.
+
+- **Recommend it for** large self-verifying jobs — codebase audits, large
+  migrations, hard multi-angle plan drafting — where the auto-workflow behavior
+  is exactly what you want.
+- **Warn against it for** routine or focused work: because it auto-spawns
+  workflows on every task, it multiplies token cost and is the wrong setting
+  for a single-file fix or a quick edit.
+
+---
+
 ## ⚡ Parallelization Heuristics
 
 These heuristics align with the **parallelization thinking tool** in
@@ -553,6 +683,22 @@ Add to the `<orchestration>` section or as a top-level directive:
 | ⚡ **Parallel safety** | Multiple agents can work on overlapping files without conflicts |
 | 🔍 **Review gate** | Changes reviewed before merging to the main tree |
 | 🧹 **No cleanup** | Worktrees are disposable by design |
+
+### 📦 `/batch` — the packaged worktree fan-out
+
+`/batch` is a **packaged pattern** (a ready-made command, not a hand-rolled
+spawn) that splits one large change into many worktree-isolated subagents —
+each works in its own isolated copy of the repo and opens its own pull request.
+
+Recommend `/batch` for **one large mechanical change spread across many files**
+(a sweeping rename, a lint-rule rollout, a repetitive refactor) — the case
+where Pattern 1 would otherwise have SP author N near-identical agent prompts
+by hand. `/batch` does the worktree isolation and the per-agent PR for you.
+
+Keep **hand-rolled Pattern 1** for cases that need a *custom per-agent prompt* —
+where each agent's task differs enough that one templated instruction won't
+serve all of them. Availability varies by plan and Claude Code version; confirm
+before relying on it.
 
 ---
 
