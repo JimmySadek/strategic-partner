@@ -1,5 +1,40 @@
 # Changelog
 
+## [6.12.0] - 2026-05-31
+
+### Changed
+- **Tuned for Claude's latest model, Opus 4.8** — model labels, the model picked
+  for background tasks, and effort guidance now reflect Opus 4.8 instead of 4.7;
+  it recognizes when it's on 4.8 and knows 4.8's default effort is "high," so for
+  deeper work it sets "xhigh" explicitly. A few "4.7" behavior notes were reworded
+  as stable Opus-family traits.
+- **Sub-agent correction is more robust** — if a follow-up message to a running
+  helper agent can't be delivered (e.g. after a session resume), the advisor falls
+  back to a fresh brief instead of stalling; and it notes that team agents share
+  one workspace, so their file assignments must not overlap.
+- **Voice rules name the jargon that tends to leak** — the advisor's voice guidance
+  now calls out the specific internal terms that slip into release-cycle chat, with
+  a pre-send check to catch them.
+
+### Added
+- **The advisor now knows about workflows** — Claude Code's new way to run many
+  sub-agents in parallel in the background for big jobs (codebase-wide audits,
+  large migrations, cross-checked research). A clear rule for when to reach for a
+  workflow vs. a single agent vs. a fresh session, the /deep-research and /batch
+  commands surfaced where they fit, and the caveat that a workflow's sub-agents
+  auto-approve their own edits.
+
+### Fixed
+- **Review briefs now ask for everything, not just the serious stuff** — Opus 4.8
+  follows "only flag high-severity" so faithfully it finds real problems and stays
+  quiet about them; the advisor now writes review briefs to report every finding
+  with a severity tag and filter afterward.
+- **Verified, current notes on Claude Code's internals** — confirmed against live
+  docs: the session-start check stays within Claude Code's 30-second hook limit,
+  question-prompts are for choosing a direction (not plan approval), and the list
+  of still-open large-context issues is refreshed. Crafted prompts now describe the
+  capability an executor needs rather than assuming a tool is preloaded.
+
 ## [6.11.0] - 2026-05-22
 
 ### Added

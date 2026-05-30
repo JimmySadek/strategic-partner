@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.11.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.12.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The lasting value is the thinking partner you keep open across a project — the prompts it hands off are just the output of that partnership.
 
-> **What's new** — 6.11.0 closes a long-standing rough edge for new users: fresh installs now complete themselves in-session. If you skip the one-time `./setup` step and just run `/sp`, the advisor notices, offers to finish setup for you with a single yes/no prompt, and tells you to restart Claude Code afterwards so the new commands and voice style activate. Under the hood: the session-startup check now resolves its own install location (no longer dependent on a registered shortcut that does not exist on fresh installs), and gained a new field recording whether your install is fully set up. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — 6.12.0 brings the advisor in sync with Claude's latest model, Opus 4.8, and recent Claude Code features. It defaults to Opus 4.8, understands the model's new effort settings, and now knows about **workflows** — Claude Code's way of running many sub-agents in parallel for big jobs — so it routes large audits, migrations, and cross-checked research to the right vehicle. It also tightened its own plain-English habits and refreshed a batch of internal notes against the current docs. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 
@@ -190,7 +190,7 @@ The advisor operates through a lean core (SKILL.md) that loads reference materia
 - **Implementation boundary** — a safety guard in Claude Code blocks accidental source edits in advisor sessions, paired with three behavioral gates (pre-build decision checklist, return-to-planning after execution, post-dispatch recovery)
 - **Memory architecture** — stewards four persistence layers (`CLAUDE.md`, `.claude/rules/`, auto-memory, Serena memory) so decisions survive across sessions
 - **Visible prompt quality checklist** — every crafted prompt renders a pass/fail table of 14 quality checks (skill routing, file context, deliverables, verification commands, the recorded routing decision, etc.) before the prompt body, so dispatches can be audited without trusting hidden reasoning
-- **Startup status check** — at session start and on each subcommand, a hook (a small script Claude Code runs automatically at those moments) gathers a one-line snapshot of eleven project-state fields and injects it into the advisor's context: project conventions, cross-session memory, captured findings, the backlog count, the old-format-backlog count, git state, version freshness, the project-rules-file size band, routing matrix freshness, which output style is active, and whether the installed voice file is fresh/stale/missing
+- **Startup status check** — at session start and on each subcommand, a hook (a small script Claude Code runs automatically at those moments) gathers a one-line snapshot of twelve project-state fields and injects it into the advisor's context: project conventions, cross-session memory, captured findings, the backlog count, the old-format-backlog count, git state, version freshness, the project-rules-file size band, routing matrix freshness, which output style is active, whether the installed voice file is fresh/stale/missing, and whether your install is fully set up
 - **1M-context session advisory** — on 1M-context sessions (such as Opus 4.8's 1M mode), the advisor surfaces a one-time orientation note: known Anthropic issues cause erratic behavior above ~256K tokens; consider wrapping up or triggering a handoff around 250K for reliable retrieval
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism detail.
