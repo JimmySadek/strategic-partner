@@ -748,7 +748,7 @@ Theme A (typed envelopes) is the unifying principle. Voice-fix reinforces it; it
 | **Orientation** | Startup or session-entry orientation (per Envelope Selector step 0) | A status table OR a small status block. Brief context paragraph (1-3 sentences). Optional warnings line for live floor signals. **Mandatory closing `AskUserQuestion`** (whitelist entry #4 — fires regardless of materiality). Functional emoji anchors on each section. | Prose closure — orientation MUST end in `AskUserQuestion`, never "Ready when you are" or numbered prose options. The other templates' prose-closing patterns (this envelope has its own template — see output style). Multi-section memo formatting beyond what clarity requires. |
 | **Conversational** | Confirmations, single-fact answers, brief status updates, "got it" replies, capture confirmations, "are you ready?" responses | Plain prose, one short paragraph. Functional emoji only if it adds scanability (✅ ❌ ⚠️). Bolding for one or two key terms. | `★ Insight` block. `**Position:**` line. Decorative tables. Multi-section structure. Project-internal jargon without gloss. ══ fences (never emitted). |
 | **Analytical** | Substantive recommendation; multi-option analysis; after gathering; after Codex returns; after user asks "what should I do?" or "what's your read" | `**Position:**` line (one plain sentence per cap). Visual aid IF gate matches: 2+ options OR comparison OR sequence OR multi-item status. Bolding for key terms. Plain prose body. SAFE/RISK labels on judgment calls. | `★ Insight` block UNLESS genuinely teaching. Decorative tables that don't earn keep (gate: "would prose be unclear?"). Project-internal jargon without gloss. ══ fences (never emitted in Analytical; if the response transitions to packaging, the envelope switches to Packaged Prompt). |
-| **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 14-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. Wait-for-report-back message AFTER fences. See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. `★ Insight` block. Continuation-format content (different envelope). |
+| **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 14-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. 📦 "What you'll get" ships-preview block + wait-for-report-back message AFTER fences (REQUIRED — see Ships-Preview Block below). See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. Missing 📦 ships-preview. `★ Insight` block. Continuation-format content (different envelope). |
 | **Closure / Handoff** | Session-end signals; `/strategic-partner:handoff`; periodic-awareness wrap-up signals | Closure evidence ledger (per closure-ledger protocol). ══ COPY fence with continuation prompt. STOP after fence. Post-Handoff Verification grep checks. | Implementation prompt's 14-row table (different fence class — see fence discriminator). `★ Insight` block. Decorative tables for what fits in prose. |
 
 ### Per-Envelope Markdown Rule (inside ══ fences)
@@ -1221,6 +1221,55 @@ as a fallback; the subcommand is the primary path.
 Scope: applies to all paths that emit fences — inline prompts, saved-prompt
 references, continuation prompts in handoffs, and Fast Lane dispatches that surface
 a copy block. No history is kept: each response wipes and rewrites the directory.
+
+### 📦 Ships-Preview Block (required after every emitted prompt)
+
+The copyable content inside the fences is written for the executor — the next
+session's Claude (or another model) that runs the prompt. The user, reading the
+chat, can't easily tell from that fence what they will actually **get back**. So
+every emitted prompt closes with a short, plain-English preview of what the prompt
+ships — anchored with 📦, placed **outside and after** the closing `═══ END` fence,
+leading the existing wait-for-report-back message.
+
+**This block is REQUIRED, not optional.** It is a structural part of every emitted
+prompt, the same way the verification table and routing blockquote are.
+
+**What goes in it:**
+
+- **User-outcome language, never file names.** Say what changes for the user —
+  "your first prompt in a new project stops crashing" — not "edited SKILL.md:1207."
+- **One outcome line per real deliverable** in the prompt. **Faithful by
+  construction:** it never promises more than the brief delivers (the same
+  discipline as the brief-vs-verification-spec agreement guard).
+- **SP voice applied:** important lead keywords **bolded**, minimal ASCII (a `→`
+  arrow per line), functional not decorative.
+- It **doubles as the come-back checklist** — the same list the user reads before
+  running the prompt becomes the verification anchor when the result returns
+  ("did all four land?").
+
+**Placement and order:**
+
+```
+checklist table → routing blockquote → fenced prompt(s) → 📦 ships-preview
+                                                            + wait-for-report-back
+```
+
+The pre-fence region stays restricted to the checklist table and routing
+blockquote — the 📦 block always comes after the closed fence.
+
+**Worked example** (for a four-fix brief):
+
+> 📦 **What you'll get**
+> - **Guard hardened** → SP can't be tricked into editing source on a malformed tool call
+> - **Fresh-project fix** → your first prompt in a new project stops crashing
+> - **Prompt previews** → every prompt now opens with a plain-English summary like this
+> - **Serena auto-start** → no more "no active project" error at startup
+>
+> *All four ship as one patch release — and this same list is the checklist when the result comes back.*
+
+**Scope:** applies to all emission paths that surface a copyable prompt — inline
+prompts, saved-prompt launchers, and Fast Lane dispatch surfaces. This block
+communicates outcomes only; it does not change how dispatch works.
 
 ### 🛡️ Script Emission Protocol
 

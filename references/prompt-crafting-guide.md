@@ -804,17 +804,49 @@ Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execu
 - When multiple prompts exist, each gets its own START/END block
 - **Post-Craft Verification Checklist is mandatory FIRST** — a visible pass/fail table rendering all 14 checks (see SKILL.md Post-Craft Verification gate). Renders as the very first output element before anything else.
 - **Routing rationale is mandatory AFTER the checklist, BEFORE the fences** — a `> 🎯 Routing:` blockquote explaining why this skill was chosen (or why no skill was needed). This educates the user on SP routing decisions
-- **Required order**: checklist table → routing blockquote → fenced prompt(s) → wait-for-report-back message (outside fences)
+- **Required order**: checklist table → routing blockquote → fenced prompt(s) → 📦 ships-preview + wait-for-report-back message (outside fences). The 📦 "What you'll get" block is a required structural element — see the Post-Prompt Protocol below.
 
-### Post-Prompt Protocol: Wait for Report Back
+### Post-Prompt Protocol: 📦 Ships-Preview, then Wait for Report Back
 
-After delivering a fenced prompt or script launcher: **close the END 🛑 fence first**,
-then state you're waiting for the report back OUTSIDE the fence. Do not offer follow-up
-options, suggest next tasks, or present "what's next?" menus. The wait message is your
-prose to the user, not part of the copyable prompt — it must come after the closed fence.
+After delivering a fenced prompt or script launcher: **close the END 🛑 fence first**.
+Then, OUTSIDE the closed fence, two things follow in order — the 📦 ships-preview
+block, then the wait-for-report-back message. Do not offer follow-up options,
+suggest next tasks, or present "what's next?" menus. Both pieces are SP's prose to
+the user, not part of the copyable prompt — they must come after the closed fence.
 
-The user will execute the prompt in a separate session and return with results.
-Resume only when they report back. Neither side skips their turn.
+**1. The 📦 "What you'll get" ships-preview (required).** The fenced content is
+written for the executor — the user reading the chat can't easily tell what they'll
+*get* from it. So every emitted prompt closes with a short, plain-English preview of
+what the prompt actually ships:
+
+- **Anchored with 📦.** "What you'll get" / "what ships."
+- **User-outcome language, never file names.** "Your first prompt stops crashing,"
+  not "SKILL.md:1207 edited."
+- **One outcome line per real deliverable** in the prompt. **Faithful by
+  construction:** never promises more than the brief delivers (same principle as
+  the brief-vs-verification-spec agreement guard).
+- **SP voice:** important lead keywords **bolded**, minimal ASCII (a `→` arrow per
+  line), functional not decorative.
+- **Doubles as the come-back checklist:** the same list the user reads before
+  running the prompt is the verification anchor when the result returns.
+
+Canonical shape (example, for a four-fix brief):
+
+> 📦 **What you'll get**
+> - **Guard hardened** → SP can't be tricked into editing source on a malformed tool call
+> - **Fresh-project fix** → your first prompt in a new project stops crashing
+> - **Prompt previews** → every prompt now opens with a plain-English summary like this
+> - **Serena auto-start** → no more "no active project" error at startup
+>
+> *All four ship as one patch release — and this same list is the checklist when the result comes back.*
+
+This applies across all emission paths — inline prompts, saved-prompt launchers,
+and Fast Lane dispatch surfaces. It communicates outcomes only; it does not change
+how dispatch works.
+
+**2. The wait-for-report-back message.** After the 📦 block, state you're waiting
+for the report back. The user will execute the prompt in a separate session and
+return with results. Resume only when they report back. Neither side skips their turn.
 
 **When the user reports back:**
 1. Verify: "Did it commit?" → check `git log --oneline -3` if available
