@@ -21,16 +21,16 @@ hooks:
         - type: command
           command: |
             INPUT=$(cat)
-            TOOL=$(echo "$INPUT" | grep -o '"tool_name":"[^"]*"' | head -1 | cut -d'"' -f4)
-            if [ -z "$TOOL" ]; then
-              TOOL=$(echo "$INPUT" | grep -o '"tool_name": "[^"]*"' | head -1 | cut -d'"' -f4)
-            fi
+            TOOL=$(echo "$INPUT" | grep -Eo '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
             [ -z "$TOOL" ] && exit 0
             # Guard 1: Edit/Write/MultiEdit/NotebookEdit — block disallowed paths
             if [ "$TOOL" = "Edit" ] || [ "$TOOL" = "Write" ] || [ "$TOOL" = "MultiEdit" ] || [ "$TOOL" = "NotebookEdit" ]; then
               FP=$(echo "$INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)
               [ -z "$FP" ] && FP=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
-              [ -z "$FP" ] && exit 0
+              if [ -z "$FP" ]; then
+                echo "BLOCKED: Strategic Partner could not read the file path for a source-editing tool — blocking to be safe. Craft a prompt instead." >&2
+                exit 2
+              fi
               case "$FP" in
                 [A-Za-z]:\\*|\\\\*)  FP_NORM=$(echo "$FP" | tr '\\' '/') ;;
                 *)                   FP_NORM="$FP" ;;

@@ -18,11 +18,9 @@
 # Read the tool input JSON from stdin
 INPUT=$(cat)
 
-# Extract tool name from stdin JSON (Claude Code passes tool_name in the JSON payload)
-TOOL_NAME=$(echo "$INPUT" | grep -o '"tool_name":"[^"]*"' | head -1 | cut -d'"' -f4)
-if [ -z "$TOOL_NAME" ]; then
-  TOOL_NAME=$(echo "$INPUT" | grep -o '"tool_name": "[^"]*"' | head -1 | cut -d'"' -f4)
-fi
+# Extract tool name from stdin JSON (Claude Code passes tool_name in the JSON payload).
+# Tolerate arbitrary whitespace around the colon, e.g. '"tool_name" : "Edit"'.
+TOOL_NAME=$(echo "$INPUT" | grep -Eo '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
 
 # Debug mode: set SP_HOOK_DEBUG=1 to log decisions to /tmp/sp-hook-debug.log
 debug_log() {
@@ -43,10 +41,14 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
   if [ -z "$FILE_PATH" ]; then
     FILE_PATH=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
   fi
-  # No file_path in payload — fail open to avoid breaking the session
+  # No file_path on a confirmed edit tool — fail CLOSED. We already know the
+  # tool is one that edits files (the branch above); an unreadable path means
+  # we can't prove it targets an allow-listed location, so block to be safe.
+  # Mirrors Guard 3 (Serena), which already blocks on an unreadable path.
   if [ -z "$FILE_PATH" ]; then
-    debug_log "decision=allow reason='no file_path parsed'"
-    exit 0
+    debug_log "decision=BLOCK reason='no file_path parsed on edit tool'"
+    echo "BLOCKED: Strategic Partner could not read the file path for a source-editing tool — blocking to be safe. Craft a prompt instead." >&2
+    exit 2
   fi
   case "$FILE_PATH" in
     [A-Za-z]:\\*|\\\\*)  FILE_PATH_NORM=$(echo "$FILE_PATH" | tr '\\' '/') ;;
