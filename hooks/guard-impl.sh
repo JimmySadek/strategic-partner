@@ -37,10 +37,8 @@ fi
 
 # --- Guard 1: Block Edit/Write/MultiEdit on disallowed paths ---
 if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "MultiEdit" ] || [ "$TOOL_NAME" = "NotebookEdit" ]; then
-  FILE_PATH=$(echo "$INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)
-  if [ -z "$FILE_PATH" ]; then
-    FILE_PATH=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
-  fi
+  # Tolerate arbitrary whitespace around the colon, e.g. '"file_path" : "..."'.
+  FILE_PATH=$(echo "$INPUT" | grep -Eo '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
   # No file_path on a confirmed edit tool — fail CLOSED. We already know the
   # tool is one that edits files (the branch above); an unreadable path means
   # we can't prove it targets an allow-listed location, so block to be safe.
@@ -104,10 +102,8 @@ fi
 if echo "$TOOL_NAME" | grep -q "^mcp__plugin_serena_serena__"; then
   case "$TOOL_NAME" in
     *replace_content|*replace_symbol_body|*insert_after_symbol|*insert_before_symbol|*create_text_file|*rename_symbol|*execute_shell_command)
-      REL_PATH=$(echo "$INPUT" | grep -o '"relative_path":"[^"]*"' | head -1 | cut -d'"' -f4)
-      if [ -z "$REL_PATH" ]; then
-        REL_PATH=$(echo "$INPUT" | grep -o '"relative_path": "[^"]*"' | head -1 | cut -d'"' -f4)
-      fi
+      # Tolerate arbitrary whitespace around the colon, e.g. '"relative_path" : "..."'.
+      REL_PATH=$(echo "$INPUT" | grep -Eo '"relative_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
       case "$REL_PATH" in
         .prompts/*|.handoffs/*|.scripts/*|.backlog/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore)
           debug_log "decision=allow tool=$TOOL_NAME path=$REL_PATH"

@@ -25,8 +25,7 @@ hooks:
             [ -z "$TOOL" ] && exit 0
             # Guard 1: Edit/Write/MultiEdit/NotebookEdit — block disallowed paths
             if [ "$TOOL" = "Edit" ] || [ "$TOOL" = "Write" ] || [ "$TOOL" = "MultiEdit" ] || [ "$TOOL" = "NotebookEdit" ]; then
-              FP=$(echo "$INPUT" | grep -o '"file_path":"[^"]*"' | head -1 | cut -d'"' -f4)
-              [ -z "$FP" ] && FP=$(echo "$INPUT" | grep -o '"file_path": "[^"]*"' | head -1 | cut -d'"' -f4)
+              FP=$(echo "$INPUT" | grep -Eo '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
               if [ -z "$FP" ]; then
                 echo "BLOCKED: Strategic Partner could not read the file path for a source-editing tool — blocking to be safe. Craft a prompt instead." >&2
                 exit 2
@@ -69,8 +68,7 @@ hooks:
             if echo "$TOOL" | grep -q "^mcp__plugin_serena_serena__"; then
               case "$TOOL" in
                 *replace_content|*replace_symbol_body|*insert_after_symbol|*insert_before_symbol|*create_text_file|*rename_symbol|*execute_shell_command)
-                  RP=$(echo "$INPUT" | grep -o '"relative_path":"[^"]*"' | head -1 | cut -d'"' -f4)
-                  [ -z "$RP" ] && RP=$(echo "$INPUT" | grep -o '"relative_path": "[^"]*"' | head -1 | cut -d'"' -f4)
+                  RP=$(echo "$INPUT" | grep -Eo '"relative_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
                   case "$RP" in
                     .prompts/*|.handoffs/*|.scripts/*|.backlog/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore) exit 0 ;;
                   esac
