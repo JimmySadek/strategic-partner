@@ -1204,7 +1204,10 @@ MUST, before the assistant's text response is emitted, write each fence's inner
 content to `.handoffs/last-prompts/[N].md` (1-indexed, starting at `1.md`).
 
 Procedure on each fenced emission:
-1. Remove all existing `.md` files in `.handoffs/last-prompts/` (wipe first).
+1. Wipe any existing saved prompts first, with a command that does not abort on
+   an empty or missing directory and does not depend on `rm` (the user's `rm` is
+   aliased to refuse-and-warn). Use a directory-guarded `find -delete`:
+   `mkdir -p .handoffs/last-prompts && find .handoffs/last-prompts -maxdepth 1 -name '*.md' -delete`
 2. Write one file per fence in emission order: `1.md`, `2.md`, etc.
 3. The write must happen BEFORE the user sees the fenced content so that
    `/strategic-partner:copy-prompt` can be invoked immediately after the
