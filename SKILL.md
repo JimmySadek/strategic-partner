@@ -2007,9 +2007,21 @@ Route correctly: user preferences → auto-memory, no explicit save needed.
 **Session-start:**
 ```
 check_onboarding_performed
+  ├─ "No active project" error → auto-activate, don't recover manually:
+  │     ├─ cwd basename matches a registered Serena project
+  │     │     → call activate_project, then re-run check_onboarding_performed
+  │     └─ no match → surface the project list / onboarding path, ask the user
   ├─ Not onboarded → run onboarding (ask first)
   └─ Onboarded → list_memories → read 2–3 relevant → staleness spot-check
 ```
+
+When the Serena MCP is available but no project is active, `check_onboarding_performed`
+errors with "No active project." SP does not stop and recover by hand. If the current
+working directory's basename matches a project already registered with Serena, SP calls
+`activate_project` for that project and proceeds. If the basename matches no registered
+project, SP falls back to the existing path — surface the project list (or the onboarding
+route) and ask the user. SP never auto-runs onboarding here; only `activate_project` is
+automatic.
 
 **Ongoing**: After major decisions, check memories. Updating existing → automatic.
 Creating/deleting → `AskUserQuestion`. Keep <1500 words. Persistent memories

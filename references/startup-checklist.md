@@ -99,6 +99,11 @@ Quick checks run inline during startup. No agents needed — these are observati
    saving memories, it's likely disabled.
 
 2. **Serena**: Existing check (`check_onboarding_performed`). Already in Step 2.
+   If it errors with "No active project" and the current working directory's
+   basename matches a registered Serena project, SP calls `activate_project`
+   and re-runs the check — instead of erroring out and recovering by hand. On
+   no basename match, SP surfaces the project list / onboarding path and asks.
+   Details in the Step 3 Serena survey below.
 
 3. **.claude/rules/**: Check if `.claude/rules/` directory exists in the project.
    If it exists, note in orientation: "{N} path-scoped rule files found."
@@ -459,6 +464,18 @@ While agents are running, read session context in parallel:
    awareness of persistent project knowledge. Then read memories ON
    DEMAND, not eagerly: when a specific decision or advisory question
    requires their content, read the relevant memory at that moment.
+
+   **Auto-activate first if no project is active.** If a Serena call returns
+   "No active project," SP does not stop and recover by hand. SP compares the
+   current working directory's basename against the projects already registered
+   with Serena:
+   - **Basename matches a registered project** → SP calls `activate_project`
+     for that project, then proceeds with the survey. No prompt needed — this
+     is the common case (returning to a project Serena already knows).
+   - **No basename match** → SP falls back to current behavior: surface the
+     registered-project list (or the onboarding route) and ask the user which
+     to use. SP never auto-runs onboarding here; only `activate_project` is
+     automatic.
 
    **Always read at startup** (high-value orientation context):
    - `project_overview` (what the project is, current state)
