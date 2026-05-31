@@ -1,5 +1,28 @@
 # Changelog
 
+## [6.13.0] - 2026-05-31
+
+### Added
+- **Every prompt now previews what you'll get** — when the advisor hands you a
+  copy-paste prompt, it adds a short plain-English "📦 What you'll get" summary
+  right after it: what the work will change for you, in everyday terms rather than
+  file names. The same list doubles as your checklist when the result comes back.
+
+### Fixed
+- **The safety guard can no longer be slipped past on an unreadable edit** — the
+  guard that stops the advisor editing your source files now *blocks* an edit when
+  it can't tell where the edit is headed (it used to let it through), and reads tool
+  details more forgivingly so an oddly-formatted request can neither sneak past nor
+  wrongly block an allowed write. Your memory, shell, and read-only commands are
+  unaffected.
+- **The first prompt in a brand-new project no longer crashes** — the step that
+  clears old saved prompts now uses a command that doesn't choke on an empty or
+  missing folder and doesn't trip a `rm`-blocking shell alias.
+- **The advisor's startup auto-activates Serena when it can** — when Serena (the
+  cross-session memory server) reports no active project at startup, the advisor now
+  activates the matching project automatically — if your folder matches one it
+  already knows — instead of stopping to recover by hand.
+
 ## [6.12.0] - 2026-05-31
 
 ### Changed

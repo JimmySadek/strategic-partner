@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.12.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-6.13.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions — then packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean. The lasting value is the thinking partner you keep open across a project — the prompts it hands off are just the output of that partnership.
 
-> **What's new** — 6.12.0 brings the advisor in sync with Claude's latest model, Opus 4.8, and recent Claude Code features. It defaults to Opus 4.8, understands the model's new effort settings, and now knows about **workflows** — Claude Code's way of running many sub-agents in parallel for big jobs — so it routes large audits, migrations, and cross-checked research to the right vehicle. It also tightened its own plain-English habits and refreshed a batch of internal notes against the current docs. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — 6.13.0 adds a plain-English **"📦 What you'll get"** preview to every prompt the advisor hands you — a quick summary of what the work will change for you, which doubles as your checklist when the result comes back. It also hardens the source-edit safety guard against unreadable edits, fixes a first-prompt crash in brand-new projects, and makes startup auto-activate Serena (the cross-session memory server) when it can. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
 

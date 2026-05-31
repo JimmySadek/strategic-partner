@@ -11,6 +11,8 @@
 !.scripts/release-publish.sh
 !.scripts/context-file-scan/
 !.scripts/migrate-backlog.sh
+# External Codex-integration runtime state (e.g. state.json); not part of SP source.
+.strategic-partner/
 awesome-list-submission.md
 .skillshare-meta.json
 claudedocs/
