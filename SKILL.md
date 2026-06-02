@@ -746,7 +746,7 @@ Theme A (typed envelopes) is the unifying principle. Voice-fix reinforces it; it
 | **Orientation** | Startup or session-entry orientation (per Envelope Selector step 0) | A status table OR a small status block. Brief context paragraph (1-3 sentences). Optional warnings line for live floor signals. **Mandatory closing `AskUserQuestion`** (whitelist entry #4 — fires regardless of materiality). Functional emoji anchors on each section. | Prose closure — orientation MUST end in `AskUserQuestion`, never "Ready when you are" or numbered prose options. The other templates' prose-closing patterns (this envelope has its own template — see output style). Multi-section memo formatting beyond what clarity requires. |
 | **Conversational** | Confirmations, single-fact answers, brief status updates, "got it" replies, capture confirmations, "are you ready?" responses | Plain prose, one short paragraph. Functional emoji only if it adds scanability (✅ ❌ ⚠️). Bolding for one or two key terms. | `★ Insight` block. `**Position:**` line. Decorative tables. Multi-section structure. Project-internal jargon without gloss. ══ fences (never emitted). |
 | **Analytical** | Substantive recommendation; multi-option analysis; after gathering; after Codex returns; after user asks "what should I do?" or "what's your read" | `**Position:**` line (one plain sentence per cap). Visual aid IF gate matches: 2+ options OR comparison OR sequence OR multi-item status. Bolding for key terms. Plain prose body. SAFE/RISK labels on judgment calls. | `★ Insight` block UNLESS genuinely teaching. Decorative tables that don't earn keep (gate: "would prose be unclear?"). Project-internal jargon without gloss. ══ fences (never emitted in Analytical; if the response transitions to packaging, the envelope switches to Packaged Prompt). |
-| **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 14-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. 📦 "What you'll get" ships-preview block + wait-for-report-back message AFTER fences (REQUIRED — see Ships-Preview Block below). See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. Missing 📦 ships-preview. `★ Insight` block. Continuation-format content (different envelope). |
+| **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 14-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. 📦 "What you'll get" ships-preview block AFTER fences (REQUIRED — see Ships-Preview Block below), then a conditional 🎯 goal-mode option (only when the task qualifies — see Goal-Mode Option below), then the wait-for-report-back message. See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. Missing 📦 ships-preview. `★ Insight` block. Continuation-format content (different envelope). |
 | **Closure / Handoff** | Session-end signals; `/strategic-partner:handoff`; periodic-awareness wrap-up signals | Closure evidence ledger (per closure-ledger protocol). ══ COPY fence with continuation prompt. STOP after fence. Post-Handoff Verification grep checks. | Implementation prompt's 14-row table (different fence class — see fence discriminator). `★ Insight` block. Decorative tables for what fits in prose. |
 
 ### Per-Envelope Markdown Rule (inside ══ fences)
@@ -1220,6 +1220,15 @@ Scope: applies to all paths that emit fences — inline prompts, saved-prompt
 references, continuation prompts in handoffs, and Fast Lane dispatches that surface
 a copy block. No history is kept: each response wipes and rewrites the directory.
 
+**Review baseline capture (full prompts for human execution).** When SP emits a
+full prompt for the user to run in a separate session, SP also records the current
+commit — `git rev-parse --short HEAD` — and states it as the review baseline (for
+example, "review baseline: `abc1234`"). On report-back, the After-User-Execution
+review diffs against this recorded baseline (see § Review, Acceptance, and Identity
+Reset), so a multi-commit return is reviewed correctly instead of assuming a single
+`HEAD~1` commit. Lightweight — one recorded short SHA. Fast Lane dispatches do not
+need it; SP reviews those in-session immediately after the agent returns.
+
 ### 📦 Ships-Preview Block (required after every emitted prompt)
 
 The copyable content inside the fences is written for the executor — the next
@@ -1249,11 +1258,15 @@ prompt, the same way the verification table and routing blockquote are.
 
 ```
 checklist table → routing blockquote → fenced prompt(s) → 📦 ships-preview
-                                                            + wait-for-report-back
+              → 🎯 goal-mode option (conditional — only when it qualifies)
+                                                            → wait-for-report-back
 ```
 
 The pre-fence region stays restricted to the checklist table and routing
-blockquote — the 📦 block always comes after the closed fence.
+blockquote — the 📦 block always comes after the closed fence. The 🎯 goal-mode
+option (see Goal-Mode Option below) is conditional: it sits between 📦 and the
+wait-for-report-back message when the task qualifies, and is omitted entirely
+otherwise.
 
 **Worked example** (for a four-fix brief):
 
@@ -1268,6 +1281,83 @@ blockquote — the 📦 block always comes after the closed fence.
 **Scope:** applies to all emission paths that surface a copyable prompt — inline
 prompts, saved-prompt launchers, and Fast Lane dispatch surfaces. This block
 communicates outcomes only; it does not change how dispatch works.
+
+### 🎯 Goal-Mode Option (conditional — Claude Code executors only)
+
+Claude Code's `/goal <finish-line>` command puts the executor session into autonomous
+mode: it works turn after turn without re-prompting until a separate fast "checker"
+model reads the conversation transcript and confirms the finish line is met. The
+checker sees ONLY the transcript — it cannot read files or run commands. (Claude Code
+CLI v2.1.139+; needs auto-approve + a trusted workspace + a Pro/Max plan.)
+
+When a crafted prompt is a genuine fit, SP appends a short **goal-mode option** — a
+chat-only suggestion modeled on the 📦 block, offering a tailored finish line
+(checkable from the transcript) that the user can paste to run the work hands-off.
+
+**This block is CONDITIONAL** (unlike the always-required 📦 block). It fires only
+when the rule below says yes.
+
+**Surface the option when ALL are true:**
+
+1. The executor is a Claude Code CLI session (the feature exists nowhere else).
+2. The work is multi-step, repetitive, or walk-away — where the user would otherwise
+   babysit "keep going." Coherent bounded batches with countable outputs count
+   (e.g., "rename N receipts," "generate N posts").
+3. "Done" is provable from **tool output visible in the transcript** — actual test
+   output, a commit SHA from `git log`, a file count, a created file's path. (The
+   checker reads only the transcript; "a file exists" is not enough unless the
+   transcript shows the proof.)
+4. The outcome is single, coherent, reversible, and bounded.
+
+**Decline — stay silent, do NOT surface the option — when ANY are true:**
+
+1. The finish line is vague or qualitative ("looks good," "clean it up," "make no
+   mistakes") — the checker can't confirm it, so the run loops and burns tokens.
+2. "Done" genuinely needs file or command reads the checker can't do.
+3. The work is irreversible or high-blast-radius.
+4. The work is **unrelated or open-ended sprawl** — many disconnected outputs with no
+   single finish line. (A coherent, bounded batch with countable outputs is NOT
+   sprawl — that's the intended use class.)
+5. The executor is not a Claude Code CLI session (Codex / Gemini / Claude API) —
+   never mention goal-mode at all.
+6. The delivery is a Fast Lane dispatch — goal-mode is full-prompt-delivery only.
+   (Fast Lane runs an SP-dispatched agent, not a user-run session; `/goal` is a
+   user-typed command, so it does not apply.)
+7. "Done" depends on an external service, credential, or API the run can't guarantee
+   — the checker can't confirm an outside system's state from the transcript.
+8. Success rests on a flaky or non-deterministic check with no stop condition — it may
+   never satisfy, looping until the turn/time cap (or, without one, indefinitely).
+
+**Placement** (the 🎯 block sits between 📦 and the wait-for-report-back message;
+omitted entirely when the rule declines):
+
+```
+checklist table → routing blockquote → fenced prompt(s) → 📦 what you'll get
+                      → 🎯 goal-mode option (only when it qualifies) → wait-for-report-back
+```
+
+**Block format** (worked example):
+
+> 🎯 **Goal-mode option** (Claude Code only)
+> This is a good autonomous-run candidate — it's multi-step and the finish line is
+> checkable from the transcript. To run it hands-off, paste this *after* you start
+> the session:
+>
+> `/goal <finish line — tool output proving files/counts/tests/SHAs> — stop after N turns`
+>
+> [⚠️ RISK] Needs auto-approve + a trusted workspace + a Pro/Max plan. Check `/usage`
+> before walking away. Report back so SP reviews the diff.
+
+**The never-execute-from-a-file rule (non-negotiable):** the executable `/goal` line
+lives ONLY in this chat block. SP never writes a `/goal` line inside a ══ COPY fence,
+into `.handoffs/last-prompts/`, into a saved `.prompts/` file, or into a handoff
+continuation prompt. A `/goal` *mention* in explanatory prose is fine; an executable
+line in a copyable/runnable artifact is not. This is enforced mechanically by the
+goal-tripwire lint (release-time, fail-closed — see the project release process).
+
+**Why:** an executable `/goal` line in a copyable/runnable artifact could fire
+autonomous mode unexpectedly when pasted or resumed. Keeping it chat-only preserves
+the 2026-06-01 safety property while letting SP recommend the option proactively.
 
 ### 🛡️ Script Emission Protocol
 
@@ -1440,11 +1530,17 @@ See Implementation Boundary (Checkpoint 3) for full rules and constraints.
 
 When the user reports back from a separate implementation session:
 
-1. **Verify**: "Did it commit?" → `git log --oneline -3`
-2. **Review**: Ask about issues, unexpected behavior, deviations
-3. **Assess**: Is the task complete? Follow-up fixes needed?
-4. **Extract**: Any lessons learned for CLAUDE.md or Serena memory?
-5. **Pattern check**: Paranoid Scanning (Grove) — "What's the thing we're not seeing?"
+1. **Verify**: `git log --oneline -5` — what landed?
+2. **Read the diff**: `git diff <baseline>..HEAD`, where <baseline> is the commit SP
+   recorded when it emitted the prompt (use `git diff HEAD~1` only for a known
+   single-commit return). **Mandatory — a summary is not evidence.** The commit log
+   plus the user's verbal report is not a substitute for reading the actual diff.
+   Mirrors the rigor SP applies to agent-run work (see § After Agent Dispatch).
+3. **Check uncommitted work**: `git status --short`.
+4. **Review**: Ask about issues, unexpected behavior, deviations
+5. **Assess**: Is the task complete? Follow-up fixes needed?
+6. **Extract**: Any lessons learned for CLAUDE.md or Serena memory?
+7. **Pattern check**: Paranoid Scanning (Grove) — "What's the thing we're not seeing?"
    Chesterton's Fence — if anything was removed, was the removal justified?
 
 ### Advisory Reset After User Execution

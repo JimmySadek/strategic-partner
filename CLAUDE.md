@@ -242,6 +242,37 @@ architecture details), bracket them with skip-block markers:
 Code blocks and blockquotes are auto-skipped. Same gating posture as
 Step 2a's transcript lint — mechanical violations block; warnings inform.
 
+### 2d. Goal-Tripwire Lint (Mandatory for non-docs-only pushes)
+
+The goal-tripwire lint at `tests/lint-goal-tripwire.sh` is a release-time backstop
+for the never-execute-from-a-file rule (SKILL.md § Goal-Mode Option): SP may
+recommend Claude Code's `/goal` autonomous-run command in chat, but must never write
+an executable `/goal` line into a copyable or runnable artifact, where it could fire
+on paste or resume. The lint fails closed if an executable `/goal` line (one that
+starts, after optional whitespace, with `/goal`) appears in any of four places:
+
+1. a ══ COPY fence anywhere in source (`SKILL.md`, `references/`, `commands/`, `assets/`),
+2. `.handoffs/last-prompts/`,
+3. `.prompts/`,
+4. a handoff continuation fence (the ══ fences inside `.handoffs/*.md`).
+
+A backticked or mid-line `/goal` mention in prose is exempt — only a bare line-start
+command is flagged.
+
+```
+bash tests/lint-goal-tripwire.sh
+```
+
+Exit 0 = clean. Exit 1 = an executable `/goal` line was found; move it out of the
+artifact (the `/goal` line belongs in chat only) before proceeding.
+
+This is its OWN mandatory step, run on every non-docs-only push — it is NOT folded
+under Step 2a (which fires only when hooks change, so the tripwire would silently
+skip on most releases). Same fail-closed posture as the Step 2c voice lint: a
+mechanical violation blocks the release. The self-test fixtures live under
+`tests/fixtures/goal-tripwire/` — one failing fixture per covered location plus a
+prose pass-case; run the lint with `--root <fixture-dir>` to exercise them.
+
 ### 3. Present to User (Mandatory Confirmation)
 
 Before modifying any files, show:

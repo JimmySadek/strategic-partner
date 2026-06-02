@@ -804,15 +804,16 @@ Read the implementation prompt at .prompts/[milestone]/[descriptor].md and execu
 - When multiple prompts exist, each gets its own START/END block
 - **Post-Craft Verification Checklist is mandatory FIRST** — a visible pass/fail table rendering all 14 checks (see SKILL.md Post-Craft Verification gate). Renders as the very first output element before anything else.
 - **Routing rationale is mandatory AFTER the checklist, BEFORE the fences** — a `> 🎯 Routing:` blockquote explaining why this skill was chosen (or why no skill was needed). This educates the user on SP routing decisions
-- **Required order**: checklist table → routing blockquote → fenced prompt(s) → 📦 ships-preview + wait-for-report-back message (outside fences). The 📦 "What you'll get" block is a required structural element — see the Post-Prompt Protocol below.
+- **Required order**: checklist table → routing blockquote → fenced prompt(s) → 📦 ships-preview → (conditional) 🎯 goal-mode option → wait-for-report-back message (outside fences). The 📦 "What you'll get" block is a required structural element; the 🎯 goal-mode option is conditional (Claude Code executors only) — see the Post-Prompt Protocol and § 🎯 Goal-Mode Condition below.
 
 ### Post-Prompt Protocol: 📦 Ships-Preview, then Wait for Report Back
 
 After delivering a fenced prompt or script launcher: **close the END 🛑 fence first**.
-Then, OUTSIDE the closed fence, two things follow in order — the 📦 ships-preview
-block, then the wait-for-report-back message. Do not offer follow-up options,
-suggest next tasks, or present "what's next?" menus. Both pieces are SP's prose to
-the user, not part of the copyable prompt — they must come after the closed fence.
+Then, OUTSIDE the closed fence, two or three things follow in order — the 📦
+ships-preview block, then (when the task qualifies) the 🎯 goal-mode option, then the
+wait-for-report-back message. Do not offer follow-up options, suggest next tasks, or
+present "what's next?" menus. These pieces are SP's prose to the user, not part of the
+copyable prompt — they must come after the closed fence.
 
 **1. The 📦 "What you'll get" ships-preview (required).** The fenced content is
 written for the executor — the user reading the chat can't easily tell what they'll
@@ -844,16 +845,38 @@ This applies across all emission paths — inline prompts, saved-prompt launcher
 and Fast Lane dispatch surfaces. It communicates outcomes only; it does not change
 how dispatch works.
 
-**2. The wait-for-report-back message.** After the 📦 block, state you're waiting
-for the report back. The user will execute the prompt in a separate session and
+**2. The wait-for-report-back message.** After the 📦 block (and the conditional 🎯
+goal-mode option, when the task qualifies — see § 🎯 Goal-Mode Condition below), state
+you're waiting for the report back. The user will execute the prompt in a separate session and
 return with results. Resume only when they report back. Neither side skips their turn.
 
-**When the user reports back:**
-1. Verify: "Did it commit?" → check `git log --oneline -3` if available
-2. Review: Ask about any issues, unexpected behavior, or deviations
-3. Assess: Is the task complete? Follow-up fixes needed?
-4. Extract: Any lessons learned for CLAUDE.md or Serena memory?
-5. Then — and only then — propose the next task or prompt
+**When the user reports back:** run the After-User-Execution review — SKILL.md
+§ Review, Acceptance, and Identity Reset is the single source of truth (verify with
+`git log`, read the diff against the recorded baseline, check `git status --short`,
+then review / assess / extract / pattern-check). Propose the next task only after that.
+
+### 🎯 Goal-Mode Condition (optional — Claude Code CLI executors only)
+
+When SP surfaces the goal-mode option (see SKILL.md § Goal-Mode Option), the finish
+line is DERIVED from the prompt's own definition of done and verification commands —
+rewritten so the autonomous checker can confirm it from the transcript alone.
+
+**The quality bar — the condition MUST:**
+
+- Require real tool OUTPUT visible in the transcript (actual test output, a commit
+  SHA from `git log`, a file count, a created file's path) — never a prose "it's
+  done" claim. The checker reads only the transcript; a claim is not evidence.
+- Carry an explicit safety cap: "stop after N turns" (or "stop after M minutes").
+- Add "stop if any irreversible operation is reached" when the task touches anything
+  destructive.
+
+**Deriving N (the turn cap):** start from the prompt's deliverable count — roughly one
+batch of turns per deliverable plus headroom — default conservative, and tell the user
+they can raise it. (Video guidance: start small, scale up.)
+
+**When to decline authoring a condition at all:** if an honest "done" needs file or
+command reads the checker can't perform, SP does NOT force a transcript-checkable
+proxy — it declines the goal-mode option and recommends running the normal prompt.
 
 ---
 
