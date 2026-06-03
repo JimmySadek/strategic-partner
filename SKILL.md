@@ -1349,11 +1349,12 @@ checklist table → routing blockquote → fenced prompt(s) → 📦 what you'll
 > before walking away. Report back so SP reviews the diff.
 
 **The never-execute-from-a-file rule (non-negotiable):** the executable `/goal` line
-lives ONLY in this chat block. SP never writes a `/goal` line inside a ══ COPY fence,
-into `.handoffs/last-prompts/`, into a saved `.prompts/` file, or into a handoff
-continuation prompt. A `/goal` *mention* in explanatory prose is fine; an executable
-line in a copyable/runnable artifact is not. This is enforced mechanically by the
-goal-tripwire lint (release-time, fail-closed — see the project release process).
+lives ONLY in this chat block. SP never writes a `/goal` line into a ══ COPY fence (in
+any source file), a saved `.prompts/` brief, or any `.handoffs/` prompt or continuation
+file — `.md`, `.txt`, or `.log`, at the top level or in a subfolder. A `/goal` *mention*
+in explanatory prose is fine; an executable line in a copyable/runnable artifact is not.
+This is enforced mechanically by the goal-tripwire lint (release-time, fail-closed — see
+the project release process).
 
 **Why:** an executable `/goal` line in a copyable/runnable artifact could fire
 autonomous mode unexpectedly when pasted or resumed. Keeping it chat-only preserves
