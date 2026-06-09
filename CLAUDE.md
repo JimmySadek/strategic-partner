@@ -273,6 +273,36 @@ mechanical violation blocks the release. The self-test fixtures live under
 `tests/fixtures/goal-tripwire/` — one failing fixture per covered location plus a
 prose pass-case; run the lint with `--root <fixture-dir>` to exercise them.
 
+### 2e. Voice-Mirror Agreement Lint (Mandatory for non-docs-only pushes)
+
+The voice-mirror lint at `tests/lint-voice-mirror.sh` is a release-time backstop for the
+rule that SKILL.md is the single canonical home of SP's voice rules and the installable
+output style (`output-styles/strategic-partner-voice.md`) is a derived mirror of it
+(SKILL.md § Plain-English Default). The lint fails closed if the two files drift apart on
+the declarations or on any tracked rule:
+
+1. the style file is missing its `DERIVED MIRROR` header,
+2. SKILL.md is missing its canonical-source declaration, or
+3. any of a set of distinctive rule "anchors" (one short literal phrase per major voice
+   rule) appears in one file but not the other.
+
+```
+bash tests/lint-voice-mirror.sh
+```
+
+Exit 0 = clean. Exit 1 = a missing header, a missing declaration, or an anchor that appears
+in only one file; bring the two files back into agreement (edit SKILL.md first, then mirror
+the change into the style file) before proceeding.
+
+This is its OWN mandatory step, run on every non-docs-only push — like the Step 2d
+goal-tripwire lint, it is NOT folded under Step 2a (which fires only when hooks change).
+Same fail-closed posture as the Step 2c voice lint: a mechanical violation blocks the
+release. [⚠️ RISK] anchor agreement is a drift tripwire, not proof of full equivalence — it
+catches a rule going missing from one side, not every wording change. The self-test fixtures
+live under `tests/fixtures/voice-mirror/` — one failing fixture per check (missing header,
+missing declaration, one-file-only anchor) plus a passing pair; run the lint with
+`--root <fixture-dir>` to exercise them.
+
 ### 3. Present to User (Mandatory Confirmation)
 
 Before modifying any files, show:
