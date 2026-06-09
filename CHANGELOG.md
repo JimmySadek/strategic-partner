@@ -1,5 +1,33 @@
 # Changelog
 
+## [6.14.0] - 2026-06-10
+
+### Added
+- **The advisor can now suggest a hands-off run** (goal-mode option) — after handing
+  you a prompt, when the task genuinely fits Claude Code's `/goal` autonomous-run
+  command (multi-step work whose finish line can be proven from the session
+  transcript), the advisor adds a short chat-only suggestion with a tailored finish
+  line and a safety cap. The runnable `/goal` line lives only in chat — never inside
+  a saved or copyable prompt, so it can't fire by accident on paste or resume — and
+  a new release-time check (the goal-tripwire lint) enforces that rule mechanically.
+- **One voice rulebook** — the advisor's plain-English voice rules now live
+  canonically in the main skill file, and the installable voice style is an
+  explicitly-derived mirror of them. Rules that previously existed only in the style
+  file were folded back in — the ban on status rows that claim ✅ while admitting the
+  check didn't happen, the rule to judge your work by its effect on your goals rather
+  than its resemblance to familiar patterns, guidance on when to reach for each
+  formatting tool (blockquotes, backticks, numbered vs bulleted lists), and the rule
+  that a reply ending at a decision point must end by asking you — so the partnership
+  voice survives even if Claude Code retires output styles. A new release-time check
+  (the voice-mirror lint) blocks any release where the two copies drift apart.
+
+### Changed
+- **Work you run yourself now gets a real code review on return** — when you come
+  back from running a prompt in a separate session, the advisor reads the actual
+  changes against the commit recorded when it handed you the prompt — not just the
+  commit list and your summary — matching the rigor it already applied to
+  background-agent work.
+
 ## [6.13.0] - 2026-05-31
 
 ### Added
