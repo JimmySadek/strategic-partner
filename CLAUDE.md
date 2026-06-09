@@ -249,12 +249,12 @@ for the never-execute-from-a-file rule (SKILL.md § Goal-Mode Option): SP may
 recommend Claude Code's `/goal` autonomous-run command in chat, but must never write
 an executable `/goal` line into a copyable or runnable artifact, where it could fire
 on paste or resume. The lint fails closed if an executable `/goal` line (one that
-starts, after optional whitespace, with `/goal`) appears in any of four places:
+starts, after optional whitespace, with `/goal`) appears in any of four covered locations:
 
-1. a ══ COPY fence anywhere in source (`SKILL.md`, `references/`, `commands/`, `assets/`),
-2. `.handoffs/last-prompts/`,
-3. `.prompts/`,
-4. a handoff continuation fence (the ══ fences inside `.handoffs/*.md`).
+1. a ══ COPY fence anywhere in source (`SKILL.md`, plus any file under `references/`, `commands/`, `assets/`),
+2. `.handoffs/last-prompts/` — whole-file, recursive,
+3. `.prompts/` — whole-file, recursive,
+4. handoff prompt artifacts: ══ COPY fences inside `.handoffs/` Markdown files (recursive — subfolders included), plus top-level `.handoffs/*.txt` / `*.log` prompt dumps, scanned whole-file.
 
 A backticked or mid-line `/goal` mention in prose is exempt — only a bare line-start
 command is flagged.
