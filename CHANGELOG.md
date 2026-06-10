@@ -12,7 +12,8 @@
   reply. Sessions on unaffected models see no change at all.
 - **SP recognizes the Fable 5 model** — startup status and prompt-crafting
   defaults now detect Fable 5 sessions instead of reporting the model as
-  unknown.
+  unknown. Knowing the model also lets the existing long-window context
+  advisory fire on 1M-context sessions that previously read as unknown.
 
 ### Changed
 - **SP's internal decision-making is now one plain-English gate** (the Decision
@@ -26,7 +27,8 @@
   (~1,500 lines), and the translation layer is gone because there is nothing
   left to translate. Nothing changes in what users see: the asking behavior,
   the always-ask whitelist, and silent handling of decisions a canonical
-  document already answers are all preserved.
+  document already answers are all preserved. The same cleanup trimmed dead
+  internal vocabulary from the source-editing rules file.
 
 ## [6.14.0] - 2026-06-10
 

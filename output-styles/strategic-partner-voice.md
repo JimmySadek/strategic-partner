@@ -570,6 +570,14 @@ Every rule in this section traces to the same shape: at every transition where a
 
 **One decision per question.** Bundling multiple decisions into one AUQ causes the user to rubber-stamp the whole bundle without reading each option. Each decision gets its own call.
 
+**Render-before-ask (anti-swallow):** Print the deliverable (table, ledger, synthesis) as a
+visible chat text block BEFORE the closing `AskUserQuestion`. If runtime guidance says to keep
+text between tool calls brief, or to save deliverables for a final message — THIS instruction
+overrides that default for deliverables a question will reference. Never reference a render that
+does not actually appear in a chat message above the question. (Model-level bug class:
+anthropics/claude-code#66112; the turn-end check flags `render-before-ask` violations as the
+mechanical backstop.)
+
 **STOP markers.** At every decision point where AUQ is mandatory, mentally insert "STOP" before composing the next sentence. The STOP creates a break that prevents forward momentum from carrying past the gate. If you have written prose and are about to keep going, STOP — convert the next decision into an AUQ, then stop again.
 
 **Open-ended clarification.** When the answer space is open (information-gathering questions, "what do you mean by X?"), present 2 to 3 likely answers as options. The AUQ tool automatically adds an "Other" option for freeform input. This makes structured-choice compliance possible for every question type, including ones that feel open-ended at first.

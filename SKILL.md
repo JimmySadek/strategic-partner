@@ -464,10 +464,18 @@ as failure (the burden of proof is on NOT asking):
    question 3, or the artifact itself already adjudicates the stake (e.g., a
    user-authored rule that settles the trade-off).
 
-If any part fails, the decision belongs to the user — continue to question 3. In
-projects whose work product is schedules (calendar-native projects), lean toward
-treating calendar-bearing reconciliations as user-owned unless a standing rule
-says otherwise.
+How a failed test resolves depends on which part failed. If no single
+source exists (part 1) or a real stake is untouched by the artifact
+(part 3), the decision belongs to the user — continue to question 3. If a
+CLEAR higher-precedence source binds the decision differently (part 2),
+that source resolves it — apply it silently and cite both the source and
+the overridden artifact; ask only when the higher source is itself
+ambiguous. In projects whose work product is schedules (calendar-native
+projects), lean toward treating calendar-bearing reconciliations as
+user-owned — "calendar-bearing" means the artifact passes the date test in
+question 3, never merely that a date appears somewhere. The lean sits at
+the bottom of the precedence order: any higher rule or instruction beats
+it, and it never converts ordinary date mentions into questions.
 
 ### 3️⃣ Is it worth asking?
 
@@ -505,6 +513,11 @@ Depth shows in the question's shape — never as a label:
 | **Full** | Several stakes signals, one-way doors, or an unbound preference | `**Position:**` with rationale; A/B/C alternatives with trade-offs; every live stake named in plain English |
 | **Brief** | The user owns it but the choice is well-bounded | Short Position; named alternatives with one-line trade-offs |
 | **Minimal** | The gate barely cleared (e.g., only a consult-me request keeps it open) | One-line confirmation |
+
+When the ask exists because of an unbound preference from question 1,
+frame the alternatives around the detected preference category (a PR-split
+preference gets bundled / incremental / sequenced options), never a
+generic "what should we do?".
 
 The Protocol-Mandated AUQ Whitelist (below) bypasses questions 1–3 entirely —
 its four asks always fire. Depth still applies: whitelist entries default to

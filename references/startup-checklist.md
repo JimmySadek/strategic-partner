@@ -617,7 +617,9 @@ and ask what the user wants to work on.
   this note is just situational awareness. No settings are changed."
 
   On 200K-context sessions, skip this bullet entirely — the default ~95%
-  threshold is reasonable at that window size.
+  threshold is reasonable at that window size. The floor's transcript-based
+  model fallback feeds this advisory too — sessions whose model becomes known
+  only via the transcript now correctly receive it.
 - 🔌 **Serena not detected**: If Serena MCP is unavailable, display this block:
 
 > **Serena MCP is not detected.** The Strategic Partner works without it but operates
