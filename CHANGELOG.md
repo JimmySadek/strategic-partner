@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- **SP's internal decision-making is now one plain-English gate** (the Decision
+  Ownership Gate) — Previously every decision flowed through a four-stage
+  internal pipeline with its own private vocabulary, a translation layer to
+  keep that vocabulary out of chat, and six reference files documenting the
+  stages. A full-transcript audit showed the stage files were never consulted
+  at decision time. The four stages are now four plain questions inside the
+  skill itself (are the facts known? who owns this decision? is it worth
+  asking? how deep should the ask be?), the six reference files are deleted
+  (~1,500 lines), and the translation layer is gone because there is nothing
+  left to translate. Nothing changes in what users see: the asking behavior,
+  the always-ask whitelist, and silent handling of decisions a canonical
+  document already answers are all preserved.
+
 ## [6.14.0] - 2026-06-10
 
 ### Added

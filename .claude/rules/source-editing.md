@@ -383,7 +383,7 @@ edit-time so the lint stays clean.
 
 - Dense paragraphs explaining mechanics that would read more clearly as a
   table or ASCII diagram.
-- Project-internal vocabulary (terms like Bootstrap, Router, Egress, Closure
+- Project-internal vocabulary (terms like Closure
   Floor, Premise Challenge trigger #N, Layer N) dropped without gloss.
 - Substantive multi-section content authored with no functional emoji
   anchors at the section headings.
