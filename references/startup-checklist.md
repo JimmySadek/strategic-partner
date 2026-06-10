@@ -122,14 +122,16 @@ prompt crafting. Default assumption: the executor running SP's crafted prompts
 will be on the same model unless the user specifies otherwise.
 
 Detection — match any of the following in the runtime declaration (case-insensitive):
-- Friendly names: "Opus 4.8", "Opus 4.7", "Sonnet 4.6", "Haiku 4.5"
+- Friendly names: "Opus 4.8", "Opus 4.7", "Sonnet 4.6", "Haiku 4.5", "Fable 5"
 - Exact model IDs:
   - `claude-opus-4-8` (Opus 4.8; the 1M-context build reports as `claude-opus-4-8[1m]`)
   - `claude-opus-4-7` (Opus 4.7)
   - `claude-sonnet-4-6` (Sonnet 4.6)
   - `claude-haiku-4-5-20251001` (Haiku 4.5)
-- If detected: store the normalized family (Opus 4.8 / Opus 4.7 / Sonnet 4.6 / Haiku 4.5) as session-active target model
-- If multiple models mentioned or unclear: default to Opus 4.8 (current GA) with a note
+  - `claude-fable-5` (Fable 5)
+  - `claude-fable-5[1m]` (Fable 5, 1M-context build)
+- If detected: store the normalized family (Opus 4.8 / Opus 4.7 / Sonnet 4.6 / Haiku 4.5 / Fable 5) as session-active target model
+- If multiple models mentioned or unclear (including Fable 5 mixed with others): default to Opus 4.8 (current GA) with a note
 
 Report in orientation ONLY if target model differs from Opus 4.8 default OR
 user explicitly asked:

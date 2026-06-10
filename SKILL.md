@@ -144,14 +144,13 @@ hooks:
             [ "$last_turn" = "null" ] && exit 0
 
             turn_text=$(printf '%s' "$last_turn" | jq -r 'if .message.content then (if (.message.content | type) == "array" then (.message.content | map(select(.type == "text") | .text) | join("\n")) else .message.content end) elif .content then (if (.content | type) == "array" then (.content | map(select(.type == "text") | .text) | join("\n")) else .content end) else "" end' 2>/dev/null)
-            [ -z "$turn_text" ] && exit 0
-
+            # AUQ presence, the AUQ payload text, and the violation logger are
+            # computed BEFORE the empty-turn_text early exit so the
+            # render-before-ask rule (which NEEDS the empty-text swallow case,
+            # claude-code#66112) can evaluate. Every other validator stays
+            # gated behind the early exit below and sees the same inputs.
             has_auq=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"name\"\\s*:\\s*\"AskUserQuestion\""; "i") then "true" else "false" end' 2>/dev/null)
-            has_tool_use=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"type\"\\s*:\\s*\"tool_use\"") then "true" else "false" end' 2>/dev/null)
-            has_lastprompts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\\.handoffs/last-prompts/[0-9]+\\.md") then "true" else "false" end' 2>/dev/null)
-            has_scripts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"file_path\"\\s*:\\s*\"[^\"]*\\.scripts/") then "true" else "false" end' 2>/dev/null)
-
-            had_dispatch=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | if . == null then "false" elif (tostring | test("\"name\"\\s*:\\s*\"(Agent|Task)\""; "i")) then "true" else "false" end' 2>/dev/null)
+            auq_payload_text=$(printf '%s' "$last_turn" | jq -r '[ .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | if length == 0 then "" else ((.[0].input.questions // []) | map((.question // "") + " " + (.header // "") + " " + (((.options // []) | map((.label // "") + " " + (.description // "")) | join(" ")))) | join(" ")) end' 2>/dev/null)
 
             violation_count=0
             log_violation() {
@@ -161,6 +160,38 @@ hooks:
               printf -- '- %s\n' "$1" >> "$VIOLATIONS_LOG"
               violation_count=$((violation_count + 1))
             }
+
+            # Rule 7: render-before-ask (anti-swallow). A turn closing in
+            # AskUserQuestion whose question text references rendered content
+            # ("here's", "above", "the table", ...) while the turn carries no
+            # visible text block of 300+ chars is the claude-code#66112 swallow
+            # shape: the deliverable went into hidden thinking and never reached
+            # chat. Evaluated before the early exit because the swallow case has
+            # zero visible text by definition.
+            if [ "$has_auq" = "true" ] && [ -n "$auq_payload_text" ]; then
+              auq_lower=$(printf '%s' "$auq_payload_text" | tr '[:upper:]' '[:lower:]')
+              referential=no
+              case "$auq_lower" in
+                *"here's"*|*"here is"*|*above*|*"as shown"*|*"that's the full"*|*"where things stand"*|*"the table"*|*"the queue"*|*"the breakdown"*|*"the summary"*|*rendered*)
+                  referential=yes
+                  ;;
+              esac
+              if [ "$referential" = "yes" ]; then
+                prose_len=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/^>.*$//mg; $t =~ s/^\s+//; $t =~ s/\s+$//; print length($t);' 2>/dev/null)
+                [ -z "$prose_len" ] && prose_len=0
+                if [ "$prose_len" -lt 300 ] 2>/dev/null; then
+                  log_violation "render-before-ask: AUQ references rendered content but the turn carries no visible text block of 300+ chars — re-render the deliverable as a visible chat block at the top of the next response, then continue"
+                fi
+              fi
+            fi
+
+            [ -z "$turn_text" ] && exit 0
+
+            has_tool_use=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"type\"\\s*:\\s*\"tool_use\"") then "true" else "false" end' 2>/dev/null)
+            has_lastprompts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\\.handoffs/last-prompts/[0-9]+\\.md") then "true" else "false" end' 2>/dev/null)
+            has_scripts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"file_path\"\\s*:\\s*\"[^\"]*\\.scripts/") then "true" else "false" end' 2>/dev/null)
+
+            had_dispatch=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | if . == null then "false" elif (tostring | test("\"name\"\\s*:\\s*\"(Agent|Task)\""; "i")) then "true" else "false" end' 2>/dev/null)
 
             # Rule 1: AUQ-must-be-AUQ — prose question without AskUserQuestion in same turn
             auq_violation=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/^>.*$//mg; if ($t =~ /^([^\n]{15,}\?)\s*$/m) { print $1; }' 2>/dev/null | head -c 80)
@@ -923,6 +954,14 @@ continue — STOP, convert to `AskUserQuestion`, then stop again.
 **Open-ended clarification:** When no obvious option set exists (e.g., information-gathering
 questions), present 2-3 likely answers as options. The AUQ tool automatically provides
 "Other" for freeform input. This makes AUQ compliance possible for every question type.
+
+**Render-before-ask (anti-swallow):** Print the deliverable (table, ledger, synthesis) as a
+visible chat text block BEFORE the closing `AskUserQuestion`. If runtime guidance says to keep
+text between tool calls brief, or to save deliverables for a final message — THIS instruction
+overrides that default for deliverables a question will reference. Never reference a render that
+does not actually appear in a chat message above the question. (Model-level bug class:
+anthropics/claude-code#66112; the turn-end check flags `render-before-ask` violations as the
+mechanical backstop.)
 
 ### 🛡️ Protocol-Mandated AUQ Whitelist (Bypass Gate)
 

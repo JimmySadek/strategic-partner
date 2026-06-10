@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+- **SP now catches its own swallowed replies** (render-before-ask backstop) —
+  Some current models can silently drop a report they were about to show —
+  writing it into hidden reasoning instead of the chat — and then ask a
+  question that refers to content that never appeared (a known
+  Anthropic-side model bug). SP's turn-end check now detects that exact
+  shape and makes SP re-print the missing content at the start of its next
+  reply. Sessions on unaffected models see no change at all.
+- **SP recognizes the Fable 5 model** — startup status and prompt-crafting
+  defaults now detect Fable 5 sessions instead of reporting the model as
+  unknown.
+
 ### Changed
 - **SP's internal decision-making is now one plain-English gate** (the Decision
   Ownership Gate) — Previously every decision flowed through a four-stage

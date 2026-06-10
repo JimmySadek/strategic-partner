@@ -77,8 +77,21 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
 
 # Group 1 — Environment
 {
-  model=$(printf '%s' "$payload" | jq -r '.model // "unknown"' 2>/dev/null || printf 'unknown')
-  [ -z "$model" ] && model=unknown
+  # Model detection fallback chain (read-only): payload .model when real,
+  # else the most recent assistant event's model from the transcript (the
+  # payload .model arrives empty in practice — live sessions reported
+  # model=unknown while running Fable 5), else "unknown". Same bounded-tail
+  # pattern the Stop block uses for last_turn.
+  model=$(printf '%s' "$payload" | jq -r '.model // ""' 2>/dev/null || printf '')
+  if [ -z "$model" ] || [ "$model" = "unknown" ] || [ "$model" = "null" ]; then
+    if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
+      model=$(${TIMEOUT:+$TIMEOUT 1} tail -200 "$transcript_path" 2>/dev/null \
+        | jq -rs 'map(select((.message.role // .role) == "assistant")) | last | (.message.model // .model // "")' 2>/dev/null)
+    fi
+  fi
+  if [ -z "$model" ] || [ "$model" = "null" ]; then
+    model=unknown
+  fi
   printf 'g1.model=%s\n' "$model"
 
   if [ -n "$SP_SKILL_PATH" ] && [ -f "$SP_SKILL_PATH" ]; then

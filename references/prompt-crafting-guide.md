@@ -1038,6 +1038,7 @@ When crafting a prompt, consider which blocks the TARGET model benefits from mos
 | Opus 4.8 | avoid_over_engineering, subagent_usage, scope_explicit (the overengineering, fewer-subagents, and literal-instruction tendencies these address are stable Opus-family traits, carried forward to 4.8) | investigate_before_answering (still a useful hallucination guard, though 4.8 calls needed tools more reliably than 4.7), use_parallel_tool_calls, conservative_actions, context_awareness | — |
 | Sonnet 4.6 | investigate_before_answering, avoid_over_engineering, use_parallel_tool_calls | conservative_actions, context_awareness | subagent_usage (less critical — Sonnet orchestrates well) |
 | Haiku 4.5 | investigate_before_answering | avoid_over_engineering | subagent_usage, context_awareness (Haiku is for narrow tasks) |
+| Fable 5 | (as Opus 4.8) — treat Fable 5 as Opus 4.8-equivalent for block selection and effort guidance until model-specific guidance exists [⚠️ RISK — assumed equivalence; revisit when Anthropic publishes Fable prompting guidance] | (as Opus 4.8) | — |
 
 Effort recommendations also differ. The full Claude Code effort ladder
 (how hard the model reasons per turn), lowest to highest, is `low` /
