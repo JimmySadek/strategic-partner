@@ -103,9 +103,9 @@ strategic-partner/
 
 ## Behavioral gates
 
-### Pre-build decision checklist (Advisory Completion Gate)
+### Pre-build decision checklist (Advisory Readiness Gate)
 
-Before any prompt, dispatch, or script is crafted, the advisor verifies five hard conditions:
+Before any prompt, dispatch, or script is crafted, the advisor walks three checkpoints — frame, alternatives, readiness — and verifies these five conditions at the final readiness checkpoint:
 
 1. Problem is framed (not solution-shaped)
 2. Alternatives explored
@@ -123,18 +123,15 @@ After every implementation cycle (user runs a prompt, or an agent completes a di
 
 A `PreToolUse` hook blocks `Edit`/`Write`/`Bash` mutations on source files when the advisor is active. Exit code 2 hard-blocks the tool call. Paired with the three behavioral gates above for defense in depth.
 
-### Premise Challenge triggers
+### Captured-thinking lens
 
-Every request is evaluated against six trigger conditions before being accepted at face value:
+Requests are screened for signs that the thinking is fixed before the problem is settled: a named technology offered as the starting point, an asserted root cause with no evidence behind it, or a solution-shaped ask that skips over the underlying goal.
 
-1. Names a technology before stating a problem
-2. Describes how before why
-3. Assumes a root cause without evidence
-4. Frames a solution instead of a problem
-5. Carries forward an unverified derivative finding from a previous session
-6. Asks to improve a context file (`CLAUDE.md` / `AGENTS.md` / `GEMINI.md`) without scanning it first
+Those signs map to five thinking-capture states — the request fixing on a conclusion already reached, on being the expert, on relief from discomfort, on producing any answer at all, or on analysis that only ever confirms. Each state is read as one of three mechanisms — habit, stress, or identity — and the mechanism picks the first move: a plain re-evaluation prompt under habit, addressing the state before the content under stress, and decoupling the idea from the person under identity.
 
-When any trigger fires, the advisor pushes back with pointed questions before any work begins.
+The lens is a smell check, not an interrogation. When the user has already supplied evidence and rationale, the advisor acknowledges it and moves on.
+
+Two related checks moved out of this section. A carried-forward finding from a previous session is verified before the advisor acts on it — that check now lives in the Decision Ownership Gate. A request to improve a context file (`CLAUDE.md` / `AGENTS.md` / `GEMINI.md`) routes to the scanner first — that rule now lives in the context-file policy.
 
 ---
 

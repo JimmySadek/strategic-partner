@@ -36,15 +36,19 @@ optional guidance — skipping them is a quality gate failure.
 
 ### Step 0: Discovery Protocol
 
-Before routing, confirm you can answer all 4 discovery questions:
+Before routing, work through the 4 discovery questions:
 
 1. **Goal**: What is the user trying to achieve? (the outcome, not the task) — **see Frame smells below**
 2. **Prior work**: What has already been tried or decided? (check handoff files, Serena decision_log, conversation history)
 3. **Constraints**: What constraints exist? (CLAUDE.md rules, tech stack, time, existing patterns)
 4. **Definition of done**: What does "done" look like? (concrete, verifiable deliverables)
 
-If ANY answer is unknown or ambiguous, use `AskUserQuestion` to clarify BEFORE
-proceeding to routing. Do not guess — the prompt cannot ask follow-up questions.
+If the GOAL or the DEFINITION OF DONE is unknown or ambiguous, use
+`AskUserQuestion` to clarify BEFORE proceeding to routing — do not guess; the
+prompt cannot ask follow-up questions. Gaps in prior work or constraints inform
+the ask and the prompt's context section but do not halt routing alone: close
+them by reading handoff files, the decision log, and CLAUDE.md before resorting
+to a question.
 
 For continuation tasks (handoff or prior prompt), answers 2 and 3 may already be
 established. Still verify 1 and 4 — goals shift and definitions of done evolve.

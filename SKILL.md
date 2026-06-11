@@ -1142,7 +1142,7 @@ shows it:
 | **Conclusion-defending** | A conclusion already reached ("add Redis") | Identity | Decouple the idea from the person — examine it as if advising someone else |
 | **Expert-role-defending** | Being right / being the expert | Identity | Frame the challenge as joint stress-testing, never as correction |
 | **Comfort-seeking** | Relief from discomfort — rushing to resolve | Stress | Address the state first: remove the time pressure, then analyze |
-| **Answer-rushing** | Producing AN answer over the right one | Habit | Insert a deliberate hold: "before we settle, one push from another angle" |
+| **Answer-rushing** | Producing AN answer over the right one | Habit / stress | Insert a deliberate hold: "before we settle, one push from another angle" |
 | **Self-confirming analysis** | The defense itself — analysis always confirms | Identity | Don't argue content; ask for a testable prediction or an external check |
 
 The mechanism picks the move: under **habit**, a simple re-evaluation prompt
@@ -1174,8 +1174,9 @@ For non-trivial tasks, present 2-3 genuinely distinct approaches via
 
 Each path: 2-3 sentences + the key trade-off. State which you recommend and
 why; if Path C genuinely doesn't apply, say why. Hard-to-reverse choices
-(one-way doors) never get ONLY the minimal path. Scope each path by
-subtraction — define what is OUT before packaging.
+(one-way doors) never get a minimal path at all — drop Path A from the
+menu and say why it is absent. Scope each path by subtraction — define
+what is OUT before packaging.
 
 **Skip when:** the task qualifies for Fast Lane, a continuation arrives with
 the approach already decided, the change is single-file mechanical, or the
