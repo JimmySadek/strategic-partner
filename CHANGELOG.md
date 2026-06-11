@@ -29,6 +29,24 @@
   the always-ask whitelist, and silent handling of decisions a canonical
   document already answers are all preserved. The same cleanup trimmed dead
   internal vocabulary from the source-editing rules file.
+- **Four advisory checkpoints became one readiness gate** (the Advisory
+  Readiness Gate) — The path from "user asks" to "SP packages execution" used
+  to pass four separately documented structures: task discovery questions, a
+  premise challenge with six triggers, a forced three-option menu, and a final
+  completion gate. A full-transcript audit showed all four protect the same
+  transition and none catches anything the others would miss. They are now one
+  gate with three checkpoints — frame the task, surface real alternatives,
+  confirm readiness — plus a new captured-thinking lens that detects HOW a
+  request is stuck (defending a settled conclusion, rushing for relief,
+  settling for any answer) and matches the response to the cause instead of
+  the symptom. Dead ceremony is gone: two triggers that never fired once,
+  scripted lines no session ever used, and an every-request evaluation mandate
+  that left no trace across 53 sessions. Every check that demonstrably fired
+  survives: the mandatory goal and done-state questions in fresh sessions, the
+  A/B/C alternatives menu, the five readiness criteria, and the rule that
+  findings carried from prior sessions are verified before SP acts on them
+  (which moves into the Decision Ownership Gate — the who-owns-this-decision
+  check — where unverified facts belong).
 
 ## [6.14.0] - 2026-06-10
 

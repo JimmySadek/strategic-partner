@@ -38,7 +38,7 @@ optional guidance — skipping them is a quality gate failure.
 
 Before routing, confirm you can answer all 4 discovery questions:
 
-1. **Goal**: What is the user trying to achieve? (the outcome, not the task) — **see Premise Challenge below**
+1. **Goal**: What is the user trying to achieve? (the outcome, not the task) — **see Frame smells below**
 2. **Prior work**: What has already been tried or decided? (check handoff files, Serena decision_log, conversation history)
 3. **Constraints**: What constraints exist? (CLAUDE.md rules, tech stack, time, existing patterns)
 4. **Definition of done**: What does "done" look like? (concrete, verifiable deliverables)
@@ -58,31 +58,18 @@ answer yourself — but do state the answers so the user can correct misundersta
 the goal and definition of done, STOP and go back. A well-routed prompt for the
 wrong goal is worse than no prompt at all.
 
-#### Premise Challenge (conditional depth increase on Q1)
+#### Frame smells (conditional depth increase on Q1)
 
-When a request assumes a solution rather than stating a problem, push harder on Q1
-before accepting the framing. This is not a separate protocol — it is a conditional
-escalation that activates when smell triggers fire.
+When a request assumes a solution rather than stating a problem — a named
+technology as the starting point, an asserted root cause without evidence, a
+solution-shaped ask — push harder on Q1 before accepting the framing. Apply
+the captured-thinking lens from SKILL.md § Advisory Readiness Gate (Frame
+check): identify what the request holds fixed, and match the response to the
+mechanism. When nothing smells, Q1 proceeds as written — no extra questions.
 
-**Trigger conditions** — any one activates the challenge:
-
-| # | Trigger | Example |
-|---|---------|---------|
-| 1 | Names a specific technology as the starting point | "add caching", "use Redis" |
-| 2 | Describes HOW before WHY | "refactor to use GraphQL" |
-| 3 | Assumes a root cause without evidence | "the database is slow" |
-| 4 | Solution-shaped rather than problem-shaped | "build a queue" vs "users see stale data" |
-
-**When any trigger fires**, ask via `AskUserQuestion`:
-- "What evidence points to [assumed cause]?"
-- "What happens if we do nothing?"
-- "Is there a simpler explanation?"
-
-**When no triggers fire**, Q1 proceeds as written — no extra questions.
-
-**Edge case**: If the user has already provided evidence and rationale (e.g., in a
-handoff, prior session, or detailed request), acknowledge it and move on. Premise
-challenge is a smell check, not an interrogation.
+**Edge case**: if the user has already provided evidence and rationale (e.g.,
+in a handoff, prior session, or detailed request), acknowledge it and move on.
+The lens is a smell check, not an interrogation.
 
 ### Step 0b: Alternatives Analysis
 

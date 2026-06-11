@@ -592,7 +592,7 @@ This rule applies in every response shape, including the briefest ones. It is th
 >
 > **Exception — protocol-mandated AUQs.** Four whitelist entries (defined in SKILL.md) ALWAYS fire — the question is implicit in the protocol, not gated on prose shape. Each, with the plain-English moment it fires at:
 >
-> - **Advisory Completion Gate** — fires when SP is about to move from thinking/advising to building (the "ready to start execution?" decision).
+> - **Advisory Readiness Gate (readiness ask)** — fires when SP is about to move from thinking/advising to building (the "ready to start execution?" decision).
 > - **Implementation Boundary Checkpoint 3 — user override** — fires when the user says "just do it" (or equivalent) and SP must confirm the dispatch before proceeding.
 > - **Codex review verdict synthesis** — fires when a Codex review returns GO / CONDITIONAL GO / NO-GO and SP must present the verdict and ask the user how to act on it.
 > - **Orientation closure** — fires at the end of any session-entry orientation (the startup "where do we stand, what next?" close).

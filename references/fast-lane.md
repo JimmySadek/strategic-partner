@@ -1,7 +1,7 @@
 # ⚡ Fast Lane — Agent Dispatch Protocol
 
 Reference file for the strategic-partner advisor. Detailed mechanics for
-Fast Lane dispatch. Load when the Advisory Completion Gate has passed and
+Fast Lane dispatch. Load when the Advisory Readiness Gate has passed and
 the task qualifies for dispatch.
 
 ---
