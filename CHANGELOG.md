@@ -14,6 +14,13 @@
   defaults now detect Fable 5 sessions instead of reporting the model as
   unknown. Knowing the model also lets the existing long-window context
   advisory fire on 1M-context sessions that previously read as unknown.
+- **SP now checks its own advisory posture, not just its wording** (own-conclusion check) —
+  SP already had rules against flattery and for taking a clear position; those govern what SP
+  says. This adds the upstream check: before a real recommendation, SP asks itself whether it
+  is genuinely serving your question or just defending the answer it already landed on — and
+  if it is the latter, it lowers its confidence, names the evidence that is missing, or argues
+  the other side. The tell it watches for is piling on more analysis that only better-defends
+  the same conclusion.
 
 ### Changed
 - **SP's internal decision-making is now one plain-English gate** (the Decision
