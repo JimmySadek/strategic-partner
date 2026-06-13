@@ -46,7 +46,7 @@ strategic-partner/
     skill-routing-matrix.md             # Dynamic discovery protocol, task categories, and routing rules
     partner-protocols.md                # Session naming, /insights, version bumps, partner adaptation
     hooks-integration.md                # Hook event reference and integration patterns
-    cognitive-patterns.md               # Named thinking heuristics for architecture and trade-offs
+    cognitive-patterns.md               # Cognitive operations and named-pattern examples
     companion-script-spec.md            # Spec for the optional companion-script integration
     pipeline/
       bootstrap.md                      # Pipeline stage 1 — prereq check (Q1/Q4 fresh-session)
@@ -172,7 +172,7 @@ Substantive decisions write to Serena as one coherent block when an advisory str
 
 ## Cognitive patterns
 
-14 named thinking heuristics (Bezos one-way doors, Munger inversion, Jobs focus-as-subtraction, and 11 more) are wired to specific decision points with mandatory triggers and actions. They fire automatically at the right moments — not a decorative reference table. Full list and trigger definitions live in `references/cognitive-patterns.md`.
+SP's advisory thinking runs on six paired cognitive operations (decouple/re-couple, differentiate/integrate, monitor/interrupt, hold/resolve, compress/expand, match) plus three standalone gates wired to specific decisions (one-way doors, blast radius, proxy skepticism). The named heuristics SP once listed as fourteen separate gates live on as worked examples under the operation that houses them. Full structure and worked examples live in `references/cognitive-patterns.md`.
 
 ---
 

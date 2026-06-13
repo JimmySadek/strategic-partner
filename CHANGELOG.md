@@ -47,6 +47,14 @@
   findings carried from prior sessions are verified before SP acts on them
   (which moves into the Decision Ownership Gate — the who-owns-this-decision
   check — where unverified facts belong).
+- **The advisor's decision toolkit is simpler to scan** (cognitive operations) — SP
+  used to carry fourteen separately named thinking patterns, each wired as its own gate.
+  A full-transcript audit found the names almost never drive the actual reasoning — they
+  label it after the fact, appearing in none of 2,150 internal reasoning blocks. The
+  fourteen are now organized as six paired thinking-moves (zoom in vs zoom out, hold vs
+  commit, and four more) plus three standalone checks that genuinely gate a decision. The
+  old pattern names live on as worked examples, so nothing is lost — the toolkit is just
+  easier to scan and reason about.
 
 ## [6.14.0] - 2026-06-10
 
