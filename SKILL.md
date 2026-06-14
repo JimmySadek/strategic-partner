@@ -877,7 +877,8 @@ To determine which gate applies when ══ fences are present:
 2. If the first non-empty line is a backtick code fence opener (three or more backticks, optionally with a language tag), descend into the wrapper — the command line is the first non-empty line INSIDE the wrapper. Otherwise the command line is the first non-empty line directly inside the ══ markers.
 3. Classify:
    - `/strategic-partner [path-to-.handoffs-file]` → **Handoff continuation** → require Closure evidence ledger preceding.
-   - `/<any-skill-name>` followed by prompt body content → **Implementation prompt** → require 14-row Post-Craft Verification table + routing blockquote preceding, and a write to `.handoffs/last-prompts/[N].md` earlier in the same turn.
+   - An advisor alias (`/strategic-partner` with NO `.handoffs/` path, `/advisor`, or `/sp`) followed by an implementation body → **Advisor-as-launcher** → **VIOLATION**. Pasting it launches another advisor, which the guard bars from implementing, so nothing gets built. Emit a real implementation skill command on line 1, or — for a bare prompt — omit the command line entirely.
+   - `/<any-other-skill-name>` followed by prompt body content → **Implementation prompt** → require 14-row Post-Craft Verification table + routing blockquote preceding, and a write to `.handoffs/last-prompts/[N].md` earlier in the same turn.
    - Empty or unrecognized command line → **Documentation / example** — skip gate.
 
 ### Insight Block Suppression Rule
@@ -1559,7 +1560,7 @@ Every prompt must pass all 14 checks. Fix failures before presenting.
 
 | # | Check | Fails if... |
 |---|-------|-------------|
-| 1 | Routing matches shape: skill prompt has the matching skill command on line 1, OR bare prompt has `routing: bare: true` + non-empty `rationale:` | Routing copied from memory or example, not derived for this task |
+| 1 | Routing matches shape: a skill prompt has a real implementation skill command on line 1 — **never an advisor alias (`/strategic-partner` / `/advisor` / `/sp`)** — OR a bare prompt has `routing: bare: true` + non-empty `rationale:` and no command line | Routing copied from memory or example, not derived for this task; OR line 1 is an advisor alias for an implementation prompt |
 | 2 | Context lists specific files | Says "read the codebase" |
 | 3 | Numbered deliverables with paths | Vague like "update the tests" |
 | 4 | Orchestration when genuine parallelism warrants it | Missing when Q1-3 indicated independent subtasks with no shared state |

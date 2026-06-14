@@ -198,7 +198,7 @@ must pass.** If any item fails, fix the prompt — do not present a failing prom
 
 | # | Check | ❌ Fails If... |
 |---|-------|---------------|
-| 1 | Routing matches shape: skill prompt has the matching skill command on line 1, OR bare prompt has `routing: bare: true` + non-empty `rationale:` | Routing copied from memory or example, not derived for this task |
+| 1 | Routing matches shape: a skill prompt has a real implementation skill command on line 1 — **never an advisor alias (`/strategic-partner` / `/advisor` / `/sp`)** — OR a bare prompt has `routing: bare: true` + non-empty `rationale:` and no command line | Routing copied from memory or example, not derived for this task; OR line 1 is an advisor alias for an implementation prompt |
 | 2 | `<context>` lists specific files with what to look for | Says "read the codebase" or "see relevant files" |
 | 3 | `<instructions>` has numbered deliverables with file paths | Vague like "update the tests" |
 | 4 | `<orchestration>` present if genuine parallelism warrants it | Q1-3 indicated independent subtasks with no shared state but no orchestration section |
@@ -811,6 +811,7 @@ proxy — it declines the goal-mode option and recommends running the normal pro
 - ❌ **Ambiguous ordering**: "also do X" → explicitly state if X is sequential or parallel
 - ❌ **Backtick-wrapped commands**: for a skill prompt, wrapping the skill command in backticks renders as code, not executable → emit the bare command on line 1 (does not apply to a bare prompt, which has no skill command)
 - ❌ **Headers before skill command**: for a skill prompt, `# Implementation Prompt` above the command → the skill command must be line 1 (a bare prompt has no skill line; its content opens directly)
+- ❌ **Advisor command as an implementation launcher**: never emit `/strategic-partner` (or `/advisor` / `/sp`) as the fence's first line for an implementation prompt → pasting it launches an advisor the PreToolUse guard bars from implementing, so the deliverables never get built (the launcher is self-defeating). Use a real implementation skill on line 1, or — for a bare prompt — open with the read-and-execute line and no command line. (See the worked launcher shapes below.)
 - ❌ **No launcher for saved prompts**: "go read .prompts/v1.5/phase1.md" → provide COPY-PASTEABLE LAUNCHER block
 - ❌ **Missing model specification**: "Spawn an agent" without specifying sonnet/opus
 - ❌ **Missing mode on agent spawns**: Background agents fail silently without mode specification → always include `mode` parameter
@@ -832,6 +833,51 @@ proxy — it declines the goal-mode option and recommends running the normal pro
 - ❌ **Missing not-in-scope**: Multi-file prompt without a `<not-in-scope>` section → executors fill silence with features; name the specific adjacent changes to leave alone
 - ❌ **Vague scope exclusions**: "Don't change unrelated code" or "keep changes minimal" → name the exact files, modules, or patterns the executor should not touch (e.g., "Do NOT migrate existing tests to the new pattern")
 - ❌ **Unlabeled opinionated recommendations**: Presenting a judgment call as if it were established practice → label with [⚠️ RISK] so the user/executor can calibrate trust. Factual statements don't need labels
+
+### 🚫 Advisor command as a launcher — broken vs. correct fence shapes
+
+An implementation launcher's first line decides what a paste actually runs. An
+advisor alias on line 1 (`/strategic-partner`, `/advisor`, `/sp`) launches the
+advisor — which the PreToolUse guard bars from implementing — so the deliverables
+never get built.
+
+❌ **Broken — advisor alias on line 1 (launches an advisor, builds nothing):**
+
+```
+══════════════════ START 🟢 COPY ══════════════════
+/strategic-partner
+
+Read the implementation prompt at .prompts/mle/org-lane-hero.md and execute all deliverables.
+══════════════════ END 🛑 COPY ═══════════════════
+```
+
+✅ **Correct — bare prompt (no command line; opens with the read-and-execute line):**
+
+```
+══════════════════ START 🟢 COPY ══════════════════
+Read the implementation prompt at .prompts/mle/org-lane-hero.md and execute all deliverables.
+══════════════════ END 🛑 COPY ═══════════════════
+```
+
+✅ **Correct — skill prompt (a real implementation skill on line 1):**
+
+```
+══════════════════ START 🟢 COPY ══════════════════
+/feature-dev
+
+Read the implementation prompt at .prompts/mle/org-lane-hero.md and execute all deliverables.
+══════════════════ END 🛑 COPY ═══════════════════
+```
+
+The one legitimate `/strategic-partner` fence is a **handoff continuation** —
+`/strategic-partner` followed by a `.handoffs/` path, which resumes a paused
+advisory session rather than launching an implementation:
+
+```
+══════════════════ START 🟢 COPY ══════════════════
+/strategic-partner .handoffs/2026-06-14-session.md
+══════════════════ END 🛑 COPY ═══════════════════
+```
 
 ---
 
