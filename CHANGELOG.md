@@ -1,5 +1,19 @@
 # Changelog
 
+## [7.0.1] - 2026-06-14
+
+### Fixed
+- **A handed-over prompt can no longer quietly launch the advisor instead of a builder** — When the advisor
+  packaged work to run in a fresh session, it could occasionally put its *own* command (`/strategic-partner`)
+  at the top of the copy-paste block. Pasting that started another advisor — which is blocked from writing
+  code — so nothing actually got built. The advisor's rule for this is sharpened so it doesn't happen, and a
+  new turn-end check flags it on the spot if it ever slips through. A normal "pick up where we left off"
+  handoff still works exactly as before.
+
+### Changed
+- **Copying a prompt to your clipboard is faster** — `/strategic-partner:copy-prompt` used to take several
+  steps for the common case of a single saved prompt; it's now one step. Same reliability, less waiting.
+
 ## [7.0.0] - 2026-06-14
 
 ### Added

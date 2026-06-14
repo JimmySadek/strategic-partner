@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.0.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.0.1-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — 7.0.0 is a major consolidation of the advisor's decision engine. Two genuinely new behaviors: the advisor now checks whether it's *defending its own conclusion* before making a recommendation — and lowers its confidence or argues the other side when it catches itself doing that — and on some models it can no longer silently drop a reply it was about to show you. Under the hood, four separate advisory checkpoints became one readiness gate, an internal four-stage decision pipeline became four plain questions, and fourteen named thinking patterns compressed to six — roughly 1,500 lines of reference scaffolding deleted, with no change to how the advisor behaves day to day. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
+> **What's new** — 7.0.1 (patch) fixes a handed-over prompt that could quietly launch the advisor instead of a builder, and makes copying a prompt to your clipboard a single step. It builds on **7.0.0**, a major consolidation of the advisor's decision engine. Two genuinely new behaviors: the advisor now checks whether it's *defending its own conclusion* before making a recommendation — and lowers its confidence or argues the other side when it catches itself doing that — and on some models it can no longer silently drop a reply it was about to show you. Under the hood, four separate advisory checkpoints became one readiness gate, an internal four-stage decision pipeline became four plain questions, and fourteen named thinking patterns compressed to six — roughly 1,500 lines of reference scaffolding deleted, with no change to how the advisor behaves day to day. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
 
 ---
 
