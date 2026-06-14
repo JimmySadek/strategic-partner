@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [7.0.0] - 2026-06-14
 
 ### Added
 - **SP now catches its own swallowed replies** (render-before-ask backstop) —
@@ -62,6 +62,12 @@
   commit, and four more) plus three standalone checks that genuinely gate a decision. The
   old pattern names live on as worked examples, so nothing is lost — the toolkit is just
   easier to scan and reason about.
+- **One home for the advisory rules** (reference cleanup) — The prompt-crafting
+  reference file used to repeat advisory guidance that also lives in the main skill
+  (the premise challenge and the alternatives menu). Those
+  duplicates are removed; the guide now covers only how to package a prompt and points
+  back to the skill for the advisory rules. Less chance of the two drifting out of
+  sync; nothing changes in how prompts are crafted.
 
 ## [6.14.0] - 2026-06-10
 

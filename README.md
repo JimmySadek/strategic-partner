@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-6.14.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.0.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — 6.14.0 adds a **goal-mode option**: after handing you a prompt, when the task genuinely fits a hands-off run, the advisor suggests a ready-made `/goal` line (Claude Code's autonomous-run command) with a tailored finish line and a safety cap — in chat only, never inside a saved or copyable prompt, enforced by a release-time check. Voice rules now live canonically in the skill core, with the installed voice style as a lint-enforced derived mirror. And work you run yourself gets a real diff review on return, against the commit recorded when the prompt was handed over. See [CHANGELOG.md](CHANGELOG.md) for prior releases.
+> **What's new** — 7.0.0 is a major consolidation of the advisor's decision engine. Two genuinely new behaviors: the advisor now checks whether it's *defending its own conclusion* before making a recommendation — and lowers its confidence or argues the other side when it catches itself doing that — and on some models it can no longer silently drop a reply it was about to show you. Under the hood, four separate advisory checkpoints became one readiness gate, an internal four-stage decision pipeline became four plain questions, and fourteen named thinking patterns compressed to six — roughly 1,500 lines of reference scaffolding deleted, with no change to how the advisor behaves day to day. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
 
 ---
 
@@ -90,7 +90,7 @@ Then say: *"We need to build an onboarding flow"*
 
 **Strategic Partner responds:**
 
-> **Premise challenge:** solution-shaped request — "onboarding flow" describes a feature, not a problem.
+> That's a solution wearing a problem's clothes — "onboarding flow" names a feature, not the problem underneath.
 >
 > Before we scope this — what user problem does onboarding solve? Are new users dropping off? Confused by the setup? Missing a key activation step?
 
