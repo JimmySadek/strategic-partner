@@ -257,6 +257,26 @@ hooks:
               fi
             fi
 
+            # Rule 8: advisor-launcher — a real COPY fence whose first line is an
+            # advisor alias (/strategic-partner with no .handoffs/ path, /advisor,
+            # /sp) launches an advisor the guard bars from implementing, so the
+            # deliverables never get built (Fence discriminator parity with Rule 4).
+            if printf '%s' "$turn_text" | grep -qF '══ START 🟢 COPY ══'; then
+              real_fence8=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/`[^`]*`//g; $t =~ s/^>.*$//mg; if ($t =~ /══ START 🟢 COPY ══/) { print "yes"; }' 2>/dev/null)
+              if [ "$real_fence8" = "yes" ]; then
+                launcher_line=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/`[^`]*`//g; $t =~ s/^>.*$//mg; my $in=0; for my $ln (split /\n/, $t) { if ($ln =~ /══ END 🛑 COPY ══/) { last; } if ($in) { my $s=$ln; $s =~ s/^\s+//; $s =~ s/\s+$//; next if $s eq ""; print $s; last; } if ($ln =~ /══ START 🟢 COPY ══/) { $in=1; } }' 2>/dev/null)
+                case "$launcher_line" in
+                  /strategic-partner[[:space:]]*.handoffs/*) : ;;   # exempt — handoff continuation
+                  /strategic-partner|/strategic-partner[[:space:]]*)
+                    log_violation "advisor-launcher: COPY fence first line is /strategic-partner with no .handoffs/ path for an implementation prompt — pasting it launches an advisor the guard bars from implementing, so nothing gets built; emit a real implementation skill on line 1, or omit the command line for a bare prompt (the advisor command is valid only as a /strategic-partner <.handoffs path> handoff continuation)" ;;
+                  /advisor|/advisor[[:space:]]*)
+                    log_violation "advisor-launcher: COPY fence first line is /advisor for an implementation prompt — pasting it launches an advisor the guard bars from implementing, so nothing gets built; emit a real implementation skill on line 1, or omit the command line for a bare prompt (the advisor command is valid only as a /strategic-partner <.handoffs path> handoff continuation)" ;;
+                  /sp|/sp[[:space:]]*)
+                    log_violation "advisor-launcher: COPY fence first line is /sp for an implementation prompt — pasting it launches an advisor the guard bars from implementing, so nothing gets built; emit a real implementation skill on line 1, or omit the command line for a bare prompt (the advisor command is valid only as a /strategic-partner <.handoffs path> handoff continuation)" ;;
+                esac
+              fi
+            fi
+
             exit 0
           timeout: 5000
 ---
