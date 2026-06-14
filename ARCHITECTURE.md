@@ -48,13 +48,6 @@ strategic-partner/
     hooks-integration.md                # Hook event reference and integration patterns
     cognitive-patterns.md               # Cognitive operations and named-pattern examples
     companion-script-spec.md            # Spec for the optional companion-script integration
-    pipeline/
-      bootstrap.md                      # Pipeline stage 1 — prereq check (Q1/Q4 fresh-session)
-      router.md                         # Pipeline stage 2 — 4-channel decision classification
-      egress.md                         # Pipeline stage 3 — composite materiality gate
-      asking-pattern.md                 # Pipeline stage 4 — AUQ depth modulation
-      silent-log.md                     # Silent-channel surfacing format + prohibitions
-      user-output-style.md              # Internal-vocabulary → plain-English translation layer
     provider-guides/
       anthropic.md                      # Claude XML prompt format template
       openai.md                         # GPT-5.5 prompt format template
@@ -137,7 +130,7 @@ Two related checks moved out of this section. A carried-forward finding from a p
 
 ## Prompt quality checklist
 
-Every crafted prompt renders a visible pass/fail table of 13 quality checks BEFORE the prompt body:
+Every crafted prompt renders a visible pass/fail table of 14 quality checks BEFORE the prompt body:
 
 1. Skill routing
 2. File context
@@ -289,12 +282,18 @@ On 1M-context models (Opus 4.8), the advisor surfaces a one-time orientation not
 
 ## Release-time enforcement layers
 
-Two automated checks run at release time:
+Several automated checks run at release time. Three content lints run on every non-docs-only push:
+
+- **`tests/lint-voice.sh`** (Step 2c) — scans CHANGELOG / README / commands/ for jargon-loaded patterns (function-call notation in prose, incident IDs, direction/layer refs, raw line refs, lowercase deliverable refs, placeholder strings). Plus a heuristic warn-only check for internal terms without a gloss on first occurrence.
+- **`tests/lint-goal-tripwire.sh`** (Step 2d) — fails closed if an executable `/goal` line appears in a copyable or runnable artifact (COPY fences, `.handoffs/last-prompts/`, `.prompts/`, handoff prompt artifacts).
+- **`tests/lint-voice-mirror.sh`** (Step 2e) — fails closed if SKILL.md and the installable output style (`output-styles/strategic-partner-voice.md`) drift apart on the mirror declarations or any tracked voice-rule anchor.
+
+Two further lints run under Step 2a when the release touches hooks:
 
 - **`tests/lint-transcripts.sh`** — scans recent `.handoffs/` and JSONL transcripts for four behavioral rule violations (structured-question-must-be-structured-question, tool-availability claims without actual call, execution-prompt-without-handoff-file, identity-reset announcement after dispatch). Layer 3 backstop.
-- **`tests/lint-voice.sh`** — scans CHANGELOG / README / commands/ for jargon-loaded patterns (function-call notation in prose, incident IDs, direction/layer refs, raw line refs, lowercase deliverable refs, placeholder strings). Plus a heuristic warn-only check for internal terms without a gloss on first occurrence.
+- **`tests/lint-frontmatter-hook.sh`** — fails closed if a literal triple-dash appears inside the SKILL.md YAML frontmatter outside its two delimiter lines (which would truncate the inline session hook).
 
-Both lints are mandatory for non-docs-only pushes per CLAUDE.md § Steps 2a and 2c.
+All five are mandatory per CLAUDE.md § Steps 2a, 2c, 2d, and 2e.
 
 ---
 
