@@ -859,7 +859,7 @@ Theme A (typed envelopes) is the unifying principle. Voice-fix reinforces it; it
 
 ### Per-Envelope Markdown Rule (inside ══ fences)
 
-Source: Rev 3 R1.3 reconciliation with `references/prompt-crafting-guide.md:713–716`.
+Source: Rev 3 R1.3 reconciliation with `references/prompt-crafting-guide.md` § Copy-Safe Formatting (Inline Prompts).
 
 | Envelope | ══ fences emitted? | Inside-fence Markdown rule |
 |---|---|---|

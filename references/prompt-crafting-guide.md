@@ -4,7 +4,7 @@ Reference file for the strategic-partner advisor. Standards for crafting impleme
 prompts across target models.
 
 ```
-Discovery Protocol → Alternatives Analysis → Routing Decision Tree → Parallelization Check → Quality Check → Format Selection (Claude XML / GPT-5.5 XML / Gemini MD / Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
+Pre-craft prerequisites (Frame + Alternatives → SKILL.md) → Routing Decision Tree → Parallelization Check → Quality Check → Format Selection (Claude XML / GPT-5.5 XML / Gemini MD / Hybrid) → Deliverable Type (Prompt vs Script) → Post-Craft Verification → Save Decision → Launcher
 ```
 
 ---
@@ -31,96 +31,26 @@ Every implementation prompt must:
 
 ## 🔴 Mandatory Pre-Craft Analysis
 
-**🚨 STOP. Complete both analyses below BEFORE writing any prompt.** These are not
-optional guidance — skipping them is a quality gate failure.
+**🚨 STOP. The advisory work comes first — and it lives in SKILL.md, not here.**
+Framing the goal and choosing the approach happen before any prompt is crafted.
+That work has one home: **SKILL.md § Advisory Readiness Gate**. This guide does
+not re-teach it.
 
-### Step 0: Discovery Protocol
+### Pre-craft prerequisites
 
-Before routing, work through the 4 discovery questions:
+1. **Frame check** — goal, prior work, constraints, and definition of done, plus the
+   captured-thinking lens for solution-shaped requests. Lives in SKILL.md § Advisory
+   Readiness Gate, checkpoint ① (Frame check). Resolve the goal and the definition of
+   done BEFORE crafting — the executor prompt is one-shot and cannot ask follow-up
+   questions. (Continuation note: prior work and constraints may already be settled
+   from a handoff; still verify the goal and the definition of done.)
+2. **Alternatives** — the A/B/C paths, their trade-offs, and the skip conditions. Lives
+   in SKILL.md § Advisory Readiness Gate, checkpoint ② (Alternatives check). Present and
+   resolve the path choice BEFORE routing.
 
-1. **Goal**: What is the user trying to achieve? (the outcome, not the task) — **see Frame smells below**
-2. **Prior work**: What has already been tried or decided? (check handoff files, Serena decision_log, conversation history)
-3. **Constraints**: What constraints exist? (CLAUDE.md rules, tech stack, time, existing patterns)
-4. **Definition of done**: What does "done" look like? (concrete, verifiable deliverables)
-
-If the GOAL or the DEFINITION OF DONE is unknown or ambiguous, use
-`AskUserQuestion` to clarify BEFORE proceeding to routing — do not guess; the
-prompt cannot ask follow-up questions. Gaps in prior work or constraints inform
-the ask and the prompt's context section but do not halt routing alone: close
-them by reading handoff files, the decision log, and CLAUDE.md before resorting
-to a question.
-
-For continuation tasks (handoff or prior prompt), answers 2 and 3 may already be
-established. Still verify 1 and 4 — goals shift and definitions of done evolve.
-Alternatives (Step 0b) may also be pre-decided in continuation sessions.
-
-If all 4 are answerable from conversation context, state your understanding of each
-briefly (1 line per question) and proceed to Step 0b. Do not ask questions you can
-answer yourself — but do state the answers so the user can correct misunderstandings.
-
-**Quality gate**: If you reach Step 0b (Alternatives) without being able to articulate
-the goal and definition of done, STOP and go back. A well-routed prompt for the
-wrong goal is worse than no prompt at all.
-
-#### Frame smells (conditional depth increase on Q1)
-
-When a request assumes a solution rather than stating a problem — a named
-technology as the starting point, an asserted root cause without evidence, a
-solution-shaped ask — push harder on Q1 before accepting the framing. Apply
-the captured-thinking lens from SKILL.md § Advisory Readiness Gate (Frame
-check): identify what the request holds fixed, and match the response to the
-mechanism. When nothing smells, Q1 proceeds as written — no extra questions.
-
-**Edge case**: if the user has already provided evidence and rationale (e.g.,
-in a handoff, prior session, or detailed request), acknowledge it and move on.
-The lens is a smell check, not an interrogation.
-
-### Step 0b: Alternatives Analysis
-
-After discovery and BEFORE routing, for non-trivial tasks the SP presents 2–3 distinct
-approaches. The user picks a path via `AskUserQuestion`. THEN the SP routes and crafts.
-
-```
-Discovery (Step 0) → Alternatives (Step 0b) → Routing (Step 1) → Craft
-                          ↑                                         ↑
-                    "Which path?"                          "Here's the prompt"
-```
-
-**Three paths:**
-
-| Path | Description | Purpose |
-|---|---|---|
-| **A — Minimal** | Smallest change that solves the stated problem | Low risk, fast, may leave debt |
-| **B — Recommended** | What the SP would actually suggest, with rationale | Balanced — the SP's best judgment |
-| **C — Lateral** | Reframing the problem or a creative alternative | May unlock a better outcome entirely |
-
-Each path: 2–3 sentences + the key trade-off. The SP states which path it recommends
-and why. Present via `AskUserQuestion`:
-`[Path A — Minimal]` `[Path B — Recommended]` `[Path C — Lateral]` `[Just do what you'd recommend]`
-
-**Example — "Add caching to the API layer":**
-
-| Path | Approach | Trade-off |
-|---|---|---|
-| **A — Minimal** | Add response-level HTTP cache headers (`Cache-Control`, `ETag`) on the 3 slowest endpoints. No new infrastructure. | Fast to ship, but only helps repeat requests from the same client. |
-| **B — Recommended** | Introduce an in-process LRU cache (e.g., `lru-cache` or `@isaacs/ttlcache`) keyed by query params, with a 60s TTL. Requires invalidation strategy for write-after-read. | Covers all clients, moderate complexity, no external dependencies. |
-| **C — Lateral** | Profile the actual bottleneck first (`--inspect` + flame graph). The "slow API" may be N+1 queries or missing indexes — caching would mask the real problem. | Slower to start, but might eliminate the need for caching entirely. |
-
-**→ Recommendation: Path C.** The request assumes caching is the fix, but we haven't
-confirmed what's actually slow. 30 minutes of profiling could save a week of cache
-invalidation bugs.
-
-**Skip conditions** (alternatives NOT required):
-
-| Condition | Rationale |
-|---|---|
-| Fast Lane tasks (scored 4–5/5 on simplicity) | Mechanical — no design judgment needed |
-| Continuation tasks with approach already decided | Re-litigating wastes time |
-| Single-file mechanical changes | One obvious path |
-| User explicitly overrides ("just do X") | User has already chosen |
-
-**Quality gate**: If alternatives are required (non-trivial task, not skipped) but
-not presented before routing, the prompt **FAILS**. Go back to Step 0b.
+**Quality gate:** if the goal or the definition of done is still unresolved when you
+reach routing below, STOP and go back — a well-routed prompt for the wrong goal is
+worse than no prompt at all.
 
 ### Step 1: Routing Decision Tree
 
