@@ -1,5 +1,15 @@
 # Changelog
 
+## [7.1.0] - 2026-06-16
+
+### Fixed
+- **The advisor offers to run small tasks for you again.** On small, reversible,
+  single-concern changes, the Strategic Partner now reliably asks whether to run the
+  work in the same session or hand you a prompt — instead of silently defaulting to
+  the prompt. A new internal checkpoint makes that offer a required step, and it now
+  names the specific specialist agent so you can catch a wrong pick before confirming.
+  Big, risky, or hard-to-reverse changes still go out as a full prompt, exactly as before.
+
 ## [7.0.1] - 2026-06-14
 
 ### Fixed
