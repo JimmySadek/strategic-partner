@@ -1,8 +1,9 @@
 # ⚡ Fast Lane — Agent Dispatch Protocol
 
 Reference file for the strategic-partner advisor. Detailed mechanics for
-Fast Lane dispatch. Load when the Advisory Readiness Gate has passed and
-the task qualifies for dispatch.
+Fast Lane dispatch. Load when the Advisory Readiness Gate has passed and the
+Delivery Choice Checkpoint (SKILL.md § 📦 Delivery Modes) reaches its load step —
+implementation-shaped work that is not categorically disqualified.
 
 ---
 
@@ -54,7 +55,7 @@ tasks that don't qualify:
 - Score ≤2/5 → dispatch option **MUST NOT** appear. Only offer:
   `[Give me the prompt]` `[This is bigger than it looks]`
 - Score 3/5 → dispatch appears but labeled "(borderline)":
-  `[Dispatch via agent (borderline)]` `[Give me the prompt]` `[This is bigger than it looks]`
+  `[Dispatch via agent — <subagent_type> (borderline)]` `[Give me the prompt]` `[This is bigger than it looks]`
 - Score 4-5/5 → dispatch appears as primary option
 
 The scoring and gate must run BEFORE the `AskUserQuestion` — never after
@@ -63,6 +64,26 @@ the user has already chosen.
 ---
 
 ## Consent Flow
+
+### 🎯 Mandatory routing line (all dispatch paths)
+
+Before presenting any dispatch `AskUserQuestion` — one-step, two-step, or the
+borderline score-3 label — SP states the chosen specialist on its own line:
+
+> **Routing:** <task shape> → `<subagent_type>` per <matrix row in `references/skill-routing-matrix.md`, or explicit rationale>
+
+The `<subagent_type>` is the specific specialist for the task — for example,
+`frontend-architect` for a React/Tailwind UI change — and that same name goes in the
+dispatch option label so the user can catch a wrong pick before confirming. SP never
+defaults to `general-purpose` unless no specialist fits; when that is the case, the
+routing line states why no specialist matched. This mirrors SP's Pre-Dispatch Routing
+Verification rule (output style), which already requires the `subagent_type` in the
+dispatch option label.
+
+This dispatch routing line supplements — it does not replace — the per-template
+`**🎯 Routing**` skill line in the One-Step and Two-Step Consent blocks below. The
+`[skill]` named there and the `<subagent_type>` named here are the same specialist for
+the task, written in each block's existing style.
 
 ### Solution Ambiguity Gate
 
@@ -85,7 +106,7 @@ ANY of Q1/Q2/Q3 = YES? (design judgment, multiple implementations, uncertain req
 > **Position:** [specific fix] because [reason]
 
 `AskUserQuestion`:
-- `[Dispatch via agent]` — SP spawns agent with this prompt, reviews result inline
+- `[Dispatch via agent — <subagent_type>]` — SP spawns agent with this prompt, reviews result inline
 - `[Give me the prompt]` — standard ══ fence delivery
 - `[Adjust the fix]` — SP presents alternative solutions
 
@@ -105,7 +126,7 @@ promoting to two-step).
 - `[Suggest something else]`
 
 **Step 2** — `AskUserQuestion` (delivery):
-- `[Dispatch via agent]` — SP spawns agent with this prompt, reviews result inline
+- `[Dispatch via agent — <subagent_type>]` — SP spawns agent with this prompt, reviews result inline
 - `[Give me the prompt]` — standard ══ fence delivery
 - `[This is bigger than it looks]` — escalate to full session prompt
 

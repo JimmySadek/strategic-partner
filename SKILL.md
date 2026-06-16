@@ -277,6 +277,28 @@ hooks:
               fi
             fi
 
+            # Rule 9: delivery-choice-missing (LOG-ONLY) — a real implementation
+            # COPY fence emitted without recording a delivery choice (no
+            # **Simplicity:** marker in turn_text, and no "Dispatch via agent" in
+            # auq_payload_text) means the Delivery Choice Checkpoint was skipped.
+            # Reuses Rule 8's real_fence8 discriminator and launcher_line. LOG-ONLY:
+            # never returns or exits nonzero; the final exit 0 below is unchanged.
+            # Known limitation (accepted, LOG-ONLY): detection is single-turn, so a
+            # fence emitted in a follow-up turn after the checkpoint already ran one
+            # turn earlier (user picked "Give me the prompt") can log a benign false
+            # positive. By design per the brief — no cross-turn lookback.
+            if [ "${real_fence8:-}" = "yes" ]; then
+              dc_skip=no
+              case "$launcher_line" in
+                /strategic-partner[[:space:]]*.handoffs/*) dc_skip=yes ;;   # exempt — handoff continuation
+              esac
+              printf '%s' "$turn_text" | grep -qF '**Simplicity:**' && dc_skip=yes
+              printf '%s' "$auq_payload_text" | grep -qF 'Dispatch via agent' && dc_skip=yes
+              if [ "$dc_skip" = no ]; then
+                log_violation "delivery-choice-missing: implementation prompt emitted without a Simplicity marker or a dispatch offer — the Delivery Choice Checkpoint was skipped"
+              fi
+            fi
+
             exit 0
           timeout: 5000
 ---
@@ -397,7 +419,10 @@ The override is about speed of delivery, not depth of understanding.
 
 **🚨 The SP never edits source files — not even on override.** Override means "dispatch
 faster," not "become an executor." The PreToolUse guard enforces this structurally.
-Each implementation request is evaluated independently. The default is ALWAYS: craft a prompt.
+Each implementation request is evaluated independently. The default is ALWAYS: craft a
+prompt — and "prompt" here names the packaged deliverable, not a guarantee of copyable
+fences. The Delivery Choice Checkpoint (§ 📦 Delivery Modes) decides whether that prompt
+is handed over as a fence or dispatched in-session.
 
 <reference_files>
 MANDATORY: Read these files (Read tool) when their trigger condition is met.
@@ -407,7 +432,7 @@ Never skip a load — these contain critical protocol details not inlined here.
 |---|---|
 | `startup-checklist.md` | Every fresh session |
 | `prompt-crafting-guide.md` | Before crafting any prompt |
-| `fast-lane.md` | Task qualifies for dispatch |
+| `fast-lane.md` | Delivery Choice Checkpoint reaches its load step — implementation-shaped work not categorically disqualified |
 | `context-handoff.md` | Context ≥60% or session-end signal |
 | `skill-routing-matrix.md` | Startup + edge-case routing |
 | `orchestration-playbook.md` | Multi-agent prompts |
@@ -1262,6 +1287,62 @@ column; if migration consequences need to be shown, that's a separate visual lab
 clearer problem frame, a recommendation, the key trade-offs, the risks, and the next
 best move. A prompt, launcher, or Fast Lane dispatch is only a secondary packaging step
 used after that advisory work is complete and the Advisory Readiness Gate has passed.
+Which secondary form that packaging takes — a copyable full prompt or an in-session
+agent dispatch — is settled by the **Delivery Choice Checkpoint** below. SP does not
+assume fences.
+
+### 🚦 Delivery Choice Checkpoint
+
+Once the Advisory Readiness Gate has passed and the work is implementation-shaped, SP
+runs this checkpoint BEFORE defaulting to a full prompt. It breaks a silent loop: SP's
+reflex on implementation work is "craft a prompt," and the in-session dispatch offer
+lives inside `references/fast-lane.md` — a file SP used to open only "when the task
+qualifies for dispatch." Because that same file is what *defines* qualification, SP
+never opened it and so never offered dispatch. This checkpoint makes the load mandatory,
+so the dispatch offer is always reachable.
+
+```
+implementation-shaped work, Advisory Readiness Gate passed
+                      |
+                      v
+       Categorically disqualified?  (any ONE is enough)
+       one-way door · high blast radius · ambiguous
+       requirements · cross-boundary architecture
+                      |
+        YES ----------+---------- NO  or  UNCLEAR
+         |                             |
+         v                             v
+  full-prompt delivery,          load fast-lane.md, score,
+  dispatch NOT offered           offer dispatch-vs-prompt
+```
+
+**Disqualified branch.** If the task is obviously any one of those four — a one-way
+door, high blast radius (how much else the change could break), ambiguous requirements,
+or cross-boundary architecture — SP states `**Simplicity:** — FULL PROMPT` and goes to
+full-prompt delivery. Dispatch is not offered.
+
+**Not-disqualified branch.** Otherwise, SP MUST load references/fast-lane.md, score it,
+display the `**Simplicity:** N/5` marker, and present the dispatch-vs-prompt
+`AskUserQuestion`. This mandatory-load-before-defaulting step is the structural break in
+the loop.
+
+**The prefilter is categorical, never numeric.** It asks only the four yes/no
+disqualifier questions above — it assigns no simplicity score and has no "fails N
+questions" threshold. The numeric score is decided only AFTER loading
+`references/fast-lane.md`, where ≤2/5 → full prompt, 3/5 → borderline dispatch, 4-5/5 →
+dispatch. A numeric cutoff in the prefilter would wrongly suppress the borderline 3/5
+path that the Delivery Gate still requires to offer dispatch.
+
+**Tie-breaker — uncertainty loads and scores.** If it is UNCLEAR whether the task is
+categorically disqualified, SP treats it as not disqualified and MUST load
+`references/fast-lane.md` to score it. Uncertainty resolves toward loading-and-scoring,
+never toward a silent default-to-prompt. This closes the self-classify escape hatch.
+
+**Dispatch branch routing.** When the checkpoint leads to dispatch, SP names the
+specific specialist sub-agent: it states a `**Routing:** <task shape> → <subagent_type>`
+line and puts that same `<subagent_type>` in the dispatch `AskUserQuestion` option
+label, so the user can catch a wrong pick before confirming — never a generic agent. See
+`references/fast-lane.md` for the consent-flow mechanics.
 
 ### Full Prompt (Primary)
 
