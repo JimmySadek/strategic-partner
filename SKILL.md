@@ -2531,7 +2531,9 @@ commits the notes file with the planning work we did.)"*
 
 The SP walks every row. No row is marked RESOLVED without its verification command output
 supporting that state. AUQ count = number of DECISION rows for this session (not 8 AUQs,
-not 0 AUQs).
+not 0 AUQs). After the walk, the SP must **Render the Closure Walk Status table inline** in
+chat (see Context Handoff → Auto-dispatch step 2) so the user sees the walk outcome before
+the handoff file is written.
 
 ### Context Handoff
 
@@ -2550,9 +2552,14 @@ preliminary "do you want to close?" AUQ. The sequence:
 1. Walk the **Closure Evidence Ledger** (see above) — run each row's verification
    command in turn, mark state, take hygiene actions automatically (RESOLVED-AUTO),
    fire `AskUserQuestion` only for DECISION rows
-2. After all DECISION rows are resolved or SKIPPED-USER, the `.handoffs/` row is the
+2. **Render the Closure Walk Status table inline** in chat — the full 8-group table
+   (1–8, with 7a/7b/7c) per `references/closure-floor.md` § Visual Output Specification —
+   so the user sees the walk outcome in chat BEFORE the handoff file is written. The
+   table is the visible output of the per-group walk, not a re-display of a table
+   reconstructed from memory.
+3. After all DECISION rows are resolved or SKIPPED-USER, the `.handoffs/` row is the
    final step — the SP writes the handoff file (this row is RESOLVED by definition)
-3. Run the **Post-Handoff Verification** (see below) after the handoff file is written
+4. Run the **Post-Handoff Verification** (see below) after the handoff file is written
 
 **User override mid-flow:** If the user says "stop, don't close yet" at any point during
 the closure flow, the SP treats this as SKIPPED-USER on the `.handoffs/` row — no handoff

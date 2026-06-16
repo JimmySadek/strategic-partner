@@ -457,7 +457,7 @@ Anti-pattern: continuing to write the handoff file with dirty source
 state — every dirty case must be explicitly RESOLVED-AUTO, DECISION,
 or DIRTY; no silent ignores.
 
-### After Group 8 — Render Closure Walk Status table inline
+### Step 8.5 — Render Closure Walk Status table inline (before Steps 9–13)
 
 Before the handoff file write Steps 9-13 begin, render the Closure
 Walk Status table inline in the response so the user sees the walk
