@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.1.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.1.1-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — **7.1.0** restores a behavior that had quietly regressed: on small, reversible, single-concern changes, the advisor again reliably offers to run the work for you in the same session — dispatching an agent — instead of always handing you a prompt to paste. That offer now names the specific specialist agent, so a wrong pick is easy to catch before it runs; bigger or riskier changes still go out as a full prompt, exactly as before. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases — including 7.0.x, which consolidated the advisor's decision engine and added a self-check that catches the advisor defending its own conclusion.
+> **What's new** — **7.1.1** restores a small but visible behavior at session close: the advisor again shows its full closure checklist in chat — the "here's everything I verified before saving your handoff" summary — which had quietly stopped appearing while still being written into the saved handoff. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases — including **7.1.0** (the advisor again offers to run small, reversible changes for you in the same session, naming the specialist agent) and **7.0.x** (a consolidated decision engine plus a self-check that catches the advisor defending its own conclusion).
 
 ---
 

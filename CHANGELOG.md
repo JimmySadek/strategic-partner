@@ -1,5 +1,18 @@
 # Changelog
 
+## [7.1.1] - 2026-06-17
+
+### Fixed
+- **The session wrap-up shows its work again** — at the end of a session the advisor
+  walks an 8-group closure checklist (git tree clean, findings saved, backlog captured,
+  and so on). It was still running and still saved into the handoff file, but had quietly
+  stopped appearing in the chat — so the close looked thin even when nothing was skipped.
+  The checklist now renders in chat before the handoff is written, restoring the visible
+  summary of everything that was checked. The render is now an explicit, ordered step in
+  the advisor's main in-session closure flow — previously it lived only in supporting files
+  (a reference doc and the handoff command), not in that main flow — so it can't quietly
+  fall off again.
+
 ## [7.1.0] - 2026-06-16
 
 ### Fixed
