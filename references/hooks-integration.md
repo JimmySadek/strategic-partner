@@ -310,7 +310,7 @@ earlier than the release-gate lint.
 **Layer 3 enforcement** (unchanged, still active): `tests/lint-transcripts.sh`
 runs three structural checks at release time over `.handoffs/*.md` files and
 JSONL transcripts since the last release tag. Exit 0 if clean; exit 1 with
-per-violation output if violations found. Wired into CLAUDE.md Step 2a.
+per-violation output if violations found. Wired into `claudedocs/release-process.md` Step 2a.
 
 ---
 
@@ -647,7 +647,7 @@ last release tag:
   are mechanical violations, separate from the four behavioral rules above.
 
 Exit 0 if clean; exit 1 with per-violation output if any violations found.
-Wired into CLAUDE.md release process Step 2a as the release-gate backstop.
+Wired into `claudedocs/release-process.md` release process Step 2a as the release-gate backstop.
 Layer 3 lints transcripts AFTER the fact — it does not lint `SKILL.md` itself
 and is not equivalent to per-turn runtime enforcement.
 

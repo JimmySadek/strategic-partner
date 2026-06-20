@@ -98,8 +98,8 @@ scans recent git history for evidence that a non-closed item's scope
 already shipped, and surfaces close-candidates for confirmation. **It never
 auto-closes** — every close is the user's call.
 
-This is the single shipped-work scan. The release process (project
-`CLAUDE.md`, Release Process) invokes the *same* logic against the
+This is the single shipped-work scan. The release process
+(`claudedocs/release-process.md`, Step 1a) invokes the *same* logic against the
 release's commit range — there is no separate release-only detector.
 
 **Candidates.** Every non-closed `.backlog/*.md` item (`inbox`,

@@ -1,6 +1,6 @@
 ---
 name: codex-feedback
-description: "Cross-model adversarial review via Codex CLI (GPT-5.5)"
+description: "Cross-model adversarial review via Codex CLI"
 category: advisory
 complexity: advanced
 mcp-servers: []
@@ -101,10 +101,10 @@ not match. Be specific."
 > nitpick" — Opus 4.8 follows that bar so faithfully it finds real issues and
 > then withholds them below the stated threshold.
 
-#### Release-Review Brief Template (Step 2b in CLAUDE.md)
+#### Release-Review Brief Template (`claudedocs/release-process.md` Step 2b)
 
-When Mode B is invoked for a pre-release audit (per CLAUDE.md "Codex Pre-Release
-Review"), the brief asks four questions. The first three audit the diff and the
+When Mode B is invoked for a pre-release audit (per `claudedocs/release-process.md`
+"Codex Pre-Release Review"), the brief asks four questions. The first three audit the diff and the
 release shape; the fourth audits SP's own chat output during the release sessions.
 
 1. **Diff matches CHANGELOG** — does the proposed CHANGELOG entry accurately

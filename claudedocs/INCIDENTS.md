@@ -1,6 +1,6 @@
 # SP Project — Incident Archaeology
 
-This file accumulates incident write-ups for SP project incidents that produced Provisional Guards or otherwise shaped SP process. Each entry is identified by an `INC-YYYY-MM-DD` ID matching the date the incident occurred and is referenced by one or more guards in CLAUDE.md's `## Provisional Guards` section. New entries follow the same `## INC-YYYY-MM-DD — <one-line summary>` heading pattern.
+This file accumulates incident write-ups for SP project incidents that produced Provisional Guards or otherwise shaped SP process. Each entry is identified by an `INC-YYYY-MM-DD` ID matching the date the incident occurred and is referenced by one or more guards in `claudedocs/provisional-guards.md`. New entries follow the same `## INC-YYYY-MM-DD — <one-line summary>` heading pattern.
 
 ## INC-2026-03-30 — Hook command relies on `${CLAUDE_SKILL_DIR}` (v5.4.0 → v5.4.1)
 
@@ -32,7 +32,7 @@ v5.4.1 shipped on 2026-03-31, one day after v5.4.0, with three changes:
 
 ### Lesson formalized as Provisional Guard
 
-The lesson is captured in CLAUDE.md's `## Provisional Guards` section as: *Don't use `${CLAUDE_*}` env vars in hook commands.* The guard names the affirmative alternative — inline the values, use deterministic path resolution, or grep `CHANGELOG.md` for prior incidents with the variable name before relying on it — and lists `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_TOOL_NAME}`, and any other unverified `CLAUDE_*` variable as in scope.
+The lesson is captured in `claudedocs/provisional-guards.md` as: *Don't use `${CLAUDE_*}` env vars in hook commands.* The guard names the affirmative alternative — inline the values, use deterministic path resolution, or grep `CHANGELOG.md` for prior incidents with the variable name before relying on it — and lists `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_TOOL_NAME}`, and any other unverified `CLAUDE_*` variable as in scope.
 
 ### Related codification
 
@@ -69,7 +69,7 @@ The brief shipped to a background Opus 4.7 executor on 2026-05-01 and produced s
 
 ### Lesson formalized as Provisional Guard
 
-Captured in CLAUDE.md's `## Provisional Guards` as: *Brief authors must re-read locked design files at brief-author time, not derived summaries.* Scope: SP-authored executor briefs that aggregate multiple components from a multi-iteration locked design (small mechanical briefs are out of scope). Review: 2026-07-30.
+Captured in `claudedocs/provisional-guards.md` as: *Brief authors must re-read locked design files at brief-author time, not derived summaries.* Scope: SP-authored executor briefs that aggregate multiple components from a multi-iteration locked design (small mechanical briefs are out of scope). Review: 2026-07-30.
 
 ## INC-2026-05-01-B — v5.15.0 closure-floor brief deferred Stop rule 6 with no surface artifact
 
@@ -93,7 +93,7 @@ SP created `.backlog/closure-walk-completeness-stop-rule.md` capturing the v5.16
 
 ### Lesson formalized as Provisional Guard
 
-Captured in CLAUDE.md's `## Provisional Guards` as: *Deferred work needs durable artifacts (backlog item or reference doc), not just commit messages.* Scope: any explicit deferral within a release. Acceptable durable artifacts: a `.backlog/[item].md` file with explicit `trigger:` field, or a dedicated section in a reference doc. Review: 2026-07-30.
+Captured in `claudedocs/provisional-guards.md` as: *Deferred work needs durable artifacts (backlog item or reference doc), not just commit messages.* Scope: any explicit deferral within a release. Acceptable durable artifacts: a `.backlog/[item].md` file with explicit `trigger:` field, or a dedicated section in a reference doc. Review: 2026-07-30.
 
 ## INC-2026-05-01-C — Closure-floor brief Component 1 prose vs verification grep mismatch
 
@@ -117,7 +117,7 @@ No retroactive fix to the brief was needed because the executor's call resolved 
 
 ### Lesson formalized as Provisional Guard
 
-Captured in CLAUDE.md's `## Provisional Guards` as: *Brief verification commands and prose specs in the same brief must agree.* Scope: executor briefs with verification commands that reference structures described in prose deliverables. Review: 2026-07-30.
+Captured in `claudedocs/provisional-guards.md` as: *Brief verification commands and prose specs in the same brief must agree.* Scope: executor briefs with verification commands that reference structures described in prose deliverables. Review: 2026-07-30.
 
 ## INC-2026-05-01-D — Closure-floor Component 5 used binary outcome framing
 
@@ -143,7 +143,7 @@ The three-outcomes pattern came from the dispatch-vs-instruct split formalized i
 
 ### Lesson formalized as Provisional Guard
 
-Captured in CLAUDE.md's `## Provisional Guards` as: *Briefs with user-keyboard verification must enumerate three outcomes.* Scope: executor briefs whose verification depends on multi-process orchestration the agent cannot drive. The three outcomes: (a) all gates pass → ship; (b) any gate fails → defer with documented failure mode; (c) test couldn't run within executor scope → defer with explicit scope-limit documentation. Review: 2026-07-30.
+Captured in `claudedocs/provisional-guards.md` as: *Briefs with user-keyboard verification must enumerate three outcomes.* Scope: executor briefs whose verification depends on multi-process orchestration the agent cannot drive. The three outcomes: (a) all gates pass → ship; (b) any gate fails → defer with documented failure mode; (c) test couldn't run within executor scope → defer with explicit scope-limit documentation. Review: 2026-07-30.
 
 ## INC-2026-05-03-A — Cross-file template token mismatch (`[STATUS_EMOJI]` vs `[STATE_EMOJI]`)
 
@@ -167,7 +167,7 @@ The mismatch was caught and fixed pre-commit during the closure-floor work. Both
 
 ### Lesson formalized as Provisional Guard
 
-Captured in CLAUDE.md's `## Provisional Guards` as: *Cross-file template token names must agree across all files in the same authored set.* Scope: multi-file authoring sessions where 2+ files share a templated token vocabulary (typically a template + renderer command + reference specification). Review: 2026-08-01.
+Captured in `claudedocs/provisional-guards.md` as: *Cross-file template token names must agree across all files in the same authored set.* Scope: multi-file authoring sessions where 2+ files share a templated token vocabulary (typically a template + renderer command + reference specification). Review: 2026-08-01.
 
 ## INC-2026-05-03-B — Routing matrix mtime+1h staleness check + permanent rebuild loop
 
@@ -205,7 +205,7 @@ v5.16.0 (commit `de4ed7a`, 2026-05-03) shipped the corrected design after five C
 
 ### Lesson formalized as Provisional Guard
 
-Captured in CLAUDE.md's `## Provisional Guards` as: *Routing matrix freshness is content-based (inventory hash), not time-based.* Scope: SKILL.md frontmatter UserPromptSubmit hook Group 7; `references/floor.md` § Group 7; Agent D protocol in `references/startup-checklist.md` and `references/skill-routing-matrix.md`. Review: 2026-08-01.
+Captured in `claudedocs/provisional-guards.md` as: *Routing matrix freshness is content-based (inventory hash), not time-based.* Scope: SKILL.md frontmatter UserPromptSubmit hook Group 7; `references/floor.md` § Group 7; Agent D protocol in `references/startup-checklist.md` and `references/skill-routing-matrix.md`. Review: 2026-08-01.
 
 ## INC-2026-05-06 — SP endorsed SP-flavored framing in user CLAUDE.md as a strength
 
@@ -242,7 +242,7 @@ Additionally, a local auto-memory entry `feedback_no_sp_framing_in_user_files` w
 The detection lives in three layers, in order of strength:
 
 1. **Mechanical (scanner rule S9)** — runs as part of `/strategic-partner:context-file-scan` against any user project file. Cannot be skipped by sycophantic drift; produces a structured finding with a copy-paste suggestion.
-2. **Codified (Provisional Guard)** — present in SP's `CLAUDE.md` § Provisional Guards. Loaded into SP's context every session.
+2. **Codified (Provisional Guard)** — present in `claudedocs/provisional-guards.md`, with a short pointer stub in `CLAUDE.md` § Provisional Guards.
 3. **Anchored (local feedback memory, SP author's machine only)** — surfaced through SP's memory recall at session start, alongside other voice and process feedback. Local to the author's Claude Code installation; not part of the public release.
 
 The mechanical layer is the load-bearing one. Layers 2 and 3 anchor SP's reasoning when the scanner has not been run; layer 1 catches the pattern deterministically when it has.
@@ -253,4 +253,4 @@ A separate forensic report at `/Users/OldJimmy/Developer/Claude-CoWork/Padel-Rel
 
 ### Lesson formalized as Provisional Guard
 
-Captured in CLAUDE.md's `## Provisional Guards` as: *User project files don't get SP-flavored framing.* Scope: SP advisory turns evaluating, rating, drafting, or auditing a user's `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`, plus the scanner rule S9 in `.scripts/context-file-scan/rules/structural.sh`. Review: 2026-08-06.
+Captured in `claudedocs/provisional-guards.md` as: *User project files don't get SP-flavored framing.* Scope: SP advisory turns evaluating, rating, drafting, or auditing a user's `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`, plus the scanner rule S9 in `.scripts/context-file-scan/rules/structural.sh`. Review: 2026-08-06.

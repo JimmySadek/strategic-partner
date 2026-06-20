@@ -1,12 +1,13 @@
 ---
-paths: ["SKILL.md", "hooks/**", "references/**", "commands/**", "tests/**"]
+paths: ["SKILL.md", "hooks/**", "references/**", "commands/**", "tests/**", "claudedocs/**"]
 ---
 
 # Source-Editing Behavioral Guardrails
 
 These rules apply whenever Claude is editing Strategic Partner source — `SKILL.md`,
-hooks, reference docs, commands, or tests. They load through path-scoping: absent
-when SP is in advisory mode, present when source content is actually changing.
+hooks, reference docs, commands, tests, or `claudedocs/` maintainership docs. They
+load through path-scoping: absent when SP is in advisory mode, present when source
+content is actually changing.
 
 Five principles, each with a one-sentence statement, the anti-pattern that
 typically appears without the rule, the corrected approach, and a worked
