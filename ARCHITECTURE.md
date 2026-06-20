@@ -205,7 +205,7 @@ Violations carry forward to the next turn as a one-line note; the advisor self-c
 
 Feedback captured during sessions is automatically logged to a session findings file. At natural session boundaries, the advisor offers to promote findings to a persistent backlog (`.backlog/[item].md` files with an explicit `trigger:` field). Items surface at startup when their triggers are met.
 
-The backlog is the durable artifact for deferred work — commit messages and CHANGELOG entries are not sufficient on their own (per CLAUDE.md Provisional Guard "Deferred work needs durable artifacts").
+The backlog is the durable artifact for deferred work — commit messages and CHANGELOG entries are not sufficient on their own (per the Provisional Guard "Deferred work needs durable artifacts" in `claudedocs/provisional-guards.md`).
 
 ---
 
@@ -293,13 +293,13 @@ Two further lints run under Step 2a when the release touches hooks:
 - **`tests/lint-transcripts.sh`** — scans recent `.handoffs/` and JSONL transcripts for four behavioral rule violations (structured-question-must-be-structured-question, tool-availability claims without actual call, execution-prompt-without-handoff-file, identity-reset announcement after dispatch). Layer 3 backstop.
 - **`tests/lint-frontmatter-hook.sh`** — fails closed if a literal triple-dash appears inside the SKILL.md YAML frontmatter outside its two delimiter lines (which would truncate the inline session hook).
 
-All five are mandatory per CLAUDE.md § Steps 2a, 2c, 2d, and 2e.
+All five are mandatory per `claudedocs/release-process.md` § Steps 2a, 2c, 2d, and 2e.
 
 ---
 
 ## Release process
 
-The release process is documented in `CLAUDE.md` § "Release Process (Mandatory Before Push)". Highlights:
+The release process is documented in `claudedocs/release-process.md` (with a pointer stub in `CLAUDE.md` § "Release Process (Mandatory Before Push)"). Highlights:
 
 - Three-file version bump (`SKILL.md` / `README.md` / `CHANGELOG.md`)
 - Hook verification (if release touches hooks)
@@ -312,4 +312,4 @@ The release process is documented in `CLAUDE.md` § "Release Process (Mandatory 
 
 ## Provisional Guards
 
-Bug-driven rules with named incidents, expiration dates, and review cadence. Each guard names the pattern, the past incident that motivated it, and a review date. Lives in `CLAUDE.md` § "Provisional Guards". Incident archaeology in `claudedocs/INCIDENTS.md`.
+Bug-driven rules with named incidents, expiration dates, and review cadence. Each guard names the pattern, the past incident that motivated it, and a review date. Lives in `claudedocs/provisional-guards.md` (with a pointer stub in `CLAUDE.md` § "Provisional Guards"). Incident archaeology in `claudedocs/INCIDENTS.md`.
