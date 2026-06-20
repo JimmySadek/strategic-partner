@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/JimmySadek/strategic-partner/schemas/scanner-findings.json",
   "title": "Scanner Finding",
-  "description": "Single scanner finding object emitted by .scripts/context-file-scan/scan.sh. Locked per scanner-design-spec.md § 2.2 + § 2.3. Documentation-only contract per locked Decision 2 — no runtime validator; fixture tests verify conformance.",
+  "description": "Single scanner finding object emitted by .scripts/context-file-scan/scan.sh. The runtime policy is references/context-file-stewardship.md; fixture tests verify this schema.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,8 +21,8 @@
   "properties": {
     "rule_id": {
       "type": "string",
-      "pattern": "^(S[1-9]|B[1-8])$",
-      "description": "Rule identifier — S1-S9 (structural) or B1-B8 (behavioral) per spec §§ 3-4."
+      "pattern": "^(S[1-9]|S10|B[1-8])$",
+      "description": "Rule identifier — S1-S10 (structural) or B1-B8 (behavioral) per the scanner contract."
     },
     "rule_class": {
       "type": "string",
@@ -32,17 +32,17 @@
     "severity": {
       "type": "string",
       "enum": ["info", "warn", "surface-loudly"],
-      "description": "Severity band per spec § 1.4 / § 3 / § 4. Release-gate (--release-gate) blocks on warn or surface-loudly unless covered by exception."
+      "description": "Severity band per the scanner contract. Release-gate (--release-gate) blocks on warn or surface-loudly unless covered by exception."
     },
     "title": {
       "type": "string",
       "minLength": 1,
-      "description": "Locked finding title from policy C6 (e.g., 'Size breach', 'Layer violation'). The voice lint allowlists this field for otherwise-banned words like 'violation' that appear in canonical template labels."
+      "description": "Finding title emitted by the scanner, e.g. 'Size breach' or 'Layer violation'. The voice lint allowlists this field for canonical scanner labels."
     },
     "source_file": {
       "type": "string",
       "minLength": 1,
-      "description": "Relative path (from project root) to the file the finding was detected in. Critical for multi-file scans (Decision 6) — a primary CLAUDE.md and discovered companion (e.g., .claude/rules/source-editing.md) may each own findings."
+      "description": "Relative path (from project root) to the file the finding was detected in. Critical for multi-file scans — a primary CLAUDE.md and discovered companion (e.g., .claude/rules/source-editing.md) may each own findings."
     },
     "section_anchor": {
       "type": "string",
@@ -52,16 +52,16 @@
     "fingerprint": {
       "type": "string",
       "pattern": "^[0-9a-f]{16}$",
-      "description": "Deterministic 16-hex-char fingerprint = sha256(rule_id|source_file|section_anchor|normalized_subject)[:16] per spec § 1.4. Used as exception coverage match key."
+      "description": "Deterministic 16-hex-char fingerprint = sha256(rule_id|source_file|section_anchor|normalized_subject)[:16]. Used as exception coverage match key."
     },
     "template_substitutions": {
       "type": "object",
-      "description": "Per-rule substitution values for the locked output template. Keys vary by rule; the agent fills these into the policy C6 template at render time. additionalProperties allowed because rule-specific substitution sets evolve."
+      "description": "Per-rule substitution values. Keys vary by rule; additionalProperties is allowed because rule-specific substitution sets evolve."
     },
     "normalized_subject": {
       "type": "string",
       "minLength": 1,
-      "description": "The specific thing flagged, normalized per spec § 1.4 'Normalized subject per rule' canonical mapping table. Feeds the fingerprint computation. Examples: 'size-18432' (S1), '<broken-path>' (S3), '<rule-name>' (B5)."
+      "description": "The specific thing flagged, normalized by rule. Feeds the fingerprint computation. Examples: 'size-18432' (S1), '<broken-path>' (S3), '<rule-name>' (B5)."
     },
     "suggested_action": {
       "type": "object",
@@ -95,7 +95,7 @@
     "exception_label": {
       "type": "string",
       "minLength": 1,
-      "description": "Locked exception-option text from policy C6 (e.g., '[Acknowledge — file is intentionally this size]'). Rendered verbatim by the agent in the AskUserQuestion options."
+      "description": "Rule-specific exception option text, rendered by the agent in AskUserQuestion options."
     }
   }
 }

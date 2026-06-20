@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # .scripts/context-file-scan/lib/exceptions.sh
-# Release-gate coverage logic per scanner-design-spec.md § 1.4 + § 7.5.
+# Release-gate coverage logic for scanner exceptions.
 # Sourceable.
 #
 # Exit codes (per spec § 1.1):

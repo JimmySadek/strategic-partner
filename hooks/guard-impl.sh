@@ -35,6 +35,27 @@ if [ -z "$TOOL_NAME" ]; then
   exit 0
 fi
 
+# Context-file stewardship guard. This is intentionally factored out of the
+# broad source-editing guard so CLAUDE.md / AGENTS.md / GEMINI.md and
+# .claude/rules writes are checked by content, not merely by path.
+CONTEXT_GUARD="$(cd "$(dirname "$0")" && pwd)/context-file-guard.sh"
+if [ -r "$CONTEXT_GUARD" ]; then
+  guard_out=$(printf '%s' "$INPUT" | bash "$CONTEXT_GUARD" 2>&1)
+  guard_code=$?
+  if [ "$guard_code" -ne 0 ]; then
+    debug_log "decision=BLOCK context_guard output=$guard_out"
+    printf '%s\n' "$guard_out" >&2
+    exit "$guard_code"
+  fi
+else
+  if printf '%s' "$INPUT" | grep -qE '"(file_path|relative_path)"[[:space:]]*:[[:space:]]*"[^"]*((CLAUDE|AGENTS|GEMINI)\.md|\.claude/rules/[^"]+\.md)' ||
+     printf '%s' "$INPUT" | grep -qE '"command"[[:space:]]*:[[:space:]]*"[^"]*((CLAUDE|AGENTS|GEMINI)\.md|\.claude/rules/[^"]+\.md)'; then
+    debug_log "decision=BLOCK reason='context guard missing for context-file mutation'"
+    echo "BLOCKED: context-file write guard is unavailable; refusing context-file mutation." >&2
+    exit 2
+  fi
+fi
+
 # --- Guard 1: Block Edit/Write/MultiEdit on disallowed paths ---
 if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "MultiEdit" ] || [ "$TOOL_NAME" = "NotebookEdit" ]; then
   # Tolerate arbitrary whitespace around the colon, e.g. '"file_path" : "..."'.
@@ -60,6 +81,8 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
     .scripts/*|.scripts|*/.scripts/*|*/.scripts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     .backlog/*|.backlog|*/.backlog/*|*/.backlog)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     CLAUDE.md|*/CLAUDE.md)                            debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    AGENTS.md|*/AGENTS.md)                            debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
+    GEMINI.md|*/GEMINI.md)                            debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     CHANGELOG.md|*/CHANGELOG.md)                      debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     README.md|*/README.md)                            debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     SKILL.md|*/SKILL.md)                              debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
@@ -82,7 +105,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
 
   if echo "$COMMAND" | grep -qE '(sed\s+-i|>\s|>>|tee\s|perl\s+-i|git\s+apply|git\s+cherry-pick)'; then
     ALLOWED=false
-    for pattern in ".prompts" ".handoffs" ".scripts" ".backlog" "CLAUDE.md" "CHANGELOG.md" "README.md" "SKILL.md" ".claude/" ".gitignore"; do
+    for pattern in ".prompts" ".handoffs" ".scripts" ".backlog" "CLAUDE.md" "AGENTS.md" "GEMINI.md" "CHANGELOG.md" "README.md" "SKILL.md" ".claude/" ".gitignore"; do
       if echo "$COMMAND" | grep -q "$pattern"; then
         ALLOWED=true
         break
@@ -105,6 +128,11 @@ if echo "$TOOL_NAME" | grep -q "^mcp__plugin_serena_serena__"; then
       # Tolerate arbitrary whitespace around the colon, e.g. '"relative_path" : "..."'.
       REL_PATH=$(echo "$INPUT" | grep -Eo '"relative_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
       case "$REL_PATH" in
+        CLAUDE.md|AGENTS.md|GEMINI.md|.claude/rules/*.md)
+          debug_log "decision=BLOCK tool=$TOOL_NAME path=$REL_PATH reason='context file via Serena'"
+          echo "BLOCKED: Context-file mutations must use Edit/Write so the stewardship guard can preflight the full proposed file. (Tool: $TOOL_NAME, Path: $REL_PATH)" >&2
+          exit 2
+          ;;
         .prompts/*|.handoffs/*|.scripts/*|.backlog/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore)
           debug_log "decision=allow tool=$TOOL_NAME path=$REL_PATH"
           exit 0

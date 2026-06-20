@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # .scripts/context-file-scan/lib/output.sh
-# JSON formatting for scanner findings + size-band determination per
-# scanner-design-spec.md § 2.2 + § 3. Sourceable.
+# JSON formatting for scanner findings + size-band determination. Runtime
+# policy lives in references/context-file-stewardship.md. Sourceable.
 #
 # Each emitted finding conforms to schemas/scanner-findings.json (11
 # required fields). Fingerprint is computed via lib/utils.sh's
@@ -25,6 +25,27 @@ scanner_size_band() {
     echo warn
   else
     echo surface-loudly
+  fi
+}
+
+# scanner_file_size_band CHAR_COUNT LINE_COUNT
+#   Claude Code recommends keeping CLAUDE.md concise, with a target under
+#   200 lines. Keep the older char bands for continuity, but let line count
+#   escalate the band when a file is long even if it has not crossed a byte
+#   threshold.
+scanner_file_size_band() {
+  local n="$1"
+  local lines="$2"
+  n=${n:-0}
+  lines=${lines:-0}
+  if [ "$n" -ge 36864 ] || [ "$lines" -gt 350 ]; then
+    echo surface-loudly
+  elif [ "$n" -ge 24576 ] || [ "$lines" -gt 200 ]; then
+    echo warn
+  elif [ "$n" -ge 16384 ] || [ "$lines" -ge 150 ]; then
+    echo soft-warn
+  else
+    echo under-soft
   fi
 }
 
@@ -85,8 +106,7 @@ scanner_emit_finding() {
 
   # Codex finding #8: every Apply-suggestion action needs a copy-paste-
   # ready preview_command (diff or snippet). When the rule didn't pass
-  # an explicit preview, fill in the default per spec § 1.4 mini-decision
-  # 13 and the policy C6 templates.
+  # an explicit preview, fill in the default scanner preview.
   if [ "$(echo "$suggested_action_json" | jq -r '.preview_command // "null"')" = "null" ]; then
     local default_preview
     default_preview=$(_scanner_default_preview_for_rule \

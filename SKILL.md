@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 7.1.1
+version: 7.2.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -21,61 +21,23 @@ hooks:
         - type: command
           command: |
             INPUT=$(cat)
-            TOOL=$(echo "$INPUT" | grep -Eo '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
-            [ -z "$TOOL" ] && exit 0
-            # Guard 1: Edit/Write/MultiEdit/NotebookEdit — block disallowed paths
-            if [ "$TOOL" = "Edit" ] || [ "$TOOL" = "Write" ] || [ "$TOOL" = "MultiEdit" ] || [ "$TOOL" = "NotebookEdit" ]; then
-              FP=$(echo "$INPUT" | grep -Eo '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
-              if [ -z "$FP" ]; then
-                echo "BLOCKED: Strategic Partner could not read the file path for a source-editing tool — blocking to be safe. Craft a prompt instead." >&2
-                exit 2
-              fi
-              case "$FP" in
-                [A-Za-z]:\\*|\\\\*)  FP_NORM=$(echo "$FP" | tr '\\' '/') ;;
-                *)                   FP_NORM="$FP" ;;
-              esac
-              case "$FP_NORM" in
-                .prompts/*|.prompts|*/.prompts/*|*/.prompts) exit 0 ;;
-                .handoffs/*|.handoffs|*/.handoffs/*|*/.handoffs) exit 0 ;;
-                .scripts/*|.scripts|*/.scripts/*|*/.scripts) exit 0 ;;
-                .backlog/*|.backlog|*/.backlog/*|*/.backlog) exit 0 ;;
-                CLAUDE.md|*/CLAUDE.md) exit 0 ;;
-                CHANGELOG.md|*/CHANGELOG.md) exit 0 ;;
-                README.md|*/README.md) exit 0 ;;
-                SKILL.md|*/SKILL.md) exit 0 ;;
-                .claude/*|*/.claude/*) exit 0 ;;
-                .gitignore|*/.gitignore) exit 0 ;;
-              esac
-              echo "BLOCKED: Strategic Partner does not edit source files. Craft a prompt instead, or dispatch an agent. (Tool: $TOOL, Path: $FP)" >&2
-              exit 2
+            SP_DIR=""
+            SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+            if [ -n "$SP_ANY_CMD" ]; then
+              SP_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
             fi
-            # Guard 2: Bash — block file-mutation patterns
-            if [ "$TOOL" = "Bash" ]; then
-              CMD=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4)
-              [ -z "$CMD" ] && CMD=$(echo "$INPUT" | grep -o '"command": "[^"]*"' | head -1 | cut -d'"' -f4)
-              if echo "$CMD" | grep -qE '(sed\s+-i|>\s|>>|tee\s|perl\s+-i|git\s+apply|git\s+cherry-pick)'; then
-                ALLOWED=false
-                for p in ".prompts" ".handoffs" ".scripts" ".backlog" "CLAUDE.md" "CHANGELOG.md" "README.md" "SKILL.md" ".claude/" ".gitignore"; do
-                  echo "$CMD" | grep -q "$p" && ALLOWED=true && break
-                done
-                if [ "$ALLOWED" = false ]; then
-                  echo "BLOCKED: Strategic Partner does not mutate source files via shell. Craft a prompt instead. (Command pattern detected)" >&2
-                  exit 2
+            if [ -z "$SP_DIR" ] || [ ! -r "$SP_DIR/hooks/guard-impl.sh" ]; then
+              for D in "${HOME}/.claude/skills/strategic-partner" "$(pwd)/.claude/skills/strategic-partner" "$(pwd)"; do
+                if [ -r "$D/hooks/guard-impl.sh" ]; then
+                  SP_DIR="$D"
+                  break
                 fi
-              fi
+              done
             fi
-            # Guard 3: Serena write tools — block source file modifications
-            if echo "$TOOL" | grep -q "^mcp__plugin_serena_serena__"; then
-              case "$TOOL" in
-                *replace_content|*replace_symbol_body|*insert_after_symbol|*insert_before_symbol|*create_text_file|*rename_symbol|*execute_shell_command)
-                  RP=$(echo "$INPUT" | grep -Eo '"relative_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
-                  case "$RP" in
-                    .prompts/*|.handoffs/*|.scripts/*|.backlog/*|CLAUDE.md|CHANGELOG.md|README.md|SKILL.md|.claude/*|.gitignore) exit 0 ;;
-                  esac
-                  echo "BLOCKED: Strategic Partner does not modify source code via Serena. Craft a prompt instead. (Tool: $TOOL, Path: $RP)" >&2
-                  exit 2
-                  ;;
-              esac
+            G="$SP_DIR/hooks/guard-impl.sh"
+            if [ -r "$G" ]; then
+              printf '%s' "$INPUT" | bash "$G"
+              exit $?
             fi
             exit 0
           timeout: 2000
@@ -190,6 +152,7 @@ hooks:
             has_tool_use=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"type\"\\s*:\\s*\"tool_use\"") then "true" else "false" end' 2>/dev/null)
             has_lastprompts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\\.handoffs/last-prompts/[0-9]+\\.md") then "true" else "false" end' 2>/dev/null)
             has_scripts_write=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("\"file_path\"\\s*:\\s*\"[^\"]*\\.scripts/") then "true" else "false" end' 2>/dev/null)
+            has_context_preflight=$(printf '%s' "$last_turn" | jq -r 'tostring | if test("proposal-preflight|context-file preflight|preflight receipt|\"receipt\"\\s*:"; "i") then "true" else "false" end' 2>/dev/null)
 
             had_dispatch=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "user")] | last | if . == null then "false" elif (tostring | test("\"name\"\\s*:\\s*\"(Agent|Task)\""; "i")) then "true" else "false" end' 2>/dev/null)
 
@@ -210,6 +173,16 @@ hooks:
             tool_claim=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/`[^`]*`//g; $t =~ s/\*"[^"]*"\*//g; $t =~ s/"[^"]*"//g; $t =~ s/^>.*$//mg; if ($t =~ /\b(I can run |I can call |I have access to |I cannot access |I don.t have access|I.m able to run |I am able to run )/i) { print $1; }' 2>/dev/null | head -c 60)
             if [ -n "$tool_claim" ] && [ "$has_tool_use" != "true" ]; then
               log_violation "tool-availability-claim: first-person claim without tool_use: ${tool_claim}"
+            fi
+
+            # Rule 10: context-file proposal preflight. If SP proposes exact
+            # text for an always-loaded context file, the same turn must show a
+            # proposal-preflight verdict or receipt. Actual writes are blocked
+            # separately by hooks/context-file-guard.sh; this catches proposal
+            # text before a write tool is used.
+            context_proposal=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```/ CODEFENCE /g; if ($t =~ /\b(CLAUDE\.md|AGENTS\.md|GEMINI\.md|\.claude\/rules\/[^\s`]+\.md)\b/i && $t =~ /\b(proposed text|add this|add the following|append|write this|update .*context|context-file text)\b/i) { print "yes"; }' 2>/dev/null)
+            if [ "$context_proposal" = "yes" ] && [ "$has_context_preflight" != "true" ]; then
+              log_violation "context-file-preflight: proposed exact context-file text without a proposal-preflight verdict/receipt"
             fi
 
             # Rule 4: Fence-write coupling — fence emitted without same-turn last-prompts write
@@ -1741,7 +1714,9 @@ When the user reports back from a separate implementation session:
 3. **Check uncommitted work**: `git status --short`.
 4. **Review**: Ask about issues, unexpected behavior, deviations
 5. **Assess**: Is the task complete? Follow-up fixes needed?
-6. **Extract**: Any lessons learned for CLAUDE.md or Serena memory?
+6. **Extract**: Run the Instruction Placement Gate. Default lessons learned to
+   Serena memory or `.handoffs/`; propose `CLAUDE.md` only for concise,
+   project-wide instructions a future session must load immediately.
 7. **Pattern check**: Paranoid Scanning (Grove) — "What's the thing we're not seeing?"
    Chesterton's Fence — if anything was removed, was the removal justified?
 
@@ -1766,7 +1741,9 @@ When a task was dispatched via agent (Fast Lane), the review cycle is immediate:
 1. **Verify**: `git log --oneline -3` — did the agent commit?
 2. **Review**: `git diff HEAD~1` — does the change match the spec?
 3. **Assess**: Is the deliverable complete? Any issues?
-4. **Extract**: Lessons learned for CLAUDE.md or Serena memory?
+4. **Extract**: Run the Instruction Placement Gate. Default lessons learned to
+   Serena memory or `.handoffs/`; propose `CLAUDE.md` only for concise,
+   project-wide instructions a future session must load immediately.
 5. **Report**: Brief summary of what was done + any findings
 
 **These Bash calls are mandatory — do not infer from commit message or agent
@@ -1979,8 +1956,8 @@ operation-level distinction below.
 
 **🟢 Hygiene (just do it — mention briefly in handoff body):**
 - Committing already-staged content with conventional commit messages (chore, docs, fix)
-  where the staged content is non-source-code (CLAUDE.md, CHANGELOG.md, .handoffs/,
-  .backlog/, README.md updates)
+  where the staged content is non-source-code and not `CLAUDE.md` (`CHANGELOG.md`,
+  `.handoffs/`, `.backlog/`, README.md updates)
 - Updating EXISTING Serena memories where the structure is established (decision_log
   append, codebase_structure update, code_style_and_conventions update, known_gotchas append)
 - Filing `.backlog/[slug].md` for items already ratified in session conversation as "park this"
@@ -1991,7 +1968,8 @@ operation-level distinction below.
 **🟡 Decisions (ask first via `AskUserQuestion`):**
 - Creating a NEW Serena memory of a type not yet present (e.g. first-time `process_decisions`
   or `audit/X` memory)
-- Proposing CLAUDE.md edits (rule additions, restructures)
+- Proposing or committing `CLAUDE.md` edits. Show exact text, placement-gate rationale,
+  and scanner/preflight result first.
 - Decision-point commits where the diff includes source code or ambiguous-scope content
 - Promoting findings to backlog when scope or priority is unclear
 - Handoff creation itself (mode of close, what continues next)
@@ -2211,26 +2189,31 @@ with an `AskUserQuestion` call — never a prose question. Contextual options:
 
 ## 📋 Continuity Stewardship
 
-### v6.0 Context-File Policy
+### Context-File Stewardship
 
-The Strategic Partner ships a unified policy for `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` files, enforced by the `/strategic-partner:context-file-scan` command (17 rules — 9 structural + 8 behavioral).
+The Strategic Partner protects `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` and
+`.claude/rules/*.md` through a compact stewardship contract, a read-only
+scanner, proposal preflight, and a hard PreToolUse write guard.
+<load_reference file="context-file-stewardship.md">
+Canonical placement rules, bloat policy, and runtime guard behavior.
+</load_reference>
 
 **Hybrid Pattern** — the recommended file shape:
 
-- A short stub in `CLAUDE.md` (under ~16K chars, the under-soft band) with `🎯 Project Facts`, `📍 Where to Look`, `🧠 Behavioral Guardrails`, `⚙️ Release Process`
+- A short stub in `CLAUDE.md` (target under 200 lines; ideally under the scanner's soft-warn band) with `🎯 Project Facts`, `📍 Where to Look`, `🧠 Behavioral Guardrails`, `⚙️ Release Process`
 - Full content lives in path-scoped `.claude/rules/*.md` files that load only when relevant
 - The stub points at the rules file via Markdown link
 
-**Canonical example**: SP's own `CLAUDE.md` follows this pattern. Read it as a reference shape.
+**Canonical example warning**: SP's own `CLAUDE.md` has drifted above the preferred size and should be treated as a refactor target, not as permission to append more detail.
 
-**Size bands** (mirrored in the floor sentinel's `g2.claude_md` band field):
+**Size bands** (mirrored in the floor sentinel's `g2.claude_md` band field). Line count escalates the band even when char count has not crossed the old threshold:
 
-| chars | band | orientation surface |
+| threshold | band | orientation surface |
 |---|---|---|
-| < 16,384 | under-soft | (silent) |
-| 16,384–24,575 | soft-warn | 💡 informational |
-| 24,576–36,863 | warn | ⚠️ caution |
-| ≥ 36,864 | surface-loudly | 🚨 + suggest scanner |
+| <150 lines and <16,384 chars | under-soft | (silent) |
+| 150–200 lines or 16,384–24,575 chars | soft-warn | 💡 informational |
+| >200 lines or 24,576–36,863 chars | warn | ⚠️ caution |
+| >350 lines or ≥36,864 chars | surface-loudly | 🚨 + suggest scanner |
 
 When orientation surfaces a band ≥ soft-warn, the action `[Run /strategic-partner:context-file-scan]` is always available. The scanner reports — the user decides.
 
@@ -2242,7 +2225,7 @@ Own all 4 persistence layers — ensuring functional, properly utilized, not blo
 
 | Layer | Purpose | SP Role |
 |---|---|---|
-| **CLAUDE.md** | Rules constraining all sessions | Propose edits, commit immediately |
+| **CLAUDE.md** | Concise project-wide instructions needed in every session | Protect; propose exact edits only after placement gate + preflight |
 | **.claude/rules/** | Path-specific rules (on-demand) | Recommend when path-scoped |
 | **Auto-memory** | User prefs, corrections (native) | Verify enabled, don't interfere |
 | **Serena** | Project knowledge, decisions | Full management |
@@ -2251,7 +2234,7 @@ Own all 4 persistence layers — ensuring functional, properly utilized, not blo
 
 | Information Type | Layer | Why |
 |---|---|---|
-| Process rule, guardrail, convention | CLAUDE.md | Constrains every session |
+| Concise project-wide instruction | CLAUDE.md | Needed in every session |
 | Rule for specific file paths | .claude/rules/ | Loads only when relevant |
 | User preference or correction | Auto-memory | Claude handles natively |
 | Codebase structure, architecture | Serena (codebase_structure) | Cross-session knowledge |
@@ -2260,13 +2243,43 @@ Own all 4 persistence layers — ensuring functional, properly utilized, not blo
 | Known gotcha or failure | Serena (known_gotchas) | Cross-session warning |
 | External resource pointer | Auto-memory (reference) | Personal, machine-local |
 | Backlog/deferred feature request | `.backlog/` files (+ Serena index) | Persistent, file-based, cross-session |
+| Session journey, implementation report, commit trail | `.handoffs/` | Useful for continuation, harmful in always-loaded instructions |
 | Ephemeral task context | Don't persist | Conversation-only |
 
 #### CLAUDE.md Protocol
 
-Monitor proactively. When a new convention, lesson learned, or architectural decision
-emerges, propose via `AskUserQuestion` with exact text and rationale. On confirmation,
-edit and commit immediately. If >200 lines, propose splitting to `.claude/rules/`.
+Monitor proactively, but protect the file from session dumping. `CLAUDE.md` is for
+short project-wide instructions a future Claude Code session must load immediately.
+
+Never add session narratives, ticket histories, page-by-page journeys, commit hashes,
+browser-verification trails, local/unpushed status, file lists, or implementation
+summaries to `CLAUDE.md`. Those go to `.handoffs/`, Serena memory, `.backlog/`, or
+reference docs.
+
+Before proposing any `CLAUDE.md` text, run the Instruction Placement Gate and the
+context-file proposal preflight:
+`bash .scripts/context-file-scan/proposal-preflight.sh --target CLAUDE.md --snippet <file-or-> --mode append`.
+Then ask via `AskUserQuestion` with exact text, rationale, destination, size impact,
+and preflight receipt. On confirmation, edit and commit as a decision-tier action;
+never treat `CLAUDE.md` writes or commits as hygiene.
+
+#### Instruction Placement Gate
+
+Classify the candidate before writing or proposing it:
+
+| Candidate information | Destination |
+|---|---|
+| Concise rule needed in every session | `CLAUDE.md` |
+| Path-scoped rule | `.claude/rules/*.md` |
+| Enforceable behavior | Hook/settings/script, with `CLAUDE.md` pointer only if needed |
+| Decision, rationale, convention, gotcha | Serena memory or `.strategic-partner/` fallback |
+| Session journey, implementation result, commit list | `.handoffs/` |
+| Deferred work | `.backlog/` |
+| Runnable procedure | `.scripts/` or reference doc |
+
+If `CLAUDE.md` is already above 200 lines or in `warn`/`surface-loudly`, valid new
+guidance should usually be a replacement or extraction, not a net append. Append only
+after the user explicitly accepts the size warning.
 
 #### .claude/rules/ Protocol
 
@@ -2356,8 +2369,10 @@ Never block on Serena failures — always have a fallback path.
 
 ### Git Custody
 
-**🟢 Hygiene (automatic):** CLAUDE.md commits, handoff files, config fixes.
-**🟡 Decision (ask first):** Architecture docs, version bumps, roadmap sign-off.
+**🟢 Hygiene (automatic):** handoff files, config fixes, already-approved non-instruction docs.
+**🟡 Decision (ask first):** `CLAUDE.md` edits/commits, architecture docs,
+version bumps, roadmap sign-off. `CLAUDE.md` is always-loaded context and must
+stay small.
 
 Session-start: `git status`, `git branch`, `git log` as parallel Bash calls.
 Flag unexpected state via `AskUserQuestion`.
@@ -2511,7 +2526,7 @@ Specification and `assets/templates/handoff-template.md`):
 | Layer | Verification command | Typical states | AUQ trigger? |
 |---|---|---|---|
 | 🧠 **Serena memories** | `list_memories` + cross-reference against session's substantive decisions | RESOLVED / RESOLVED-AUTO (existing memory updated) / DECISION (new memory of unestablished type needed) / SKIPPED-USER / SKIPPED-AUTO | DECISION only |
-| 📝 **CLAUDE.md** | `git diff CLAUDE.md` + scan session for "let's add a rule" or "remember this for future sessions" signals | RESOLVED / DECISION (rule emerged — user reviews proposed text in plain English) / SKIPPED-USER | DECISION only |
+| 📝 **CLAUDE.md** | `git diff CLAUDE.md` + scan session for "let's add a rule" or "remember this for future sessions" signals + run Instruction Placement Gate and proposal preflight | RESOLVED / DECISION (concise project-wide instruction emerged — user reviews exact text in plain English) / SKIPPED-AUTO (lesson belongs in Serena, `.handoffs/`, `.backlog/`, or `.claude/rules/`) / SKIPPED-USER | DECISION only |
 | 📋 **Session findings** | File existence check + scan session for issues raised but not captured | RESOLVED / RESOLVED-AUTO (items appended — hygiene) / SKIPPED-AUTO (no findings this session, acknowledged) | Never |
 | 📦 **Backlog** | `ls .backlog/` + scan findings for items already ratified in session as "park this" | RESOLVED / RESOLVED-AUTO (already-ratified items filed) / DECISION (promotion scope unclear) / SKIPPED-USER / SKIPPED-AUTO | DECISION only |
 | 📄 **`.prompts/`** | `ls .prompts/` + scan session for unsaved drafts | RESOLVED / RESOLVED-AUTO (user-approved drafts saved) / DECISION (draft needs naming or scoping) / SKIPPED-AUTO | DECISION only |
@@ -2692,7 +2707,7 @@ Delegation rules, model selection, and parallelization templates.
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI |
-| `/strategic-partner:context-file-scan` | Drift scanner for CLAUDE.md / AGENTS.md / GEMINI.md per the v6.0 policy |
+| `/strategic-partner:context-file-scan` | Read-only drift scanner for context files per the stewardship policy |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---

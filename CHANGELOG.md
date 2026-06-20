@@ -1,5 +1,25 @@
 # Changelog
 
+## [7.2.0] - 2026-06-20
+
+### Added
+- **Your always-loaded rules files are now protected from bloat** (context-file
+  stewardship) — The files Claude reads at the start of every session — `CLAUDE.md`,
+  its `AGENTS.md` / `GEMINI.md` equivalents, and path-scoped `.claude/rules/*.md`
+  files — tend to rot over time as session
+  notes, commit logs, and folder-specific rules get pasted in, until the real rules
+  are buried and every session wastes context loading the clutter. The advisor now
+  guards these files: when one is edited, the change is checked first.
+  Content that belongs elsewhere — a session diary, a rule that only applies to
+  certain folders, a "what we shipped" log — is stopped with a plain-English reason
+  and a better place to put it, while genuine project-wide rules pass straight
+  through. The guard covers edits made through Claude's normal tools, plus common
+  shell writes on a best-effort basis, and it fails safe — if it can't confirm an
+  edit is clean, it
+  refuses rather than risk letting bloat through. The drift scanner behind it also
+  gained a check for session-diary dumps and now measures size by line count, not
+  just characters (matching the under-200-lines guidance).
+
 ## [7.1.1] - 2026-06-17
 
 ### Fixed

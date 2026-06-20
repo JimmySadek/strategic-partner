@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.1.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.2.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — **7.1.1** restores a small but visible behavior at session close: the advisor again shows its full closure checklist in chat — the "here's everything I verified before saving your handoff" summary — which had quietly stopped appearing while still being written into the saved handoff. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases — including **7.1.0** (the advisor again offers to run small, reversible changes for you in the same session, naming the specialist agent) and **7.0.x** (a consolidated decision engine plus a self-check that catches the advisor defending its own conclusion).
+> **What's new** — **7.2.0** protects your always-loaded rules files (`CLAUDE.md`, `AGENTS.md` / `GEMINI.md`, and path-scoped `.claude/rules/*.md`) from bloat: when one is edited, session diaries, commit logs, and folder-specific rules are stopped with a plain-English reason and a better home, while genuine project-wide rules pass straight through. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases — including **7.1.x** (the closure checklist shows in chat again; the advisor offers to run small reversible changes for you in the same session) and **7.0.x** (a consolidated decision engine plus a self-check that catches the advisor defending its own conclusion).
 
 ---
 
@@ -181,7 +181,7 @@ The advisor operates through a lean core (SKILL.md) that loads reference materia
 - **Plain-English partnership voice** — replies a non-technical reader can follow: decisions surfaced as structured choices, visual aids where they help, and anti-sycophancy rules that ban both empty agreement and performative pushback. The voice rules live in the skill core itself; the installable style file is a derived mirror kept in lockstep by a release-time check.
 - **Skill and tool picking** — the advisor matches each task to the best of your installed tools and names its pick before anything runs, so a wrong choice gets caught early.
 - **Cross-model adversarial review** — for high-stakes decisions, the advisor can send a curated brief to OpenAI's Codex CLI for an independent second opinion and synthesize the three-way view. Optional — requires Codex CLI installed.
-- **Rules-file drift detection** — `/strategic-partner:context-file-scan` checks your project's rules file (`CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`) against 17 drift patterns, with interactive, report-only, and release-gate modes.
+- **Rules-file drift detection** — `/strategic-partner:context-file-scan` checks your project's rules file (`CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`) for bloat, misplaced detail, SP-flavored framing, and high-confidence session-journey dumps; its proposal preflight catches destructive replacement attempts before writes.
 - **Cross-session memory and handoffs** — decisions, findings, and parked work survive across sessions, and when context fills, a handoff file lets a fresh session pick up exactly where the last one stopped. Backlog review flags work that already shipped and asks before closing it.
 - **Hands-off execution options** — small reversible tasks can be dispatched to a background agent with a desktop notification on completion; and when a bigger task fits a hands-off run, the advisor offers a ready-made `/goal` autonomous-run suggestion in chat — never written into the prompt or any saved file.
 
@@ -209,7 +209,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism de
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI (GPT-5.5) |
-| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (17 patterns) |
+| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (18 patterns) |
 | `/strategic-partner:backlog` | Triage the project backlog (items grouped by lifecycle state, with an action menu) — including a scan that flags backlog work which has already shipped and asks before closing it |
 
 ---
@@ -217,7 +217,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism de
 ## Requirements
 
 - **Claude Code** — the skill runs inside Claude Code sessions
-- **`jq`** (a small command-line JSON processor) — used by the rules-file scanner and the startup/status hooks. Install via `brew install jq` (macOS) or `apt install jq` / `dnf install jq` (Linux). Without `jq`, the rules-file scanner won't run and the startup snapshot is reduced — nothing blocks your session.
+- **`jq`** (a small command-line JSON processor) — used by the rules-file scanner and the startup/status hooks. Install via `brew install jq` (macOS) or `apt install jq` / `dnf install jq` (Linux). Without `jq`, the rules-file scanner won't run, the startup snapshot is reduced, and context-file writes fail closed instead of being allowed blind; ordinary chat is not blocked.
 - **Serena MCP** (recommended) — an MCP server (a tool plugin Claude Code can call) that provides cross-session memory and semantic code navigation
 - **Context7 MCP** (optional) — for library documentation lookup
 - **Codex CLI** (optional) — for cross-model adversarial review

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # .scripts/context-file-scan/lib/file-discovery.sh
-# Depth-1 pointer-following per scanner-design-spec.md Decision 6 +
-# mini-decision 15. Sourceable.
+# Depth-1 pointer-following for companion context files. Runtime policy lives
+# in references/context-file-stewardship.md. Sourceable.
 #
 # Heuristic: from the primary file's Behavioral-Guardrails section (or
 # equivalent — "Behavioral Rules", "Coding Behavior", "Source-Editing

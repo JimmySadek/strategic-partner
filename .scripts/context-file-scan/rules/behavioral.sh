@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # .scripts/context-file-scan/rules/behavioral.sh
-# Behavioral rule detection (B1-B8) per scanner-design-spec.md § 4.
+# Behavioral rule detection (B1-B8) for the context-file scanner.
 # Sourceable. Each rule function emits zero or more findings (one JSON
 # object per line) to stdout.
 #

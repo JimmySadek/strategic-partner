@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # .scripts/context-file-scan/lib/root.sh
-# Project root discovery per scanner-design-spec.md mini-decision 16.
+# Project root discovery for scanner runs.
 # Sourceable — defines functions; no top-level side effects.
 
 # scanner_project_root [START_DIR]

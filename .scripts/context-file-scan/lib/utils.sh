@@ -21,6 +21,17 @@ scanner_wc_chars() {
   wc -c <"$file" | tr -d ' \t\n'
 }
 
+# scanner_wc_lines FILE
+#   Echoes the line count of FILE. Missing/unreadable files report 0.
+scanner_wc_lines() {
+  local file="$1"
+  if [ ! -r "$file" ]; then
+    echo 0
+    return 0
+  fi
+  wc -l <"$file" | tr -d ' \t\n'
+}
+
 # ─────────────────────────────────────────────────────────────────────
 # Lowercasing + slug normalization (bash-3.2 safe)
 # ─────────────────────────────────────────────────────────────────────
@@ -164,6 +175,11 @@ scanner_norm_subject_S7() {
 
 # scanner_norm_subject_S8 IMPORT_PATH
 scanner_norm_subject_S8() {
+  scanner_slug "$1"
+}
+
+# scanner_norm_subject_S10 SIGNAL_SUMMARY
+scanner_norm_subject_S10() {
   scanner_slug "$1"
 }
 

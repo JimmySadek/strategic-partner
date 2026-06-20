@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # .scripts/context-file-scan/rules/structural.sh
-# Structural rule detection (S1-S8) per scanner-design-spec.md § 3.
+# Structural rule detection (S1-S10) for the context-file scanner.
 # Sourceable. Each rule function emits zero or more findings (one JSON
 # object per line) to stdout; no findings means no output. All findings
 # conform to schemas/scanner-findings.json.
@@ -18,9 +18,10 @@
 scanner_rule_S1() {
   local abs_file="$1"
   local source_file="$2"
-  local n band severity
+  local n lines band severity
   n=$(scanner_wc_chars "$abs_file")
-  band=$(scanner_size_band "$n")
+  lines=$(scanner_wc_lines "$abs_file")
+  band=$(scanner_file_size_band "$n" "$lines")
   [ "$band" = "under-soft" ] && return 0
 
   severity=$(scanner_s1_severity_for_band "$band")
@@ -104,10 +105,11 @@ scanner_rule_S1() {
   local subs
   subs=$(jq -nc \
     --argjson n_chars "$n" \
+    --argjson n_lines "$lines" \
     --arg threshold_band "$band" \
     --argjson threshold_value "$threshold_value" \
     --argjson largest_sections "$largest_sections_json" \
-    '{N_chars: $n_chars, threshold_band: $threshold_band, threshold_value: $threshold_value, largest_sections: $largest_sections}')
+    '{N_chars: $n_chars, N_lines: $n_lines, target_lines: 200, threshold_band: $threshold_band, threshold_value: $threshold_value, largest_sections: $largest_sections}')
 
   local action
   action=$(scanner_action_json move_to_layer "claudedocs" true false "")
@@ -973,7 +975,116 @@ scanner_rule_S9() {
 }
 
 # ─────────────────────────────────────────────────────────────────────
-# Convenience entry: run all S1-S9
+# S10 — Session narrative / journey dump
+# ─────────────────────────────────────────────────────────────────────
+
+scanner_rule_S10() {
+  local abs_file="$1"
+  local source_file="$2"
+
+  case "$source_file" in
+    CLAUDE.md|AGENTS.md|GEMINI.md|*/CLAUDE.md|*/AGENTS.md|*/GEMINI.md|.claude/rules/*.md) ;;
+    *) return 0 ;;
+  esac
+
+  local result
+  result=$(LC_ALL=C awk '
+    BEGIN {
+      fence = 0
+      score = 0
+      core_count = 0
+      sample_count = 0
+    }
+    function add_signal(weight, label, text) {
+      score += weight
+      if (sample_count < 5) {
+        sample_count++
+        gsub(/\t/, " ", text)
+        samples[sample_count] = label ": " text
+      }
+    }
+    function add_core_signal(weight, label, text) {
+      core_count++
+      add_signal(weight, label, text)
+    }
+    /^[[:space:]]*```/ { fence = 1 - fence; next }
+    fence == 1 { next }
+    {
+      line = $0
+      lc = tolower(line)
+      file_hits = gsub(/[A-Za-z0-9_-]+\.(tsx|ts|js|jsx|css|md|py|sh)/, "&", line)
+
+      if ($0 ~ /^#{1,3}[[:space:]]*#[0-9]+/ && lc ~ /(page|upload|customer|ticket|task|feature)/) {
+        add_core_signal(2, "ticket-heading", $0)
+      }
+      if ($0 ~ /[Cc]ommit[[:space:]:`'\''"]+[0-9a-f]{6,}/ || ($0 ~ /[0-9a-f]{7,}/ && lc ~ /(commit|files|new files)/)) {
+        add_signal(2, "commit-trail", $0)
+      }
+      if (lc ~ /(shipped|local|unpushed|browser-verified|browser verified)/ && lc ~ /(commit|tenant|deploy|browser|local|unpushed)/) {
+        add_core_signal(2, "shipping-status", $0)
+      }
+      if (lc ~ /(page tag|new files:|files:|not in scope|locked [0-9]{4}|baseline card|click-time|manual chooser|demo launcher)/) {
+        add_core_signal(1, "implementation-detail", $0)
+      }
+      if (file_hits >= 3) {
+        add_signal(1, "file-list", $0)
+      }
+      if (length($0) > 180 && lc ~ /(done|review|ship|commit|files|scope)/) {
+        add_signal(1, "dense-history-line", $0)
+      }
+    }
+    END {
+      printf "%d\t%d\t%d", score, core_count, sample_count
+      for (i = 1; i <= sample_count; i++) printf "\t%s", samples[i]
+      printf "\n"
+    }
+  ' "$abs_file")
+
+  local score core_count sample_count samples_json sample1 sample2 sample3 sample4 sample5
+  score=$(printf '%s' "$result" | awk -F'\t' '{print $1}')
+  core_count=$(printf '%s' "$result" | awk -F'\t' '{print $2}')
+  sample_count=$(printf '%s' "$result" | awk -F'\t' '{print $3}')
+  [ -z "$score" ] && score=0
+  [ -z "$core_count" ] && core_count=0
+  [ "$score" -lt 5 ] && return 0
+  [ "$core_count" -lt 2 ] && return 0
+
+  sample1=$(printf '%s' "$result" | awk -F'\t' '{print $4}')
+  sample2=$(printf '%s' "$result" | awk -F'\t' '{print $5}')
+  sample3=$(printf '%s' "$result" | awk -F'\t' '{print $6}')
+  sample4=$(printf '%s' "$result" | awk -F'\t' '{print $7}')
+  sample5=$(printf '%s' "$result" | awk -F'\t' '{print $8}')
+  samples_json=$(jq -nc \
+    --arg s1 "$sample1" --arg s2 "$sample2" --arg s3 "$sample3" --arg s4 "$sample4" --arg s5 "$sample5" \
+    '[$s1,$s2,$s3,$s4,$s5] | map(select(. != ""))')
+
+  local subs preview action
+  subs=$(jq -nc \
+    --argjson score "$score" \
+    --argjson core_count "$core_count" \
+    --argjson sample_count "$sample_count" \
+    --argjson samples "$samples_json" \
+    '{score: $score, core_count: $core_count, sample_count: $sample_count, samples: $samples}')
+
+  preview=$(printf '%s\n%s\n%s\n%s\n%s\n%s' \
+    "# ${source_file} contains session-journey detail, not durable instructions." \
+    "# Recommended action:" \
+    "#   1. Move the detailed journey/status block to .handoffs/<topic>.md or Serena memory." \
+    "#   2. Keep only a short project-wide rule in ${source_file}, if one actually emerged." \
+    "#   3. Do not keep commit hashes, ticket-by-ticket status, file lists, or browser verification" \
+    "#      trails in a context file Claude Code loads every session.")
+  action=$(scanner_action_json move_to_layer ".handoffs" true false "$preview")
+
+  scanner_emit_finding \
+    "S10" "structural" "warn" "Session narrative dump" \
+    "$source_file" "<root>" \
+    "$(scanner_norm_subject_S10 "session narrative dump")" \
+    "$subs" "$action" \
+    "[Acknowledge — this journey detail is intentionally loaded every session]"
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# Convenience entry: run all S1-S10
 # ─────────────────────────────────────────────────────────────────────
 
 # scanner_run_structural ABS_FILE SOURCE_FILE PROJECT_ROOT LAYER_PROBE_JSON [COMPANION_PATHS] [SKILLS]
@@ -994,4 +1105,5 @@ scanner_run_structural() {
   scanner_rule_S7 "$abs_file" "$source_file" "$skills"
   scanner_rule_S8 "$abs_file" "$source_file" "$project_root"
   scanner_rule_S9 "$abs_file" "$source_file"
+  scanner_rule_S10 "$abs_file" "$source_file"
 }

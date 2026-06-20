@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # .scripts/context-file-scan/scan.sh
-# Orchestrator for /strategic-partner:context-file-scan per
-# scanner-design-spec.md § 2.1.
+# Orchestrator for /strategic-partner:context-file-scan. Runtime policy lives
+# in references/context-file-stewardship.md; local comments describe scanner
+# contract details.
 #
 # Pipeline:
 #   parse args → resolve target → root.sh → file-discovery.sh →
@@ -123,7 +124,8 @@ case "$PRIMARY_ABS" in
 esac
 
 PRIMARY_CHARS=$(scanner_wc_chars "$PRIMARY_ABS")
-PRIMARY_BAND=$(scanner_size_band "$PRIMARY_CHARS")
+PRIMARY_LINES=$(scanner_wc_lines "$PRIMARY_ABS")
+PRIMARY_BAND=$(scanner_file_size_band "$PRIMARY_CHARS" "$PRIMARY_LINES")
 
 # ─────────────────────────────────────────────────────────────────────
 # Empty-file edge case (spec § 7.1, Codex finding #9)
@@ -209,14 +211,16 @@ if [ -n "$COMPANIONS" ]; then
     [ -z "$comp_rel" ] && continue
     comp_abs="$PROJECT_ROOT/$comp_rel"
     comp_chars=$(scanner_wc_chars "$comp_abs")
-    comp_band=$(scanner_size_band "$comp_chars")
+    comp_lines=$(scanner_wc_lines "$comp_abs")
+    comp_band=$(scanner_file_size_band "$comp_chars" "$comp_lines")
     FILES_TSV="${FILES_TSV}
 ${comp_abs}	${comp_rel}"
     COMPANION_FILES_JSON=$(echo "$COMPANION_FILES_JSON" | jq \
       --arg path "$comp_rel" \
       --argjson size "$comp_chars" \
+      --argjson lines "$comp_lines" \
       --arg band "$comp_band" \
-      '. + [{path: $path, size_chars: $size, size_band: $band, discovered_via: "stub-pointer"}]')
+      '. + [{path: $path, size_chars: $size, size_lines: $lines, size_band: $band, discovered_via: "stub-pointer"}]')
   done <<EOF
 $COMPANIONS
 EOF
@@ -295,6 +299,7 @@ OUTPUT_JSON=$(jq -n \
   --arg project_root "$PROJECT_ROOT" \
   --arg primary_path "$PRIMARY_REL" \
   --argjson primary_size "$PRIMARY_CHARS" \
+  --argjson primary_lines "$PRIMARY_LINES" \
   --arg primary_band "$PRIMARY_BAND" \
   --argjson companion_files "$COMPANION_FILES_JSON" \
   --argjson layer_probe "$LAYER_PROBE_JSON" \
@@ -311,6 +316,7 @@ OUTPUT_JSON=$(jq -n \
       primary_file: {
         path: $primary_path,
         size_chars: $primary_size,
+        size_lines: $primary_lines,
         size_band: $primary_band
       },
       companion_files: $companion_files,

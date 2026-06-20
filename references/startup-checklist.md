@@ -109,11 +109,11 @@ Quick checks run inline during startup. No agents needed — these are observati
    If it exists, note in orientation: "{N} path-scoped rule files found."
    If it doesn't exist, don't mention it — it's optional.
 
-4. **CLAUDE.md size**: Read `g2.claude_md` from the floor sentinel output (see `references/floor.md` Group 2). The band field determines orientation rendering:
+4. **CLAUDE.md size**: Read `g2.claude_md` from the floor sentinel output (see `references/floor.md` Group 2). Claude Code's current guidance is to target under 200 lines; the band field combines line count and char count:
    - `under-soft` → silent
-   - `soft-warn` → "💡 CLAUDE.md is {N} chars / {M} lines — growing toward the v6.0 policy threshold."
-   - `warn` → "⚠️ CLAUDE.md is {N} chars approaching the v6.0 size cap. Consider running `/strategic-partner:context-file-scan`."
-   - `surface-loudly` → "🚨 CLAUDE.md is {N} chars — over the v6.0 policy threshold (36,864 chars). Run `/strategic-partner:context-file-scan` for refactoring guidance."
+   - `soft-warn` → "💡 CLAUDE.md is {M} lines / {N} chars — growing toward the preferred under-200-line shape."
+   - `warn` → "⚠️ CLAUDE.md is {M} lines / {N} chars. Consider running `/strategic-partner:context-file-scan` before adding anything."
+   - `surface-loudly` → "🚨 CLAUDE.md is {M} lines / {N} chars — too large for an always-loaded instruction file. Run `/strategic-partner:context-file-scan` for refactoring guidance."
 
 ### Target Model Detection (inline, not an agent)
 
@@ -650,8 +650,8 @@ then proceed normally in degraded mode.
 - 🔍 **Context-file drift scan** (quiet-mode, fresh-session only): Run
   the scanner non-interactively against the SP project's own
   `CLAUDE.md` and surface a one-line summary ONLY for findings that
-  exceed exception coverage. Per scanner-design-spec.md § 6 + Codex
-  finding #13:
+  exceed exception coverage. Per `references/context-file-stewardship.md`,
+  startup only surfaces actionable drift:
 
   **Trigger conditions:**
   - Fresh `/strategic-partner` invocation (NOT continuation —
@@ -718,9 +718,9 @@ then proceed normally in degraded mode.
   - `summary_phrase`:
     - 0 uncovered findings → entire bullet OMITTED (no value in
       saying "nothing to report")
-    - 1+ uncovered, max severity warn → `{N}K chars, {N} drift
-      patterns detected`
-    - 1+ uncovered with any surface-loudly → `{N}K chars,
+    - 1+ uncovered, max severity warn → `{M} lines / {N}K chars,
+      {N} drift patterns detected`
+    - 1+ uncovered with any surface-loudly → `{M} lines / {N}K chars,
       **{N} surface-loudly findings** + {N} other`
   - `action_phrase`:
     - 0 uncovered → omit the entire bullet entirely
@@ -744,8 +744,8 @@ then proceed normally in degraded mode.
   **Examples:**
   - *(0 uncovered findings)* — bullet omitted entirely; orientation
     continues without mentioning the scan.
-  - `🔍 CLAUDE.md scan: 18K chars, 3 drift patterns detected. Run /strategic-partner:context-file-scan for details.`
-  - `🔍 CLAUDE.md scan: 41K chars, **1 surface-loudly finding** + 4 other. Run /strategic-partner:context-file-scan for details.`
+  - `🔍 CLAUDE.md scan: 185 lines / 18K chars, 3 drift patterns detected. Run /strategic-partner:context-file-scan for details.`
+  - `🔍 CLAUDE.md scan: 410 lines / 41K chars, **1 surface-loudly finding** + 4 other. Run /strategic-partner:context-file-scan for details.`
 
 **Session setup recommendation** (include in orientation via `AskUserQuestion`):
 
@@ -819,11 +819,15 @@ This question is asked ONCE per session, not per prompt.
 ## 📝 CLAUDE.md Monitoring Triggers
 
 Propose an update when:
-- 📌 A new convention or process is agreed upon in conversation
-- 💡 A "lessons learned" emerges from an implementation report
-- 🏗️ An architectural decision is made that should constrain future sessions
-- 🔄 A rule is being violated repeatedly (suggests missing guardrail)
-- 🔖 Version bump process is established or changed
+- 📌 A concise project-wide convention is agreed and must load in every future session
+- 🔄 A rule is being violated repeatedly and needs a reusable guardrail
+- 🔖 A release or verification process changed in a way every session must know immediately
+
+Do not propose a CLAUDE.md update for session journeys, implementation reports,
+commit lists, ticket histories, file lists, browser-verification trails, local/unpushed
+status, or detailed architectural rationale. Run the Instruction Placement Gate first:
+those usually belong in `.handoffs/`, Serena memory, `.backlog/`, `.prompts/`, or
+`.claude/rules/`.
 
 ---
 
@@ -837,8 +841,8 @@ Propose an update when:
 │                    │  code conventions, threshold values, known        │
 │                    │  gotchas, design rationale                        │
 ├────────────────────┼───────────────────────────────────────────────────┤
-│  CLAUDE.md         │  process rules, enforcement conventions,         │
-│                    │  project-wide guardrails                          │
+│  CLAUDE.md         │  concise project-wide instructions needed in      │
+│                    │  every session                                     │
 ├────────────────────┼───────────────────────────────────────────────────┤
 │  .claude/rules/    │  path-specific rules                             │
 │                    │  (e.g., "all files in src/api/ must...")          │
@@ -846,6 +850,7 @@ Propose an update when:
 │  Auto-memory       │  session learnings, user preferences             │
 ├────────────────────┼───────────────────────────────────────────────────┤
 │  .handoffs/        │  current session state, continuation prompts     │
+│                    │  implementation reports, journey/status detail    │
 ├────────────────────┼───────────────────────────────────────────────────┤
 │  .prompts/         │  implementation prompts organized by milestone   │
 ├────────────────────┼───────────────────────────────────────────────────┤
@@ -865,9 +870,8 @@ Propose an update when:
 > `AskUserQuestion`: [Write this memory] [Not yet] [Adjust the content first]
 
 **📝 CLAUDE.md update:**
-> "I want to add a Dev Visibility Rule to CLAUDE.md requiring a CHANGELOG.json entry
-> with every pipeline change. Rationale: we keep forgetting this across sessions.
-> Proposed text: [exact text]."
+> "Placement gate says this belongs in CLAUDE.md because every future session must
+> know the release rule. Preflight passes. Proposed text: [exact text]."
 >
 > `AskUserQuestion`: [Add it] [Not yet] [Let me review the text first]
 

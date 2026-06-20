@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # .scripts/context-file-scan/lib/layer-probe.sh
-# Adjacent-layer detection per scanner-design-spec.md § 5. Sourceable.
+# Adjacent-layer detection for context-file stewardship scans. Sourceable.
 #
 # Detects which storage layers (Serena memory, .claude/rules/, claudedocs/,
 # hooks, etc.) are available in the project, returning a JSON object that

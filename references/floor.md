@@ -66,11 +66,11 @@ Detects:
 
 Detects:
 
-- **`g2.claude_md`** — `present lines=N chars=M band=BAND` if `$cwd/CLAUDE.md` exists, `missing` otherwise. The `band` field mirrors the scanner's S1 size taxonomy from `.scripts/context-file-scan/lib/output.sh:18-29`:
-  - `under-soft` (< 16,384 chars) — orientation silent
-  - `soft-warn` (16,384–24,575 chars) — orientation surfaces 💡 informational
-  - `warn` (24,576–36,863 chars) — orientation surfaces ⚠️ caution
-  - `surface-loudly` (≥ 36,864 chars) — orientation surfaces 🚨 + suggests `/strategic-partner:context-file-scan`
+- **`g2.claude_md`** — `present lines=N chars=M band=BAND` if `$cwd/CLAUDE.md` exists, `missing` otherwise. The `band` field mirrors the scanner's S1 size taxonomy from `.scripts/context-file-scan/lib/output.sh`:
+  - `under-soft` (<150 lines and <16,384 chars) — orientation silent
+  - `soft-warn` (150–200 lines or 16,384–24,575 chars) — orientation surfaces 💡 informational
+  - `warn` (>200 lines or 24,576–36,863 chars) — orientation surfaces ⚠️ caution
+  - `surface-loudly` (>350 lines or ≥36,864 chars) — orientation surfaces 🚨 + suggests `/strategic-partner:context-file-scan`
 - **`g2.rules_dir`** — `present count=N` if `$cwd/.claude/rules/` exists,
   `missing` otherwise
 

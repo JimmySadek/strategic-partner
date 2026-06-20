@@ -153,17 +153,20 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
     line_count=$(wc -l < "$cwd/CLAUDE.md" 2>/dev/null | tr -d ' ')
     char_count=$(wc -c < "$cwd/CLAUDE.md" 2>/dev/null | tr -d ' ')
     char_count=${char_count:-0}
-    # Mirror .scripts/context-file-scan/lib/output.sh:18-29 (scanner_size_band)
-    if [ "$char_count" -lt 16384 ]; then
-      band=under-soft
-    elif [ "$char_count" -lt 24576 ]; then
-      band=soft-warn
-    elif [ "$char_count" -lt 36864 ]; then
-      band=warn
-    else
+    line_count=${line_count:-0}
+    # Mirror .scripts/context-file-scan/lib/output.sh scanner_file_size_band:
+    # Claude Code recommends targeting under 200 lines; the older char
+    # thresholds still apply for dense files.
+    if [ "$char_count" -ge 36864 ] || [ "$line_count" -gt 350 ]; then
       band=surface-loudly
+    elif [ "$char_count" -ge 24576 ] || [ "$line_count" -gt 200 ]; then
+      band=warn
+    elif [ "$char_count" -ge 16384 ] || [ "$line_count" -ge 150 ]; then
+      band=soft-warn
+    else
+      band=under-soft
     fi
-    printf 'g2.claude_md=present lines=%s chars=%s band=%s\n' "${line_count:-0}" "${char_count}" "${band}"
+    printf 'g2.claude_md=present lines=%s chars=%s band=%s\n' "$line_count" "${char_count}" "${band}"
   else
     printf 'g2.claude_md=missing\n'
   fi

@@ -22,7 +22,7 @@ strategic-partner/
       scan.sh                           # Main scanner orchestrator
       lib/                              # Helper functions (utils, output, layer probe, etc.)
       rules/
-        structural.sh                   # S1-S9 structural detection rules
+        structural.sh                   # S1-S10 structural detection rules
         behavioral.sh                   # B1-B8 behavioral detection rules
     release-publish.sh                  # GitHub release automation (Step 7 of release process)
   commands/
@@ -32,7 +32,7 @@ strategic-partner/
     status.md                           # Status briefing
     update.md                           # Version check + self-update
     codex-feedback.md                   # Cross-model adversarial review via Codex CLI
-    context-file-scan.md                # Drift scanner for CLAUDE.md / AGENTS.md / GEMINI.md per the v6.0 policy
+    context-file-scan.md                # Read-only context-file stewardship scanner
     backlog.md                          # Backlog review — parked items with trigger evaluation
   references/
     startup-checklist.md                # Identity commands, env vars, fire-and-verify agents

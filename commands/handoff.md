@@ -220,25 +220,30 @@ seeing what's being recorded.
 ### Group 5 — Project conventions ledger
 
 Scan session for "let's add a rule" or "remember this for future
-sessions" signals; check for CLAUDE.md updates needed.
+sessions" signals; classify them with the Instruction Placement Gate
+before proposing any CLAUDE.md update.
 
 ```bash
 git diff CLAUDE.md  # any uncommitted changes?
 # AND scan session conversation for emerged-rule signals
+# AND run context-file proposal preflight for any candidate CLAUDE.md text
 ```
 
 State logic:
 - No new conventions emerged → RESOLVED, brief note
-- Convention emerged AND text already drafted in conversation →
-  DECISION, AUQ presenting the proposed CLAUDE.md edit text
-- Convention emerged but no text drafted → DECISION, AUQ asking
-  whether to draft + commit during closure or defer
+- Candidate belongs in Serena, `.handoffs/`, `.backlog/`, `.prompts/`, or
+  `.claude/rules/` → SKIPPED-AUTO for CLAUDE.md; route to the correct ledger row
+- Concise project-wide instruction emerged AND text already drafted in
+  conversation AND preflight allows it → DECISION, AUQ presenting the exact
+  CLAUDE.md edit text, destination rationale, and size impact
+- Concise project-wide instruction emerged but no text drafted → DECISION, AUQ
+  asking whether to draft during closure or defer
 
 Ledger row updated: 📝 CLAUDE.md.
 
-Anti-pattern: noting "convention emerged" in the handoff body
-without actually proposing the edit. Either commit it or explicitly
-defer.
+Anti-pattern: dumping a session journey, ticket status, commit list, file list,
+or browser-verification trail into CLAUDE.md. That belongs in `.handoffs/` or
+Serena memory; CLAUDE.md only gets concise instructions needed every session.
 
 ### Group 6 — Working memory ledger
 
