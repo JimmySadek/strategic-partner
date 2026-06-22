@@ -61,6 +61,8 @@ When editing SP source files, follow these behavioral principles:
 
 ## ⚙️ Release Process (Mandatory Before Push)
 
+review-policy: cross-model-go-no-go
+
 Every push to remote MUST go through the full release process — fetch/compare,
 backlog close-out scan, bump classification, hook + voice + tripwire lints,
 Codex pre-release review, README review, the three-file version bump, tag, and

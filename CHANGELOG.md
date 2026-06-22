@@ -1,5 +1,20 @@
 # Changelog
 
+## [7.3.1] - 2026-06-22
+
+### Fixed
+- **Cross-model review is recognized even when it isn't spelled out exactly** — the
+  cross-model build/review policy (added in 7.3.0) only switched on when a project's rules
+  contained the exact line `review-policy: cross-model-go-no-go`. But many projects already
+  ask for a different-model review in plainer words — "run a Codex review before pushing" —
+  or keep that rule in a separate document their main rules file points to. The advisor now
+  recognizes both: a review requirement named by tool (a Codex review of Claude-built work,
+  or the reverse) counts, and a rules file that points to a companion rules or release
+  document is followed before the advisor concludes there's no policy. The exact marker
+  still works and is still the clearest way to set it — you just no longer have to know the
+  magic string. Detection stays project-scoped: a global rule won't switch the policy on for
+  every project unless the project opts in.
+
 ## [7.3.0] - 2026-06-22
 
 ### Added

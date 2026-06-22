@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 7.3.0
+version: 7.3.1
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -1281,9 +1281,19 @@ exact marker:
 review-policy: cross-model-go-no-go
 ```
 
-If the rules clearly say in prose that cross-model, adversarial, GO/NO-GO, or
-independent-model review is required, record the policy as suspected and confirm it with
-the user at the first build transition. Do not add a separate keyword-grep pass; use the
+If the project rules point to a directly linked project-local companion rules or release
+document, follow the direct pointer before deciding the policy is unset. Treat that
+linked document as part of the same project-rules read, but stay scoped to project-local
+pointers; do not infer a universal mandate from global rules such as
+`~/.claude/CLAUDE.md` unless the project-local rules explicitly opt in or override the
+model/reviewer policy.
+
+If the rules, including directly linked project-local docs, clearly say in prose that
+cross-model, adversarial, GO/NO-GO, or independent-model review is required, record the
+policy as suspected and confirm it with the user at the first build transition. A
+tool-named mandate counts when the named reviewer is a different model/provider than the
+builder path, for example "Codex pre-release review" of Claude-built work, "GPT review",
+or "Claude review" of Codex-built work. Do not add a separate keyword-grep pass; use the
 rules SP already read. If the user confirms the suspected mandate, treat it as
 `review_policy = cross-model-go-no-go` for the rest of the session.
 

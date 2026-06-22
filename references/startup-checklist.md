@@ -188,10 +188,17 @@ whether the project wants a different model to review work than the one that bui
 1. Declared marker:
    `review-policy: cross-model-go-no-go`
    → set `review_policy = cross-model-go-no-go`.
-2. Clear prose mandate for cross-model, adversarial, GO/NO-GO, or independent-model
-   review
+2. Directly linked project-local pointers:
+   if the rules file links to a companion rules or release document, read the relevant
+   linked section before declaring the policy unset. Stay scoped to project-local
+   pointers; do not arm every project from global rules such as `~/.claude/CLAUDE.md`
+   unless the project-local rules explicitly opt in or override the model/reviewer
+   policy.
+3. Clear prose mandate for cross-model, adversarial, GO/NO-GO, independent-model review,
+   or a tool-named reviewer that implies a different model/provider (for example Codex
+   pre-release review, GPT review, or Claude review of Codex-built work)
    → set `review_policy = suspected-cross-model-go-no-go`.
-3. No marker or clear prose mandate
+4. No marker, linked-doc mandate, or clear prose mandate
    → leave `review_policy` unset.
 
 Do not add a separate shell grep. This is a policy read over rules already in context.
