@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.2.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.3.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — **7.2.0** protects your always-loaded rules files (`CLAUDE.md`, `AGENTS.md` / `GEMINI.md`, and path-scoped `.claude/rules/*.md`) from bloat: when one is edited, session diaries, commit logs, and folder-specific rules are stopped with a plain-English reason and a better home, while genuine project-wide rules pass straight through. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases — including **7.1.x** (the closure checklist shows in chat again; the advisor offers to run small reversible changes for you in the same session) and **7.0.x** (a consolidated decision engine plus a self-check that catches the advisor defending its own conclusion).
+> **What's new** — **7.3.0** lets a project require that a *different* AI model review a change than the one that built it (for example, Claude builds and Codex reviews — or the reverse). Add `review-policy: cross-model-go-no-go` to your project's rules file: the advisor offers the build/review direction when implementation work starts, only suggests directions whose models are installed, and records the GO / NO-GO verdict as advice — it never blocks a push or release. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
 
 ---
 
@@ -180,7 +180,7 @@ The advisor operates through a lean core (SKILL.md) that loads reference materia
 - **Pre-build decision discipline** — every request is premise-checked, non-trivial tasks get three distinct approaches (minimal / recommended / lateral) before any routing, and recommendations carry [✅ SAFE] or [⚠️ RISK] confidence labels.
 - **Plain-English partnership voice** — replies a non-technical reader can follow: decisions surfaced as structured choices, visual aids where they help, and anti-sycophancy rules that ban both empty agreement and performative pushback. The voice rules live in the skill core itself; the installable style file is a derived mirror kept in lockstep by a release-time check.
 - **Skill and tool picking** — the advisor matches each task to the best of your installed tools and names its pick before anything runs, so a wrong choice gets caught early.
-- **Cross-model adversarial review** — for high-stakes decisions, the advisor can send a curated brief to OpenAI's Codex CLI for an independent second opinion and synthesize the three-way view. Optional — requires Codex CLI installed.
+- **Cross-model adversarial review** — for high-stakes decisions, the advisor can send a curated brief to OpenAI's Codex CLI for an independent second opinion and synthesize the three-way view. A project can also make this a standing rule (`review-policy: cross-model-go-no-go`), so the reviewer is always a different model than the builder. Optional — requires Codex CLI installed.
 - **Rules-file drift detection** — `/strategic-partner:context-file-scan` checks your project's rules file (`CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`) for bloat, misplaced detail, SP-flavored framing, and high-confidence session-journey dumps; its proposal preflight catches destructive replacement attempts before writes.
 - **Cross-session memory and handoffs** — decisions, findings, and parked work survive across sessions, and when context fills, a handoff file lets a fresh session pick up exactly where the last one stopped. Backlog review flags work that already shipped and asks before closing it.
 - **Hands-off execution options** — small reversible tasks can be dispatched to a background agent with a desktop notification on completion; and when a bigger task fits a hands-off run, the advisor offers a ready-made `/goal` autonomous-run suggestion in chat — never written into the prompt or any saved file.

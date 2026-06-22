@@ -162,6 +162,21 @@ Which model runs the target session?
 Provider guides contain format templates, tag references, rules, and examples.
 Load the matching guide before writing the prompt body.
 
+### Cross-Model Builder Target
+
+When `review_policy = cross-model-go-no-go`, the builder model controls the prompt
+format. The reviewer model controls the follow-up review step; do not blend the two.
+
+| Builder | Prompt format | Launcher |
+|---|---|---|
+| Claude | Anthropic guide | Skill command or agent dispatch from the routing matrix |
+| Codex / OpenAI | OpenAI guide | Bare prompt with `routing: bare: true`; no Claude slash-skill line |
+| Gemini | Google guide | Gemini-compatible prompt per provider guide |
+
+If the builder is Codex, the prompt must include the routing record's bare shape and
+open directly with the task content or read-and-execute line. This is true even when the
+reviewer is Claude/SP.
+
 ---
 
 ## Copy-Safe Formatting (Inline Prompts)

@@ -1,5 +1,17 @@
 # Changelog
 
+## [7.3.0] - 2026-06-22
+
+### Added
+- **Cross-model build/review as a project policy** — A project can now ask that whoever
+  reviews a change be a different AI model than whoever built it (for example, Claude
+  builds and Codex reviews — or the reverse). Turn it on by adding `review-policy:
+  cross-model-go-no-go` to the project's rules file. The advisor notices it quietly at
+  startup, asks which build/review direction to use only when implementation actually
+  starts (and only offers directions whose models are installed), and records the
+  GO / NO-GO verdict as advisory status — it states and logs the result, but never
+  claims to block a push, release, or handoff.
+
 ## [7.2.0] - 2026-06-20
 
 ### Added

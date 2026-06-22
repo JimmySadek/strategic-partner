@@ -280,6 +280,20 @@ After Codex returns, the SP synthesizes in its main thread:
 5. Log to Serena `decision_log`: what Codex review changed or confirmed, with the
    specific decision made
 
+When this command is the reviewer step for `review-policy: cross-model-go-no-go`,
+the verdict is advisory status, not control:
+
+- **GO** closes the cross-model gate only if the builder and reviewer are different
+  models. A clean reviewer pass means a fresh reviewer result with no unratified blocking
+  findings; ratified rejections are recorded as waived, not silently erased.
+- **CONDITIONAL GO / NO-GO** keeps the gate open until accepted findings are fixed and
+  a clean reviewer pass exists. Fixing findings does not close the gate by itself; run the
+  reviewer again on the updated diff and require a clean pass.
+- **Rejected findings** require explicit user ratification before SP treats them as
+  non-blocking; record the rationale with the verdict.
+- SP never claims it blocked a push, release, or handoff. It records the verdict and
+  refuses to declare the loop closed until the reviewer path is clean.
+
 ## Failure Modes
 
 | Scenario | Response |

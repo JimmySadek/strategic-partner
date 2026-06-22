@@ -180,6 +180,27 @@ which codex >/dev/null 2>&1
                  Only educates if user explicitly invokes the subcommand.
 ```
 
+### Cross-Model Review Policy Detection (silent)
+
+After project rules are loaded (`AGENTS.md`, `CLAUDE.md`, or `GEMINI.md`), silently detect
+whether the project wants a different model to review work than the one that built it.
+
+1. Declared marker:
+   `review-policy: cross-model-go-no-go`
+   → set `review_policy = cross-model-go-no-go`.
+2. Clear prose mandate for cross-model, adversarial, GO/NO-GO, or independent-model
+   review
+   → set `review_policy = suspected-cross-model-go-no-go`.
+3. No marker or clear prose mandate
+   → leave `review_policy` unset.
+
+Do not add a separate shell grep. This is a policy read over rules already in context.
+Do not ask the build/review direction during orientation. The direction question fires
+only when implementation-shaped work reaches packaging or dispatch, uses
+`AskUserQuestion`, and only appears after SP has checked which model paths are available.
+When the user confirms a suspected mandate, promote it to
+`review_policy = cross-model-go-no-go` for the session.
+
 ### Agent Teams Flag Detection (inline, not an agent)
 
 The same-agent post-dispatch correction path (see `references/fast-lane.md`
@@ -782,6 +803,10 @@ guide from `references/provider-guides/`. If the user doesn't know or says
 "mixed", default to Claude format (most structured, degrades gracefully).
 
 This question is asked ONCE per session, not per prompt.
+
+**Cross-model carve-out:** if `review_policy` is set or suspected, do not ask this
+provider-selection question during orientation. Ask the build/review direction at the
+first build transition instead, after hiding unavailable directions.
 
 ---
 

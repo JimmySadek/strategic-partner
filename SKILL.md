@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 7.2.0
+version: 7.3.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -1264,6 +1264,53 @@ Which secondary form that packaging takes — a copyable full prompt or an in-se
 agent dispatch — is settled by the **Delivery Choice Checkpoint** below. SP does not
 assume fences.
 
+### Cross-Model Build/Review Policy
+
+Some projects require a different model to review the work than the one that built it.
+Treat this as two composable steps, not a separate workflow engine:
+
+```
+BUILD(model = X) → diff/baseline → REVIEW(model = Y) → GO / NO-GO
+```
+
+**Project mandate detection.** At startup, after project rules are available, SP silently
+records `review_policy = cross-model-go-no-go` when a project rules file contains this
+exact marker:
+
+```
+review-policy: cross-model-go-no-go
+```
+
+If the rules clearly say in prose that cross-model, adversarial, GO/NO-GO, or
+independent-model review is required, record the policy as suspected and confirm it with
+the user at the first build transition. Do not add a separate keyword-grep pass; use the
+rules SP already read. If the user confirms the suspected mandate, treat it as
+`review_policy = cross-model-go-no-go` for the rest of the session.
+
+**Ask at the build transition, not orientation.** Detect the mandate at startup, but do
+not ask for direction in a pure advisory session. Once implementation-shaped work reaches
+packaging or dispatch, check available paths first and use `AskUserQuestion` before
+choosing any builder/reviewer direction. Offer only directions that can actually run:
+
+1. Build with Claude, review with Codex — only when `codex_available = true`.
+2. Build with Codex, review with Claude/SP — only when Codex is available for the user-run
+   builder path and SP can review the returned diff.
+3. Let SP recommend per task — only when at least two viable directions exist.
+
+With no mandate, stay silent unless the user explicitly asks for cross-model build/review.
+
+**Packaging rules.** Claude builders use the normal Claude skill/agent routing. Codex
+builders use the OpenAI provider guide with `routing: bare: true`; never put a Claude
+slash-skill launcher at the top of a Codex builder prompt.
+
+**Asymmetry is expected.** Claude-builder fix loops can use in-session agent dispatch
+when eligible. Codex-builder fix loops are a manual relay: SP gives the accepted finding
+list, the user reruns Codex, then SP reviews the result.
+
+**Verdicts are advisory and recorded.** GO closes the cross-model gate only when builder
+and reviewer differ. NO-GO records blockers and keeps the loop open until a clean reviewer
+pass exists, but SP does not block pushes, handoffs, or user decisions.
+
 ### 🚦 Delivery Choice Checkpoint
 
 Once the Advisory Readiness Gate has passed and the work is implementation-shaped, SP
@@ -1719,6 +1766,22 @@ When the user reports back from a separate implementation session:
    project-wide instructions a future session must load immediately.
 7. **Pattern check**: Paranoid Scanning (Grove) — "What's the thing we're not seeing?"
    Chesterton's Fence — if anything was removed, was the removal justified?
+
+### Cross-Model Verdict Acceptance
+
+When `review_policy = cross-model-go-no-go`, treat the reviewer verdict as advisory
+status, not control:
+
+1. **GO** closes the cross-model gate only when the builder and reviewer are different
+   models. A clean reviewer pass means a fresh reviewer result with no unratified blocking
+   findings; ratified rejections are recorded as waived, not silently erased.
+2. **NO-GO** keeps the loop open. Record the blockers, recommend the fix path, and do not
+   declare the build/review loop complete. Fixing findings does not close the gate by
+   itself; run the reviewer again on the updated diff and require a clean pass.
+3. **Rejected findings** require explicit user ratification before SP treats them as
+   non-blocking. Record the rejection and rationale with the verdict.
+4. SP never claims it blocked a push, release, or handoff. The project's release process
+   may enforce the verdict; SP only states and records it.
 
 ### Advisory Reset After User Execution
 
@@ -2706,7 +2769,7 @@ Delegation rules, model selection, and parallelization templates.
 | `/strategic-partner:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
-| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI |
+| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI; Codex reviewer step for cross-model build/review |
 | `/strategic-partner:context-file-scan` | Read-only drift scanner for context files per the stewardship policy |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 

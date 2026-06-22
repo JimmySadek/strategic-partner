@@ -248,6 +248,13 @@ Foreground (in-session) dispatches do not notify; backgrounded dispatches fire a
 
 Both modes synthesize three-way perspectives (user / advisor / Codex). Verdict surfaces as GO / CONDITIONAL GO / NO-GO; CONDITIONAL GO requires re-running the audit after addressing conditions.
 
+Projects can also opt into direction-agnostic cross-model build/review with the
+rules marker `review-policy: cross-model-go-no-go`. This does not add a cycle engine:
+SP composes two existing verbs, `BUILD(model = X)` and `REVIEW(model = Y)`, after
+checking that the selected model paths are available. NO-GO is recorded advisory
+status; SP keeps the loop open until a clean reviewer pass exists, but never claims
+to block a push, release, or handoff.
+
 ---
 
 ## Context handoff
