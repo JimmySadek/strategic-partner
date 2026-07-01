@@ -2178,17 +2178,18 @@ always the answer.
 ### Floor-Signal Handling
 
 The startup-floor sentinel emits an `SP-FLOOR-COMPLETE` line at session
-entry and on subcommand transitions, with twelve status fields. The hook
+entry and on subcommand transitions, with thirteen status fields. The hook
 fires on every UserPromptSubmit event but exits early once the floor has
 run for a given scope (session, cwd, skill version, prompt class), so the
 line is emitted only when SP enters a new scope — not on every user turn.
-Seven of the twelve fields are actionable when non-clean (the model MUST
+Seven of the thirteen fields are actionable when non-clean (the model MUST
 either dispatch a remediation agent or explicitly acknowledge with a
-reason for deferring). The remaining five are informational —
+reason for deferring). The remaining six are informational —
 `findings` and `backlog` surface counts; `claudemd_band` reports the
 project-rules size band; `output_style` always renders a permanent
 status row in orientation; `output_style_state` reports whether the
-installed voice style is fresh, stale, or missing. Silent ignores of actionable
+installed voice style is fresh, stale, or missing; `review_policy` reports
+whether the cross-model build/review policy is active. Silent ignores of actionable
 signals are caught at the runtime layer by the Stop rhythm enforcer's
 rule 5 (`floor-signal-acknowledgment`) — with one deliberate exception:
 the `oldschema` field is intentionally not in rule 5's covered set in
@@ -2211,6 +2212,7 @@ oldschema.
 | `output_style` | (always present)    | Render always-visible status row; ✅ active or ⚠️ not active + activation hint per `references/floor-signal-handling.md` |
 | `output_style_state` | `stale`, `missing` | Render a `🟡 Voice style ⚠️ Stale` / `⚠️ Missing` orientation row only when not `fresh`; no dispatch (user re-runs `setup` or re-syncs) per `references/floor-signal-handling.md` § Pattern: output_style_state |
 | `commands_registered` | `no`           | Render `🟡 Install incomplete ⚠️ Setup not run` orientation row; surface `AskUserQuestion` offering to run `./setup`; on user yes, SP invokes setup via Bash and tells user to restart Claude Code per `references/floor-signal-handling.md` § Pattern: commands_registered |
+| `review_policy` | (always present)    | Render always-visible status row; ✅ active when `cross-model-go-no-go`, otherwise `unset`; no dispatch per `references/floor-signal-handling.md` |
 
 When the `output_style` row is `⚠️ not active`, render this exact
 two-line activation hint immediately beneath it — verbatim, do not

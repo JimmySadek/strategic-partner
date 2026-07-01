@@ -1007,6 +1007,15 @@ scanner_rule_S10() {
       core_count++
       add_signal(weight, label, text)
     }
+    function has_word(text, pattern) {
+      return text ~ "(^|[^a-z0-9_])(" pattern ")([^a-z0-9_]|$)"
+    }
+    function has_date(text) {
+      return text ~ /20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+    }
+    function has_ticket(text) {
+      return text ~ /(^|[^A-Za-z0-9_])#[0-9][0-9][0-9]+/
+    }
     /^[[:space:]]*```/ { fence = 1 - fence; next }
     fence == 1 { next }
     {
@@ -1020,7 +1029,9 @@ scanner_rule_S10() {
       if ($0 ~ /[Cc]ommit[[:space:]:`'\''"]+[0-9a-f]{6,}/ || ($0 ~ /[0-9a-f]{7,}/ && lc ~ /(commit|files|new files)/)) {
         add_signal(2, "commit-trail", $0)
       }
-      if (lc ~ /(shipped|local|unpushed|browser-verified|browser verified)/ && lc ~ /(commit|tenant|deploy|browser|local|unpushed)/) {
+      if (has_word(lc, "shipped|deployed|browser-verified|browser verified") &&
+          (has_word(lc, "commits?|browser-verified|browser verified|tenants?|unpushed") ||
+           $0 ~ /[0-9a-f]{7,}/ || has_date($0))) {
         add_core_signal(2, "shipping-status", $0)
       }
       if (lc ~ /(page tag|new files:|files:|not in scope|locked [0-9]{4}|baseline card|click-time|manual chooser|demo launcher)/) {
@@ -1029,7 +1040,11 @@ scanner_rule_S10() {
       if (file_hits >= 3) {
         add_signal(1, "file-list", $0)
       }
-      if (length($0) > 180 && lc ~ /(done|review|ship|commit|files|scope)/) {
+      strong_history = ($0 ~ /[0-9a-f]{7,}/ || has_ticket($0) ||
+        has_word(lc, "new files|not in scope|browser-verified|browser verified"))
+      if (length($0) > 180 &&
+          has_word(lc, "done|review|shipped|deployed|commit|commits|files|scope") &&
+          (strong_history || (has_date($0) && has_word(lc, "done|shipped|deployed")))) {
         add_signal(1, "dense-history-line", $0)
       }
     }

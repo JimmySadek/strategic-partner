@@ -96,6 +96,7 @@ if [ -z "$scan_json" ]; then
 fi
 
 s10_count=$(echo "$scan_json" | jq '[.findings[] | select(.rule_id == "S10")] | length')
+exception_label=$(echo "$scan_json" | jq -r '[.findings[].exception_label | select(type == "string" and test("^\\[Acknowledge .+\\]$"))][0] // ""')
 
 snippet_lc=$(tr 'A-Z' 'a-z' < "$SNIP_FILE")
 has_extraction_pointer=0
@@ -118,18 +119,22 @@ elif [ "$target_kind" = "root" ] && [ "$MODE" = "append" ] && printf '%s' "$snip
   verdict="needs-extraction"
   destination=".claude/rules/"
   reason="snippet appears path-scoped or file-specific"
+  exception_label="[Acknowledge — keep this root context entry here]"
 elif [ "$target_kind" = "root" ] && printf '%s' "$snippet_lc" | grep -qE '\b(decided|decision|rationale|we chose|known gotcha|lesson learned|architecture)\b'; then
   verdict="needs-extraction"
   destination="memory or reference docs"
   reason="snippet is decision/gotcha/rationale material, not a root instruction"
+  exception_label="[Acknowledge — keep this decision context here]"
 elif [ "$target_kind" = "root" ] && [ "$MODE" = "append" ] && { [ "$target_lines" -gt 200 ] || [ "$projected_lines" -gt 200 ] || [ "$projected_chars" -ge 24576 ]; }; then
   verdict="needs-extraction"
   destination="replacement or .claude/rules/"
   reason="target is already over the preferred CLAUDE.md size; prefer replacement or extraction over net append"
+  exception_label="[Acknowledge — append here despite the size]"
 elif [ "$target_kind" = "root" ] && [ "$MODE" = "replacement" ] && { [ "$projected_lines" -gt 200 ] || [ "$projected_chars" -ge 24576 ]; } && { [ "$delta_lines" -ge 0 ] || [ "$delta_chars" -ge 0 ]; }; then
   verdict="needs-extraction"
   destination="replacement or extraction"
   reason="replacement keeps or worsens an oversized root context file; shrink it or extract detail"
+  exception_label="[Acknowledge — keep this oversized root context]"
 fi
 
 receipt=$(printf '%s|%s|%s|%s|%s|%s|%s' \
@@ -143,6 +148,7 @@ jq -n \
   --arg mode "$MODE" \
   --arg target_kind "$target_kind" \
   --arg receipt "$receipt" \
+  --arg exception_label "$exception_label" \
   --argjson target_lines "$target_lines" \
   --argjson target_chars "$target_chars" \
   --argjson snippet_lines "$snippet_lines" \
@@ -156,6 +162,7 @@ jq -n \
     verdict: $verdict,
     destination: $destination,
     reason: $reason,
+    exception_label: (if $exception_label == "" then null else $exception_label end),
     mode: $mode,
     target_kind: $target_kind,
     receipt: $receipt,
@@ -163,5 +170,8 @@ jq -n \
     snippet: {lines: $snippet_lines, chars: $snippet_chars},
     projected: {lines: $projected_lines, chars: $projected_chars},
     size_delta: {lines: $delta_lines, chars: $delta_chars},
-    scanner: {s10_findings: $s10_count}
+    scanner: {
+      s10_findings: $s10_count,
+      exception_label: (if $exception_label == "" then null else $exception_label end)
+    }
   }'

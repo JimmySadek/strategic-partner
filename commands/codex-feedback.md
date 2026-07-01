@@ -1,15 +1,17 @@
 ---
 name: codex-feedback
-description: "Cross-model adversarial review via Codex CLI"
+description: "Reviewer-side Codex check for decisions, claims, or cross-model builds"
 category: advisory
 complexity: advanced
 mcp-servers: []
 ---
 
-# /strategic-partner:codex-feedback — Cross-Model Adversarial Review
+# /strategic-partner:codex-feedback — Codex Reviewer Check
 
-> Dispatch a curated brief to OpenAI Codex CLI for independent adversarial review
-> of SP decisions or evidence claims. Returns a three-way synthesis: User | SP | Codex.
+> Dispatch a curated brief to OpenAI Codex CLI for reviewer-side adversarial
+> checking of SP decisions, evidence claims, or a cross-model build. This command
+> does not enable the project policy; to turn on or check that standing rule, see
+> SKILL.md § Cross-Model Build/Review Policy.
 
 ## Output Style
 

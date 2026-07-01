@@ -12,6 +12,10 @@ block() {
   exit 2
 }
 
+warn() {
+  printf 'WARNING: %s\n' "$1" >&2
+}
+
 is_root_context_path() {
   path_lc=$(printf '%s' "$1" | tr 'A-Z' 'a-z')
   case "$path_lc" in
@@ -184,6 +188,7 @@ run_preflight() {
   target="$1"
   proposed="$2"
   mode="${3:-replacement}"
+  LAST_PREFLIGHT_VERDICT="reject"
   [ -x "$PREFLIGHT" ] || block "context-file preflight is unavailable; refusing risky context-file mutation"
   out=$(bash "$PREFLIGHT" --target "$target" --snippet "$proposed" --mode "$mode" 2>/dev/null) || out=""
   [ -n "$out" ] || block "context-file preflight failed; refusing risky context-file mutation"
@@ -191,7 +196,26 @@ run_preflight() {
   reason=$(printf '%s' "$out" | jq -r '.reason // "no reason returned"' 2>/dev/null)
   destination=$(printf '%s' "$out" | jq -r '.destination // "unknown"' 2>/dev/null)
   receipt=$(printf '%s' "$out" | jq -r '.receipt // "none"' 2>/dev/null)
+  exception_label=$(printf '%s' "$out" | jq -r '.exception_label // .scanner.exception_label // empty' 2>/dev/null)
+  s10_count=$(printf '%s' "$out" | jq -r '.scanner.s10_findings // 0' 2>/dev/null)
+  [ -z "$s10_count" ] && s10_count=0
+  LAST_PREFLIGHT_VERDICT="$verdict"
+  if [ "$verdict" = "needs-extraction" ] && [ "$mode" = "replacement" ]; then
+    warn "context-file stewardship gate returned needs-extraction (${reason}). Safer destination: ${destination}. Override: ${exception_label:-document why this belongs here}. Receipt: ${receipt}"
+    return 0
+  fi
   if [ "$verdict" != "allow" ]; then
+    if [ "$mode" = "replacement" ] && [ "${APPEND_PREFLIGHT_CLEAN:-0}" = "1" ] && [ "$s10_count" -gt 0 ] && [ -r "$target" ]; then
+      current_s10=$(bash "$PREFLIGHT" --target "$target" --snippet "$target" --mode replacement 2>/dev/null | jq -r '.scanner.s10_findings // 0' 2>/dev/null || printf '0')
+      [ -z "$current_s10" ] && current_s10=0
+      if [ "$s10_count" -le "$current_s10" ]; then
+        warn "context-file replacement preserves pre-existing S10 findings without adding new ones. Existing S10 count: ${current_s10}; proposed: ${s10_count}. Override: ${exception_label:-pre-existing finding unchanged}. Receipt: ${receipt}"
+        return 0
+      fi
+    fi
+    if [ -n "$exception_label" ]; then
+      block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. Override option: ${exception_label}. Receipt: ${receipt}"
+    fi
     block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. Receipt: ${receipt}"
   fi
 }
@@ -223,6 +247,8 @@ TMP=$(mktemp -d)
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT
 PROPOSED="$TMP/proposed.md"
+APPEND_PREFLIGHT_CLEAN=0
+LAST_PREFLIGHT_VERDICT=""
 
 case "$TOOL_NAME" in
   Write)
@@ -245,6 +271,7 @@ case "$TOOL_NAME" in
         block "could not compute context-file edit addition for preflight"
       if [ -s "$added_file" ]; then
         run_preflight "$file_path" "$added_file" append
+        [ "$LAST_PREFLIGHT_VERDICT" = "allow" ] && APPEND_PREFLIGHT_CLEAN=1
       fi
     fi
     replace_all=$(printf '%s' "$INPUT" | jq -r '.tool_input.replace_all // false')
@@ -270,6 +297,7 @@ case "$TOOL_NAME" in
           block "could not compute context-file multi-edit addition for preflight"
         if [ -s "$added_file" ]; then
           run_preflight "$file_path" "$added_file" append
+          [ "$LAST_PREFLIGHT_VERDICT" = "allow" ] && APPEND_PREFLIGHT_CLEAN=1
         fi
       fi
       replace_all=$(printf '%s' "$INPUT" | jq -r ".tool_input.edits[$i].replace_all // false")

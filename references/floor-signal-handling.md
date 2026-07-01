@@ -382,6 +382,37 @@ Style.
 
 ---
 
+## Pattern: review_policy=<cross-model-go-no-go|unset> (always-visible status row)
+
+**Trigger:** Floor sentinel always emits `review_policy=<value>` — one of:
+
+- `cross-model-go-no-go` — the project has the standing build/review policy marker.
+- `unset` — no root project rules file currently carries the marker.
+
+The hook checks the root project rules files (`CLAUDE.md`, `AGENTS.md`,
+`GEMINI.md`) for the exact marker:
+
+```
+review-policy: cross-model-go-no-go
+```
+
+**Surface in orientation:**
+
+| `review_policy` value      | Row format                          | Hint? |
+|----------------------------|-------------------------------------|-------|
+| `cross-model-go-no-go`     | `📌 Review policy: ✅ active`        | No    |
+| `unset`                    | `📌 Review policy: unset`           | No    |
+
+This row is informational. Policy activation still happens by adding the
+marker to the project's rules file; `/strategic-partner:codex-feedback`
+is only a reviewer-side command, not the policy toggle.
+
+**No dispatch.** The row reports state only. Build/review direction is
+chosen later at the build transition per SKILL.md § Cross-Model
+Build/Review Policy.
+
+---
+
 ## Pattern: backlog=N (informational)
 
 **Trigger:** Floor sentinel emits `backlog=N` where N≥0 (the count of

@@ -176,6 +176,15 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
   else
     printf 'g2.rules_dir=missing\n'
   fi
+  review_policy=unset
+  for policy_file in "$cwd/CLAUDE.md" "$cwd/AGENTS.md" "$cwd/GEMINI.md"; do
+    [ -f "$policy_file" ] || continue
+    if grep -qE '^review-policy:[[:space:]]*cross-model-go-no-go[[:space:]]*$' "$policy_file" 2>/dev/null; then
+      review_policy=cross-model-go-no-go
+      break
+    fi
+  done
+  printf 'g2.review_policy=%s\n' "$review_policy"
 } >> "${RESULTS}.tmp" 2>/dev/null
 
 # Group 3 — Persistent memory (read files; hooks can't call Serena MCP)
@@ -451,10 +460,12 @@ output_style_state=$(grep '^g8.output_style_state=' "$RESULTS" 2>/dev/null | hea
 [ -z "$output_style_state" ] && output_style_state=unknown
 commands_registered=$(grep '^g1.commands_registered=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
 [ -z "$commands_registered" ] && commands_registered=unknown
+review_policy=$(grep '^g2.review_policy=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+[ -z "$review_policy" ] && review_policy=unset
 
 touch "$MARKER"
 
-printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s oldschema=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s output_style_state=%s commands_registered=%s. Full results: %s\n' \
-  "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$oldschema" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$output_style_state" "$commands_registered" "$RESULTS"
+printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s oldschema=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s output_style_state=%s commands_registered=%s review_policy=%s. Full results: %s\n' \
+  "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$oldschema" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$output_style_state" "$commands_registered" "$review_policy" "$RESULTS"
 
 exit 0

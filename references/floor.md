@@ -220,7 +220,7 @@ stdout (which Claude Code injects into the model's context for the
 current turn):
 
 ```
-SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N oldschema=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME output_style_state=fresh|stale|missing commands_registered=yes|no. Full results: /tmp/sp-floor-${KEY}.txt
+SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N oldschema=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME output_style_state=fresh|stale|missing commands_registered=yes|no review_policy=cross-model-go-no-go|unset. Full results: /tmp/sp-floor-${KEY}.txt
 ```
 
 The `claudemd_band` field mirrors the scanner's S1 size taxonomy (see Group 2
@@ -253,7 +253,12 @@ surfaces a `🟡 Install incomplete ⚠️ Setup not run` row and an
 the field is `no` — see `references/floor-signal-handling.md` § Pattern:
 commands_registered.
 
-The SP reads this line and acts on the twelve status fields per the
+The `review_policy` field reports whether a root project rules file
+contains `review-policy: cross-model-go-no-go`. Orientation renders an
+always-visible status row from this field — see
+`references/floor-signal-handling.md` § Pattern: review_policy.
+
+The SP reads this line and acts on the thirteen status fields per the
 Floor-Signal Handling table (SKILL.md § Floor-Signal Handling).
 
 For per-field remediation patterns (which agent to dispatch, which

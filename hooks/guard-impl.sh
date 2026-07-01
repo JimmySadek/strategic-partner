@@ -96,6 +96,35 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
   exit 2
 fi
 
+command_without_quoted_strings() {
+  printf '%s' "$1" | perl -0pe "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g"
+}
+
+bash_command_has_blocked_mutation() {
+  stripped=$(command_without_quoted_strings "$1")
+
+  redirect_targets=$(printf '%s' "$stripped" | perl -ne 'while (/(?:^|[^0-9])(?:[0-9]?>|[0-9]?>>|&>|>\|)\s*([^\s;|&<>]+)/g) { print "$1\n"; }')
+  if [ -n "$redirect_targets" ]; then
+    while IFS= read -r target; do
+      [ -z "$target" ] && continue
+      case "$target" in
+        /dev/null) ;;
+        .prompts/*|.handoffs/*|.scripts/*|.backlog/*|.claude/*|.gitignore) ;;
+        */.prompts/*|*/.handoffs/*|*/.scripts/*|*/.backlog/*|*/.claude/*|*/.gitignore) ;;
+        *) return 0 ;;
+      esac
+    done <<EOF
+$redirect_targets
+EOF
+  fi
+
+  if printf '%s' "$stripped" | grep -qE '(sed[[:space:]]+-[^;&|]*i|tee[[:space:]]|perl[[:space:]]+-[^;&|]*i|git[[:space:]]+apply|git[[:space:]]+cherry-pick)'; then
+    return 0
+  fi
+
+  return 1
+}
+
 # --- Guard 2: Block Bash commands with obvious file-mutation patterns ---
 if [ "$TOOL_NAME" = "Bash" ]; then
   COMMAND=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4)
@@ -103,21 +132,10 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     COMMAND=$(echo "$INPUT" | grep -o '"command": "[^"]*"' | head -1 | cut -d'"' -f4)
   fi
 
-  if echo "$COMMAND" | grep -qE '(sed\s+-i|>\s|>>|tee\s|perl\s+-i|git\s+apply|git\s+cherry-pick)'; then
-    ALLOWED=false
-    for pattern in ".prompts" ".handoffs" ".scripts" ".backlog" "CLAUDE.md" "AGENTS.md" "GEMINI.md" "CHANGELOG.md" "README.md" "SKILL.md" ".claude/" ".gitignore"; do
-      if echo "$COMMAND" | grep -q "$pattern"; then
-        ALLOWED=true
-        break
-      fi
-    done
-    if [ "$ALLOWED" = false ]; then
-      debug_log "decision=BLOCK tool=Bash command=$COMMAND"
-      echo "BLOCKED: Strategic Partner does not mutate source files via shell. Craft a prompt instead. (Command pattern detected)" >&2
-      exit 2
-    else
-      debug_log "decision=allow tool=Bash (allowed path in command)"
-    fi
+  if bash_command_has_blocked_mutation "$COMMAND"; then
+    debug_log "decision=BLOCK tool=Bash command=$COMMAND"
+    echo "BLOCKED: Strategic Partner does not mutate source files via shell. Craft a prompt instead. (Command pattern detected)" >&2
+    exit 2
   fi
 fi
 
