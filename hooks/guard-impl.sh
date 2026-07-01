@@ -125,16 +125,55 @@ EOF
   return 1
 }
 
-# --- Guard 2: Block Bash commands with obvious file-mutation patterns ---
-if [ "$TOOL_NAME" = "Bash" ]; then
-  COMMAND=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4)
-  if [ -z "$COMMAND" ]; then
-    COMMAND=$(echo "$INPUT" | grep -o '"command": "[^"]*"' | head -1 | cut -d'"' -f4)
+raw_bash_payload_has_blocked_mutation() {
+  raw="$1"
+  raw_stripped=$(printf '%s' "$raw" | perl -0pe "s/'[^']*'/Q/g; s/\\\\\"([^\\\\]|\\\\.)*\\\\\"/Q/g")
+
+  redirect_targets=$(printf '%s' "$raw_stripped" | perl -ne 'while (/(?:^|[^0-9])(?:[0-9]?>|[0-9]?>>|&>|>\|)\s*([^\\",[:space:];|&<>}]+)/g) { print "$1\n"; }')
+  if [ -n "$redirect_targets" ]; then
+    while IFS= read -r target; do
+      [ -z "$target" ] && continue
+      case "$target" in
+        /dev/null) ;;
+        .prompts/*|.handoffs/*|.scripts/*|.backlog/*|.claude/*|.gitignore) ;;
+        */.prompts/*|*/.handoffs/*|*/.scripts/*|*/.backlog/*|*/.claude/*|*/.gitignore) ;;
+        *) return 0 ;;
+      esac
+    done <<EOF
+$redirect_targets
+EOF
   fi
 
-  if bash_command_has_blocked_mutation "$COMMAND"; then
-    debug_log "decision=BLOCK tool=Bash command=$COMMAND"
-    echo "BLOCKED: Strategic Partner does not mutate source files via shell. Craft a prompt instead. (Command pattern detected)" >&2
+  if printf '%s' "$raw_stripped" | grep -qE '(sed[[:space:]]+-[^;&|]*i|tee[[:space:]]|perl[[:space:]]+-[^;&|]*i|git[[:space:]]+apply|git[[:space:]]+cherry-pick)'; then
+    return 0
+  fi
+
+  return 1
+}
+
+# --- Guard 2: Block Bash commands with obvious file-mutation patterns ---
+if [ "$TOOL_NAME" = "Bash" ]; then
+  JQ_AVAILABLE=false
+  if command -v jq >/dev/null 2>&1 && printf '{}' | jq -e type >/dev/null 2>&1; then
+    JQ_AVAILABLE=true
+  fi
+
+  if [ "$JQ_AVAILABLE" = true ]; then
+    COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+    if [ -z "$COMMAND" ]; then
+      debug_log "decision=BLOCK tool=Bash reason='no command parsed'"
+      echo "BLOCKED: Strategic Partner could not read the Bash command — blocking to be safe." >&2
+      exit 2
+    fi
+
+    if bash_command_has_blocked_mutation "$COMMAND"; then
+      debug_log "decision=BLOCK tool=Bash command=$COMMAND"
+      echo "BLOCKED: Strategic Partner does not mutate source files via shell. Craft a prompt instead. (Command pattern detected)" >&2
+      exit 2
+    fi
+  elif raw_bash_payload_has_blocked_mutation "$INPUT"; then
+    debug_log "decision=BLOCK tool=Bash reason='jq unavailable and raw mutation marker detected'"
+    echo "BLOCKED: Strategic Partner could not safely parse a mutation-looking Bash command because jq is unavailable — blocking to be safe." >&2
     exit 2
   fi
 fi
