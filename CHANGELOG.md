@@ -1,5 +1,17 @@
 # Changelog
 
+## [7.3.2] - 2026-07-02
+
+### Fixed
+- **The project-rules content scanner no longer mistakes ordinary writing for a session log** — a check meant to catch dumped session notes in your project's rules file was matching on word fragments inside completely normal sentences, and a single old false alarm would block every future edit to that file, forever, no matter how small.
+- **A safety check for terminal commands could be silently bypassed, and separately, over-blocked harmless commands** — a command containing quoted text could sneak past the check meant to stop accidental file changes; separately, some completely harmless commands were being blocked for no reason. Both are fixed, including for the rare case where a required helper tool isn't installed.
+
+### Added
+- **You can now see whether the "different reviewer than builder" policy is active for your project** — a status line appears every session, instead of only surfacing deep inside an actual build.
+
+### Changed
+- **The Codex review command now describes itself more precisely** — it's the reviewer-side check only; turning the policy itself on or off is a separate, one-line project-rule setting.
+
 ## [7.3.1] - 2026-06-22
 
 ### Fixed
