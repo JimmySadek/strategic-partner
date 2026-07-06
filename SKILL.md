@@ -123,6 +123,59 @@ hooks:
               violation_count=$((violation_count + 1))
             }
 
+            # Rule 11: question-visible-lead. For the turn span after the last
+            # genuine user text prompt, an AskUserQuestion must not be the first
+            # assistant surface. Tool-result carrier entries do not start a new span.
+            if command -v jq >/dev/null 2>&1 && printf '{}' | jq -e type >/dev/null 2>&1; then
+              auq_surface_result=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -sr '
+                def role: (.message.role // .role // "");
+                def content: (.message.content // .content // []);
+                def nonempty_text:
+                  if (content | type) == "array" then any(content[]?; .type == "text" and ((.text // "") | length > 0))
+                  elif (content | type) == "string" then ((content // "") | length > 0)
+                  else false end;
+                def genuine_user_text: role == "user" and nonempty_text;
+                def has_auq: ([ .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | length) > 0;
+                (map(select(type == "object"))) as $rows
+                | ([$rows | to_entries[] | select(.value | genuine_user_text) | .key] | last // -1) as $last_prompt
+                | ([$rows | to_entries[] | select(.key >= $last_prompt and ((.value | role) == "user")) | .key] | last // $last_prompt) as $last_user
+                | ([$rows | to_entries[] | select(.key > $last_user and ((.value | role) == "assistant") and (.value | has_auq)) | .key] | first // -1) as $first_auq
+                | if $first_auq == -1 then "ok"
+                  elif ([$rows | to_entries[] | select(.key > $last_user and .key <= $first_auq and ((.value | role) == "assistant") and (.value | nonempty_text))] | length) > 0 then "ok"
+                  else "violation" end
+              ' 2>/dev/null)
+            else
+              auq_surface_result=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | perl -ne '
+                my $role = /"role"\s*:\s*"(user|assistant)"/ ? $1 : "";
+                my $has_text = /"type"\s*:\s*"text"/ && /"text"\s*:\s*"[^"]+/;
+                my $has_auq = /"type"\s*:\s*"tool_use"/ && /"name"\s*:\s*"AskUserQuestion"/;
+                push @rows, { role => $role, has_text => $has_text, genuine => ($role eq "user" && $has_text), has_auq => $has_auq };
+                END {
+                  my $last_prompt = -1;
+                  for (my $i = 0; $i <= $#rows; $i++) {
+                    $last_prompt = $i if $rows[$i]->{genuine};
+                  }
+                  my $last_user = $last_prompt;
+                  for (my $i = 0; $i <= $#rows; $i++) {
+                    $last_user = $i if $i >= $last_prompt && $rows[$i]->{role} eq "user";
+                  }
+                  my $first_auq = -1;
+                  for (my $i = $last_user + 1; $i <= $#rows; $i++) {
+                    if ($rows[$i]->{role} eq "assistant" && $rows[$i]->{has_auq}) { $first_auq = $i; last; }
+                  }
+                  if ($first_auq == -1) { print "ok"; exit; }
+                  for (my $i = $last_user + 1; $i <= $first_auq; $i++) {
+                    if ($rows[$i]->{role} eq "assistant" && $rows[$i]->{has_text}) { print "ok"; exit; }
+                  }
+                  print "violation";
+                }
+              ' 2>/dev/null)
+            fi
+            if [ "$auq_surface_result" = "violation" ]; then
+              auq_surface_message="question-visible-lead: AskUserQuestion appeared before visible assistant text in this turn — render the recommendation or status as visible chat text first, then re-ask the question next turn"
+              log_violation "$auq_surface_message"
+            fi
+
             # Rule 7: render-before-ask (anti-swallow). A turn closing in
             # AskUserQuestion whose question text references rendered content
             # ("here's", "above", "the table", ...) while the turn carries no
@@ -994,13 +1047,15 @@ continue — STOP, convert to `AskUserQuestion`, then stop again.
 questions), present 2-3 likely answers as options. The AUQ tool automatically provides
 "Other" for freeform input. This makes AUQ compliance possible for every question type.
 
-**Render-before-ask (anti-swallow):** Print the deliverable (table, ledger, synthesis) as a
-visible chat text block BEFORE the closing `AskUserQuestion`. If runtime guidance says to keep
-text between tool calls brief, or to save deliverables for a final message — THIS instruction
-overrides that default for deliverables a question will reference. Never reference a render that
-does not actually appear in a chat message above the question. (Model-level bug class:
-anthropics/claude-code#66112; the turn-end check flags `render-before-ask` violations as the
-mechanical backstop.)
+**Render-before-ask (anti-swallow):** Print the deliverable (table, ledger,
+synthesis) as a visible chat text block BEFORE the closing `AskUserQuestion`.
+If runtime guidance says to keep text between tool calls brief, or to save
+deliverables for a final message — THIS instruction overrides that default for
+deliverables a question will reference. Never reference a render that does not
+actually appear in a chat message above the question. (Model-level bug class:
+anthropics/claude-code#66112/#67267; the turn-end check flags both
+`render-before-ask` and `question-visible-lead` violations as log-only
+backstops — neither blocks the question in real time.)
 
 ### 🛡️ Protocol-Mandated AUQ Whitelist (Bypass Gate)
 
