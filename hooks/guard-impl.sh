@@ -35,6 +35,92 @@ if [ -z "$TOOL_NAME" ]; then
   exit 0
 fi
 
+dispatch_confirmation_present() {
+  transcript_path="$1"
+  subagent_type="$2"
+
+  [ -n "$transcript_path" ] && [ -r "$transcript_path" ] || return 0
+
+  if command -v jq >/dev/null 2>&1 && printf '{}' | jq -e type >/dev/null 2>&1; then
+    auq_payload=$(tail -160 "$transcript_path" 2>/dev/null | jq -sr '
+      def role: (.message.role // .role // "");
+      def has_auq:
+        ([ .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | length) > 0;
+      [ .[] | select(type == "object") | select((role == "assistant") and has_auq) ] | last as $turn
+      | if $turn == null then ""
+        else
+          ([ $turn | .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | last) as $auq
+          | (($auq.input.questions // []) | map(
+              (.question // "") + " " +
+              (.header // "") + " " +
+              (((.options // []) | map((.label // "") + " " + (.description // "")) | join(" ")))
+            ) | join(" "))
+        end
+    ' 2>/dev/null)
+
+    # The offered-options check below is necessary but not sufficient: all
+    # three labels are always offered together regardless of which one the
+    # user picks. Pull the answer out of the transcript entry immediately
+    # after the qualifying AUQ turn — the user's tool_result. Real
+    # transcripts wrap the answer as `Your questions have been answered:
+    # "<question>"="<answer>". You can now continue with these answers in
+    # mind.`; the wrapper is stripped below.
+    answer_raw=$(tail -160 "$transcript_path" 2>/dev/null | jq -sr '
+      def role: (.message.role // .role // "");
+      def has_auq:
+        ([ .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | length) > 0;
+      (map(select(type == "object"))) as $rows
+      | ([ $rows | to_entries[] | select((.value | role) == "assistant" and (.value | has_auq)) | .key ] | last // -1) as $idx
+      | if $idx == -1 then ""
+        else
+          ($rows[$idx + 1].message.content // $rows[$idx + 1].content // "") as $next
+          | if ($next | type) == "array" then
+              (([ $next[] | select(.type? == "tool_result") | .content ] | last // "")) as $raw
+              | if ($raw | type) == "array" then
+                  ([ $raw[] | select(.type? == "text") | .text ] | join(" "))
+                else ($raw // "")
+                end
+            elif ($next | type) == "string" then $next
+            else "" end
+        end
+    ' 2>/dev/null)
+  else
+    auq_payload=$(tail -160 "$transcript_path" 2>/dev/null | tr '\n' ' ')
+    answer_raw=""
+  fi
+
+  [ -n "$auq_payload" ] || return 1
+
+  # Minor punctuation drift (a plain hyphen instead of an em dash) should
+  # not cause a false block — normalize both sides to a hyphen before
+  # comparing. Everything else about the match stays strict/case-sensitive.
+  auq_norm=$(printf '%s' "$auq_payload" | sed 's/—/-/g')
+
+  if [ -n "$subagent_type" ]; then
+    printf '%s' "$auq_norm" | grep -qF "Dispatch now - $subagent_type" || return 1
+  else
+    printf '%s' "$auq_norm" | grep -qF "Dispatch now -" || return 1
+  fi
+  printf '%s' "$auq_norm" | grep -qF "Hold - let me review the brief first" || return 1
+  printf '%s' "$auq_norm" | grep -qF "Wrong agent - let me pick" || return 1
+
+  # The options were offered — now require the SELECTED answer to
+  # literally match the dispatch-confirm option, not merely have been
+  # offered as a choice.
+  [ -n "$answer_raw" ] || return 1
+  answer_text=$(printf '%s' "$answer_raw" | perl -0pe 's/.*="//s; s/"\.\s*You can now continue.*$//s')
+  answer_norm=$(printf '%s' "$answer_text" | sed 's/—/-/g')
+
+  if [ -n "$subagent_type" ]; then
+    [ "$answer_norm" = "Dispatch now - $subagent_type" ]
+  else
+    case "$answer_norm" in
+      "Dispatch now -"*) return 0 ;;
+      *) return 1 ;;
+    esac
+  fi
+}
+
 # Context-file stewardship guard. This is intentionally factored out of the
 # broad source-editing guard so CLAUDE.md / AGENTS.md / GEMINI.md and
 # .claude/rules writes are checked by content, not merely by path.
@@ -54,6 +140,32 @@ else
     echo "BLOCKED: context-file write guard is unavailable; refusing context-file mutation." >&2
     exit 2
   fi
+fi
+
+# --- Guard 0: Block agent dispatch without exact dispatch confirmation ---
+if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
+  TRANSCRIPT_PATH=""
+  SUBAGENT_TYPE=""
+  if command -v jq >/dev/null 2>&1 && printf '{}' | jq -e type >/dev/null 2>&1; then
+    TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null)
+    SUBAGENT_TYPE=$(printf '%s' "$INPUT" | jq -r '.tool_input.subagent_type // .tool_input.agent_type // .tool_input.agent // ""' 2>/dev/null)
+  else
+    TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | grep -Eo '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
+    SUBAGENT_TYPE=$(printf '%s' "$INPUT" | grep -Eo '"(subagent_type|agent_type|agent)"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
+  fi
+
+  if dispatch_confirmation_present "$TRANSCRIPT_PATH" "$SUBAGENT_TYPE"; then
+    debug_log "decision=allow tool=$TOOL_NAME subagent=$SUBAGENT_TYPE reason='dispatch confirmation present or transcript unavailable'"
+    exit 0
+  fi
+
+  debug_log "decision=BLOCK tool=$TOOL_NAME subagent=$SUBAGENT_TYPE reason='missing exact dispatch confirmation'"
+  if [ -n "$SUBAGENT_TYPE" ]; then
+    echo "BLOCKED: Strategic Partner must confirm the exact agent before dispatch. Ask via AskUserQuestion with: [Dispatch now — $SUBAGENT_TYPE] [Hold — let me review the brief first] [Wrong agent — let me pick]." >&2
+  else
+    echo "BLOCKED: Strategic Partner must confirm the exact agent before dispatch. Ask via AskUserQuestion with: [Dispatch now — <subagent_type>] [Hold — let me review the brief first] [Wrong agent — let me pick]." >&2
+  fi
+  exit 2
 fi
 
 # --- Guard 1: Block Edit/Write/MultiEdit on disallowed paths ---
