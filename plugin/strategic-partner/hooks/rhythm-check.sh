@@ -242,7 +242,7 @@ fi
 
 # Rule 9: delivery-choice-missing (LOG-ONLY) — a real implementation
 # COPY fence emitted without recording a delivery choice (no
-# **Simplicity:** marker in turn_text, and no "Dispatch via agent" in
+# **Simplicity:** marker in turn_text, and no "Dispatch now" in
 # auq_payload_text) means the Delivery Choice Checkpoint was skipped.
 # Reuses Rule 8's real_fence8 discriminator and launcher_line. LOG-ONLY:
 # never returns or exits nonzero; the final exit 0 below is unchanged.
@@ -256,7 +256,7 @@ if [ "${real_fence8:-}" = "yes" ]; then
     /strategic-partner[[:space:]]*.handoffs/*) dc_skip=yes ;;   # exempt — handoff continuation
   esac
   printf '%s' "$turn_text" | grep -qF '**Simplicity:**' && dc_skip=yes
-  printf '%s' "$auq_payload_text" | grep -qF 'Dispatch via agent' && dc_skip=yes
+  printf '%s' "$auq_payload_text" | grep -qF 'Dispatch now' && dc_skip=yes
   if [ "$dc_skip" = no ]; then
     log_violation "delivery-choice-missing: implementation prompt emitted without a Simplicity marker or a dispatch offer — the Delivery Choice Checkpoint was skipped"
   fi

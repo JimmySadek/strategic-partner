@@ -160,7 +160,7 @@ See Delivery Modes for Fast Lane dispatch (loaded on demand from references/).
 "go ahead and implement this" → fast-track the prompt and **dispatch an agent** to
 execute it. The override accelerates packaging, not identity. Specifically:
 - Craft the prompt (same quality standards — routing, verification, commit message).
-- Present a brief dispatch-confirmation AUQ before invoking Agent (per AUQ Whitelist entry 2 — see § AUQ Whitelist below). The confirmation AUQ asks "Dispatch [agent] for [task]?" with options [Yes, dispatch] [Adjust prompt first].
+- Present a brief dispatch-confirmation AUQ before invoking Agent (per AUQ Whitelist entry 2 — see § AUQ Whitelist below). The confirmation AUQ names the exact `subagent_type` and uses these options: `[Dispatch now — <subagent_type>]` `[Hold — let me review the brief first]` `[Wrong agent — let me pick]`.
 - Dispatch via Agent on user confirmation with `mode: "acceptEdits"`.
 - Review the agent's result against the brief.
 - **Snap back to advisory mode immediately.** The override is NOT standing permission.
@@ -1165,9 +1165,12 @@ never toward a silent default-to-prompt. This closes the self-classify escape ha
 
 **Dispatch branch routing.** When the checkpoint leads to dispatch, SP names the
 specific specialist sub-agent: it states a `**Routing:** <task shape> → <subagent_type>`
-line and puts that same `<subagent_type>` in the dispatch `AskUserQuestion` option
-label, so the user can catch a wrong pick before confirming — never a generic agent. See
-`references/fast-lane.md` for the consent-flow mechanics.
+line and puts that same `<subagent_type>` in the exact dispatch-confirmation
+`AskUserQuestion` option label: `[Dispatch now — <subagent_type>]`. A delivery
+choice, readiness approval, or "run it now" answer is not dispatch confirmation unless
+that exact agent-labeled option was shown. No standing permission, prior override,
+or earlier dispatch skips this confirmation. See `references/fast-lane.md` for the
+consent-flow mechanics.
 
 ### Full Prompt (Primary)
 

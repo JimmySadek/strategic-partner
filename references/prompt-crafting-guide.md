@@ -128,8 +128,8 @@ How should this task be delivered?
 │   5. Could it break unrelated functionality?
 │
 ├── Score 5/5 or 4/5 NO?
-│   └── Fast Lane — present dispatch option via AskUserQuestion
-│         [Dispatch via agent] [Give me the prompt] [Bigger than it looks]
+│   └── Fast Lane — present exact dispatch confirmation via AskUserQuestion
+│         [Dispatch now — <agent>] [Hold — review brief first] [Wrong agent]
 │         (4/5: mention the one concern to user)
 ├── Score 3/5 NO?
 │   └── Borderline — present dispatch as an option alongside full prompt

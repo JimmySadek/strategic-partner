@@ -55,8 +55,9 @@ tasks that don't qualify:
 - Score ≤2/5 → dispatch option **MUST NOT** appear. Only offer:
   `[Give me the prompt]` `[This is bigger than it looks]`
 - Score 3/5 → dispatch appears but labeled "(borderline)":
-  `[Dispatch via agent — <subagent_type> (borderline)]` `[Give me the prompt]` `[This is bigger than it looks]`
-- Score 4-5/5 → dispatch appears as primary option
+  `[Dispatch now — <subagent_type> (borderline)]` `[Hold — let me review the brief first]` `[Wrong agent — let me pick]`
+- Score 4-5/5 → dispatch appears as the primary exact-confirmation option:
+  `[Dispatch now — <subagent_type>]` `[Hold — let me review the brief first]` `[Wrong agent — let me pick]`
 
 The scoring and gate must run BEFORE the `AskUserQuestion` — never after
 the user has already chosen.
@@ -74,11 +75,15 @@ borderline score-3 label — SP states the chosen specialist on its own line:
 
 The `<subagent_type>` is the specific specialist for the task — for example,
 `frontend-architect` for a React/Tailwind UI change — and that same name goes in the
-dispatch option label so the user can catch a wrong pick before confirming. SP never
-defaults to `general-purpose` unless no specialist fits; when that is the case, the
-routing line states why no specialist matched. This mirrors SP's Pre-Dispatch Routing
-Verification rule (output style), which already requires the `subagent_type` in the
-dispatch option label.
+exact dispatch-confirmation option label (`[Dispatch now — <subagent_type>]`) so the
+user can catch a wrong pick before confirming. SP never defaults to `general-purpose`
+unless no specialist fits; when that is the case, the routing line states why no
+specialist matched. This mirrors SP's Pre-Dispatch Routing Verification rule (output
+style), which already requires the `subagent_type` in the dispatch option label.
+
+A delivery-choice answer, readiness approval, or "run it now" answer is not dispatch
+confirmation unless the AUQ shows the exact `Dispatch now — <subagent_type>` option
+plus `[Hold — let me review the brief first]` and `[Wrong agent — let me pick]`.
 
 This dispatch routing line supplements — it does not replace — the per-template
 `**🎯 Routing**` skill line in the One-Step and Two-Step Consent blocks below. The
@@ -106,13 +111,13 @@ ANY of Q1/Q2/Q3 = YES? (design judgment, multiple implementations, uncertain req
 > **Position:** [specific fix] because [reason]
 
 `AskUserQuestion`:
-- `[Dispatch via agent — <subagent_type>]` — SP spawns agent with this prompt, reviews result inline
-- `[Give me the prompt]` — standard ══ fence delivery
-- `[Adjust the fix]` — SP presents alternative solutions
+- `[Dispatch now — <subagent_type>]` — SP spawns this exact agent with this prompt and reviews the result inline
+- `[Hold — let me review the brief first]` — SP shows the prompt/fence path before any agent runs
+- `[Wrong agent — let me pick]` — SP reopens agent selection before dispatch
 
-The "Adjust the fix" option is the user's escape hatch if the Position statement
-doesn't match their intent. It triggers the SP to present alternatives (effectively
-promoting to two-step).
+The "Wrong agent" option is the user's escape hatch if the route does not match their
+intent. If the fix itself is wrong, SP reopens alternatives before returning to
+dispatch confirmation.
 
 ### Two-Step Consent (ANY of Q1/Q2/Q3 = YES — solution ambiguous)
 
@@ -126,9 +131,9 @@ promoting to two-step).
 - `[Suggest something else]`
 
 **Step 2** — `AskUserQuestion` (delivery):
-- `[Dispatch via agent — <subagent_type>]` — SP spawns agent with this prompt, reviews result inline
-- `[Give me the prompt]` — standard ══ fence delivery
-- `[This is bigger than it looks]` — escalate to full session prompt
+- `[Dispatch now — <subagent_type>]` — SP spawns this exact agent with this prompt and reviews the result inline
+- `[Hold — let me review the brief first]` — SP shows the prompt/fence path before any agent runs
+- `[Wrong agent — let me pick]` — SP reopens agent selection before dispatch
 
 ---
 
@@ -161,12 +166,12 @@ only — SP never reuses it across sessions. When `agent_teams_available` is
 false, SP captures nothing here and Fast Lane behaves exactly as it does
 today.
 
-If user wants the prompt instead: standard `══` fence delivery.
-If user says "bigger than it looks": escalate to full prompt with design phase.
+If user chooses hold: show the standard `══` fence delivery before any agent runs.
+If user says the work is bigger than it looks: escalate to full prompt with design phase.
 
 **What doesn't change:**
 - The SP still crafts the prompt before dispatching — no shortcuts
-- `AskUserQuestion` before every dispatch — never auto-spawn
+- Exact `AskUserQuestion` before every dispatch — never auto-spawn
 - Per-task decision — choosing dispatch once ≠ standing permission
 - The implementation boundary — SP never edits files in its own context
 

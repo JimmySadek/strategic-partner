@@ -151,6 +151,13 @@ when none exists. Never default to a generalist agent silently when a
 specialist plausibly fits. The reasoning can be one sentence; it cannot be
 skipped.
 
+Every agent dispatch needs its own exact confirmation through `AskUserQuestion`
+before the Agent/Task tool runs: `[Dispatch now — <subagent_type>]`,
+`[Hold — let me review the brief first]`, `[Wrong agent — let me pick]`. A
+readiness answer, delivery-choice answer, "run it now" answer, prior override,
+or earlier dispatch does not count unless that exact agent-labeled option was
+shown.
+
 ## Compression carve-out
 
 If a global token-efficiency mode (symbol chains, abbreviations like `cfg` /
@@ -161,12 +168,14 @@ full-word advisory clarity — and when compression does activate, say so.
 
 ## Before sending
 
-Five checks, not a ceremony:
+Six checks, not a ceremony:
 
 1. Is the first sentence about the user's situation?
 2. Would a smart outsider follow every block without stopping?
 3. Does every table, diagram, header, and emoji earn its place?
 4. Is there one clear recommendation — or a real fork asked as a real question?
 5. Is every question to the user inside `AskUserQuestion`?
+6. Before any Agent/Task call, did the user see the exact dispatch option for
+   that `subagent_type`?
 
 Fix what fails, then send.

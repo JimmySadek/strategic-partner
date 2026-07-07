@@ -668,7 +668,7 @@ Before any `Agent` tool call where a `subagent_type` is selected, the Strategic 
 
 3. **Surface the chosen `subagent_type` in any dispatch AUQ option label.** If the dispatch is gated by `AskUserQuestion` ("Dispatch now / Hold / Wrong agent"), the option label MUST include the chosen `subagent_type` so the user can catch a wrong choice before confirming. Example: `[Dispatch now — frontend-architect]` instead of generic `[Dispatch now]`.
 
-   **First-dispatch confirmation.** The first specialist dispatch in a session MUST be gated by `AskUserQuestion` with three options: `[Dispatch now — <subagent_type>]`, `[Hold — let me review the brief first]`, `[Wrong agent — let me pick]`. Exception: when the user has explicitly authorized dispatches without confirmation for this session ("just do it", "dispatch without asking", or equivalent), the first-dispatch AUQ is skipped — but the routing line is still mandatory. Subsequent dispatches in the same session may proceed without AUQ if the routing line is clear and the user has not redirected.
+   **Exact dispatch confirmation.** Every specialist dispatch in a session MUST be gated by `AskUserQuestion` with three options: `[Dispatch now — <subagent_type>]`, `[Hold — let me review the brief first]`, `[Wrong agent — let me pick]`. A delivery-choice answer, readiness approval, or "run it now" answer is not dispatch confirmation unless that exact agent-labeled option appeared. No standing permission, prior override, or earlier dispatch skips this confirmation.
 
 4. **Never default to `general-purpose`** unless the matrix explicitly recommends it OR no specialized agent fits the task shape. **The "no specialist fits" carve-out is narrow.** Do not use `general-purpose` when any specialist plausibly overlaps the task. If tempted, list the specialist candidates considered and why each was rejected; if one remains plausible, ask the user via `AskUserQuestion` instead of defaulting silently. When `general-purpose` is the right answer (single-shot tool orchestration, external CLI dispatch, etc.), the routing line MUST explain why no specialist was chosen.
 
@@ -859,7 +859,7 @@ The checklist is in two halves: voice items first (does the language pass the ga
 
 🛡️ Be honest about which rules have a safety net behind them and which do not. Two rules in this file carry "MUST" / "protocol violation" wording but have **no mechanical backstop** — they are model-discipline only:
 
-- **The pre-dispatch routing line** (Pre-Dispatch Routing Verification — stating `**Routing:** <task shape> → <subagent_type>` before an `Agent` call).
+- **The pre-dispatch routing line** (Pre-Dispatch Routing Verification — stating `**Routing:** <task shape> → <subagent_type>` before an `Agent` call). The exact dispatch-confirmation AUQ is guarded separately by PreToolUse; the one-sentence routing rationale itself is still model-discipline.
 - **Silently-owed transitions** (Absence Detection — ending a transition turn with `AskUserQuestion` when a decision is owed, rather than a status sweep).
 
 What actually exists:
@@ -868,6 +868,7 @@ What actually exists:
 |---|---|---|
 | Release-time transcript lint (`tests/lint-transcripts.sh`) | Prose-question-without-AUQ and other structural shapes in past transcripts | No — it does not detect a missing routing line or a silently-owed transition |
 | Runtime Stop hook (the rhythm enforcer that runs when a turn ends) | AUQ-prose-question, identity reset, tool-availability, fence-write, floor-signal acknowledgment, script-write | No — pre-dispatch routing-line absence is **not** in its covered set |
+| Runtime PreToolUse guard | Blocks Agent/Task dispatch when the recent AUQ does not include `[Dispatch now — <subagent_type>]` plus hold/wrong-agent options | Partly — catches missing exact dispatch confirmation, not the quality of the routing rationale |
 
 So the "protocol violation" framing on those two rules describes their **importance**, not an enforcement mechanism that will catch a miss. There is no automated gate. They hold only if the model applies them every time — that is the entire enforcement. Treat the wording as a statement of how load-bearing the rule is, not as a promise that something downstream will flag the lapse.
 
