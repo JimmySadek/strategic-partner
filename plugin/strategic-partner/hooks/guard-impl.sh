@@ -39,7 +39,11 @@ dispatch_confirmation_present() {
   transcript_path="$1"
   subagent_type="$2"
 
-  [ -n "$transcript_path" ] && [ -r "$transcript_path" ] || return 0
+  # A missing/unreadable transcript means we can't verify a confirmation
+  # exists — fail CLOSED. Mirrors Guard 1 (unreadable file_path on a
+  # confirmed edit tool) and Guard 3 (unreadable Serena path) below: an
+  # unverifiable state blocks rather than allows.
+  [ -n "$transcript_path" ] && [ -r "$transcript_path" ] || return 1
 
   if command -v jq >/dev/null 2>&1 && printf '{}' | jq -e type >/dev/null 2>&1; then
     auq_payload=$(tail -160 "$transcript_path" 2>/dev/null | jq -sr '
@@ -73,15 +77,23 @@ dispatch_confirmation_present() {
       | ([ $rows | to_entries[] | select((.value | role) == "assistant" and (.value | has_auq)) | .key ] | last // -1) as $idx
       | if $idx == -1 then ""
         else
-          ($rows[$idx + 1].message.content // $rows[$idx + 1].content // "") as $next
-          | if ($next | type) == "array" then
-              (([ $next[] | select(.type? == "tool_result") | .content ] | last // "")) as $raw
-              | if ($raw | type) == "array" then
-                  ([ $raw[] | select(.type? == "text") | .text ] | join(" "))
-                else ($raw // "")
-                end
-            elif ($next | type) == "string" then $next
-            else "" end
+          # The confirmation only authorizes the immediately-following
+          # exchange. Any further user/assistant turn after the answer
+          # stales it — a later, unrelated dispatch attempt must not be
+          # able to replay an old confirmation.
+          (($rows[$idx + 2:]) | map(select((role == "user") or (role == "assistant"))) | length) as $later_turns
+          | if $later_turns > 0 then ""
+            else
+              ($rows[$idx + 1].message.content // $rows[$idx + 1].content // "") as $next
+              | if ($next | type) == "array" then
+                  (([ $next[] | select(.type? == "tool_result") | .content ] | last // "")) as $raw
+                  | if ($raw | type) == "array" then
+                      ([ $raw[] | select(.type? == "text") | .text ] | join(" "))
+                    else ($raw // "")
+                    end
+                elif ($next | type) == "string" then $next
+                else "" end
+            end
         end
     ' 2>/dev/null)
   else
@@ -155,7 +167,7 @@ if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
   fi
 
   if dispatch_confirmation_present "$TRANSCRIPT_PATH" "$SUBAGENT_TYPE"; then
-    debug_log "decision=allow tool=$TOOL_NAME subagent=$SUBAGENT_TYPE reason='dispatch confirmation present or transcript unavailable'"
+    debug_log "decision=allow tool=$TOOL_NAME subagent=$SUBAGENT_TYPE reason='dispatch confirmation present'"
     exit 0
   fi
 
