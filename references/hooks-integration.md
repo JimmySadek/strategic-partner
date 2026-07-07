@@ -683,6 +683,6 @@ All other hook types discussed in this file are either:
 
 | Issue | Status | What it means for SP |
 |---|---|---|
-| [#17688](https://github.com/anthropics/claude-code/issues/17688) | OPEN (labeled `bug`) | Plugin-context skill hooks broken — PreToolUse hooks fail within plugins. **SP must NOT be distributed as a Claude Code plugin.** Skill-install (not plugin) is the only supported delivery. |
+| [#17688](https://github.com/anthropics/claude-code/issues/17688) | OPEN (labeled `bug`) | Plugin-context skill hooks broken — PreToolUse hooks fail within plugins. Still open upstream. SP's plugin packaging (`plugin/strategic-partner/`) works around this via a session-gated hook chain rather than waiting on the upstream fix — both skill and plugin installs are supported (see the skill/plugin toggle: `/strategic-partner:try-plugin` / `/strategic-partner-plugin:switch-to-skill`). |
 | [#19225](https://github.com/anthropics/claude-code/issues/19225) | Closed "not planned" | Originally claimed Stop never fires from skill frontmatter. **Empirically overturned** by 2026-04-30 audit trace evidence (see Stop section above). Consider opening a follow-up comment on the issue with the `/tmp/sp-hook-audit-trace.log` evidence. |
 | [#36135](https://github.com/anthropics/claude-code/issues/36135) | Open | `${CLAUDE_SKILL_DIR}` substitution broken in frontmatter hook commands. Workaround: use absolute paths (`/Users/yourname/...`) or `${HOME}/...`. This matches SP's existing Provisional Guard ("Don't use `${CLAUDE_*}` env vars in hook commands"). |
