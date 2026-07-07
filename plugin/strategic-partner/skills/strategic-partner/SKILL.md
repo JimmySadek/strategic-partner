@@ -9,7 +9,7 @@ description: >
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Plugin command: /strategic-partner-plugin:strategic-partner. Natural-language
   activation works for the same advisory intents.
-version: 7.4.2
+version: 7.4.3
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced

@@ -1,5 +1,14 @@
 # Changelog
 
+## [7.4.3] - 2026-07-07
+
+### Fixed
+- **The plugin's safety guard was slightly looser than the standalone skill's** — a specific way of redirecting terminal output into project folders like `.prompts` could slip past the plugin's check when it should have been blocked, matching the skill's existing stricter behavior.
+- **A dead safety toggle was removed from the plugin** — a rule it depended on was deleted in an earlier release, but the toggle checking for that rule was left behind; removing it means a future accidental copy-paste of that old rule text can no longer silently reactivate the toggle.
+- **The plugin's startup status line now reports the same information as the skill's** — added a field the plugin was silently leaving out.
+- **The skill's startup check now always shows a safe placeholder instead of a blank value** for one rarely-hit edge case.
+- **Removed an unused entry from the plugin's internal tool-matching list** — no behavior change, just cleanup.
+
 ## [7.4.2] - 2026-07-07
 
 ### Changed

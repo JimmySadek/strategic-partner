@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.4.2-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.4.3-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — **7.4.2** moves the plugin from local trial wording to a supported install path, tightens plugin version/docs/switch-command/safety-gate alignment, and gives the plugin voice a little more visual guidance without bringing back dashboard-style ceremony. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
+> **What's new** — **7.4.3** closes a gap where the plugin's safety guard was slightly more permissive than the standalone skill's, removes a dead safety toggle, and brings the plugin's startup status line in line with the skill's. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
 
 ---
 
