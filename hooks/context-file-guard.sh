@@ -155,6 +155,33 @@ write_added_snippet() {
   ' "$old_file" "$new_file" > "$out_file"
 }
 
+added_snippet_exists_in_sibling_context() {
+  target="$1"
+  added_file="$2"
+  [ -s "$added_file" ] || return 1
+
+  target_dir=$(dirname "$target")
+  target_name=$(basename "$target" | tr 'A-Z' 'a-z')
+  for sibling_name in CLAUDE.md AGENTS.md GEMINI.md; do
+    sibling_lc=$(printf '%s' "$sibling_name" | tr 'A-Z' 'a-z')
+    [ "$sibling_lc" = "$target_name" ] && continue
+    sibling_path="$target_dir/$sibling_name"
+    [ -r "$sibling_path" ] || continue
+    perl -0e '
+      local $/;
+      open my $nf, "<", $ARGV[0] or exit 1;
+      my $needle = <$nf>;
+      close $nf;
+      exit 1 if !defined($needle) || $needle eq "";
+      open my $hf, "<", $ARGV[1] or exit 1;
+      my $haystack = <$hf>;
+      close $hf;
+      exit(index($haystack, $needle) >= 0 ? 0 : 1);
+    ' "$added_file" "$sibling_path" && return 0
+  done
+  return 1
+}
+
 should_preflight_added_snippet() {
   target="$1"
   old_file="$2"
@@ -269,7 +296,7 @@ case "$TOOL_NAME" in
     if is_root_context_path "$file_path" && should_preflight_added_snippet "$file_path" "$old_file" "$new_file"; then
       write_added_snippet "$old_file" "$new_file" "$added_file" ||
         block "could not compute context-file edit addition for preflight"
-      if [ -s "$added_file" ]; then
+      if [ -s "$added_file" ] && ! added_snippet_exists_in_sibling_context "$file_path" "$added_file"; then
         run_preflight "$file_path" "$added_file" append
         [ "$LAST_PREFLIGHT_VERDICT" = "allow" ] && APPEND_PREFLIGHT_CLEAN=1
       fi
@@ -295,7 +322,7 @@ case "$TOOL_NAME" in
       if is_root_context_path "$file_path" && should_preflight_added_snippet "$file_path" "$old_file" "$new_file"; then
         write_added_snippet "$old_file" "$new_file" "$added_file" ||
           block "could not compute context-file multi-edit addition for preflight"
-        if [ -s "$added_file" ]; then
+        if [ -s "$added_file" ] && ! added_snippet_exists_in_sibling_context "$file_path" "$added_file"; then
           run_preflight "$file_path" "$added_file" append
           [ "$LAST_PREFLIGHT_VERDICT" = "allow" ] && APPEND_PREFLIGHT_CLEAN=1
         fi
