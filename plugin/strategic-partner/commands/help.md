@@ -34,6 +34,7 @@ Key behaviors:
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI; also the Codex reviewer step for cross-model build/review |
 | `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` (18 patterns, interactive or report mode) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work |
+| `/strategic-partner:switch-to-skill` | Switch back to the skill install |
 
 ## Usage
 

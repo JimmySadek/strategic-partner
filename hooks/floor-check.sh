@@ -291,6 +291,22 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
     printf 'g6.remote=unreachable\n'
     printf 'g6.diff=unknown\n'
   fi
+
+  # Plugin discovery — one-time notice, never re-shown once dismissed by
+  # installing or by the marker below. Silent if this install predates
+  # the plugin packaging (no plugin/strategic-partner in the repo).
+  PLUGIN_NOTICE_MARKER="${HOME}/.claude/.sp-plugin-notice-shown"
+  SP_DIR_FOR_PLUGIN_CHECK=$([ -n "$SP_SKILL_PATH" ] && dirname "$SP_SKILL_PATH" 2>/dev/null)
+  if [ -n "$SP_DIR_FOR_PLUGIN_CHECK" ] && [ -f "${SP_DIR_FOR_PLUGIN_CHECK}/plugin/strategic-partner/.claude-plugin/plugin.json" ]; then
+    if [ -e "${HOME}/.claude/skills/strategic-partner-plugin" ]; then
+      printf 'g6.plugin=installed\n'
+    elif [ -f "$PLUGIN_NOTICE_MARKER" ]; then
+      printf 'g6.plugin=shown\n'
+    else
+      printf 'g6.plugin=available\n'
+      touch "$PLUGIN_NOTICE_MARKER" 2>/dev/null
+    fi
+  fi
 } >> "${RESULTS}.tmp" 2>/dev/null
 
 # Group 7 — Routing matrix freshness (agent-inventory hash)

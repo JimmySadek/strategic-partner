@@ -634,6 +634,10 @@ and ask what the user wants to work on.
   dispatch; the remedy is a user-run `setup`. Full handling in
   `references/floor-signal-handling.md` § Pattern: output_style_state.
 - ⚡ Update available (from inline version check in Step 1.5): one-liner with version diff and update command
+- 💡 Plugin available (`g6.plugin=available`, shown once — see
+  `references/floor-signal-handling.md` § Pattern: plugin=available):
+  one-liner pointing to `/strategic-partner:try-plugin`. Render nothing for
+  `g6.plugin=installed` or `g6.plugin=shown`.
 - 🔧 **Context advisory** (1M-context sessions only): If the detected model
   has a 1M context window (Opus 4.8 or Opus 4.7, or any model running with
   `SP_CONTEXT_WINDOW=1M`), display this informational note in orientation:

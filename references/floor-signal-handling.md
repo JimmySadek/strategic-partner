@@ -256,6 +256,29 @@ on the user's behalf. The update flow has its own confirmation step.
 
 ---
 
+## Pattern: plugin=available
+
+**Trigger:** Floor sentinel emits `plugin=available` (the repo has a
+`plugin/strategic-partner` packaging, it isn't installed yet, and this is
+the first session where that's true — the sentinel self-clears this signal
+to `shown` after one emission via a marker file).
+
+**One-time discovery, never repeated.** Surface it once, plainly, and move on.
+
+**Surface in orientation:** Single-line note.
+
+> "💡 A plugin version of SP is available — leaner voice, faster startup.
+> Try it: `/strategic-partner:try-plugin`."
+
+**No `AskUserQuestion` required for this signal alone** — informational only,
+same as the update-notice pattern above. If the user acts on it, `try-plugin`
+has its own confirmation step.
+
+**`plugin=installed`** means the plugin is already the active install
+elsewhere on this machine — do not surface anything for this signal.
+
+---
+
 ## Pattern: conventions=missing
 
 **Trigger:** Floor sentinel emits `conventions=missing` (no `CLAUDE.md`
