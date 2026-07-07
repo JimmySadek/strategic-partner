@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.3.2-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.4.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — **7.3.0** lets a project require that a *different* AI model review a change than the one that built it (for example, Claude builds and Codex reviews — or the reverse). Add `review-policy: cross-model-go-no-go` to your project's rules file: the advisor offers the build/review direction when implementation work starts, only suggests directions whose models are installed, and records the GO / NO-GO verdict as advice — it never blocks a push or release. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
+> **What's new** — **7.4.0** adds a plugin version of Strategic Partner that installs alongside the skill. A one-time notice tells you it's available, and `/strategic-partner:try-plugin` / `/strategic-partner-plugin:switch-to-skill` switch you between the two installs any time — only one is ever registered, so you won't see duplicate commands. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
 
 ---
 
@@ -204,6 +204,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism de
 | Command | What it does |
 |---------|-------------|
 | `/strategic-partner:help` | List all subcommands |
+| `/strategic-partner:try-plugin` | Switch this install from the skill to the plugin (same behavior, leaner voice, faster startup) |
 | `/strategic-partner:copy-prompt` | Copy a recently emitted prompt to the OS clipboard |
 | `/strategic-partner:handoff` | Trigger a context handoff with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |

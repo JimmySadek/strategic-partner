@@ -1,5 +1,16 @@
 # Changelog
 
+## [7.4.0] - 2026-07-07
+
+### Added
+- **A plugin version of Strategic Partner, installable alongside the skill** — a one-time notice tells you it's available, and `/strategic-partner:try-plugin` / `/strategic-partner-plugin:switch-to-skill` let you switch between the two installs any time. Only one is ever registered at once, so you won't see duplicate commands.
+
+### Fixed
+- **Switching installs could fail silently** on machines where `rm` is wrapped for safety — the switch commands now confirm the old install is actually gone before reporting success.
+- **The plugin's "try it" notice couldn't reach you** — it was computed correctly but never made it into the message Strategic Partner reads at session start.
+- **A safety rule regressed during the plugin merge** — restored the working version of a rule that stops a question from appearing without its lead-in text first.
+- Corrected two outdated notes about plugin distribution: one claimed it wasn't supported at all, the other overstated how closely the plugin's safety guard matches the production one.
+
 ## [7.3.2] - 2026-07-02
 
 ### Fixed
