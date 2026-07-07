@@ -103,7 +103,7 @@ command_without_quoted_strings() {
 bash_command_has_blocked_mutation() {
   stripped=$(command_without_quoted_strings "$1")
 
-  redirect_targets=$(printf '%s' "$stripped" | perl -ne 'while (/(?:^|[^0-9])(?:[0-9]?>|[0-9]?>>|&>|>\|)\s*([^\s;|&<>]+)/g) { print "$1\n"; }')
+  redirect_targets=$(printf '%s' "$stripped" | perl -ne 'while (/(?:^|[^0-9])(?:[0-9]?>|[0-9]?>>|&>|>\|)\s*([^\s;|&<>)`]+)/g) { print "$1\n"; }')
   if [ -n "$redirect_targets" ]; then
     while IFS= read -r target; do
       [ -z "$target" ] && continue
@@ -129,7 +129,7 @@ raw_bash_payload_has_blocked_mutation() {
   raw="$1"
   raw_stripped=$(printf '%s' "$raw" | perl -0pe "s/'[^']*'/Q/g; s/\\\\\"([^\\\\]|\\\\.)*\\\\\"/Q/g")
 
-  redirect_targets=$(printf '%s' "$raw_stripped" | perl -ne 'while (/(?:^|[^0-9])(?:[0-9]?>|[0-9]?>>|&>|>\|)\s*([^\\",[:space:];|&<>}]+)/g) { print "$1\n"; }')
+  redirect_targets=$(printf '%s' "$raw_stripped" | perl -ne 'while (/(?:^|[^0-9])(?:[0-9]?>|[0-9]?>>|&>|>\|)\s*([^\\",[:space:];|&<>}`)]+)/g) { print "$1\n"; }')
   if [ -n "$redirect_targets" ]; then
     while IFS= read -r target; do
       [ -z "$target" ] && continue
