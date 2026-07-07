@@ -347,7 +347,7 @@ patch. Present findings to user via AskUserQuestion before proceeding.
 
 ### 5. Execute the Bump
 
-Update these files (all three, every time):
+Update these files (all five, every time):
 
 | File | Location | What to Change |
 |---|---|---|
@@ -355,6 +355,7 @@ Update these files (all three, every time):
 | `README.md` | Line 5, badge URL | `version-X.Y.Z-blue` |
 | `CHANGELOG.md` | Top of file, new section | `## [X.Y.Z] - YYYY-MM-DD` with categorized entries |
 | `output-styles/strategic-partner-voice.md` | Frontmatter `style-version:` field | Bump `style-version` **only if the voice style content changed this release** (the floor compares this stamp to the installed copy to flag staleness; an unchanged release leaves it as-is) |
+| `plugin/strategic-partner/skills/strategic-partner/SKILL.md` | Line 11, `version:` field | `version: X.Y.Z` — bump every release, no exceptions. If this release changed root `SKILL.md` content (not just the version line), diff the two files' behavioral sections before shipping — this file silently fell two versions behind root before the gap was caught on 2026-07-07 |
 
 ### 6. Commit, Tag, Push
 

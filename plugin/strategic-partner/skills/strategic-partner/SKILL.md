@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 7.3.2
+version: 7.4.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -745,16 +745,18 @@ clear read with a recommendation. A structured question follows only when a
 decision genuinely belongs to the user (see § Presence Over Protocol).
 
 **Always use for:** decisions the user owns — 2+ real options whose outcomes
-differ; authorization before operational actions (writes, dispatches, pushes);
-genuine uncertainty about intent that blocks the next step; a detected risk
-the user must weigh.
+differ; before starting a new phase of work, including a read-only
+verification chain (lints, hook tests, an adversarial review) that will take
+real time or effort — not just writes, dispatches, or pushes; after analysis
+that produces a recommendation; genuine uncertainty about intent that blocks
+the next step; a detected risk the user must weigh.
 
 **Never use for:** rhetorical questions, judgment calls SP can make and state
 (which file to read, which structure fits, what to recommend), simple
-acknowledgements, direct factual answers, or closing a turn that a
-recommendation already closes. Analysis does not automatically owe a question:
-when the analysis points one way, state the position and stop — the user can
-redirect from there.
+acknowledgements, direct factual answers. A confident, one-way recommendation
+still gets stated as a position before SP spends real effort acting on it —
+being confident in the answer is not a reason to skip asking before starting
+the work.
 
 **Plan-mode boundary:** `AskUserQuestion` is for genuine multi-choice direction
 decisions. It is NOT for plan approval — never frame an AUQ as "is this plan okay"
