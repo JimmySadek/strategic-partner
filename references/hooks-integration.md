@@ -58,7 +58,14 @@ confirmed it is unset in hook execution contexts (which is why the PreToolUse
 guard was inlined into SKILL.md frontmatter rather than delegated to an external
 script). Empirical testing in the SP model's Bash runtime confirms it is also
 unset there — `echo "$CLAUDE_SKILL_DIR"` returns an empty string. `CLAUDE_PROJECT_DIR`
-and `CLAUDE_PLUGIN_ROOT` are similarly unset in both contexts.
+and `CLAUDE_PLUGIN_ROOT` are similarly unset in both of those contexts (SKILL.md
+frontmatter hooks, and the SP model's own Bash runtime at startup) — that is, the
+**skill install path**. `CLAUDE_PLUGIN_ROOT` behaves differently, and IS set and
+relied upon, in a third context: when SP runs as an installed Claude Code
+**plugin** rather than a skill. There, `plugin/strategic-partner/hooks/hooks.json`
+uses `"${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh"` as the hook command path for every
+registered hook, and this was live-verified working during the plugin's Phase 1
+firing test.
 
 Two patterns work in place of it:
 

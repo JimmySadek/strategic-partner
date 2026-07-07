@@ -15,8 +15,8 @@ installed, supported path until this candidate passes a live trial.
 |---|---|---|
 | Skill | `skills/strategic-partner/SKILL.md` | Full production behavior, minus the 260-line inlined hook block (now `hooks/hooks.json`), plus the Presence revisions (see below) |
 | Commands | `commands/*.md` | All 8 subcommands, verbatim; they register as `/strategic-partner:<name>` exactly as today |
-| Hooks | `hooks/hooks.json` + `hooks/entry.sh` | SessionStart, UserPromptSubmit (floor), MessageDisplay/PostToolUse (AUQ surface state), PreToolUse (guard), Stop (rhythm) — all scoped by a session gate |
-| Guard chain | `hooks/guard-impl.sh`, `hooks/context-file-guard.sh`, `.scripts/context-file-scan/` | Byte-identical to production (verified by checksum and receipt parity) |
+| Hooks | `hooks/hooks.json` + `hooks/entry.sh` | SessionStart, UserPromptSubmit (floor), PreToolUse (guard), Stop (rhythm — includes a log-only check that a question wasn't asked without its lead-in text shown first) — all scoped by a session gate |
+| Guard chain | `hooks/guard-impl.sh`, `hooks/context-file-guard.sh`, `.scripts/context-file-scan/` | Same source-file-blocking logic as production, plus one plugin-only addition: writes to `/tmp`, `/private/tmp`, and `$TMPDIR` are allowed (needed for the scratchpad file tools plugin sessions use) |
 | Reference bundle | `skills/strategic-partner/references/`, `…/assets/templates/`, `…/.scripts/migrate-backlog.sh` | The skill's on-demand files (fast-lane, startup checklist, floor-signal patterns, closure floor, prompt templates…), verbatim, laid out as siblings of SKILL.md exactly like production |
 | Voice | `output-styles/strategic-partner-voice.md` | Native plugin component (no copy-install, no staleness); rewritten as style v5 |
 | Resident advisor | `agents/sp-advisor.md` + `settings.json.example` | Opt-in only — see below |
