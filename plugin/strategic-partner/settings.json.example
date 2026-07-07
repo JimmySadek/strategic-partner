@@ -1,0 +1,4 @@
+{
+  "_comment": "DELIBERATELY SHIPPED DISABLED (as .example). If this file were named settings.json inside the plugin, Claude Code would run the MAIN THREAD of EVERY session as the sp-advisor agent the moment the plugin is enabled — no per-user opt-in — putting executor sessions under the advisory source-edit guard. That is the exact failure the session gate exists to prevent. To opt IN for one project, copy the 'agent' key below into that project's .claude/settings.json (or settings.local.json). The plugin's session gate detects the opt-in at SessionStart and arms the advisory floor and guard for those sessions only.",
+  "agent": "sp-advisor"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "strategic-partner-v2",
+  "version": "7.3.2",
+  "description": "A strategic thinking partner for Claude Code that separates deciding from building. Challenges assumptions, compares approaches, and hands execution a ready-to-run prompt in a fresh session.",
+  "author": {
+    "name": "GamalElDin Sadek"
+  },
+  "homepage": "https://github.com/JimmySadek/strategic-partner",
+  "repository": "https://github.com/JimmySadek/strategic-partner",
+  "license": "MIT",
+  "keywords": ["advisory", "planning", "strategy", "routing", "handoff"]
+}
