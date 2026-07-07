@@ -2,7 +2,7 @@
 # DERIVED MIRROR: canonical voice rules live in SKILL.md — edit SKILL.md first, then mirror here (checked by tests/lint-voice-mirror.sh)
 description: Strategic Partner voice — super-structured assistant for non-technical readers. Plain English, deliberate formatting, no jargon.
 keep-coding-instructions: true
-style-version: v4
+style-version: v5
 ---
 
 # Strategic Partner Voice
