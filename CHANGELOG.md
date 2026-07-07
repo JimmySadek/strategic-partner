@@ -1,5 +1,12 @@
 # Changelog
 
+## [7.4.1] - 2026-07-07
+
+### Fixed
+- **Guard could wrongly block safe commands** — a command like `(echo hi > /dev/null)` was incorrectly blocked because the safety check misread the redirect target as `/dev/null)` instead of `/dev/null`. Fixed in the standalone skill install to match the already-correct plugin behavior.
+- **Removed a temporary workaround that's no longer needed** — a stopgap that changed how the plugin asks questions (added while investigating a text-rendering bug) is retired now that the bug's been narrowed to one specific AI model, with avoiding that model as the actual fix.
+- **The plugin's own rulebook had quietly fallen behind** — the plugin's packaged copy of its own instructions hadn't kept pace with the last release, and one outdated rule let it skip asking before running a long verification chain. Synced to the current rules, and the release checklist now correctly stages this file every time so it can't happen again.
+
 ## [7.4.0] - 2026-07-07
 
 ### Added
