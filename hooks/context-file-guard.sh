@@ -176,7 +176,20 @@ added_snippet_exists_in_sibling_context() {
       open my $hf, "<", $ARGV[1] or exit 1;
       my $haystack = <$hf>;
       close $hf;
-      exit(index($haystack, $needle) >= 0 ? 0 : 1);
+      my %haystack_lines;
+      for my $line (split /\n/, $haystack, -1) {
+        $line =~ s/^\s+|\s+$//g;
+        next if $line eq "";
+        $haystack_lines{$line} = 1;
+      }
+      my $needle_lines = 0;
+      for my $line (split /\n/, $needle, -1) {
+        $line =~ s/^\s+|\s+$//g;
+        next if $line eq "";
+        $needle_lines++;
+        exit 1 if !$haystack_lines{$line};
+      }
+      exit($needle_lines > 0 ? 0 : 1);
     ' "$added_file" "$sibling_path" && return 0
   done
   return 1
@@ -227,6 +240,12 @@ run_preflight() {
   s10_count=$(printf '%s' "$out" | jq -r '.scanner.s10_findings // 0' 2>/dev/null)
   [ -z "$s10_count" ] && s10_count=0
   LAST_PREFLIGHT_VERDICT="$verdict"
+  if [ "$mode" = "replacement" ] && [ "${SIBLING_FASTPASS_FIRED:-0}" = "1" ] && [ "$verdict" != "allow" ]; then
+    if [ -n "$exception_label" ]; then
+      block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. Override option: ${exception_label}. Receipt: ${receipt}"
+    fi
+    block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. Receipt: ${receipt}"
+  fi
   if [ "$verdict" = "needs-extraction" ] && [ "$mode" = "replacement" ]; then
     warn "context-file stewardship gate returned needs-extraction (${reason}). Safer destination: ${destination}. Override: ${exception_label:-document why this belongs here}. Receipt: ${receipt}"
     return 0
@@ -276,6 +295,7 @@ trap cleanup EXIT
 PROPOSED="$TMP/proposed.md"
 APPEND_PREFLIGHT_CLEAN=0
 LAST_PREFLIGHT_VERDICT=""
+SIBLING_FASTPASS_FIRED=0
 
 case "$TOOL_NAME" in
   Write)
@@ -296,9 +316,13 @@ case "$TOOL_NAME" in
     if is_root_context_path "$file_path" && should_preflight_added_snippet "$file_path" "$old_file" "$new_file"; then
       write_added_snippet "$old_file" "$new_file" "$added_file" ||
         block "could not compute context-file edit addition for preflight"
-      if [ -s "$added_file" ] && ! added_snippet_exists_in_sibling_context "$file_path" "$added_file"; then
-        run_preflight "$file_path" "$added_file" append
-        [ "$LAST_PREFLIGHT_VERDICT" = "allow" ] && APPEND_PREFLIGHT_CLEAN=1
+      if [ -s "$added_file" ]; then
+        if added_snippet_exists_in_sibling_context "$file_path" "$added_file"; then
+          SIBLING_FASTPASS_FIRED=1
+        else
+          run_preflight "$file_path" "$added_file" append
+          [ "$LAST_PREFLIGHT_VERDICT" = "allow" ] && APPEND_PREFLIGHT_CLEAN=1
+        fi
       fi
     fi
     replace_all=$(printf '%s' "$INPUT" | jq -r '.tool_input.replace_all // false')
@@ -322,9 +346,13 @@ case "$TOOL_NAME" in
       if is_root_context_path "$file_path" && should_preflight_added_snippet "$file_path" "$old_file" "$new_file"; then
         write_added_snippet "$old_file" "$new_file" "$added_file" ||
           block "could not compute context-file multi-edit addition for preflight"
-        if [ -s "$added_file" ] && ! added_snippet_exists_in_sibling_context "$file_path" "$added_file"; then
-          run_preflight "$file_path" "$added_file" append
-          [ "$LAST_PREFLIGHT_VERDICT" = "allow" ] && APPEND_PREFLIGHT_CLEAN=1
+        if [ -s "$added_file" ]; then
+          if added_snippet_exists_in_sibling_context "$file_path" "$added_file"; then
+            SIBLING_FASTPASS_FIRED=1
+          else
+            run_preflight "$file_path" "$added_file" append
+            [ "$LAST_PREFLIGHT_VERDICT" = "allow" ] && APPEND_PREFLIGHT_CLEAN=1
+          fi
         fi
       fi
       replace_all=$(printf '%s' "$INPUT" | jq -r ".tool_input.edits[$i].replace_all // false")
