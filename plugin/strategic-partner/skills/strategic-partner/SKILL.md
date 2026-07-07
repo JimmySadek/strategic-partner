@@ -27,21 +27,6 @@ repo: JimmySadek/strategic-partner
 
 ---
 
-## Temporary AUQ Freeze
-
-Do not call `AskUserQuestion` while the Claude Code text-swallow bug is live.
-Render decisions as visible chat text with 2-4 numbered options, mark the
-recommended option, and stop for the user to type a number or free-form reply.
-Render the numbered options as the FINAL text of the turn, after all tool calls — text followed by a tool call in the same message is exactly the shape the bug eats.
-
-This temporary rule supersedes every `AskUserQuestion` mandate below, including
-orientation, the AUQ whitelist, command instructions, and the Response Completion
-Rule. Keep the AUQ guard installed only as a fallback if this instruction is
-missed.
-Removal is tracked in .backlog/remove-auq-freeze.md — remove this section only after the upstream fix (anthropics/claude-code#66112 / #67267) is confirmed by a probe session. Deleting the section automatically re-arms the prose-question rule via the hooks' heading check.
-
----
-
 ## 🧭 Presence Over Protocol
 
 The protocols in this file exist to protect judgment, not to replace it. When a
