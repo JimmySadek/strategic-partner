@@ -360,7 +360,7 @@ Update these files (all five, every time):
 ### 6. Commit, Tag, Push
 
 ```
-git add SKILL.md README.md CHANGELOG.md
+git add SKILL.md README.md CHANGELOG.md plugin/strategic-partner/skills/strategic-partner/SKILL.md
 # Also stage the voice style file IF its content changed this release
 # (its bumped style-version is what the floor uses to flag a stale
 # installed copy):
