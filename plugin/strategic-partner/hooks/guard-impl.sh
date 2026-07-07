@@ -114,8 +114,8 @@ redirect_target_allowed() {
 
   case "$target" in
     /dev/null|/tmp|/tmp/*|/private/tmp|/private/tmp/*|\$TMPDIR|\$TMPDIR/*|\${TMPDIR}|\${TMPDIR}/*) return 0 ;;
-    .prompts|.prompts/*|.handoffs|.handoffs/*|.scripts|.scripts/*|.backlog|.backlog/*|.claude|.claude/*|.gitignore) return 0 ;;
-    */.prompts|*/.prompts/*|*/.handoffs|*/.handoffs/*|*/.scripts|*/.scripts/*|*/.backlog|*/.backlog/*|*/.claude|*/.claude/*|*/.gitignore) return 0 ;;
+    .prompts/*|.handoffs/*|.scripts/*|.backlog/*|.claude/*|.gitignore) return 0 ;;
+    */.prompts/*|*/.handoffs/*|*/.scripts/*|*/.backlog/*|*/.claude/*|*/.gitignore) return 0 ;;
   esac
 
   return 1

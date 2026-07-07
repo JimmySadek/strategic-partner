@@ -25,10 +25,6 @@ else
 fi
 [ -z "$skill_version" ] && skill_version="unknown"
 rule_schema_version="v1"
-auq_freeze_active=false
-if [ -n "${PLUGIN_ROOT:-}" ] && grep -q '^## Temporary AUQ Freeze' "$PLUGIN_ROOT/skills/strategic-partner/SKILL.md" 2>/dev/null; then
-  auq_freeze_active=true
-fi
 
 # Portable timeout (gtimeout on macOS coreutils, timeout on Linux; empty if neither)
 TIMEOUT=$(command -v gtimeout 2>/dev/null || command -v timeout 2>/dev/null)
@@ -152,7 +148,7 @@ had_dispatch=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null |
 
 # Rule 1: AUQ-must-be-AUQ — prose question without AskUserQuestion in same turn
 auq_violation=$(printf '%s' "$turn_text" | perl -e 'undef $/; my $t=<STDIN>; $t =~ s/```[\s\S]*?```//g; $t =~ s/^>.*$//mg; if ($t =~ /^([^\n]{15,}\?)\s*$/m) { print $1; }' 2>/dev/null | head -c 80)
-if [ "$auq_freeze_active" != "true" ] && [ -n "$auq_violation" ] && [ "$has_auq" != "true" ]; then
+if [ -n "$auq_violation" ] && [ "$has_auq" != "true" ]; then
   log_violation "AUQ-must-be-AUQ: prose question detected: ${auq_violation}"
 fi
 

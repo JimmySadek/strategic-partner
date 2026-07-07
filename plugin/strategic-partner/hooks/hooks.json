@@ -24,7 +24,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Skill|AskUserQuestion|mcp__plugin_serena_serena__",
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Skill|mcp__plugin_serena_serena__",
         "hooks": [
           {
             "type": "command",

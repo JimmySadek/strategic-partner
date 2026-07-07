@@ -479,6 +479,7 @@ commands_registered=$(grep '^g1.commands_registered=' "$RESULTS" 2>/dev/null | h
 review_policy=$(grep '^g2.review_policy=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
 [ -z "$review_policy" ] && review_policy=unset
 plugin=$(grep '^g6.plugin=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
+[ -z "$plugin" ] && plugin=unknown
 
 touch "$MARKER"
 
