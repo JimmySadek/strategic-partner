@@ -58,7 +58,10 @@ confirmed it is unset in hook execution contexts (which is why the PreToolUse
 guard was inlined into SKILL.md frontmatter rather than delegated to an external
 script). Empirical testing in the SP model's Bash runtime confirms it is also
 unset there — `echo "$CLAUDE_SKILL_DIR"` returns an empty string. `CLAUDE_PROJECT_DIR`
-and `CLAUDE_PLUGIN_ROOT` are similarly unset in both contexts.
+and `CLAUDE_PLUGIN_ROOT` are similarly unset in SKILL.md frontmatter hooks and
+the SP model's own Bash runtime. Plugin hooks are different: Claude Code sets
+`CLAUDE_PLUGIN_ROOT` there, and SP's plugin packaging uses it to reach
+`hooks/entry.sh`.
 
 Two patterns work in place of it:
 
@@ -683,6 +686,6 @@ All other hook types discussed in this file are either:
 
 | Issue | Status | What it means for SP |
 |---|---|---|
-| [#17688](https://github.com/anthropics/claude-code/issues/17688) | OPEN (labeled `bug`) | Plugin-context skill hooks broken — PreToolUse hooks fail within plugins. **SP must NOT be distributed as a Claude Code plugin.** Skill-install (not plugin) is the only supported delivery. |
+| [#17688](https://github.com/anthropics/claude-code/issues/17688) | OPEN (labeled `bug`) | Plugin-context skill hooks broken — PreToolUse hooks fail within plugins. SP's plugin packaging does **not** rely on that surface: the guard is wired through plugin `hooks.json` to the session-gated hook chain. Evidence lives in `claudedocs/plugin-readiness-report.md` § Validation record: strict manifest validation passed, UserPromptSubmit/Stop fired from plugin hooks, and a live SP trial blocked a source edit with the production guard message. Both skill and plugin installs are supported. |
 | [#19225](https://github.com/anthropics/claude-code/issues/19225) | Closed "not planned" | Originally claimed Stop never fires from skill frontmatter. **Empirically overturned** by 2026-04-30 audit trace evidence (see Stop section above). Consider opening a follow-up comment on the issue with the `/tmp/sp-hook-audit-trace.log` evidence. |
 | [#36135](https://github.com/anthropics/claude-code/issues/36135) | Open | `${CLAUDE_SKILL_DIR}` substitution broken in frontmatter hook commands. Workaround: use absolute paths (`/Users/yourname/...`) or `${HOME}/...`. This matches SP's existing Provisional Guard ("Don't use `${CLAUDE_*}` env vars in hook commands"). |

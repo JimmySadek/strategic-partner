@@ -251,7 +251,7 @@ Before modifying any files, show:
 - List of commits being pushed
 - Proposed version: `current → new` with rationale
 - Draft CHANGELOG entry (summary of changes)
-- Files that will be modified: `SKILL.md`, `README.md`, `CHANGELOG.md` (and `output-styles/strategic-partner-voice.md` if the voice style content changed this release — bump its `style-version`)
+- Files that will be modified: `SKILL.md`, plugin `SKILL.md`, plugin manifest, `README.md`, `CHANGELOG.md` (and any voice style file whose content changed this release — bump its `style-version`)
 
 **Wait for explicit user confirmation before proceeding.**
 
@@ -347,7 +347,7 @@ patch. Present findings to user via AskUserQuestion before proceeding.
 
 ### 5. Execute the Bump
 
-Update these files (all five, every time):
+Update release metadata together:
 
 | File | Location | What to Change |
 |---|---|---|
@@ -356,15 +356,18 @@ Update these files (all five, every time):
 | `CHANGELOG.md` | Top of file, new section | `## [X.Y.Z] - YYYY-MM-DD` with categorized entries |
 | `output-styles/strategic-partner-voice.md` | Frontmatter `style-version:` field | Bump `style-version` **only if the voice style content changed this release** (the floor compares this stamp to the installed copy to flag staleness; an unchanged release leaves it as-is) |
 | `plugin/strategic-partner/skills/strategic-partner/SKILL.md` | Line 11, `version:` field | `version: X.Y.Z` — bump every release, no exceptions. If this release changed root `SKILL.md` content (not just the version line), diff the two files' behavioral sections before shipping — this file silently fell two versions behind root before the gap was caught on 2026-07-07 |
+| `plugin/strategic-partner/.claude-plugin/plugin.json` | Top-level `version` field | `"version": "X.Y.Z"` — bump every release so the plugin manifest matches the shipped skill |
+| `plugin/strategic-partner/output-styles/strategic-partner-voice.md` | Frontmatter `style-version:` field | Bump `style-version` **only if the plugin-native voice style content changed this release** |
 
 ### 6. Commit, Tag, Push
 
 ```
-git add SKILL.md README.md CHANGELOG.md plugin/strategic-partner/skills/strategic-partner/SKILL.md
-# Also stage the voice style file IF its content changed this release
-# (its bumped style-version is what the floor uses to flag a stale
-# installed copy):
+git add SKILL.md README.md CHANGELOG.md plugin/strategic-partner/skills/strategic-partner/SKILL.md plugin/strategic-partner/.claude-plugin/plugin.json
+# Also stage any voice style file IF its content changed this release
+# (its bumped style-version is what the floor/plugin loader uses to flag
+# or avoid stale installed copies):
 # git add output-styles/strategic-partner-voice.md
+# git add plugin/strategic-partner/output-styles/strategic-partner-voice.md
 git commit -m "release: vX.Y.Z — [one-line summary]"
 git tag vX.Y.Z
 git push origin main --tags

@@ -4,10 +4,10 @@
 
 ## 🎯 Project Facts
 
-- **Versioning** — SemVer. The version-bump procedure touches four files
-  together (`SKILL.md`, `README.md`, `CHANGELOG.md`, and — when its content
-  changed this release — `output-styles/strategic-partner-voice.md`, whose
-  `style-version` stamp the floor uses to detect a stale installed copy);
+- **Versioning** — SemVer. The version-bump procedure keeps release metadata
+  together: root `SKILL.md`, plugin `SKILL.md`, plugin manifest, `README.md`,
+  `CHANGELOG.md`, and — when their content changed this release — the root or
+  plugin voice files whose `style-version` stamps detect stale installed copies;
   see `claudedocs/release-process.md` Step 5 for the canonical "what changes
   where." (Where to Look points to the current version's location.)
 - **Commit style** — Conventional commits (`feat:`, `fix:`, `refactor:`,
@@ -31,7 +31,7 @@
 |---|---|
 | Investigating past hook bugs or any reactive rule's archaeology | `claudedocs/INCIDENTS.md` — incident write-ups (one entry per `INC-YYYY-MM-DD` ID) referenced by every Provisional Guard and by the Step 2a hook verification in `claudedocs/release-process.md` |
 | Cross-referencing patterns or hunting prior lessons across releases | `CHANGELOG.md` — searchable history of every feature, fix, and reactive entry; CHANGELOG content surfaces directly in GitHub Release notes |
-| Running a release after the four release commits land | `.scripts/release-publish.sh` — automates Step 7 of `claudedocs/release-process.md` (creates the GitHub Release with the matching CHANGELOG entry extracted as release notes) |
+| Running a release after the release commits land | `.scripts/release-publish.sh` — automates Step 7 of `claudedocs/release-process.md` (creates the GitHub Release with the matching CHANGELOG entry extracted as release notes) |
 | Confirming the current SP version | `SKILL.md` line 11 (`version:` field) and the `version-X.Y.Z-blue` badge on `README.md` line 5 |
 
 ═══════════════════════════════════════════════════════════════════
@@ -65,7 +65,7 @@ review-policy: cross-model-go-no-go
 
 Every push to remote MUST go through the full release process — fetch/compare,
 backlog close-out scan, bump classification, hook + voice + tripwire lints,
-Codex pre-release review, README review, the three-file version bump, tag, and
+Codex pre-release review, README review, the coordinated version bump, tag, and
 GitHub Release.
 
 **Exception — docs-only pushes:** if EVERY commit since the last push is

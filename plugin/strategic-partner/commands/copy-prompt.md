@@ -6,7 +6,7 @@ complexity: low
 mcp-servers: []
 ---
 
-# /strategic-partner:copy-prompt — Clipboard Copy for Fenced Prompts
+# /strategic-partner-plugin:copy-prompt — Clipboard Copy for Fenced Prompts
 
 > Reads `.handoffs/last-prompts/` and pipes the selected prompt to the OS clipboard.
 > Run immediately after any SP response that contained a `═══ COPY ═══` fence.
@@ -125,4 +125,4 @@ the next SP response that emits fenced content will wipe and rewrite the directo
 
 ## See Also
 
-- `/strategic-partner:handoff` — the other SP command that emits a fenced prompt. The continuation prompt at session-end is the most common case for `:copy-prompt` to follow.
+- `/strategic-partner-plugin:handoff` — the other SP command that emits a fenced prompt. The continuation prompt at session-end is the most common case for `:copy-prompt` to follow.

@@ -6,7 +6,7 @@ complexity: standard
 mcp-servers: [serena]
 ---
 
-# /strategic-partner:handoff — Context Handoff
+# /strategic-partner-plugin:handoff — Context Handoff
 
 > Direct trigger for the context handoff procedure. Run when you want to save session
 > state and generate a continuation prompt — either proactively or when context is getting full.
@@ -559,7 +559,7 @@ Append after the final `---` in the handoff file.
 **🔴 Critical**: The continuation prompt's **FIRST LINE** must be:
 
 ```
-/strategic-partner .handoffs/[topic-slug]-[MMDD-HHMM].md
+/strategic-partner-plugin:strategic-partner .handoffs/[topic-slug]-[MMDD-HHMM].md
 ```
 
 This restores the advisor persona via the argument path (startup
@@ -607,7 +607,7 @@ grep -c "FRESH THREAD STARTING PROMPT" .handoffs/[topic-slug]-[MMDD-HHMM].md
 # Expected: 1
 
 # 2. Continuation prompt invokes the SP
-grep -c "/strategic-partner" .handoffs/[topic-slug]-[MMDD-HHMM].md
+grep -c "/strategic-partner-plugin:strategic-partner" .handoffs/[topic-slug]-[MMDD-HHMM].md
 # Expected: ≥1
 
 # 3. Today's findings file exists or "no findings this session" was acknowledged
@@ -659,7 +659,7 @@ Two layers, distinct purposes:
 - **Backlog** — curated, selective, project-scoped. Items live in
   `.backlog/*.md` with structured v6.4 frontmatter (`title`, `state`,
   `labels`, `opened`, `triggers`, `triggers_logic`). Reviewed via
-  `/strategic-partner:backlog` or surfaced at startup when triggers
+  `/strategic-partner-plugin:backlog` or surfaced at startup when triggers
   fire. See `references/backlog-cycle.md` for the full schema.
 
 Handoff bridges them: at session-end, the SP looks at unresolved
@@ -689,6 +689,6 @@ proactive trigger signals during normal advisory flow.
 
 ## See Also
 
-- `/strategic-partner:status` — mid-session check on where things stand. Use before triggering handoff if you want a sanity check on what state will be captured.
-- `/strategic-partner:backlog` — review parked items and defer unresolved findings before closing. Use during the closure flow when the SP asks about backlog promotion.
-- `/strategic-partner:copy-prompt` — pull the continuation prompt this command emitted into the OS clipboard. Use immediately after handoff when you're about to open a new session.
+- `/strategic-partner-plugin:status` — mid-session check on where things stand. Use before triggering handoff if you want a sanity check on what state will be captured.
+- `/strategic-partner-plugin:backlog` — review parked items and defer unresolved findings before closing. Use during the closure flow when the SP asks about backlog promotion.
+- `/strategic-partner-plugin:copy-prompt` — pull the continuation prompt this command emitted into the OS clipboard. Use immediately after handoff when you're about to open a new session.

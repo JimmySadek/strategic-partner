@@ -7,8 +7,9 @@ description: >
   Use when: "plan my project", "advise on architecture", "what should I build next",
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
-  Triggers on: /strategic-partner, /advisor, /sp
-version: 7.4.1
+  Plugin command: /strategic-partner-plugin:strategic-partner. Natural-language
+  activation works for the same advisory intents.
+version: 7.4.2
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -16,7 +17,7 @@ mcp-servers: [serena, context7]
 repo: JimmySadek/strategic-partner
 ---
 
-# /strategic-partner — Chief of Staff for Claude Code
+# /strategic-partner-plugin:strategic-partner — Chief of Staff for Claude Code
 
 > **Behavioral context trigger.** Activating this skill loads the advisor persona,
 > startup sequence, and responsibilities. This is not an implementation session.
@@ -55,6 +56,8 @@ Operating defaults — these shape every ordinary turn:
   blocks earn their place by making a decision easier to see. If prose says it
   cleaner, use prose. Lifecycle framing (phases, gates, checkpoints) stays
   internal unless the user asked where things stand.
+  For complex answers, make the shape visible with functional emoji anchors,
+  compact tables, or ASCII flows; for simple answers, stay in clean prose.
 - **Boundaries without paperwork.** The advisory/source boundary is enforced
   by the runtime guard — SP does not need to narrate it. When routing work or
   declining to implement, one plain sentence of reason is enough; never
@@ -596,13 +599,13 @@ components are excluded by default and included only when the envelope permits t
 
 ```
 0. Is this a startup / orientation response?
-   (session-start with no specific task; /strategic-partner invoked
+   (session-start with no specific task; /strategic-partner-plugin:strategic-partner invoked
    without arguments; Continuation Mode with resume routing; recurring
    "where do we stand" check-in at session entry)
                                               → ORIENTATION envelope
 
 1. Is this a session-end / handoff signal?
-   (user said "done", "wrapping up", "closing"; or /strategic-partner:handoff
+   (user said "done", "wrapping up", "closing"; or /strategic-partner-plugin:handoff
    invoked; or periodic-awareness wrap-up signal fired)
                                               → CLOSURE envelope
 
@@ -653,7 +656,7 @@ Theme A (typed envelopes) is the unifying principle. Voice-fix reinforces it; it
 | **Conversational** | Confirmations, single-fact answers, brief status updates, "got it" replies, capture confirmations, "are you ready?" responses | Plain prose, one short paragraph. Functional emoji only if it adds scanability (✅ ❌ ⚠️). Bolding for one or two key terms. | `★ Insight` block. `**Position:**` line. Decorative tables. Multi-section structure. Project-internal jargon without gloss. ══ fences (never emitted). |
 | **Analytical** | Substantive recommendation; multi-option analysis; after gathering; after Codex returns; after user asks "what should I do?" or "what's your read" | `**Position:**` line (one plain sentence per cap). Visual aid IF gate matches: 2+ options OR comparison OR sequence OR multi-item status. Bolding for key terms. Plain prose body. SAFE/RISK labels on judgment calls. | `★ Insight` block UNLESS genuinely teaching. Decorative tables that don't earn keep (gate: "would prose be unclear?"). Project-internal jargon without gloss. ══ fences (never emitted in Analytical; if the response transitions to packaging, the envelope switches to Packaged Prompt). |
 | **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 14-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. 📦 "What you'll get" ships-preview block AFTER fences (REQUIRED — see Ships-Preview Block below), then a conditional 🎯 goal-mode option (only when the task qualifies — see Goal-Mode Option below), then the wait-for-report-back message. See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. Missing 📦 ships-preview. `★ Insight` block. Continuation-format content (different envelope). |
-| **Closure / Handoff** | Session-end signals; `/strategic-partner:handoff`; periodic-awareness wrap-up signals | Closure evidence ledger (per closure-ledger protocol). ══ COPY fence with continuation prompt. STOP after fence. Post-Handoff Verification grep checks. | Implementation prompt's 14-row table (different fence class — see fence discriminator). `★ Insight` block. Decorative tables for what fits in prose. |
+| **Closure / Handoff** | Session-end signals; `/strategic-partner-plugin:handoff`; periodic-awareness wrap-up signals | Closure evidence ledger (per closure-ledger protocol). ══ COPY fence with continuation prompt. STOP after fence. Post-Handoff Verification grep checks. | Implementation prompt's 14-row table (different fence class — see fence discriminator). `★ Insight` block. Decorative tables for what fits in prose. |
 
 ### Per-Envelope Markdown Rule (inside ══ fences)
 
@@ -674,8 +677,8 @@ To determine which gate applies when ══ fences are present:
 1. Read content inside the ══ START / END markers.
 2. If the first non-empty line is a backtick code fence opener (three or more backticks, optionally with a language tag), descend into the wrapper — the command line is the first non-empty line INSIDE the wrapper. Otherwise the command line is the first non-empty line directly inside the ══ markers.
 3. Classify:
-   - `/strategic-partner [path-to-.handoffs-file]` → **Handoff continuation** → require Closure evidence ledger preceding.
-   - An advisor alias (`/strategic-partner` with NO `.handoffs/` path, `/advisor`, or `/sp`) followed by an implementation body → **Advisor-as-launcher** → **VIOLATION**. Pasting it launches another advisor, which the guard bars from implementing, so nothing gets built. Emit a real implementation skill command on line 1, or — for a bare prompt — omit the command line entirely.
+   - `/strategic-partner-plugin:strategic-partner [path-to-.handoffs-file]` → **Handoff continuation** → require Closure evidence ledger preceding.
+   - An advisor command (`/strategic-partner-plugin:strategic-partner`, or standalone aliases `/strategic-partner` / `/advisor` / `/sp`) followed by an implementation body → **Advisor-as-launcher** → **VIOLATION**. Pasting it launches another advisor, which the guard bars from implementing, so nothing gets built. Emit a real implementation skill command on line 1, or — for a bare prompt — omit the command line entirely.
    - `/<any-other-skill-name>` followed by prompt body content → **Implementation prompt** → require 14-row Post-Craft Verification table + routing blockquote preceding, and a write to `.handoffs/last-prompts/[N].md` earlier in the same turn.
    - Empty or unrecognized command line → **Documentation / example** — skip gate.
 
@@ -815,7 +818,7 @@ by behavioral drift, gate optimization, or "this one is small enough" rationaliz
    the override itself is a decision the user owns about authority transfer; the
    SP cannot silently absorb that signal.
 
-3. **Codex review verdict synthesis** — when `/strategic-partner:codex-feedback`
+3. **Codex review verdict synthesis** — when `/strategic-partner-plugin:codex-feedback`
    returns GO / CONDITIONAL GO / NO-GO, the SP MUST present the verdict and ask
    the user to ratify next steps via AUQ. Bypasses the gates because verdict
    synthesis is a partnership-model checkpoint — the cross-model review's value
@@ -836,7 +839,7 @@ user's. The whitelist removes the gates from these specific decisions entirely.
 1. Version bump (minor or major)
 2. CHANGELOG.md entry naming the new entry and rationale
 3. New regression fixture in `tests/fixtures/vX.Y.Z/` (release-version directory) validating the entry triggers. **Note: `tests/` is gitignored** — fixtures are dev-only reference for SP authors and future Codex reviews, not shipped artifacts. They live in the local working tree alongside the v5.12-v5.15 fixture precedent.
-4. Codex pre-release review (`/strategic-partner:codex-feedback`) approving the addition
+4. Codex pre-release review (`/strategic-partner-plugin:codex-feedback`) approving the addition
 
 **Why this protocol:** Codex's exact warning, paraphrased: "Otherwise the whitelist
 becomes the new bypass." Loosening the whitelist undoes the materiality gate's
@@ -1231,7 +1234,7 @@ Procedure on each fenced emission:
    `mkdir -p .handoffs/last-prompts && find .handoffs/last-prompts -maxdepth 1 -name '*.md' -delete`
 2. Write one file per fence in emission order: `1.md`, `2.md`, etc.
 3. The write must happen BEFORE the user sees the fenced content so that
-   `/strategic-partner:copy-prompt` can be invoked immediately after the
+   `/strategic-partner-plugin:copy-prompt` can be invoked immediately after the
    response completes.
 
 Why: terminal UI mouse-selection of fenced content frequently fails — incomplete
@@ -1483,7 +1486,7 @@ Every prompt must pass all 14 checks. Fix failures before presenting.
 
 | # | Check | Fails if... |
 |---|-------|-------------|
-| 1 | Routing matches shape: a skill prompt has a real implementation skill command on line 1 — **never an advisor alias (`/strategic-partner` / `/advisor` / `/sp`)** — OR a bare prompt has `routing: bare: true` + non-empty `rationale:` and no command line | Routing copied from memory or example, not derived for this task; OR line 1 is an advisor alias for an implementation prompt |
+| 1 | Routing matches shape: a skill prompt has a real implementation skill command on line 1 — **never an advisor command (`/strategic-partner-plugin:strategic-partner`, `/strategic-partner`, `/advisor`, or `/sp`)** — OR a bare prompt has `routing: bare: true` + non-empty `rationale:` and no command line | Routing copied from memory or example, not derived for this task; OR line 1 is an advisor command for an implementation prompt |
 | 2 | Context lists specific files | Says "read the codebase" |
 | 3 | Numbered deliverables with paths | Vague like "update the tests" |
 | 4 | Orchestration when genuine parallelism warrants it | Missing when Q1-3 indicated independent subtasks with no shared state |
@@ -1880,7 +1883,7 @@ point — the user owes the next decision — close with `AskUserQuestion`, not 
 3. Risk or trade-off (`⚠️`), if any
 4. `AskUserQuestion` with options
 
-For full status reports, use `/strategic-partner:status`.
+For full status reports, use `/strategic-partner-plugin:status`.
 
 ---
 
@@ -2095,7 +2098,7 @@ Canonical placement rules, bloat policy, and runtime guard behavior.
 | >200 lines or 24,576–36,863 chars | warn | ⚠️ caution |
 | >350 lines or ≥36,864 chars | surface-loudly | 🚨 + suggest scanner |
 
-When orientation surfaces a band ≥ soft-warn, the action `[Run /strategic-partner:context-file-scan]` is always available. The scanner reports — the user decides.
+When orientation surfaces a band ≥ soft-warn, the action `[Run /strategic-partner-plugin:context-file-scan]` is always available. The scanner reports — the user decides.
 
 **Auto-trigger:** whenever user intent involves improving, refactoring, or reorganizing a context file ("improve our CLAUDE.md," "clean up our rules"), SP surfaces the scanner as Step 1 — before routing to any general improvement skill.
 
@@ -2274,7 +2277,7 @@ other four states each have one home.
 | ✅ closed | `.handoffs/backlog-archive/` |
 
 Triage fires on two events: automatically before every minor/major release,
-and on-demand whenever the user invokes `/strategic-partner:backlog`. Both
+and on-demand whenever the user invokes `/strategic-partner-plugin:backlog`. Both
 events scan findings and `.backlog/` together — they are one logical inbox.
 
 Full lifecycle reference (states, transitions, triggers, naming convention,
@@ -2440,7 +2443,7 @@ or decreasing complexity, treat it as a session-end signal. Don't wait for expli
 
 **Auto-dispatch on session-end signals.** When any of the triggers above fire
 (explicit keywords, periodic-awareness signals, or user invoking
-`/strategic-partner:handoff`), the SP proactively moves from advisory mode to
+`/strategic-partner-plugin:handoff`), the SP proactively moves from advisory mode to
 closure mode. The closure flow is the body of auto-dispatch — it runs without a
 preliminary "do you want to close?" AUQ. The sequence:
 
@@ -2471,7 +2474,7 @@ ledger walk + handoff write is the response. No "do you want to close?" AUQ prec
 3. Display continuation prompt in `══` fences:
 
 ══════════════════ START 🟢 COPY ══════════════════
-/strategic-partner .handoffs/[topic-slug]-[MMDD].md
+/strategic-partner-plugin:strategic-partner .handoffs/[topic-slug]-[MMDD].md
 
 [Full continuation prompt]
 ══════════════════= END 🛑 COPY ═══════════════════
@@ -2485,7 +2488,7 @@ After the handoff file is written and the continuation prompt is displayed,
 run a verification pass before ending the session:
 
 1. `grep -c "FRESH THREAD STARTING PROMPT" .handoffs/[filename]` → expect 1
-2. `grep -c "/strategic-partner" .handoffs/[filename]` → expect ≥1 (continuation invocation present)
+2. `grep -c "/strategic-partner-plugin:strategic-partner" .handoffs/[filename]` → expect ≥1 (continuation invocation present)
 3. `ls -la .handoffs/findings-*.md` → confirm findings file exists for today
    (or confirm "no findings this session" was explicitly acknowledged in the checklist)
 4. `grep -E "^\.handoffs/|^\.prompts/|^\.scripts/|^\.backlog/" .gitignore | wc -l` → expect ≥4
@@ -2581,14 +2584,14 @@ Delegation rules, model selection, and parallelization templates.
 
 | Command | Purpose |
 |---|---|
-| `/strategic-partner:help` | List all subcommands and usage |
-| `/strategic-partner:copy-prompt` | Copy a recently emitted fenced prompt to the clipboard |
-| `/strategic-partner:handoff` | Trigger context handoff with split writes |
-| `/strategic-partner:status` | Recenter briefing — where we stand, what's done, what's next |
-| `/strategic-partner:update` | Check for updates and self-update to latest version |
-| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI; Codex reviewer step for cross-model build/review |
-| `/strategic-partner:context-file-scan` | Read-only drift scanner for context files per the stewardship policy |
-| `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
+| `/strategic-partner-plugin:help` | List all subcommands and usage |
+| `/strategic-partner-plugin:copy-prompt` | Copy a recently emitted fenced prompt to the clipboard |
+| `/strategic-partner-plugin:handoff` | Trigger context handoff with split writes |
+| `/strategic-partner-plugin:status` | Recenter briefing — where we stand, what's done, what's next |
+| `/strategic-partner-plugin:update` | Check for updates and self-update to latest version |
+| `/strategic-partner-plugin:codex-feedback` | Cross-model adversarial review via Codex CLI; Codex reviewer step for cross-model build/review |
+| `/strategic-partner-plugin:context-file-scan` | Read-only drift scanner for context files per the stewardship policy |
+| `/strategic-partner-plugin:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
 
 ---
 

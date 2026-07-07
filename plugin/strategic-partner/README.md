@@ -1,4 +1,4 @@
-# Strategic Partner — Claude Code plugin (candidate)
+# Strategic Partner — Claude Code plugin
 
 This directory is the **plugin packaging** of Strategic Partner (SP): the same
 advisory skill, commands, guard, floor, and rhythm hooks as the skill-first
@@ -6,19 +6,19 @@ install, delivered through Claude Code's native plugin format — plus a
 revised voice and startup behavior aimed at making SP feel like a thinking
 partner rather than a protocol runner.
 
-Status: **local candidate**. Production SP (the repo root) remains the
-installed, supported path until this candidate passes a live trial.
+Status: **supported plugin packaging**. The standalone skill remains supported
+too; use the switch commands when you want to move between install shapes.
 
 ## What's inside
 
 | Component | Path | Notes |
 |---|---|---|
-| Skill | `skills/strategic-partner/SKILL.md` | Full production behavior, minus the 260-line inlined hook block (now `hooks/hooks.json`), plus the Presence revisions (see below) |
-| Commands | `commands/*.md` | All 8 subcommands, verbatim; they register as `/strategic-partner:<name>` exactly as today |
+| Skill | `skills/strategic-partner/SKILL.md` | Full standalone-skill behavior, minus the 260-line inlined hook block (now `hooks/hooks.json`), plus the Presence revisions (see below) |
+| Commands | `commands/*.md` | The shared subcommands under `/strategic-partner-plugin:<name>`, plus `/strategic-partner-plugin:switch-to-skill` for returning to the standalone skill |
 | Hooks | `hooks/hooks.json` + `hooks/entry.sh` | SessionStart, UserPromptSubmit (floor), PreToolUse (guard), Stop (rhythm — includes a log-only check that a question wasn't asked without its lead-in text shown first) — all scoped by a session gate |
-| Guard chain | `hooks/guard-impl.sh`, `hooks/context-file-guard.sh`, `.scripts/context-file-scan/` | Same source-file-blocking logic as production, plus one plugin-only addition: writes to `/tmp`, `/private/tmp`, and `$TMPDIR` are allowed (needed for the scratchpad file tools plugin sessions use) |
-| Reference bundle | `skills/strategic-partner/references/`, `…/assets/templates/`, `…/.scripts/migrate-backlog.sh` | The skill's on-demand files (fast-lane, startup checklist, floor-signal patterns, closure floor, prompt templates…), verbatim, laid out as siblings of SKILL.md exactly like production |
-| Voice | `output-styles/strategic-partner-voice.md` | Native plugin component (no copy-install, no staleness); rewritten as style v5 |
+| Guard chain | `hooks/guard-impl.sh`, `hooks/context-file-guard.sh`, `.scripts/context-file-scan/` | Same source-file-blocking logic as the standalone skill, plus one plugin-only addition: writes to `/tmp`, `/private/tmp`, and `$TMPDIR` are allowed (needed for the scratchpad file tools plugin sessions use) |
+| Reference bundle | `skills/strategic-partner/references/`, `…/assets/templates/`, `…/.scripts/migrate-backlog.sh` | The skill's on-demand files (fast-lane, startup checklist, floor-signal patterns, closure floor, prompt templates…), verbatim, laid out as siblings of SKILL.md exactly like the standalone skill |
+| Voice | `output-styles/strategic-partner-voice.md` | Native plugin component (no copy-install, no staleness); style v6-plugin |
 | Resident advisor | `agents/sp-advisor.md` + `settings.json.example` | Opt-in only — see below |
 
 ## The session gate (why this plugin is safe to enable globally)
@@ -29,20 +29,25 @@ therefore scopes every hook to sessions where SP is actually active, arming on
 three structural signals only (never content sniffing):
 
 ```
-Typed /strategic-partner…, /sp, /advisor  →  armed  (utility subcommands
-                                                     :help :copy-prompt :update
-                                                     excluded)
-Skill tool invoked with …strategic-partner →  armed  (natural-language path)
-Project settings opt into sp-advisor       →  armed at SessionStart (resident)
-Anything else                              →  every hook exits 0 in a few ms
+Typed SP invocation, including:
+  /strategic-partner-plugin:strategic-partner
+  /strategic-partner-plugin:handoff (and other non-utility subcommands)
+  /strategic-partner..., /sp, /advisor              →  armed
+Utility prompts :help / :copy-prompt / :update      →  not armed
+Skill tool invoked with …strategic-partner          →  armed  (natural-language path)
+Project settings opt into sp-advisor                →  armed at SessionStart (resident)
+Anything else                                       →  every hook exits 0 in a few ms
 ```
+
+The matcher also accepts trial or custom plugin namespaces containing
+`strategic-partner` for the same subcommand set.
 
 The armed state is a per-session marker; `/clear` starts a new session and
 disarms naturally.
 
-## Behavior changes vs production SP (deliberate)
+## Behavior changes vs standalone SP (deliberate)
 
-Packaging alone cannot fix a mechanical-feeling advisor, so this candidate also
+Packaging alone cannot fix a mechanical-feeling advisor, so this plugin also
 revises the advisory behavior:
 
 - **Presence Over Protocol** — a new top-level SKILL.md section: start from the
@@ -56,8 +61,8 @@ revises the advisory behavior:
   analysis no longer *owes* a question: when the analysis points one way, SP
   states the position and stops. The four protocol-mandated question points are
   unchanged.
-- **Voice v5** — the output style keeps plain-English discipline, deliberate
-  visuals, and the anti-sycophancy rules, and drops per-turn ceremony
+- **Voice v6-plugin** — the output style keeps plain-English discipline,
+  deliberate visuals, and the anti-sycophancy rules, and drops per-turn ceremony
   (mandatory per-section emoji, five response templates, the 18-item pre-send
   checklist) in favor of five checks.
 - **Floor fields adapted** — install-mechanics checks that plugins make
@@ -78,10 +83,11 @@ cp -R plugin/strategic-partner ~/.claude/skills/strategic-partner-plugin
 
 Claude Code treats any skills-dir directory containing
 `.claude-plugin/plugin.json` as a plugin. Restart (or `/reload-plugins`) and
-the skill is available as `/strategic-partner:strategic-partner`, the
-commands as `/strategic-partner:<name>`, and the voice style in `/config`.
+the skill is available as `/strategic-partner-plugin:strategic-partner`, the
+commands as `/strategic-partner-plugin:<name>`, and the voice style in
+`/config`.
 
-Do **not** run this alongside an active production SP session doing real work:
+Do **not** run this alongside an active standalone SP session doing real work:
 both guards would fire (verdicts are identical, so this is redundant rather
 than harmful, but trial runs should stay isolated).
 
@@ -127,14 +133,14 @@ To get memory features, install Serena once from the official marketplace
 (`/plugin install serena@claude-plugins-official`) — SP detects it
 automatically.
 
-## Known limitations (candidate)
+## Known limitations
 
 - **Namespacing:** `/strategic-partner` becomes
-  `/strategic-partner:strategic-partner`; `/sp` and `/advisor` no longer
-  resolve as typed commands (natural-language triggering still works). No
+  `/strategic-partner-plugin:strategic-partner`; `/sp` and `/advisor` no longer
+  resolve as typed plugin commands (natural-language triggering still works). No
   alias mechanism exists in the plugin format.
 - **`:update` subcommand:** still targets the git/skillshare install flow. On
   the skills-dir route this is correct only if the copied directory is a
   symlink back into the repo; a plain copy must be re-copied after updates.
 - **Serena write-guard prefix:** the guard covers the official Serena plugin's
-  tool prefix only — same as production today.
+  tool prefix only — same as the standalone skill today.

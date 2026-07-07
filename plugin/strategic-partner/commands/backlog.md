@@ -6,7 +6,7 @@ complexity: standard
 mcp-servers: []
 ---
 
-# /strategic-partner:backlog — Backlog Review and Triage
+# /strategic-partner-plugin:backlog — Backlog Review and Triage
 
 > Show every tracked item grouped by lifecycle state. Check triggers against
 > current project state, surface actionable items, and offer triage actions
@@ -110,7 +110,7 @@ in `.handoffs/backlog-archive/`.
 
 | Context | Window |
 |---|---|
-| On-demand (`/strategic-partner:backlog`) | Commits since each item's `opened:` date, bounded to the last ~200 commits |
+| On-demand (`/strategic-partner-plugin:backlog`) | Commits since each item's `opened:` date, bounded to the last ~200 commits |
 | Release boundary (per `CLAUDE.md`) | `<previous-tag>..HEAD` |
 | Release boundary, docs-only push | `<last-push>..HEAD` |
 
@@ -239,7 +239,7 @@ End with a short summary noting the next automatic triage event and the
 on-demand path:
 
 > "Next automatic triage: before the next minor/major release. On-demand
-> triage available any time via `/strategic-partner:backlog`."
+> triage available any time via `/strategic-partner-plugin:backlog`."
 
 **If more than 10 items**, add a prune recommendation:
 
@@ -275,5 +275,5 @@ on-demand path:
 ## See Also
 
 - `references/backlog-cycle.md` — full lifecycle reference (states, transitions, triggers, naming, labels, file format)
-- `/strategic-partner:status` — current session state, in-progress work, and what's next. Use when you want a recenter briefing on the active session rather than a backlog review.
-- `/strategic-partner:handoff` — close the session and write a continuation prompt. Use when you're wrapping up; the closure flow surfaces backlog automatically as part of the evidence ledger.
+- `/strategic-partner-plugin:status` — current session state, in-progress work, and what's next. Use when you want a recenter briefing on the active session rather than a backlog review.
+- `/strategic-partner-plugin:handoff` — close the session and write a continuation prompt. Use when you're wrapping up; the closure flow surfaces backlog automatically as part of the evidence ledger.

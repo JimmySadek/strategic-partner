@@ -6,7 +6,7 @@ complexity: advanced
 mcp-servers: []
 ---
 
-# /strategic-partner:codex-feedback — Codex Reviewer Check
+# /strategic-partner-plugin:codex-feedback — Codex Reviewer Check
 
 > Dispatch a curated brief to OpenAI Codex CLI for reviewer-side adversarial
 > checking of SP decisions, evidence claims, or a cross-model build. This command
@@ -35,7 +35,7 @@ startup checklist) via `which codex`.
 1. **If detected**: Set internal flag `codex_available = true`. The SP may offer
    review at trigger points via `AskUserQuestion`. No mention in orientation output.
 2. **If not detected**: Feature never surfaces. Totally silent. Only educates if the
-   user explicitly invokes `/strategic-partner:codex-feedback`.
+   user explicitly invokes `/strategic-partner-plugin:codex-feedback`.
 3. **If user explicitly invokes and Codex is not installed**: Educate about what the
    feature does, how Codex CLI works, and link to installation:
    https://github.com/openai/codex — No pressure.
@@ -330,5 +330,5 @@ the verdict is advisory status, not control:
 
 ## See Also
 
-- `/strategic-partner:status` — mid-flight check on where the session stands before deciding whether a Codex review is warranted. Use to gather context before invoking this command.
-- `/strategic-partner:update` — check for newer SP versions. Use after a release-review Codex pass approves a version bump and the new version is live on GitHub.
+- `/strategic-partner-plugin:status` — mid-flight check on where the session stands before deciding whether a Codex review is warranted. Use to gather context before invoking this command.
+- `/strategic-partner-plugin:update` — check for newer SP versions. Use after a release-review Codex pass approves a version bump and the new version is live on GitHub.

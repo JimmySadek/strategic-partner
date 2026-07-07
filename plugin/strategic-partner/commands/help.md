@@ -6,7 +6,7 @@ complexity: low
 mcp-servers: []
 ---
 
-# /strategic-partner:help — Subcommand Reference
+# /strategic-partner-plugin:help — Subcommand Reference
 
 ## Output Style
 
@@ -25,41 +25,42 @@ Key behaviors:
 
 | Command | Purpose |
 |---|---|
-| `/strategic-partner` | Full advisor persona with startup sequence (no colon) |
-| `/strategic-partner:help` | List all subcommands and usage (this command) |
-| `/strategic-partner:copy-prompt` | Copy a recently emitted fenced prompt to the clipboard |
-| `/strategic-partner:handoff` | Trigger context handoff with split writes |
-| `/strategic-partner:status` | Recenter briefing — where we stand, what's next |
-| `/strategic-partner:update` | Check for updates and self-update to latest version |
-| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI; also the Codex reviewer step for cross-model build/review |
-| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` (18 patterns, interactive or report mode) |
-| `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work |
-| `/strategic-partner:switch-to-skill` | Switch back to the skill install |
+| `/strategic-partner-plugin:strategic-partner` | Full advisor persona with startup sequence |
+| `/strategic-partner-plugin:help` | List all subcommands and usage (this command) |
+| `/strategic-partner-plugin:copy-prompt` | Copy a recently emitted fenced prompt to the clipboard |
+| `/strategic-partner-plugin:handoff` | Trigger context handoff with split writes |
+| `/strategic-partner-plugin:status` | Recenter briefing — where we stand, what's next |
+| `/strategic-partner-plugin:update` | Check for updates and self-update to latest version |
+| `/strategic-partner-plugin:codex-feedback` | Cross-model adversarial review via Codex CLI; also the Codex reviewer step for cross-model build/review |
+| `/strategic-partner-plugin:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` (18 patterns, interactive or report mode) |
+| `/strategic-partner-plugin:backlog` | View project backlog — parked ideas, deferred work |
+| `/strategic-partner-plugin:switch-to-skill` | Switch back to the skill install |
 
 ## Usage
 
 ```
-/strategic-partner                          → Full advisor session (startup sequence)
-/strategic-partner .handoffs/file.md        → Continuation mode (load specific handoff)
-/strategic-partner:help                     → This reference
-/strategic-partner:copy-prompt              → Copy last fenced prompt to clipboard
-/strategic-partner:handoff                  → Save session state + continuation prompt
-/strategic-partner:status                   → "Where do we stand?" briefing
-/strategic-partner:update                   → Check + update to latest version
-/strategic-partner:codex-feedback           → Trigger Codex review of a decision, claim, or cross-model build
-/strategic-partner:context-file-scan         → Scan CLAUDE.md / AGENTS.md / GEMINI.md for drift
-/strategic-partner:backlog                  → Surface and review parked backlog items
+/strategic-partner-plugin:strategic-partner              → Full advisor session (startup sequence)
+/strategic-partner-plugin:strategic-partner .handoffs/file.md
+                                                         → Continuation mode (load specific handoff)
+/strategic-partner-plugin:help                           → This reference
+/strategic-partner-plugin:copy-prompt                    → Copy last fenced prompt to clipboard
+/strategic-partner-plugin:handoff                        → Save session state + continuation prompt
+/strategic-partner-plugin:status                         → "Where do we stand?" briefing
+/strategic-partner-plugin:update                         → Check + update to latest version
+/strategic-partner-plugin:codex-feedback                 → Trigger Codex review of a decision, claim, or cross-model build
+/strategic-partner-plugin:context-file-scan              → Scan CLAUDE.md / AGENTS.md / GEMINI.md for drift
+/strategic-partner-plugin:backlog                        → Surface and review parked backlog items
 ```
 
 ## Notes
 
-- **Main invocation** (`/strategic-partner` with no colon) loads the full advisor persona from
+- **Main invocation** (`/strategic-partner-plugin:strategic-partner`) loads the full advisor persona from
   `skills/strategic-partner/SKILL.md`, including startup sequence, mode detection, and skill catalog.
 - **Subcommands** (with colon) are preset operations that run within the advisor context.
   They assume the advisor persona is already active or activate it implicitly.
-- **Argument passing**: `/strategic-partner .handoffs/[file]` passes the file path as `$ARGUMENTS`
+- **Argument passing**: `/strategic-partner-plugin:strategic-partner .handoffs/[file]` passes the file path as `$ARGUMENTS`
   to the skill, entering continuation mode directly.
-- **Aliases**: `/advisor` and `/sp` also invoke the main persona.
+- **Aliases**: `/advisor` and `/sp` are standalone-skill shortcuts; typed plugin commands use the plugin namespace.
 
 ## Boundaries
 

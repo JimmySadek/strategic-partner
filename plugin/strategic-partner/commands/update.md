@@ -6,7 +6,7 @@ complexity: standard
 mcp-servers: []
 ---
 
-# /strategic-partner:update — Self-Update
+# /strategic-partner-plugin:update — Self-Update
 
 > Check for newer versions of the strategic-partner skill and update in place.
 
@@ -104,5 +104,5 @@ After updating, re-run the setup script to refresh command registrations:
 
 ## See Also
 
-- `/strategic-partner:codex-feedback` — adversarial review of the next release. Use after updating to check whether the new version's behavior matches what the CHANGELOG entry promised.
-- `/strategic-partner:help` — full subcommand reference. Use when you want to see what changed alongside the version bump.
+- `/strategic-partner-plugin:codex-feedback` — adversarial review of the next release. Use after updating to check whether the new version's behavior matches what the CHANGELOG entry promised.
+- `/strategic-partner-plugin:help` — full subcommand reference. Use when you want to see what changed alongside the version bump.

@@ -9,7 +9,7 @@ mcp-servers: []
 # /strategic-partner-plugin:switch-to-skill — Switch Back to the Skill
 
 > The reverse of `/strategic-partner:try-plugin`. Restores the skill install
-> (`/strategic-partner:*`, the current production voice) and removes the
+> (`/strategic-partner:*`, the standalone skill voice) and removes the
 > plugin registration, so only one install shape is ever active at once.
 
 ## Output Style
@@ -41,7 +41,7 @@ Present via `AskUserQuestion`:
 
 - **Question**: "Switch your active install back to the skill? This replaces
   `/strategic-partner-plugin:*` with `/strategic-partner:*` and restores the
-  production voice."
+  standalone skill voice."
 - **Options**:
   - [Switch back now] (Recommended) — Perform the switch described below
   - [Not now] — Stop, no changes

@@ -1,5 +1,16 @@
 # Changelog
 
+## [7.4.2] - 2026-07-07
+
+### Changed
+- **The plugin is now documented as a supported install path, not only a local trial** — the standalone skill remains supported, but the plugin path now matches the v7.4.x validation evidence: strict manifest validation, session-gated hooks, and switch commands that keep only one install active.
+- **The plugin voice is still lean, but easier to scan when the answer gets complex** — added compact guidance for tables, ASCII flows, functional emoji anchors, spacing, and bold text while keeping the plugin's direct style and avoiding dashboard-style ceremony.
+
+### Fixed
+- **Plugin subcommands now arm the plugin safety gate under the plugin namespace** — commands such as `/strategic-partner-plugin:handoff` now trigger the same session-gated guard path as the main plugin advisor command, while utility commands stay unarmed.
+- **The plugin packaging now keeps its own version and docs aligned** — updated the plugin manifest, plugin README, command help, switch wording, and plugin hook-reference notes so they match the supported v7.4.x plugin path.
+- **The release checklist now includes plugin metadata** — the release process and project rules now name the plugin manifest and plugin-native voice file, so future releases do not leave plugin version or voice stamps behind.
+
 ## [7.4.1] - 2026-07-07
 
 ### Fixed

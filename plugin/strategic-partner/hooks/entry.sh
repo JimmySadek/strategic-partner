@@ -13,9 +13,10 @@
 # executor sessions that merely mention SP, e.g. sessions editing SP source):
 #
 #   1. UserPromptSubmit whose prompt is an SP invocation:
-#      /strategic-partner[...], /sp, /advisor, or a namespaced plugin form
-#      like /sp-plugin-trial:strategic-partner — EXCEPT the three utility
-#      subcommands (:help :copy-prompt :update), matching the exemption
+#      /strategic-partner[...], /sp, /advisor, a namespaced plugin skill form
+#      like /sp-plugin-trial:strategic-partner, or a namespaced SP plugin
+#      subcommand like /strategic-partner-plugin:handoff — EXCEPT the three
+#      utility subcommands (:help :copy-prompt :update), matching the exemption
 #      already inside floor-check.sh.
 #   2. PreToolUse on the Skill tool whose skill input is
 #      "strategic-partner" or "<namespace>:strategic-partner"
@@ -101,8 +102,14 @@ delegate() {
 prompt_is_sp_invocation() {
   printf '%s' "$1" | perl -e '
     undef $/; my $p = <STDIN>;
-    exit 1 unless $p =~ m{\A\s*/(?:[A-Za-z0-9-]+:)?(?:strategic-partner|sp|advisor)(?::([a-z-]+))?(?:\s|\z)};
-    my $sub = defined $1 ? $1 : "";
+    my $sub = "";
+    if ($p =~ m{\A\s*/(?:[A-Za-z0-9-]+:)?(?:strategic-partner|sp|advisor)(?::([a-z-]+))?(?:\s|\z)}) {
+      $sub = defined $1 ? $1 : "";
+    } elsif ($p =~ m{\A\s*/(?:strategic-partner-plugin|sp-plugin-trial|[A-Za-z0-9-]*strategic-partner[A-Za-z0-9-]*):(help|copy-prompt|update|handoff|status|codex-feedback|context-file-scan|backlog|switch-to-skill)(?:\s|\z)}) {
+      $sub = $1;
+    } else {
+      exit 1;
+    }
     exit 1 if $sub =~ /^(?:help|copy-prompt|update)$/;
     exit 0;
   ' 2>/dev/null

@@ -6,7 +6,7 @@ complexity: advanced
 mcp-servers: []
 ---
 
-# /strategic-partner:context-file-scan
+# /strategic-partner-plugin:context-file-scan
 
 Read-only analysis of always-loaded context files against
 `references/context-file-stewardship.md`. The scanner reports; it never edits
@@ -16,7 +16,7 @@ guard.
 ## Usage
 
 ```bash
-/strategic-partner:context-file-scan [--file PATH] [--report-only]
+/strategic-partner-plugin:context-file-scan [--file PATH] [--report-only]
                                      [--release-gate] [--no-suggest-tools]
 ```
 
