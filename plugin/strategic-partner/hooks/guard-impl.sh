@@ -274,7 +274,7 @@ $redirect_targets
 EOF
   fi
 
-  if printf '%s' "$stripped" | grep -qE '(sed[[:space:]]+-[^;&|]*i|tee[[:space:]]|perl[[:space:]]+-[^;&|]*i|git[[:space:]]+apply|git[[:space:]]+cherry-pick)'; then
+  if printf '%s' "$stripped" | grep -qE '(sed([[:space:]]+(-[^-[:space:];&|]*|--[^[:space:];&|]*))*[[:space:]]+(-[^-[:space:];&|]*i[^[:space:];&|]*|--in-place(=[^[:space:];&|]*)?)|tee[[:space:]]|perl([[:space:]]+(-[^-[:space:];&|]*|--[^[:space:];&|]*))*[[:space:]]+-[^-[:space:];&|]*i[^[:space:];&|]*|git[[:space:]]+apply|git[[:space:]]+cherry-pick)'; then
     return 0
   fi
 
@@ -295,7 +295,7 @@ $redirect_targets
 EOF
   fi
 
-  if printf '%s' "$raw_stripped" | grep -qE '(sed[[:space:]]+-[^;&|]*i|tee[[:space:]]|perl[[:space:]]+-[^;&|]*i|git[[:space:]]+apply|git[[:space:]]+cherry-pick)'; then
+  if printf '%s' "$raw_stripped" | grep -qE '(sed([[:space:]]+(-[^-[:space:];&|]*|--[^[:space:];&|]*))*[[:space:]]+(-[^-[:space:];&|]*i[^[:space:];&|]*|--in-place(=[^[:space:];&|]*)?)|tee[[:space:]]|perl([[:space:]]+(-[^-[:space:];&|]*|--[^[:space:];&|]*))*[[:space:]]+-[^-[:space:];&|]*i[^[:space:];&|]*|git[[:space:]]+apply|git[[:space:]]+cherry-pick)'; then
     return 0
   fi
 
