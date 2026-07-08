@@ -16,9 +16,9 @@ too; use the switch commands when you want to move between install shapes.
 | Skill | `skills/strategic-partner/SKILL.md` | Full standalone-skill behavior, minus the 260-line inlined hook block (now `hooks/hooks.json`), plus the Presence revisions (see below) |
 | Commands | `commands/*.md` | The shared subcommands under `/strategic-partner-plugin:<name>`, plus `/strategic-partner-plugin:switch-to-skill` for returning to the standalone skill |
 | Hooks | `hooks/hooks.json` + `hooks/entry.sh` | SessionStart, UserPromptSubmit (floor), PreToolUse (guard), Stop (rhythm — includes a log-only check that a question wasn't asked without its lead-in text shown first) — all scoped by a session gate |
-| Guard chain | `hooks/guard-impl.sh`, `hooks/context-file-guard.sh`, `.scripts/context-file-scan/` | Same source-file-blocking logic as the standalone skill, plus one plugin-only addition: writes to `/tmp`, `/private/tmp`, and `$TMPDIR` are allowed (needed for the scratchpad file tools plugin sessions use) |
+| Guard chain | `hooks/guard-impl.sh`, `hooks/context-file-guard.sh`, `.scripts/context-file-scan/` | Same source-file-blocking logic as the standalone skill, including writes to `/tmp`, `/private/tmp`, and `$TMPDIR` for scratchpad file tools |
 | Reference bundle | `skills/strategic-partner/references/`, `…/assets/templates/`, `…/.scripts/migrate-backlog.sh` | The skill's on-demand files (fast-lane, startup checklist, floor-signal patterns, closure floor, prompt templates…), verbatim, laid out as siblings of SKILL.md exactly like the standalone skill |
-| Voice | `output-styles/strategic-partner-voice.md` | Native plugin component (no copy-install, no staleness); style v6-plugin |
+| Voice | `output-styles/strategic-partner-voice.md` | Native plugin component (no copy-install, no staleness); style v7-plugin |
 | Resident advisor | `agents/sp-advisor.md` + `settings.json.example` | Opt-in only — see below |
 
 ## The session gate (why this plugin is safe to enable globally)
@@ -53,18 +53,20 @@ revises the advisory behavior:
 - **Presence Over Protocol** — a new top-level SKILL.md section: start from the
   user's situation, hold a point of view, one best next move, push back on weak
   premises, structure only when it helps, boundaries without paperwork.
-- **Compact orientation** — startup is 2–4 plain lines plus non-clean signals;
-  a status table only when 3+ signals need attention. Green-row dashboards are
-  explicitly banned. Closing question options are drawn from live project
-  state, not a generic menu.
+- **Compact but useful orientation** — startup and status show a visible
+  recenter first, then use the question widget with a compact fact echo. A
+  status table only appears when 3+ signals need attention. Green-row
+  dashboards are explicitly banned. Closing question options are drawn from
+  live project state, not a generic menu.
 - **Questions rebalanced** — `AskUserQuestion` remains the only way to ask, but
   analysis no longer *owes* a question: when the analysis points one way, SP
   states the position and stops. The four protocol-mandated question points are
   unchanged.
-- **Voice v6-plugin** — the output style keeps plain-English discipline,
+- **Voice v7-plugin** — the output style keeps plain-English discipline,
   deliberate visuals, and the anti-sycophancy rules, and drops per-turn ceremony
   (mandatory per-section emoji, five response templates, the 18-item pre-send
-  checklist) in favor of five checks.
+  checklist) in favor of five checks, plus a visible-first startup/status shape
+  so the useful recenter appears before the question widget.
 - **Floor fields adapted** — install-mechanics checks that plugins make
   obsolete (command symlinks, output-style copy staleness) now report
   `plugin-native` and stay silent in orientation.

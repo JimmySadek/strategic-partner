@@ -39,6 +39,8 @@ dispatch_confirmation_present() {
   transcript_path="$1"
   subagent_type="$2"
 
+  DISPATCH_BLOCK_REASON=""
+
   [ -n "$subagent_type" ] || return 1
 
   # A missing/unreadable transcript means we can't verify a confirmation
@@ -47,146 +49,89 @@ dispatch_confirmation_present() {
   # unverifiable state blocks rather than allows.
   [ -n "$transcript_path" ] && [ -r "$transcript_path" ] || return 1
 
-  if command -v jq >/dev/null 2>&1 && printf '{}' | jq -e type >/dev/null 2>&1; then
-    auq_payload=$(tail -160 "$transcript_path" 2>/dev/null | jq -sr '
-      def role: (.message.role // .role // "");
-      def has_auq:
-        ([ .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | length) > 0;
-      [ .[] | select(type == "object") | select((role == "assistant") and has_auq) ] | last as $turn
-      | if $turn == null then ""
-        else
-          ([ $turn | .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | last) as $auq
-          | (($auq.input.questions // []) | map(
-              (.question // "") + " " +
-              (.header // "") + " " +
-              (((.options // []) | map((.label // "") + " " + (.description // "")) | join(" ")))
-            ) | join(" "))
-        end
-    ' 2>/dev/null)
-
-    # The offered-options check below is necessary but not sufficient: all
-    # three labels are always offered together regardless of which one the
-    # user picks. Pull the answer out of the transcript entry immediately
-    # after the qualifying AUQ turn — the user's tool_result. Real
-    # transcripts wrap the answer as `Your questions have been answered:
-    # "<question>"="<answer>". You can now continue with these answers in
-    # mind.`; the wrapper is stripped below.
-    answer_raw=$(tail -160 "$transcript_path" 2>/dev/null | jq -sr '
-      def role: (.message.role // .role // "");
-      def content: (.message.content // .content // []);
-      def nonempty_text:
-        if (content | type) == "array" then any(content[]?; .type == "text" and ((.text // "") | length > 0))
-        elif (content | type) == "string" then ((content // "") | length > 0)
-        else false end;
-      def genuine_user_text: role == "user" and nonempty_text;
-      def has_auq:
-        ([ .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | length) > 0;
-      (map(select(type == "object"))) as $rows
-      | ([ $rows | to_entries[] | select((.value | role) == "assistant" and (.value | has_auq)) | .key ] | last // -1) as $idx
-      | if $idx == -1 then ""
-        else
-          # The confirmation only authorizes the immediately-following
-          # dispatch attempt. A later genuine user text prompt stales it;
-          # transcript plumbing such as tool results, attachments, system
-          # rows, or the in-flight assistant dispatch row does not.
-          (($rows[$idx + 2:]) | map(select(genuine_user_text)) | length) as $later_user_prompts
-          | if $later_user_prompts > 0 then ""
-            else
-              ($rows[$idx + 1].message.content // $rows[$idx + 1].content // "") as $next
-              | if ($next | type) == "array" then
-                  (([ $next[] | select(.type? == "tool_result") | .content ] | last // "")) as $raw
-                  | if ($raw | type) == "array" then
-                      ([ $raw[] | select(.type? == "text") | .text ] | join(" "))
-                    else ($raw // "")
-                    end
-                elif ($next | type) == "string" then $next
-                else "" end
-            end
-        end
-    ' 2>/dev/null)
-  else
-    transcript_tail=$(tail -160 "$transcript_path" 2>/dev/null)
-
-    # No-jq fallback. The transcript is JSONL (one JSON object per line), so
-    # line-scoped regex matching never needs to cross a line boundary. Both
-    # passes below select the SAME row — the last assistant tool_use row
-    # carrying an AskUserQuestion — via identical matching, so auq_payload
-    # and answer_raw can never describe two different questions.
-    auq_payload=$(printf '%s' "$transcript_tail" | perl -ne '
-      chomp;
-      push @rows, $_;
-      END {
-        my $idx = -1;
-        for (my $i = 0; $i <= $#rows; $i++) {
-          if ($rows[$i] =~ /"role"\s*:\s*"assistant"/
-              && $rows[$i] =~ /"type"\s*:\s*"tool_use"/
-              && $rows[$i] =~ /"name"\s*:\s*"AskUserQuestion"/) {
-            $idx = $i;
-          }
-        }
-        print $rows[$idx] if $idx >= 0;
-      }
-    ' 2>/dev/null)
-
-    answer_raw=$(printf '%s' "$transcript_tail" | perl -ne '
-      chomp;
-      push @rows, $_;
-      END {
-        my $idx = -1;
-        for (my $i = 0; $i <= $#rows; $i++) {
-          if ($rows[$i] =~ /"role"\s*:\s*"assistant"/
-              && $rows[$i] =~ /"type"\s*:\s*"tool_use"/
-              && $rows[$i] =~ /"name"\s*:\s*"AskUserQuestion"/) {
-            $idx = $i;
-          }
-        }
-        exit if $idx < 0 || $idx + 1 > $#rows;
-
-        # The confirmation only authorizes the immediately-following
-        # dispatch attempt. A later GENUINE new user text prompt stales it —
-        # role=user with either an array text-type entry or a direct
-        # non-empty string content (not a tool_result-shaped wrapper).
-        # Structural rows (system, attachment, in-flight assistant dispatch)
-        # do not count. The scan starts at idx+2 to skip the answer row
-        # itself at idx+1.
-        for (my $i = $idx + 2; $i <= $#rows; $i++) {
-          my $row = $rows[$i];
-          next unless $row =~ /"role"\s*:\s*"user"/;
-          my $array_text = ($row =~ /"type"\s*:\s*"text"/ && $row =~ /"text"\s*:\s*"[^"]+/);
-          my $direct_string = ($row !~ /"content"\s*:\s*\[/ && $row =~ /"content"\s*:\s*"[^"]+"/);
-          exit if $array_text || $direct_string;
-        }
-
-        my $next = $rows[$idx + 1];
-        $next =~ s/\\"/"/g;
-        if ($next =~ /Your questions have been answered:.*?="([^"]+)"/) {
-          print $1;
-        } elsif ($next =~ /"content"\s*:\s*"([^"]+)"/) {
-          print $1;
-        }
-      }
-    ' 2>/dev/null)
+  if ! command -v jq >/dev/null 2>&1 || ! printf '{}' | jq -e type >/dev/null 2>&1; then
+    DISPATCH_BLOCK_REASON="jq_unavailable"
+    return 1
   fi
 
-  [ -n "$auq_payload" ] || return 1
+  decision=$(tail -160 "$transcript_path" 2>/dev/null | jq -sr --arg subagent "$subagent_type" '
+    def norm: gsub("—"; "-");
+    def role: (.message.role // .role // "");
+    def content: (.message.content // .content // []);
+    def nonempty_text:
+      if (content | type) == "array" then any(content[]?; .type == "text" and ((.text // "") | length > 0))
+      elif (content | type) == "string" then ((content // "") | length > 0)
+      else false end;
+    def genuine_user_text: role == "user" and nonempty_text;
+    def has_auq:
+      ([ .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | length) > 0;
+    def text_from_content($value):
+      if ($value | type) == "array" then
+        ([ $value[]?
+          | if .type? == "tool_result" then (.content // "")
+            elif .type? == "text" then (.text // "")
+            else empty end
+          | if type == "array" then ([ .[]? | select(.type? == "text") | .text ] | join(" "))
+            else tostring end
+        ] | join(" "))
+      elif ($value | type) == "string" then $value
+      else "" end;
+    def parsed_answer($raw):
+      ($raw // "") as $safe
+      | if ($safe | test("Your questions have been answered:\\s*\"[^\"]+\"\\s*=\\s*\"[^\"]+\"")) then
+          ($safe | capture("Your questions have been answered:\\s*\"(?<question>[^\"]+)\"\\s*=\\s*\"(?<answer>[^\"]+)\""))
+          | {question: (.question // ""), answer: (.answer // "")}
+        else {question: "", answer: $safe}
+        end;
+    def block($reason): "BLOCK " + $reason;
 
-  # Minor punctuation drift (a plain hyphen instead of an em dash) should
-  # not cause a false block — normalize both sides to a hyphen before
-  # comparing. Everything else about the match stays strict/case-sensitive.
-  auq_norm=$(printf '%s' "$auq_payload" | sed 's/—/-/g')
+    (map(select(type == "object"))) as $rows
+    | ([ $rows | to_entries[] | select((.value | role) == "assistant" and (.value | has_auq)) | .key ] | last // -1) as $idx
+    | if $idx == -1 then block("no_question")
+      elif ($idx + 1) >= ($rows | length) then block("missing_answer")
+      elif (($rows[$idx + 2:] | map(select(genuine_user_text)) | length) > 0) then block("stale")
+      else
+        ([ $rows[$idx] | .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | last) as $auq
+        | (($rows[$idx + 1].message.content // $rows[$idx + 1].content // "") | text_from_content(.)) as $raw_answer
+        | (parsed_answer($raw_answer)) as $selected
+        | ($selected.answer | norm) as $answer
+        | if ($answer | length) == 0 then block("missing_answer")
+          else
+            ($auq.input.questions // []) as $questions
+            | (if (($selected.question // "") | length) > 0 then
+                [ $questions[]? | select((.question // "") == $selected.question) ]
+              elif ($questions | length) == 1 then
+                [ $questions[0] ]
+              else [] end) as $matched_questions
+            | if ($matched_questions | length) != 1 then block("question_mismatch")
+              else
+                ($matched_questions[0].options // []) as $options
+                | ([ $options[]? | {label: ((.label // "") | norm)} | select(.label == $answer) ] | .[0] // null) as $selected_option
+                | ([ $options[]? | ((.label // "") | norm) ]) as $labels
+                | ("Dispatch now - " + $subagent) as $expected_dispatch
+                | if $selected_option == null then block("selected_option_label")
+                  elif ($selected_option.label != $expected_dispatch) then block("selected_option_label")
+                  elif (($labels | index("Hold - let me review the brief first")) == null) then block("missing_hold_label")
+                  elif (($labels | index("Wrong agent - let me pick")) == null) then block("missing_wrong_agent_label")
+                  else "ALLOW" end
+              end
+          end
+      end
+  ' 2>/dev/null)
 
-  printf '%s' "$auq_norm" | grep -qF "Dispatch now - $subagent_type" || return 1
-  printf '%s' "$auq_norm" | grep -qF "Hold - let me review the brief first" || return 1
-  printf '%s' "$auq_norm" | grep -qF "Wrong agent - let me pick" || return 1
-
-  # The options were offered — now require the SELECTED answer to
-  # literally match the dispatch-confirm option, not merely have been
-  # offered as a choice.
-  [ -n "$answer_raw" ] || return 1
-  answer_text=$(printf '%s' "$answer_raw" | perl -0pe 's/.*="//s; s/"\.\s*You can now continue.*$//s')
-  answer_norm=$(printf '%s' "$answer_text" | sed 's/—/-/g')
-
-  [ "$answer_norm" = "Dispatch now - $subagent_type" ]
+  case "$decision" in
+    ALLOW)
+      return 0
+      ;;
+    BLOCK\ *)
+      DISPATCH_BLOCK_REASON=${decision#BLOCK }
+      return 1
+      ;;
+    *)
+      DISPATCH_BLOCK_REASON="parse_error"
+      return 1
+      ;;
+  esac
 }
 
 # Context-file stewardship guard. This is intentionally factored out of the
@@ -234,11 +179,20 @@ if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
   fi
 
   debug_log "decision=BLOCK tool=$TOOL_NAME subagent=$SUBAGENT_TYPE reason='missing exact dispatch confirmation'"
-  if [ -n "$SUBAGENT_TYPE" ]; then
-    echo "BLOCKED: Strategic Partner must confirm the exact agent before dispatch. Ask via AskUserQuestion with: [Dispatch now — $SUBAGENT_TYPE] [Hold — let me review the brief first] [Wrong agent — let me pick]." >&2
-  else
-    echo "BLOCKED: Strategic Partner must confirm the exact agent before dispatch. Ask via AskUserQuestion with: [Dispatch now — <subagent_type>] [Hold — let me review the brief first] [Wrong agent — let me pick]." >&2
-  fi
+  case "${DISPATCH_BLOCK_REASON:-}" in
+    jq_unavailable)
+      echo "BLOCKED: Strategic Partner could not verify the dispatch confirmation because jq is unavailable. Use prompt delivery, or install jq and ask again." >&2
+      ;;
+    selected_option_label|missing_hold_label|missing_wrong_agent_label|question_mismatch)
+      echo "BLOCKED: Strategic Partner must confirm dispatch with a selected option label exactly matching: [Dispatch now — $SUBAGENT_TYPE]. Descriptions do not authorize dispatch; ask again with the exact labels." >&2
+      ;;
+    stale)
+      echo "BLOCKED: Strategic Partner found an older dispatch confirmation, but a later user message made it stale. Ask again before dispatching." >&2
+      ;;
+    *)
+      echo "BLOCKED: Strategic Partner must confirm the exact agent before dispatch. Ask via AskUserQuestion with: [Dispatch now — $SUBAGENT_TYPE] [Hold — let me review the brief first] [Wrong agent — let me pick]." >&2
+      ;;
+  esac
   exit 2
 fi
 
@@ -262,6 +216,7 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
 
   # Allowed paths (SP's own workspace)
   case "$FILE_PATH_NORM" in
+    /tmp/*|/private/tmp/*)                              debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     .prompts/*|.prompts|*/.prompts/*|*/.prompts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     .handoffs/*|.handoffs|*/.handoffs/*|*/.handoffs) debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
     .scripts/*|.scripts|*/.scripts/*|*/.scripts)     debug_log "decision=allow path=$FILE_PATH"; exit 0 ;;
@@ -286,6 +241,26 @@ command_without_quoted_strings() {
   printf '%s' "$1" | perl -0pe "s/'[^']*'/Q/g; s/\"([^\"\\\\]|\\\\.)*\"/Q/g"
 }
 
+redirect_target_allowed() {
+  target="$1"
+  tmp_base="${TMPDIR:-}"
+  tmp_base="${tmp_base%/}"
+
+  if [ -n "$tmp_base" ]; then
+    case "$target" in
+      "$tmp_base"|"$tmp_base"/*) return 0 ;;
+    esac
+  fi
+
+  case "$target" in
+    /dev/null|/tmp|/tmp/*|/private/tmp|/private/tmp/*|\$TMPDIR|\$TMPDIR/*|\${TMPDIR}|\${TMPDIR}/*) return 0 ;;
+    .prompts/*|.handoffs/*|.scripts/*|.backlog/*|.claude/*|.gitignore) return 0 ;;
+    */.prompts/*|*/.handoffs/*|*/.scripts/*|*/.backlog/*|*/.claude/*|*/.gitignore) return 0 ;;
+  esac
+
+  return 1
+}
+
 bash_command_has_blocked_mutation() {
   stripped=$(command_without_quoted_strings "$1")
 
@@ -293,12 +268,7 @@ bash_command_has_blocked_mutation() {
   if [ -n "$redirect_targets" ]; then
     while IFS= read -r target; do
       [ -z "$target" ] && continue
-      case "$target" in
-        /dev/null) ;;
-        .prompts/*|.handoffs/*|.scripts/*|.backlog/*|.claude/*|.gitignore) ;;
-        */.prompts/*|*/.handoffs/*|*/.scripts/*|*/.backlog/*|*/.claude/*|*/.gitignore) ;;
-        *) return 0 ;;
-      esac
+      redirect_target_allowed "$target" || return 0
     done <<EOF
 $redirect_targets
 EOF
@@ -319,12 +289,7 @@ raw_bash_payload_has_blocked_mutation() {
   if [ -n "$redirect_targets" ]; then
     while IFS= read -r target; do
       [ -z "$target" ] && continue
-      case "$target" in
-        /dev/null) ;;
-        .prompts/*|.handoffs/*|.scripts/*|.backlog/*|.claude/*|.gitignore) ;;
-        */.prompts/*|*/.handoffs/*|*/.scripts/*|*/.backlog/*|*/.claude/*|*/.gitignore) ;;
-        *) return 0 ;;
-      esac
+      redirect_target_allowed "$target" || return 0
     done <<EOF
 $redirect_targets
 EOF

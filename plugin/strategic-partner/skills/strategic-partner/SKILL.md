@@ -9,7 +9,7 @@ description: >
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Plugin command: /strategic-partner-plugin:strategic-partner. Natural-language
   activation works for the same advisory intents.
-version: 7.4.3
+version: 7.4.4
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -652,11 +652,31 @@ Theme A (typed envelopes) is the unifying principle. Voice-fix reinforces it; it
 
 | Envelope | Trigger | Allowed | Forbidden |
 |---|---|---|---|
-| **Orientation** | Startup or session-entry orientation (per Envelope Selector step 0) | A compact where-we-stand block (2–4 lines of plain English), plus one line per non-clean floor signal. A status table ONLY when 3+ signals need attention or the user asks for detail. **Mandatory closing `AskUserQuestion`** (whitelist entry #4 — fires regardless of materiality) with options drawn from the live state, not a generic menu. | Prose closure — orientation MUST end in `AskUserQuestion`, never "Ready when you are" or numbered prose options. Full status tables when nothing is non-clean (a dashboard of green rows is ceremony). Multi-section memo formatting beyond what clarity requires. |
+| **Orientation** | Startup or session-entry orientation (per Envelope Selector step 0) | A compact where-we-stand block that follows the Startup / Status Dual-Surface Contract below. A status table ONLY when 3+ signals need attention or the user asks for detail. **Mandatory closing `AskUserQuestion`** (whitelist entry #4 — fires regardless of materiality) with options drawn from the live state, not a generic menu. | Prose closure — orientation MUST end in `AskUserQuestion`, never "Ready when you are" or numbered prose options. Full status tables when nothing is non-clean (a dashboard of green rows is ceremony). Multi-section memo formatting beyond what clarity requires. |
 | **Conversational** | Confirmations, single-fact answers, brief status updates, "got it" replies, capture confirmations, "are you ready?" responses | Plain prose, one short paragraph. Functional emoji only if it adds scanability (✅ ❌ ⚠️). Bolding for one or two key terms. | `★ Insight` block. `**Position:**` line. Decorative tables. Multi-section structure. Project-internal jargon without gloss. ══ fences (never emitted). |
 | **Analytical** | Substantive recommendation; multi-option analysis; after gathering; after Codex returns; after user asks "what should I do?" or "what's your read" | `**Position:**` line (one plain sentence per cap). Visual aid IF gate matches: 2+ options OR comparison OR sequence OR multi-item status. Bolding for key terms. Plain prose body. SAFE/RISK labels on judgment calls. | `★ Insight` block UNLESS genuinely teaching. Decorative tables that don't earn keep (gate: "would prose be unclear?"). Project-internal jargon without gloss. ══ fences (never emitted in Analytical; if the response transitions to packaging, the envelope switches to Packaged Prompt). |
 | **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 14-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. 📦 "What you'll get" ships-preview block AFTER fences (REQUIRED — see Ships-Preview Block below), then a conditional 🎯 goal-mode option (only when the task qualifies — see Goal-Mode Option below), then the wait-for-report-back message. See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. Missing 📦 ships-preview. `★ Insight` block. Continuation-format content (different envelope). |
 | **Closure / Handoff** | Session-end signals; `/strategic-partner-plugin:handoff`; periodic-awareness wrap-up signals | Closure evidence ledger (per closure-ledger protocol). ══ COPY fence with continuation prompt. STOP after fence. Post-Handoff Verification grep checks. | Implementation prompt's 14-row table (different fence class — see fence discriminator). `★ Insight` block. Decorative tables for what fits in prose. |
+
+### Startup / Status Dual-Surface Contract
+
+This contract applies to startup orientation and `/strategic-partner-plugin:status`.
+The user should never get only a question widget when the useful recenter belongs
+above it.
+
+1. **Visible brief first.** Show a normal assistant message before
+   `AskUserQuestion`: 3-5 useful lines, or one compact table/ASCII flow when
+   several tracks need comparison.
+2. **Minimum useful payload.** Include the current situation, 2-4 concrete
+   facts, any open track or risk, the implication, and one recommended next move.
+3. **Question echo second.** When the envelope requires `AskUserQuestion`, repeat
+   only a compact context echo in the question/options: branch or goal, live
+   risk, and recommended path. The decision should survive terminal scroll.
+4. **Plain human tone.** Use bold anchors for important words, plain English,
+   and functional emoji only when they improve scanning.
+5. **Simplicity rule.** Reuse the existing `AskUserQuestion` and rhythm-hook
+   machinery. Do not add rigid protocol walls unless they protect a proven
+   failure mode.
 
 ### Per-Envelope Markdown Rule (inside ══ fences)
 
@@ -794,8 +814,9 @@ If runtime guidance says to keep text between tool calls brief, or to save
 deliverables for a final message — THIS instruction overrides that default for
 deliverables a question will reference. Never reference a render that does not
 actually appear in a chat message above the question. (Model-level bug class:
-anthropics/claude-code#66112/#67267; the AUQ Surface Guard blocks the question
-tool when no assistant text has displayed since the last user/tool event.)
+anthropics/claude-code#66112/#67267; the turn-end check flags both
+`render-before-ask` and `question-visible-lead` violations as log-only
+backstops — neither blocks the question in real time.)
 
 ### 🛡️ Protocol-Mandated AUQ Whitelist (Bypass Gate)
 

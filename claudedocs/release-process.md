@@ -51,6 +51,12 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    echo '{"tool_name":"Edit","tool_input":{"file_path":"/foo/.prompts/test.md"}}' | bash hooks/guard-impl.sh
    echo $?  # should be 0 (allowed)
    ```
+   When both standalone and plugin guard copies exist, also verify they have
+   not drifted:
+   ```
+   cmp -s hooks/guard-impl.sh plugin/strategic-partner/hooks/guard-impl.sh
+   cmp -s hooks/context-file-guard.sh plugin/strategic-partner/hooks/context-file-guard.sh
+   ```
 3. **Test from a non-default path**: verify no hardcoded paths or undefined variables.
 4. **Runtime-input fuzzing** (for hooks parsing JSON or env vars): vary
    whitespace in keys/values, quoting styles, missing optional fields, and

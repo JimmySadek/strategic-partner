@@ -8,7 +8,7 @@ description: >
   "help me think through", "how should I approach", "what's the right tool",
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Triggers on: /strategic-partner, /advisor, /sp
-version: 7.4.3
+version: 7.4.4
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced

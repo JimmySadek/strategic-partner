@@ -79,16 +79,26 @@ Phase 1 (infra) ──✅──→ Phase 2 (auth) ──🔄──→ Phase 3 (U
                            ← you are here
 ```
 
-### Step 3 — Present via AskUserQuestion
+### Step 3 — Show The Briefing, Then Ask
 
-Show the full briefing in the question description.
+Do not put the whole briefing only inside `AskUserQuestion`. The user must see
+a useful recenter first.
 
-**Question**: "Does this match where we are? What should we focus on?"
+1. Show a visible briefing in normal chat. Keep it viewport-safe: 3-5 useful
+   lines, or one compact table/ASCII flow when the state has several tracks.
+   Include the current situation, 2-4 concrete facts, any open risk, the
+   implication, and one recommended next move.
+2. Then call `AskUserQuestion`. Repeat only a compact context echo inside the
+   question/options: branch or goal, live risk, and recommended path. This keeps
+   the choice understandable if the terminal scrolls.
+3. Draw option labels from the live briefing, not a generic menu.
+
+**Question**: "[compact context echo]\n\nWhat should we focus on next?"
 
 **Options**:
-- [Yes, let's continue from here] — Proceed with the identified next action
-- [I need to correct something] — User will clarify what's different
-- [Let's reprioritize] — Shift focus to a different goal or phase
+- [Continue with <recommended next move>] — Proceed with the identified next action
+- [Correct the status] — User will clarify what's different
+- [Switch to <other live track>] — Shift focus to a different goal or phase
 
 ## Key Differences from Startup
 
@@ -104,7 +114,7 @@ Show the full briefing in the question description.
 **Will:**
 - Read from `.handoffs/`, `.prompts/`, Serena memory, CLAUDE.md, git
 - Synthesize a structured briefing with visual formatting
-- Present findings via AskUserQuestion for confirmation
+- Show a visible briefing, then present a compact `AskUserQuestion` echo for confirmation
 
 **Will Not:**
 - Modify any files or state

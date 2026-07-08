@@ -1,5 +1,13 @@
 # Changelog
 
+## [7.4.4] - 2026-07-08
+
+### Fixed
+- **Dispatch confirmations are now checked against the exact answer and the exact agent** — the standalone skill and plugin both require the selected answer to match the agent being dispatched, fail closed when the transcript or agent name cannot be read, stop replaying old "Dispatch now" answers after a later typed prompt, and avoid mistaking tool plumbing, system rows, attachment rows, or the in-flight dispatch itself for a new user decision.
+- **Dispatch confirmation no longer guesses when the JSON helper is missing** — background agent dispatch now fails closed without `jq`; prompt delivery still works, and installing `jq` restores verified dispatch confirmation.
+- **Startup and status briefings now show useful context before asking what to do next** — the plugin keeps the lean packaging, but restores a visible recenter first, then repeats only a compact fact echo inside the question and options so the decision still makes sense if the terminal scrolls.
+- **Project-rules edits are classified more safely** — the guard for always-loaded rules files now uses a stricter nearby-line match, avoids treating a same-content cleanup as accidental growth, and blocks ambiguous "needs extraction" cases instead of letting a risky expansion through.
+
 ## [7.4.3] - 2026-07-07
 
 ### Fixed

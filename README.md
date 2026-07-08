@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.4.3-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.4.4-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — **7.4.3** closes a gap where the plugin's safety guard was slightly more permissive than the standalone skill's, removes a dead safety toggle, and brings the plugin's startup status line in line with the skill's. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
+> **What's new** — **7.4.4** starts a background agent only when the selected button names that exact agent, restores useful startup/status context before the question widget, and makes project-rules edit checks stricter so risky expansions are blocked while safe cleanups still pass. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
 
 ---
 
@@ -218,12 +218,12 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism de
 ## Requirements
 
 - **Claude Code** — the skill runs inside Claude Code sessions
-- **`jq`** (a small command-line JSON processor) — used by the rules-file scanner and the startup/status hooks. Install via `brew install jq` (macOS) or `apt install jq` / `dnf install jq` (Linux). Without `jq`, the rules-file scanner won't run, the startup snapshot is reduced, and context-file writes fail closed instead of being allowed blind; ordinary chat is not blocked.
+- **`jq`** (a small command-line JSON processor) — used by the rules-file scanner, startup/status hooks, and background-agent dispatch confirmation. Install via `brew install jq` (macOS) or `apt install jq` / `dnf install jq` (Linux). Without `jq`, the rules-file scanner won't run, the startup snapshot is reduced, and context-file writes plus background-agent dispatch fail closed instead of guessing; ordinary chat and prompt delivery are not blocked.
 - **Serena MCP** (recommended) — an MCP server (a tool plugin Claude Code can call) that provides cross-session memory and semantic code navigation
 - **Context7 MCP** (optional) — for library documentation lookup
 - **Codex CLI** (optional) — for cross-model adversarial review
 
-The skill works without Serena, but loses cross-session memory and semantic code navigation. `jq` is strongly recommended — the rules-file scanner requires it, and the startup snapshot is reduced without it.
+The skill works without Serena, but loses cross-session memory and semantic code navigation. `jq` is strongly recommended — the rules-file scanner and verified background-agent dispatch require it, and the startup snapshot is reduced without it.
 
 ### Supported platforms
 
