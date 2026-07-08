@@ -39,6 +39,8 @@ dispatch_confirmation_present() {
   transcript_path="$1"
   subagent_type="$2"
 
+  [ -n "$subagent_type" ] || return 1
+
   # A missing/unreadable transcript means we can't verify a confirmation
   # exists — fail CLOSED. Mirrors Guard 1 (unreadable file_path on a
   # confirmed edit tool) and Guard 3 (unreadable Serena path) below: an
@@ -71,6 +73,12 @@ dispatch_confirmation_present() {
     # mind.`; the wrapper is stripped below.
     answer_raw=$(tail -160 "$transcript_path" 2>/dev/null | jq -sr '
       def role: (.message.role // .role // "");
+      def content: (.message.content // .content // []);
+      def nonempty_text:
+        if (content | type) == "array" then any(content[]?; .type == "text" and ((.text // "") | length > 0))
+        elif (content | type) == "string" then ((content // "") | length > 0)
+        else false end;
+      def genuine_user_text: role == "user" and nonempty_text;
       def has_auq:
         ([ .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | length) > 0;
       (map(select(type == "object"))) as $rows
@@ -78,11 +86,11 @@ dispatch_confirmation_present() {
       | if $idx == -1 then ""
         else
           # The confirmation only authorizes the immediately-following
-          # exchange. Any further user/assistant turn after the answer
-          # stales it — a later, unrelated dispatch attempt must not be
-          # able to replay an old confirmation.
-          (($rows[$idx + 2:]) | map(select((role == "user") or (role == "assistant"))) | length) as $later_turns
-          | if $later_turns > 0 then ""
+          # dispatch attempt. A later genuine user text prompt stales it;
+          # transcript plumbing such as tool results, attachments, system
+          # rows, or the in-flight assistant dispatch row does not.
+          (($rows[$idx + 2:]) | map(select(genuine_user_text)) | length) as $later_user_prompts
+          | if $later_user_prompts > 0 then ""
             else
               ($rows[$idx + 1].message.content // $rows[$idx + 1].content // "") as $next
               | if ($next | type) == "array" then
@@ -97,8 +105,67 @@ dispatch_confirmation_present() {
         end
     ' 2>/dev/null)
   else
-    auq_payload=$(tail -160 "$transcript_path" 2>/dev/null | tr '\n' ' ')
-    answer_raw=""
+    transcript_tail=$(tail -160 "$transcript_path" 2>/dev/null)
+
+    # No-jq fallback. The transcript is JSONL (one JSON object per line), so
+    # line-scoped regex matching never needs to cross a line boundary. Both
+    # passes below select the SAME row — the last assistant tool_use row
+    # carrying an AskUserQuestion — via identical matching, so auq_payload
+    # and answer_raw can never describe two different questions.
+    auq_payload=$(printf '%s' "$transcript_tail" | perl -ne '
+      chomp;
+      push @rows, $_;
+      END {
+        my $idx = -1;
+        for (my $i = 0; $i <= $#rows; $i++) {
+          if ($rows[$i] =~ /"role"\s*:\s*"assistant"/
+              && $rows[$i] =~ /"type"\s*:\s*"tool_use"/
+              && $rows[$i] =~ /"name"\s*:\s*"AskUserQuestion"/) {
+            $idx = $i;
+          }
+        }
+        print $rows[$idx] if $idx >= 0;
+      }
+    ' 2>/dev/null)
+
+    answer_raw=$(printf '%s' "$transcript_tail" | perl -ne '
+      chomp;
+      push @rows, $_;
+      END {
+        my $idx = -1;
+        for (my $i = 0; $i <= $#rows; $i++) {
+          if ($rows[$i] =~ /"role"\s*:\s*"assistant"/
+              && $rows[$i] =~ /"type"\s*:\s*"tool_use"/
+              && $rows[$i] =~ /"name"\s*:\s*"AskUserQuestion"/) {
+            $idx = $i;
+          }
+        }
+        exit if $idx < 0 || $idx + 1 > $#rows;
+
+        # The confirmation only authorizes the immediately-following
+        # dispatch attempt. A later GENUINE new user text prompt stales it —
+        # role=user with either an array text-type entry or a direct
+        # non-empty string content (not a tool_result-shaped wrapper).
+        # Structural rows (system, attachment, in-flight assistant dispatch)
+        # do not count. The scan starts at idx+2 to skip the answer row
+        # itself at idx+1.
+        for (my $i = $idx + 2; $i <= $#rows; $i++) {
+          my $row = $rows[$i];
+          next unless $row =~ /"role"\s*:\s*"user"/;
+          my $array_text = ($row =~ /"type"\s*:\s*"text"/ && $row =~ /"text"\s*:\s*"[^"]+/);
+          my $direct_string = ($row !~ /"content"\s*:\s*\[/ && $row =~ /"content"\s*:\s*"[^"]+"/);
+          exit if $array_text || $direct_string;
+        }
+
+        my $next = $rows[$idx + 1];
+        $next =~ s/\\"/"/g;
+        if ($next =~ /Your questions have been answered:.*?="([^"]+)"/) {
+          print $1;
+        } elsif ($next =~ /"content"\s*:\s*"([^"]+)"/) {
+          print $1;
+        }
+      }
+    ' 2>/dev/null)
   fi
 
   [ -n "$auq_payload" ] || return 1
@@ -108,11 +175,7 @@ dispatch_confirmation_present() {
   # comparing. Everything else about the match stays strict/case-sensitive.
   auq_norm=$(printf '%s' "$auq_payload" | sed 's/—/-/g')
 
-  if [ -n "$subagent_type" ]; then
-    printf '%s' "$auq_norm" | grep -qF "Dispatch now - $subagent_type" || return 1
-  else
-    printf '%s' "$auq_norm" | grep -qF "Dispatch now -" || return 1
-  fi
+  printf '%s' "$auq_norm" | grep -qF "Dispatch now - $subagent_type" || return 1
   printf '%s' "$auq_norm" | grep -qF "Hold - let me review the brief first" || return 1
   printf '%s' "$auq_norm" | grep -qF "Wrong agent - let me pick" || return 1
 
@@ -123,14 +186,7 @@ dispatch_confirmation_present() {
   answer_text=$(printf '%s' "$answer_raw" | perl -0pe 's/.*="//s; s/"\.\s*You can now continue.*$//s')
   answer_norm=$(printf '%s' "$answer_text" | sed 's/—/-/g')
 
-  if [ -n "$subagent_type" ]; then
-    [ "$answer_norm" = "Dispatch now - $subagent_type" ]
-  else
-    case "$answer_norm" in
-      "Dispatch now -"*) return 0 ;;
-      *) return 1 ;;
-    esac
-  fi
+  [ "$answer_norm" = "Dispatch now - $subagent_type" ]
 }
 
 # Context-file stewardship guard. This is intentionally factored out of the
@@ -164,6 +220,12 @@ if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
   else
     TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | grep -Eo '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
     SUBAGENT_TYPE=$(printf '%s' "$INPUT" | grep -Eo '"(subagent_type|agent_type|agent)"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
+  fi
+
+  if [ -z "$SUBAGENT_TYPE" ]; then
+    debug_log "decision=BLOCK tool=$TOOL_NAME reason='missing agent type in dispatch payload'"
+    echo "BLOCKED: Strategic Partner could not read the exact agent type for this dispatch. Ask again with the exact agent named before dispatch." >&2
+    exit 2
   fi
 
   if dispatch_confirmation_present "$TRANSCRIPT_PATH" "$SUBAGENT_TYPE"; then
