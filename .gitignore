@@ -7,6 +7,7 @@
 .backlog/
 .handoffs/
 .prompts/
+specs/
 .scripts/*
 !.scripts/release-publish.sh
 !.scripts/context-file-scan/
