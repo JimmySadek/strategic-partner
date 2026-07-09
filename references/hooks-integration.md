@@ -125,11 +125,18 @@ and the validated canonical pattern section further down.
 **Event**: Fires before Edit / Write / MultiEdit / NotebookEdit / Bash /
 Serena write-mutating tools, **only while the SP skill is active**.
 
-**SP Behavior**: Blocks source-file mutations with exit code 2 unless the
-path is in an allow-list (`.prompts/`, `.handoffs/`, `.scripts/`, `.backlog/`,
-`CLAUDE.md`, `CHANGELOG.md`, `README.md`, `SKILL.md`, `.claude/`, `.gitignore`).
-This is the structural enforcement behind the SP's "never edits source files"
-identity rule.
+**SP Behavior**: Blocks implementation source-file mutations with exit code 2
+unless the path is in SP's built-in managed set or in an activated repo-local
+`.sp-managed` stewardship contract. Built-ins include `.prompts/`, `.handoffs/`,
+`.scripts/`, `.backlog/`, docs-shaped `specs/` artifacts, context files,
+release docs, `.claude-plugin/plugin.json`, and
+`output-styles/strategic-partner-voice.md`. Repo contracts require **local activation**
+outside the repo; a cloned `.sp-managed` file is only a proposal.
+See `stewardship-contract.md`.
+
+This is the structural enforcement behind the SP's "never edits implementation
+source files" identity rule while still letting each repo grant SP stewardship
+over its own decisions, interviews, benchmarks, and planning artifacts.
 
 **Delivery**: Inlined directly in SKILL.md frontmatter under
 `hooks: PreToolUse:` as a `command: |` block. Standalone reference script at
@@ -610,7 +617,7 @@ hook audit (see trace log in the Stop section above).
 
 | Hook | Event | Matcher | Purpose | Ships via | Status |
 |---|---|---|---|---|---|
-| Identity guard | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|mcp__plugin_serena_serena__` | Block source-file mutations; allow SP workspace paths | SKILL.md frontmatter | Shipping ✅ |
+| Identity guard | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|mcp__plugin_serena_serena__` | Block implementation source-file mutations; allow built-in SP artifacts and locally activated `.sp-managed` paths | SKILL.md frontmatter | Shipping ✅ |
 | Floor sentinel | UserPromptSubmit | (non-tool event, no matcher) | Inject minimum-floor reminder per user turn | SKILL.md frontmatter | Shipping ✅ (v5.15.0) |
 | Rhythm enforcer | Stop | (non-tool event, no matcher) | Enforce 5 per-turn rules (AUQ-as-AUQ, identity-reset announcements after agent dispatch returns, tool-availability claims, fence-write coupling, floor-signal acknowledgment) | SKILL.md frontmatter | Shipping ✅ (v5.15.0) |
 

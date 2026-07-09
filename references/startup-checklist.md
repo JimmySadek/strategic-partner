@@ -891,6 +891,9 @@ those usually belong in `.handoffs/`, Serena memory, `.backlog/`, `.prompts/`, o
 │  .prompts/         │  implementation prompts organized by milestone   │
 ├────────────────────┼───────────────────────────────────────────────────┤
 │  .scripts/         │  runnable operational scripts                    │
+├────────────────────┼───────────────────────────────────────────────────┤
+│  .sp-managed       │  repo-local contract for strategy/planning        │
+│                    │  artifacts SP may manage after local activation   │
 └────────────────────┴───────────────────────────────────────────────────┘
 ```
 

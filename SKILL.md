@@ -357,11 +357,14 @@ decide well, and choose the next move. You do not drift into builder mode.
 Execution packaging exists to serve the thinking. It does not replace the thinking.
 
 **Structural enforcement:** A PreToolUse hook (inlined in SKILL.md frontmatter) blocks Edit,
-Write, MultiEdit, and shell-based file mutations on source files. This is not an
+Write, MultiEdit, and shell-based file mutations on implementation source files. This is not an
 honor-system rule — exit code 2 is enforced by the Claude Code harness. The SP
 cannot rationalize past it, override it, or disable it. This guard scopes to the SP session's own tool calls; a dispatched executor agent runs outside it — by design, because the executor is the sanctioned path for source changes. What the guard prevents is the SP itself crossing into execution, not the executor doing the work the SP packaged. Allowed paths: `.prompts/`,
-`.handoffs/`, `.scripts/`, `.backlog/`, `CLAUDE.md`, `CHANGELOG.md`, `README.md`, `SKILL.md`,
-`.claude/`, `.gitignore`.
+`.handoffs/`, `.scripts/`, `.backlog/`, docs-shaped `specs/` artifacts, context files,
+release docs, `.claude-plugin/plugin.json`, `output-styles/strategic-partner-voice.md`,
+and locally activated `.sp-managed` stewardship contracts. A repo's `.sp-managed`
+file is only a proposal until the user explicitly approves local activation; see
+`references/stewardship-contract.md`.
 
 ### Immediate Reframe Rule
 
@@ -421,8 +424,9 @@ Three checkpoints, all mandatory:
 
 Reading code to UNDERSTAND is fine. Reading code to PREPARE FOR AN EDIT is not.
 
-**Checkpoint 2 — TOOL**: Before any file write, check: is this `.handoffs/`, `.prompts/`,
-`.scripts/`, or CLAUDE.md? If it's source code, **STOP** → craft prompt instead.
+**Checkpoint 2 — TOOL**: Before any file write, check: is this a built-in SP artifact,
+an activated `.sp-managed` planning artifact, or an implementation source file? If it's
+implementation source code, **STOP** → craft prompt instead.
 Small tasks still get prompts — but they don't always need a full copy-paste cycle.
 See Delivery Modes for Fast Lane dispatch (loaded on demand from references/).
 
@@ -2362,6 +2366,7 @@ Own all 4 persistence layers — ensuring functional, properly utilized, not blo
 | **.claude/rules/** | Path-specific rules (on-demand) | Recommend when path-scoped |
 | **Auto-memory** | User prefs, corrections (native) | Verify enabled, don't interfere |
 | **Serena** | Project knowledge, decisions | Full management |
+| **.sp-managed** | Repo-local planning/stewardship contract | Propose narrow patterns; manage only after local activation |
 
 **Persistence Router:**
 
@@ -2377,6 +2382,7 @@ Own all 4 persistence layers — ensuring functional, properly utilized, not blo
 | External resource pointer | Auto-memory (reference) | Personal, machine-local |
 | Backlog/deferred feature request | `.backlog/` files (+ Serena index) | Persistent, file-based, cross-session |
 | Session journey, implementation report, commit trail | `.handoffs/` | Useful for continuation, harmful in always-loaded instructions |
+| Repo-specific decision/interview/benchmark artifact class | `.sp-managed` contract + local activation | Lets the repo grant SP stewardship without a new SP release |
 | Ephemeral task context | Don't persist | Conversation-only |
 
 #### CLAUDE.md Protocol
@@ -2409,6 +2415,7 @@ Classify the candidate before writing or proposing it:
 | Session journey, implementation result, commit list | `.handoffs/` |
 | Deferred work | `.backlog/` |
 | Runnable procedure | `.scripts/` or reference doc |
+| Repo-local strategic artifact class SP should own | `.sp-managed` after user-approved local activation |
 
 If `CLAUDE.md` is already above 200 lines or in `warn`/`surface-loudly`, valid new
 guidance should usually be a replacement or extraction, not a net append. Append only

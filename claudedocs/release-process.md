@@ -108,6 +108,16 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    and missed by its first fix `fd6dff7`, where every human and agent review
    layer inspected the change and missed the invariant.
 
+8. **Guard managed-path lint (v7.4.6+)**: run the drift check that the skill
+   guard, plugin guard, stewardship docs, and release process still name the
+   same managed path families:
+   ```
+   bash tests/lint-guard-allowlist.sh
+   ```
+   Exit 0 = clean. Exit 1 = a built-in managed path, `.sp-managed` contract
+   reference, local activation note, or guard mirror check is missing. Address
+   before proceeding.
+
 **Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. See the Provisional Guard *Don't use `${CLAUDE_*}` env vars in hook commands* in `claudedocs/provisional-guards.md`; `claudedocs/INCIDENTS.md` has the v5.4.0→v5.4.1 archaeology. Layer 1 (the PreToolUse source-edit guard, predates v5.14.0) and Layer 3 (the release-time transcript lint) are the only enforcement layers in play; Layer 2 (a runtime PostToolUse / Stop validator family that was prototyped during v5.14.0) was pulled before release after the hook surface proved fragile, so the transcript lint is the sole post-execution backstop for the AUQ, tool-availability, and fence-write-coupling rules.
 
 ### 2b. Codex Pre-Release Review (Mandatory for non-docs-only pushes)
