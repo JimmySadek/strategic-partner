@@ -36,13 +36,72 @@ It does not require the full startup sequence.
    ```
 5. If both fail → "❌ Could not reach GitHub to check for updates. Try again later."
 
-### Step 2 — Compare and Present
+### Step 2 — Inspect Install Shape
+
+Before choosing an update method, inspect the installed bundle. The skills CLI
+listing is a tracking signal only; it does not prove the supporting Strategic
+Partner files were installed.
+
+1. Determine `{skill-dir}` as the directory containing this command's
+   Strategic Partner `SKILL.md`.
+2. Confirm `{skill-dir}/SKILL.md` is actually Strategic Partner before any
+   repair:
+   ```
+   grep -q '^name: strategic-partner$' "{skill-dir}/SKILL.md"
+   ```
+   If this fails, stop: "❌ I could not verify this as the Strategic Partner install directory."
+3. Check for the supporting bundle files:
+   ```
+   test -f "{skill-dir}/SKILL.md"
+   test -f "{skill-dir}/setup"
+   test -f "{skill-dir}/commands/update.md"
+   test -f "{skill-dir}/hooks/guard-impl.sh"
+   test -f "{skill-dir}/references/startup-checklist.md"
+   test -f "{skill-dir}/output-styles/strategic-partner-voice.md"
+   ```
+   Bundle is **complete** only when every check passes.
+4. Check whether the skills CLI tracks this install:
+   ```
+   npx skills ls -g -a claude-code 2>/dev/null | grep -E '(^|[[:space:]])strategic-partner([[:space:]]|$)'
+   ```
+   If the global list is unavailable, also try `npx skills ls 2>/dev/null`.
+5. Check whether the install is a git clone:
+   ```
+   git -C "{skill-dir}" rev-parse --is-inside-work-tree
+   ```
+6. Classify the install:
+
+| State | Signals | Allowed path |
+|---|---|---|
+| `skills-tracked-complete` | Listed by the skills CLI and bundle complete | Skills CLI update, then setup |
+| `skills-tracked-incomplete` | Listed by the skills CLI but missing setup, commands, hooks, references, or output style | Safe clone and sync repair, then setup |
+| `git-clone` | Not a tracked-complete install, and `git -C` confirms a work tree | Git update, then setup |
+| `manual-copy` | Not tracked by the skills CLI and no git metadata | Safe clone and sync repair, then setup |
+
+### Step 3 — Compare and Present
 
 **If versions match:**
+
+- If the bundle is complete:
 ```
 ✅ You're on the latest version (v{local})
 ```
-Done. End interaction.
+  Done. End interaction.
+- If the bundle is incomplete:
+  ```
+  ⚠️ You're on v{local}, but this copy is missing supporting files.
+  ```
+  Offer repair from the latest release tag.
+
+**If local > remote:**
+
+```
+⚠️ This local copy is newer than the latest GitHub Release (v{local} local, v{remote} remote).
+```
+
+Do not update from GitHub, because that could replace a newer local release
+candidate with an older published release. If the bundle is incomplete, explain
+that repair from GitHub is unsafe until the matching release exists.
 
 **If remote > local:**
 
@@ -54,30 +113,73 @@ Done. End interaction.
 2. Fetch release body from the GitHub API response → display as changelog highlights.
    If release body is empty, show: "See CHANGELOG.md in the repo for details."
 
-3. Detect install method:
-   - Run `npx skills ls 2>/dev/null` and check if `strategic-partner` appears in output:
-     → If listed: Update command: `npx skills update`
-   - If not listed (manual git clone install):
-     → Update command: `cd {skill-directory} && git pull`
+3. Display install status:
+
+| State | User-facing status |
+|---|---|
+| `skills-tracked-complete` | "This is a complete skills-managed install, so I can update it through the skills CLI and rerun setup." |
+| `skills-tracked-incomplete` | "This copy is tracked by the skills CLI, but it only has the main instruction file. Strategic Partner needs supporting files, so I will repair it from the latest release." |
+| `git-clone` | "This is a git clone, so I can update it from GitHub and rerun setup." |
+| `manual-copy` | "This looks like a copied install, so I will repair it from the latest release and rerun setup." |
 
 4. Present via `AskUserQuestion`:
    - **Question**: "Update to v{remote}?"
    - **Options**:
-     - [Update now] (Recommended) — Run the update command
+     - [Update now] (Recommended) — Run the safe path for this install state
      - [Show full changelog] — Fetch and display the full CHANGELOG.md from the repo
      - [Not now] — Skip this update
 
-### Step 3 — Execute Update (if confirmed)
+For an incomplete same-version install, change the question to
+"Repair this Strategic Partner install from v{remote}?"
 
-1. Run the detected update command via Bash
-2. After success:
+### Step 4 — Execute Update Or Repair (if confirmed)
+
+Run only the command path allowed by the install-state classification.
+
+**For `skills-tracked-complete`:**
+
+```
+npx skills update strategic-partner -g
+```
+
+Then verify the bundle files still exist. If the update leaves the bundle
+incomplete, stop and offer the repair path instead of reporting success.
+
+**For `git-clone`:**
+
+```
+git -C "{skill-dir}" fetch --tags --prune
+git -C "{skill-dir}" pull --ff-only
+```
+
+Then verify the local `SKILL.md` version matches `v{remote}`. If it does not,
+stop and report what happened instead of guessing.
+
+**For `skills-tracked-incomplete` and `manual-copy`:**
+
+Use the latest release tag, not an unqualified branch:
+
+```
+tmp="$(mktemp -d)"
+git clone --depth 1 --branch "v{remote}" "https://github.com/{repo}.git" "$tmp/strategic-partner"
+rsync -a --delete --exclude='.git' "$tmp/strategic-partner/" "{skill-dir}/"
+rm -rf "$tmp"
+```
+
+Before running `rsync`, confirm all of these are true:
+
+- `{skill-dir}` exists and contains Strategic Partner `SKILL.md`
+- `{skill-dir}` is the intended skill install directory shown to the user
+- the user approved replacing the contents of that skill directory from the latest release
+
+After success:
    ```
    ✅ Updated to v{remote}.
    ```
 
-### Step 4 — Run Setup (after update)
+### Step 5 — Run Setup (after update or repair)
 
-After updating, re-run the setup script to refresh command registrations:
+After any successful update or repair, re-run the setup script to refresh command registrations:
 
 1. Determine the skill directory path (where SKILL.md lives)
 2. Run: `bash {skill-dir}/setup`
@@ -94,13 +196,17 @@ After updating, re-run the setup script to refresh command registrations:
 **Will:**
 - Check versions against GitHub releases/tags
 - Display changelog highlights from release notes
-- Execute update commands (npx skills update or git pull)
+- Inspect the actual installed bundle before choosing an update method
+- Classify installs as skills-tracked-complete, skills-tracked-incomplete, git-clone, or manual-copy
+- Execute update commands (skills CLI update, git update, or safe clone and sync repair)
 - Re-link command files after update
 
 **Will Not:**
 - Implement source code changes
 - Auto-update without explicit user confirmation
 - Modify any project files beyond the skill itself
+- Claim the skills CLI is globally broken; the known issue is that the current
+  root-layout Strategic Partner install can be incomplete for this supporting bundle
 
 ## See Also
 

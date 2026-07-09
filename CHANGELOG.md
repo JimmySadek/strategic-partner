@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Updates now check whether the installed copy is complete before choosing a path** — `/strategic-partner:update` now distinguishes complete skills-managed installs, incomplete skills-managed installs, git clones, and copied/manual installs. Incomplete or copied installs are routed to a safe repair from the latest release instead of guessing that `npx skills update` or `git pull` will work.
+- **The standalone install guidance no longer recommends an incomplete skills CLI path as complete** — the current repo layout can make the public skills CLI install copy only `SKILL.md`, so the README now points standalone users to the full git clone install and gives a repair path for older incomplete copies.
+
 ## [7.4.4] - 2026-07-08
 
 ### Fixed

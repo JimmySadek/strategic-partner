@@ -134,25 +134,43 @@ You paste each phase into a fresh session and report back; the SP reviews what l
 ### Install
 
 ```bash
-# Via npx (recommended)
-npx skills add https://github.com/JimmySadek/strategic-partner
-
-# Manual — clone to your preferred skills directory
+# Recommended — clone the full standalone skill bundle
 git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/strategic-partner
 ```
+
+The current skills CLI path for this root-layout repo (where `SKILL.md` lives
+at the top level) can install only the main instruction file. That is enough
+for the advisor to appear, but not enough for the supporting commands, hooks,
+references, setup script, and voice style. Use the git clone path above for a
+complete standalone install until the public skills CLI bundle shape changes.
 
 ### Setup
 
 After install completes, change into the install directory and run setup:
 
 ```bash
-cd /path/to/strategic-partner    # the directory created by npx or git clone
+cd /path/to/strategic-partner    # the directory created by git clone or repair
 ./setup
 ```
 
 Registers subcommands with Claude Code and installs the voice style (the formatting/tone profile that makes replies scannable for non-technical readers). If you already have a copy of the voice style, `setup` keeps yours and warns — without overwriting — when your installed copy is stale, unstamped (an older copy with no version marker), or missing. Optional: `./setup --audit-permissions` checks for permission gaps that cause friction in advisory sessions.
 
 > **Tip:** You can also skip this terminal step. When you invoke `/strategic-partner` in Claude Code for the first time, the advisor detects the missing setup and offers to run it for you with a single yes/no prompt. The manual `./setup` invocation above remains the bootstrap-safe path — still the right choice for headless installs or scripted setup.
+
+If an older `npx skills` install contains only `SKILL.md`, repair it from the
+latest GitHub Release before running setup. Set `skill_dir` to the Strategic
+Partner install directory only; the sync step replaces that directory's
+contents from the release bundle.
+
+```bash
+skill_dir="<your-skills-dir>/strategic-partner"
+tag="<latest-release-tag>"
+tmp="$(mktemp -d)"
+git clone --depth 1 --branch "$tag" https://github.com/JimmySadek/strategic-partner.git "$tmp/strategic-partner"
+rsync -a --delete --exclude='.git' "$tmp/strategic-partner/" "$skill_dir/"
+bash "$skill_dir/setup"
+rm -rf "$tmp"
+```
 
 ### Run
 
@@ -238,7 +256,16 @@ The skill works without Serena, but loses cross-session memory and semantic code
 
 ## Staying updated
 
-Every SP session checks for updates in the background and surfaces a one-line notice when a newer version is available. Run `/strategic-partner:update` to fetch the latest version — it detects whether you installed via skills or git clone, uses the right method, and re-runs `./setup` to refresh command registrations and flag a stale voice style if your installed copy is behind the shipped one. When an update introduces new subcommands, restart your Claude Code session so the CLI picks up the new registrations.
+Every SP session checks for updates in the background and surfaces a one-line notice when a newer version is available. Run `/strategic-partner:update` to fetch the latest version. The updater now checks the actual installed files before choosing what to do:
+
+| Install state | What the updater does |
+|---|---|
+| Complete skills-managed install | Updates through the skills CLI, then reruns setup |
+| Git clone | Pulls from GitHub, then reruns setup |
+| Copied/manual install | Repairs from the latest release with a safe clone and sync, then reruns setup |
+| Skills-managed but incomplete | Repairs from the latest release because SP needs more than `SKILL.md` |
+
+After setup runs, restart your Claude Code session so the CLI picks up refreshed command registrations and the shipped voice style.
 
 ---
 
