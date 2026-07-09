@@ -1,5 +1,14 @@
 # Changelog
 
+## [7.5.0] - 2026-07-09
+
+### Added
+- **Strategic Partner can now manage a project's own planning files without waiting for a new SP release** — a small opt-in file, `.sp-managed`, lets any project tell SP which of its planning, decision, or research files it may read and write directly. Nothing is trusted just because the file is present: the user has to explicitly activate it first, and any later change to the file requires activating it again.
+- **Plans saved to `specs/`, the plugin's manifest file, and the voice-style file are no longer blocked as if they were application code** — these were hitting the same "does not edit source files" block as real source code, even though they're SP's own release metadata or plan output. They're now recognized directly.
+
+### Fixed
+- **A dispatch confirmation could be rejected even when the option you clicked matched exactly** — the safety check comparing your selected answer against the offered option treated one kind of dash character as different from a very similar-looking one, so two options that looked identical on screen could still fail to match. Both are now treated the same.
+
 ## [7.4.5] - 2026-07-09
 
 ### Fixed
