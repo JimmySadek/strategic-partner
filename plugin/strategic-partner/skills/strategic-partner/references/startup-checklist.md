@@ -4,11 +4,12 @@ Reference file for the strategic-partner advisor. Full startup sequence with
 identity setup, environment configuration, and fire-and-verify agents.
 Do not display to user.
 
-> **Floor sentinel protocol** — see `references/floor.md`. The floor's
-> UserPromptSubmit hook fires on every user prompt; the floor walk itself
-> runs once per unique scope (session, cwd, skill version, prompt class)
-> and is documented separately. This file covers the broader startup
-> orientation that runs on the first invocation of `/strategic-partner` only.
+> **Floor sentinel protocol** — see `references/floor.md`. Direct plugin
+> commands, model-invoked Skill activation, and resident-advisor SessionStart
+> all enter through the same floor. UserPromptSubmit remains a compatibility
+> fallback and previous-turn relay. The floor walk itself runs once per unique
+> scope (session, cwd, skill version, prompt class). This file covers the
+> broader orientation that follows activation.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -16,7 +17,7 @@ Do not display to user.
 │                                                                           │
 │  Step 1          Step 2          Step 3       Step 4                    │
 │  Checks    →  Spawn Agents  → Read State → Verify                      │
-│  Self-repair    ┌─ Agent A     $ARGUMENTS    ✅ Agent D                 │
+│  Plugin-native  ┌─ Agent A     $ARGUMENTS    ✅ Agent D                 │
 │  Version ✓     ├─ Agent B     Serena              │                     │
 │  Target model  └─ Agent D     CLAUDE.md           │                     │
 │  (inline)        🗺️ Matrix          │              │                     │
@@ -59,32 +60,14 @@ target-model detection) — see Step 1.5 below.
 
 ---
 
-## 🔧 Step 1.5: Self-Repair Check
+## 🔧 Step 1.5: Plugin Registration Check
 
-Before spawning agents, verify command registration is intact. This is a count-based
-inline Bash check (not an agent) — it runs in ~15ms when everything is in sync.
-
-```
-# Resolve SP install dir via stable command symlinks (portable across install paths).
-# ${HOME}/.claude/commands/strategic-partner/ is created by setup; each *.md is a
-# symlink back to the source commands/ in the install dir.
-SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
-if [ -n "$SP_ANY_CMD" ]; then
-  SP_SKILL_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
-  CMD_COUNT=$(ls "${SP_SKILL_DIR}/commands/"*.md 2>/dev/null | wc -l | tr -d ' ')
-  LINK_COUNT=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | wc -l | tr -d ' ')
-  [ "$CMD_COUNT" = "$LINK_COUNT" ] || bash "${SP_SKILL_DIR}/setup"
-fi
-```
-
-The count-based check catches first install (no symlinks), updates that add new
-commands, and removed commands — not just the existence of a single symlink.
-
-If the check triggers setup, note it briefly in orientation:
-"🔧 First-run setup complete — subcommands registered."
-
-This replaces the old Agent C approach (removed in v4.9). The setup script is
-idempotent and handles its own legacy cleanup warnings.
+Claude Code's plugin loader owns command registration and voice delivery. The
+floor reports `commands_registered=plugin-native` and
+`output_style_state=plugin-native`; both are informational and stay silent in
+orientation. Do not inspect standalone command symlinks, run `setup`, or copy a
+voice file. If plugin components are missing, surface a plugin load problem and
+recommend `/reload-plugins` or reinstalling the plugin.
 
 ### Memory Health Check (inline, not an agent)
 
@@ -112,8 +95,8 @@ Quick checks run inline during startup. No agents needed — these are observati
 4. **CLAUDE.md size**: Read `g2.claude_md` from the floor sentinel output (see `references/floor.md` Group 2). Claude Code's current guidance is to target under 200 lines; the band field combines line count and char count:
    - `under-soft` → silent
    - `soft-warn` → "💡 CLAUDE.md is {M} lines / {N} chars — growing toward the preferred under-200-line shape."
-   - `warn` → "⚠️ CLAUDE.md is {M} lines / {N} chars. Consider running `/strategic-partner:context-file-scan` before adding anything."
-   - `surface-loudly` → "🚨 CLAUDE.md is {M} lines / {N} chars — too large for an always-loaded instruction file. Run `/strategic-partner:context-file-scan` for refactoring guidance."
+   - `warn` → "⚠️ CLAUDE.md is {M} lines / {N} chars. Consider running `/strategic-partner-plugin:context-file-scan` before adding anything."
+   - `surface-loudly` → "🚨 CLAUDE.md is {M} lines / {N} chars — too large for an always-loaded instruction file. Run `/strategic-partner-plugin:context-file-scan` for refactoring guidance."
 
 ### Target Model Detection (inline, not an agent)
 
@@ -174,7 +157,7 @@ place to look. The SP does not ship a calibrator for this; the Step 5
 which codex >/dev/null 2>&1
   ├─ Found → Set internal flag: codex_available = true
   │         Do NOT mention in orientation output
-  │         SP may offer reviews at trigger points (see /strategic-partner:codex-feedback)
+  │         SP may offer reviews at trigger points (see /strategic-partner-plugin:codex-feedback)
   └─ Not found → codex_available = false
                  Feature never surfaces. Totally silent.
                  Only educates if user explicitly invokes the subcommand.
@@ -249,35 +232,13 @@ See `references/floor.md` § Group 8 for the emission pattern, and
 orientation rendering rules and the runtime-vs-settings reconciliation
 logic.
 
-### Version Check (inline, not an agent)
+### Version Check (handled by the floor sentinel)
 
-Quick check against GitHub releases. Runs inline because it's a single curl
-returning one version string — agent overhead adds fragility with no benefit.
-
-```
-# Resolve SP install dir (same pattern as self-repair check)
-SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
-if [ -n "$SP_ANY_CMD" ]; then
-  SP_SKILL_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
-  local_version=$(grep '^version:' "${SP_SKILL_DIR}/SKILL.md" | head -1 | awk '{print $2}')
-  remote_version=$(curl --max-time 8 -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -oE '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
-  if [ -z "$remote_version" ]; then
-    echo "UNABLE_TO_CHECK"
-  elif [ "$remote_version" = "$local_version" ]; then
-    echo "UP_TO_DATE"
-  else
-    echo "UPDATE_AVAILABLE:${remote_version}"
-  fi
-fi
-```
-
-- If curl fails or GitHub is unreachable: `remote_version` is empty → emit `UNABLE_TO_CHECK` explicitly (no longer falsely declaring `UP_TO_DATE`)
-- If versions match: emit `UP_TO_DATE`
-- If versions differ: emit `UPDATE_AVAILABLE:${remote_version}` and orientation shows update notice
-- Timeout: `curl --max-time 8` bounds the call (matches the v5.15.0 floor's Group 6 pattern); no retries needed
-- The `grep -oE '"tag_name": *"[^"]*"'` regex tolerates whitespace between key and value, which GitHub's pretty-printed JSON includes by default
-
-This replaces Agent E entirely. No WebFetch, no ToolSearch, no background agent.
+Read `g6.local`, `g6.remote`, and `g6.diff` from the floor results. The plugin
+floor self-locates from its bundled hook path, so startup must not resolve a
+standalone install directory or repeat the GitHub request. If `g6.diff=behind`,
+show the available version and explain that plugin updates follow the user's
+plugin installation route. If the remote check is unreachable, stay silent.
 
 ---
 
@@ -302,14 +263,13 @@ Quick scan for major structural changes since last session.
 
 ### Agent C: Removed
 
-**Command registration** is handled by the `setup` script at install/update time,
-not at runtime. See `setup` in the skill root. The self-repair check in Step 1.5
-ensures commands are registered even if setup was never run manually.
+**Command registration** is handled by Claude Code's plugin loader. Step 1.5
+reads the plugin-native floor signal; there is no runtime setup path.
 
 ### Agent E: Removed
 
-**Version check** is handled inline in Step 1.5 via a single curl command.
-See the "Version Check (inline, not an agent)" section above.
+**Version check** is handled by the plugin floor sentinel. See the
+"Version Check (handled by the floor sentinel)" section above.
 
 ### Agent D: 🗺️ Environment Discovery + Routing Matrix (mode: "auto", DISPATCHED ONLY ON FLOOR-SIGNAL)
 
@@ -378,7 +338,7 @@ hash must use inputs both Agent D and the floor can read identically.
 
 **Trade-off**: pure skill or MCP installs without an accompanying agent
 change are not auto-detected by the floor; an explicit refresh path
-(currently `/strategic-partner:update`, or any future explicit-refresh
+(currently the user's plugin update route, or any future explicit-refresh
 command) handles those cases. In practice, agent changes are the most
 common config delta when a user is iterating on their setup, and skill
 installs typically arrive alongside an agent change — so agent
@@ -574,12 +534,12 @@ useful context but are not security-critical.
 | 🏗️ Architecture scan results | Incorporate into orientation context |
 | ⚠️ Agent timed out / failed | Note limitation in orientation, proceed without that data |
 
-### ⚡ Version Check Integration (from Step 1.5 inline check)
+### ⚡ Version Check Integration (from the floor sentinel)
 
 | Result | Action |
 |---|---|
 | UP_TO_DATE or check failed silently | No mention to user |
-| UPDATE_AVAILABLE:{version} | Show in orientation: "⚡ v{remote} available (you have v{local}). Run `/strategic-partner:update`" |
+| UPDATE_AVAILABLE:{version} | Show in orientation: "⚡ v{remote} available (you have v{local}). Update through the same plugin installation route you used." |
 
 ---
 
@@ -624,16 +584,11 @@ and ask what the user wants to work on.
   Activate: /config → Output Style → Strategic Partner Voice
   Or: set outputStyle: strategic-partner-voice in ~/.claude/settings.json
   ```
-- 🟡 **Voice style freshness row** (only when not fresh): read
-  `g8.output_style_state` from the floor signal. When it is `stale` or
-  `missing`, render a row beneath the Output Style row —
-  `🟡 Voice style ⚠️ Stale` (installed voice file behind the shipped
-  one; re-run `setup` to refresh) or `🟡 Voice style ⚠️ Missing` (no
-  installed voice file; run `setup` to install). When `fresh`, render
-  nothing extra. Informational only — no `AskUserQuestion`, no
-  dispatch; the remedy is a user-run `setup`. Full handling in
-  `references/floor-signal-handling.md` § Pattern: output_style_state.
-- ⚡ Update available (from inline version check in Step 1.5): one-liner with version diff and update command
+- 🟡 **Voice style delivery**: `g8.output_style_state=plugin-native` means
+  the style ships with this plugin and cannot drift as a copied file. Stay
+  silent. If another value appears, treat it as a plugin load problem, not a
+  reason to run standalone setup.
+- ⚡ Update available (from the floor version check): one line with the version diff and the user's plugin update route
 - 🔧 **Context advisory** (1M-context sessions only): If the detected model
   has a 1M context window (Opus 4.8 or Opus 4.7, or any model running with
   `SP_CONTEXT_WINDOW=1M`), display this informational note in orientation:
@@ -675,105 +630,12 @@ then proceed normally in degraded mode.
   Promote any to backlog, or continue — they carry forward."
   If no findings files exist: skip silently.
 
-- 🔍 **Context-file drift scan** (quiet-mode, fresh-session only): Run
-  the scanner non-interactively against the SP project's own
-  `CLAUDE.md` and surface a one-line summary ONLY for findings that
-  exceed exception coverage. Per `references/context-file-stewardship.md`,
-  startup only surfaces actionable drift:
-
-  **Trigger conditions:**
-  - Fresh `/strategic-partner` invocation (NOT continuation —
-    `SP_HANDOFF=0`).
-  - The `--no-scan-startup` env var is unset (escape hatch for the user).
-  - The `CLAUDE.md` exists in the SP project root.
-  - Only scans the SP project's own `CLAUDE.md` — never the project the
-    user is calling SP about.
-
-  **`SP_HANDOFF` definition (Codex finding #13):** the variable is
-  set to `1` ONLY when `/strategic-partner` is invoked with a
-  continuation path argument (a `.handoffs/`-prefixed path resolving
-  to an existing handoff note). Otherwise `SP_HANDOFF=0`. Set this
-  at the top of the slash command body before the orientation block:
-  ```bash
-  SP_HANDOFF=0
-  case " $ARGUMENTS " in
-    *" .handoffs/"*|*"  .handoffs/"*) SP_HANDOFF=1 ;;
-  esac
-  export SP_HANDOFF
-  ```
-
-  **Dispatch (inline, fast — sub-200ms typical):**
-
-  Codex finding #13: use `--release-gate` so the scanner applies
-  exception-aware coverage. The previous `--report-only` invocation
-  surfaced every finding regardless of whether `.scanner-exceptions.json`
-  already covered it, producing 25+ noise lines per session.
-
-  ```bash
-  if [ "${SP_HANDOFF:-0}" != "1" ] && [ -z "${NO_SCAN_STARTUP:-}" ]; then
-    SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
-    [ -n "$SP_ANY_CMD" ] || return 0
-    SP_SKILL_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
-    [ -f "${SP_SKILL_DIR}/CLAUDE.md" ] || return 0
-    SCAN_JSON=$(bash "${SP_SKILL_DIR}/.scripts/context-file-scan/scan.sh" \
-      --file "${SP_SKILL_DIR}/CLAUDE.md" --release-gate \
-      --serena-available "${has_serena_tools:-false}" \
-      --context7-available "${has_context7_tools:-false}" 2>/dev/null) || SCAN_JSON=""
-
-    # Filter session-acked fingerprints (Codex finding #13).
-    SESSION_UUID="${CLAUDE_SESSION_ID:-${SP_SESSION_UUID:-}}"
-    ACKS_FILE=""
-    if [ -n "$SESSION_UUID" ]; then
-      ACKS_FILE="${SP_SKILL_DIR}/.handoffs/.scan-acks-${SESSION_UUID}"
-    fi
-    if [ -n "$SCAN_JSON" ] && [ -n "$ACKS_FILE" ] && [ -f "$ACKS_FILE" ]; then
-      SCAN_JSON=$(echo "$SCAN_JSON" | jq --slurpfile acks <(jq -R . "$ACKS_FILE") '
-        ($acks | map(.) | flatten) as $a |
-        .findings |= map(select(.fingerprint as $fp | ($a | index($fp)) | not))'
-      )
-    fi
-  fi
-  ```
-
-  **Output template (per spec § 6.3):**
-  ```
-  🔍 CLAUDE.md scan: {summary_phrase}. {action_phrase}.
-  ```
-
-  Substitution rules use the post-coverage uncovered count
-  (`release_gate.coverage.uncovered_count`), NOT the raw findings
-  total:
-  - `summary_phrase`:
-    - 0 uncovered findings → entire bullet OMITTED (no value in
-      saying "nothing to report")
-    - 1+ uncovered, max severity warn → `{M} lines / {N}K chars,
-      {N} drift patterns detected`
-    - 1+ uncovered with any surface-loudly → `{M} lines / {N}K chars,
-      **{N} surface-loudly findings** + {N} other`
-  - `action_phrase`:
-    - 0 uncovered → omit the entire bullet entirely
-    - 1+ uncovered → `Run \`/strategic-partner:context-file-scan\`
-      for details`
-
-  **Ack-file write path (Codex finding #13):** when the user picks
-  `[Acknowledge — ...]` on a finding inside the slash-command's
-  `AskUserQuestion` flow, append the finding's fingerprint to
-  `.handoffs/.scan-acks-${SESSION_UUID}`. The next quiet-mode scan
-  in the same session filters those fingerprints out per the
-  dispatch above.
-
-  **Suppression rules (per spec § 6.4):**
-  - Scan errored (`SCAN_JSON` empty or jq parse fails) → log silently,
-    omit the bullet.
-  - 0 uncovered findings (after exception + ack filter) → omit.
-  - `NO_SCAN_STARTUP` env var set → skip the dispatch entirely.
-  - `SP_HANDOFF=1` (continuation session) → skip the dispatch entirely.
-
-  **Examples:**
-  - *(0 uncovered findings)* — bullet omitted entirely; orientation
-    continues without mentioning the scan.
-  - `🔍 CLAUDE.md scan: 185 lines / 18K chars, 3 drift patterns detected. Run /strategic-partner:context-file-scan for details.`
-  - `🔍 CLAUDE.md scan: 410 lines / 41K chars, **1 surface-loudly finding** + 4 other. Run /strategic-partner:context-file-scan for details.`
+- 🔍 **Context-file drift scan**: do not run the standalone skill's
+  source-repository startup scan. A cached plugin install has no meaningful
+  equivalent of the skill source project's `CLAUDE.md`, and plugin loading
+  must not resolve command symlinks to find one. When the current project's
+  instruction file is relevant to the user's question, offer
+  `/strategic-partner-plugin:context-file-scan` explicitly; otherwise stay silent.
 
 **Session setup recommendation** (include in orientation via `AskUserQuestion`):
 

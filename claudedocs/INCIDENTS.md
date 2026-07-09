@@ -2,6 +2,64 @@
 
 This file accumulates incident write-ups for SP project incidents that produced Provisional Guards or otherwise shaped SP process. Each entry is identified by an `INC-YYYY-MM-DD` ID matching the date the incident occurred and is referenced by one or more guards in `claudedocs/provisional-guards.md`. New entries follow the same `## INC-YYYY-MM-DD — <one-line summary>` heading pattern.
 
+## INC-2026-07-09 — Startup and closure ceremonies existed in prose but not at every runtime boundary
+
+### What happened
+
+In a plugin advisory session, the user selected "Stop here for now" from an
+`AskUserQuestion` choice. Strategic Partner replied with a useful recap but did
+not run the closure walk, capture `/insights`, write a handoff file, or show a
+continuation prompt. The Stop hook accepted the response, so the session could
+end without its durable state.
+
+The same investigation found a startup-side version of the bug. Typed plugin
+commands and resident-advisor sessions ran the startup floor, while a
+natural-language activation through the Skill tool only armed the session. No
+runtime check proved that any path had rendered a project recenter and ended the
+orientation with `AskUserQuestion`.
+
+### Why it broke
+
+The plugin had strong written ceremonies but no lifecycle absence detector.
+Its Stop rules checked malformed content only after a matching surface appeared;
+they did not reject a ceremony that never started. Entry routing also treated
+the three supported activation paths differently. Two instruction conflicts
+made recovery less reliable: the skill auto-selected continuation whenever
+`.handoffs/` contained files, while the startup checklist required an explicit
+handoff argument, and the plugin checklist still tried to resolve standalone
+command links and run standalone setup.
+
+### Fix implemented
+
+- Direct slash commands use `UserPromptExpansion`; model-invoked Skill activation
+  uses `PreToolUse`; resident startup uses official `SessionStart.agent_type`,
+  with the older prompt and settings paths retained as compatibility fallbacks.
+- Every activation creates startup-pending state and reaches the same cached
+  floor. Stop clears that state only after the floor, visible recenter, and final
+  orientation question are present.
+- Clear session-end intent, including an `AskUserQuestion` answer carrier,
+  requires the full closure status, a same-turn handoff write, an insights result
+  or explicit fallback, and the plugin continuation fence.
+- Either missing ceremony returns one structured Stop block. A corrective turn
+  with `stop_hook_active=true` is logged but allowed, preventing hook loops.
+- Plugin startup and handoff references now use explicit-path continuation and
+  plugin-native install mechanics. The standalone skill remains unchanged.
+
+### Verification
+
+The focused bash 3.2 harness covers typed, natural-language, and resident entry;
+complete and incomplete startup; the screenshot-shaped recap-only closeout;
+valid closure; explicit override; stale stop intent; malformed input; and the
+no-loop path. The existing source guard regression suite and Claude Code's
+strict plugin validator also pass.
+
+### Lesson
+
+A written ceremony is not a reliable boundary until every supported entry path
+converges on it and the exit boundary can detect total absence. Conditional
+validators catch malformed output; lifecycle state is needed to catch output
+that never happened.
+
 ## INC-2026-03-30 — Hook command relies on `${CLAUDE_SKILL_DIR}` (v5.4.0 → v5.4.1)
 
 ### What happened

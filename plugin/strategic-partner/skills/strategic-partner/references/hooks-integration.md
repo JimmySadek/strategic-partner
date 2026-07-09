@@ -3,6 +3,34 @@
 Reference file for the strategic-partner advisor. Comprehensive hooks strategy
 for proactive session management. Phased rollout from essential to advanced.
 
+## Current Plugin Event Map (Claude Code 2.1.205)
+
+This plugin does not depend on skill-frontmatter lifecycle timing. Its
+`hooks/hooks.json` uses the current plugin hook surface documented by Anthropic:
+
+| Boundary | Official event | Authoritative input | Plugin behavior |
+|---|---|---|---|
+| Typed slash command | `UserPromptExpansion` | `command_name`, `command_args`, `prompt` | Arm startup and inject the floor before expansion reaches Claude |
+| Model-invoked skill | `PreToolUse` on `Skill` | `tool_name`, `tool_input.skill` | Arm startup and inject the same floor before the Skill runs |
+| Resident advisor | `SessionStart` | `source`, optional `agent_type` | Use `agent_type` first; settings-file detection is compatibility fallback |
+| Older/direct fallback | `UserPromptSubmit` | `prompt` | Preserve older activation behavior and relay prior log-only rhythm findings |
+| Assistant response end | `Stop` | `last_assistant_message`, `stop_hook_active` | Block once when startup or closure is wholly absent; all older rhythm findings remain log-only |
+
+Hook commands use exec form: `command: "bash"` plus an `args` array containing
+`${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh` and the event name. Anthropic recommends
+this shape for plugin paths because it passes each argument without shell
+quoting. `UserPromptExpansion` covers typed commands that bypass Skill
+`PreToolUse`; Stop returns `{"decision":"block","reason":"..."}` on exit 0
+and checks `stop_hook_active` before any second block.
+
+Current references:
+- https://code.claude.com/docs/en/hooks
+- https://code.claude.com/docs/en/hooks-guide
+- https://code.claude.com/docs/en/plugins-reference
+
+The historical skill-frontmatter sections below remain useful for the
+standalone install's archaeology. They are not the plugin's runtime map.
+
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │  SP Hooks Rollout                                                     │

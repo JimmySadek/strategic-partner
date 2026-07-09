@@ -12,7 +12,8 @@
 # (a transcript grep for "strategic-partner" would false-positive in
 # executor sessions that merely mention SP, e.g. sessions editing SP source):
 #
-#   1. UserPromptSubmit whose prompt is an SP invocation:
+#   1. UserPromptExpansion for a directly typed SP slash command, with
+#      UserPromptSubmit retained as a compatibility fallback:
 #      /strategic-partner[...], /sp, /advisor, a namespaced plugin skill form
 #      like /sp-plugin-trial:strategic-partner, or a namespaced SP plugin
 #      subcommand like /strategic-partner-plugin:handoff — EXCEPT the three
@@ -21,8 +22,8 @@
 #   2. PreToolUse on the Skill tool whose skill input is
 #      "strategic-partner" or "<namespace>:strategic-partner"
 #      (the natural-language activation path).
-#   3. SessionStart in a project whose .claude settings opt into the
-#      resident advisor (an "agent" value containing "sp-advisor").
+#   3. SessionStart whose agent_type is the resident advisor, with project
+#      settings retained as a compatibility fallback.
 #
 # Armed state is a per-session marker file in /tmp keyed by session_id.
 # Disarms naturally: /clear starts a new session_id; compaction keeps it.
@@ -34,6 +35,14 @@
 EVENT="$1"
 PAYLOAD=$(cat 2>/dev/null || printf '%s' '{}')
 HOOKS_DIR=$(cd "$(dirname "$0")" && pwd)
+CEREMONY_LIB="$HOOKS_DIR/lib/session-ceremony.sh"
+CEREMONY_OK=false
+if [ -f "$CEREMONY_LIB" ]; then
+  # shellcheck source=lib/session-ceremony.sh
+  # shellcheck disable=SC1091
+  . "$CEREMONY_LIB"
+  CEREMONY_OK=true
+fi
 
 JQ_OK=false
 if command -v jq >/dev/null 2>&1 && printf '{}' | jq -e type >/dev/null 2>&1; then
@@ -53,6 +62,8 @@ SESSION_ID=$(json_field session_id)
 [ -z "$SESSION_ID" ] && SESSION_ID=unknown
 SAFE_SID=$(printf '%s' "$SESSION_ID" | tr -cd 'A-Za-z0-9._-' | cut -c1-64)
 MARKER="/tmp/sp-plugin-active-${SAFE_SID}"
+STARTUP_PENDING="/tmp/sp-plugin-startup-pending-${SAFE_SID}"
+FLOOR_READY="/tmp/sp-plugin-floor-ready-${SAFE_SID}"
 
 trace() {
   [ "${SP_PLUGIN_TRACE:-0}" = "1" ] || return 0
@@ -89,6 +100,17 @@ flush_probe() {
 arm() { : > "$MARKER"; trace "armed reason=$1"; }
 armed() { [ -f "$MARKER" ]; }
 
+arm_startup() {
+  startup_reason="$1"
+  continuation_path="${2:-}"
+  arm "$startup_reason"
+  if [ ! -f "$STARTUP_PENDING" ]; then
+    printf '%s\n' "$continuation_path" > "$STARTUP_PENDING"
+    rm -f "$FLOOR_READY"
+    trace "startup-pending continuation=${continuation_path:-none}"
+  fi
+}
+
 # Re-pipe the payload into a sibling script and adopt its exit code.
 delegate() {
   trace "delegate target=$1"
@@ -118,8 +140,15 @@ prompt_is_sp_invocation() {
 case "$EVENT" in
 
   SessionStart)
+    SOURCE=$(json_field source)
+    AGENT_TYPE=$(json_field agent_type)
+    RESIDENT_REASON=""
+    case "$AGENT_TYPE" in
+      *sp-advisor*) RESIDENT_REASON="resident-advisor agent_type=$AGENT_TYPE" ;;
+    esac
+
     CWD=$(json_field cwd)
-    if [ -n "$CWD" ]; then
+    if [ -z "$RESIDENT_REASON" ] && [ -n "$CWD" ]; then
       for SETTINGS in "$CWD/.claude/settings.local.json" "$CWD/.claude/settings.json"; do
         [ -f "$SETTINGS" ] || continue
         if [ "$JQ_OK" = true ]; then
@@ -129,20 +158,47 @@ case "$EVENT" in
         fi
         case "$AGENT_VAL" in
           *sp-advisor*)
-            arm "resident-advisor settings=$SETTINGS"
-            delegate floor-check.sh
+            RESIDENT_REASON="resident-advisor settings=$SETTINGS"
+            break
             ;;
         esac
       done
     fi
+    if [ -n "$RESIDENT_REASON" ]; then
+      case "$SOURCE" in
+        compact)
+          arm "$RESIDENT_REASON source=compact"
+          ;;
+        *)
+          arm_startup "$RESIDENT_REASON source=${SOURCE:-unknown}"
+          ;;
+      esac
+      delegate floor-check.sh
+    fi
     trace "pass-through"
+    exit 0
+    ;;
+
+  UserPromptExpansion)
+    COMMAND_NAME=$(json_field command_name)
+    COMMAND_ARGS=$(json_field command_args)
+    if [ "$CEREMONY_OK" = true ] && sp_is_command_activation "$COMMAND_NAME" "$COMMAND_ARGS"; then
+      CONTINUATION_PATH=$(sp_extract_continuation_path "$COMMAND_ARGS" 2>/dev/null || printf '')
+      arm_startup "command-expansion name=$COMMAND_NAME" "$CONTINUATION_PATH"
+      delegate floor-check.sh
+    fi
+    trace "pass-through command=$COMMAND_NAME"
     exit 0
     ;;
 
   UserPromptSubmit)
     PROMPT=$(json_field prompt)
     if [ -n "$PROMPT" ] && prompt_is_sp_invocation "$PROMPT"; then
-      arm "prompt-invocation"
+      CONTINUATION_PATH=""
+      if [ "$CEREMONY_OK" = true ]; then
+        CONTINUATION_PATH=$(sp_extract_continuation_path "$PROMPT" 2>/dev/null || printf '')
+      fi
+      arm_startup "prompt-invocation" "$CONTINUATION_PATH"
     fi
     if armed; then
       delegate floor-check.sh
@@ -161,7 +217,18 @@ case "$EVENT" in
         SKILL_NAME=$(printf '%s' "$PAYLOAD" | grep -Eo '"skill"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d'"' -f4)
       fi
       case "$SKILL_NAME" in
-        strategic-partner|*:strategic-partner) arm "skill-tool name=$SKILL_NAME" ;;
+        strategic-partner|*:strategic-partner)
+          SKILL_ARGS=""
+          if [ "$JQ_OK" = true ]; then
+            SKILL_ARGS=$(printf '%s' "$PAYLOAD" | jq -r '.tool_input.args // .tool_input.command_args // ""' 2>/dev/null)
+          fi
+          CONTINUATION_PATH=""
+          if [ "$CEREMONY_OK" = true ]; then
+            CONTINUATION_PATH=$(sp_extract_continuation_path "$SKILL_ARGS" 2>/dev/null || printf '')
+          fi
+          arm_startup "skill-tool name=$SKILL_NAME" "$CONTINUATION_PATH"
+          delegate floor-check.sh
+          ;;
       esac
       exit 0
     fi

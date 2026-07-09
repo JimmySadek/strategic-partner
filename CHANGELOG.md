@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Starting Strategic Partner through a typed command, a natural-language request,
+  or the resident advisor now reaches the same startup floor and orientation check.
+- Bare plugin startup now recenters on the current project. Only an explicit saved
+  handoff path resumes prior work, so old findings or handoffs cannot silently pick
+  the session mode.
+- A clear request to stop can no longer end with only a recap. The plugin gives
+  Claude one corrective turn to save the handoff, capture session insights, and
+  show the continuation prompt, while an explicit keep-open request still wins.
+- Plugin startup guidance no longer tries to repair standalone command links or
+  run the standalone setup flow.
+
 ## [7.5.0] - 2026-07-09
 
 ### Added

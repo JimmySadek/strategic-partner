@@ -1964,12 +1964,13 @@ Run this sequence when invoked. Do not skip steps.
 ### Mode Detection
 
 ```
-.handoffs/ exists AND contains files?
-  YES → CONTINUATION MODE
-  NO  → INITIALIZATION MODE
+$ARGUMENTS contains a valid .handoffs/... path?
+  YES → CONTINUATION MODE; read that named handoff
+  NO  → INITIALIZATION MODE; recenter on current project truth
 
-File path passed as $ARGUMENTS?
-  YES → use that file regardless of mode detection
+Bare invocation with existing handoffs?
+  Stay in initialization mode. The newest handoff may appear as a
+  specific AskUserQuestion option, but directory existence never auto-resumes it.
 ```
 
 ### Startup Hygiene Rules
@@ -2095,6 +2096,12 @@ work specifically (from `.handoffs/`, the backlog, or memory — e.g.
 `[Resume the timer fix]`, not `[Resume the next task]`), include any non-clean
 signal worth fixing now, and leave room for "something else." Generic menus
 read as ceremony; specific options prove SP already knows the project.
+
+The plugin's Stop hook verifies this minimum without prescribing a dashboard:
+the startup floor ran, visible project-first recenter text reached chat, and the
+final assistant turn contains `AskUserQuestion`. When a handoff path was passed,
+the named file must also have been read or an honest load-failure choice shown.
+If that evidence is missing, the hook gives SP one corrective turn before it may stop.
 
 ---
 
@@ -2512,6 +2519,12 @@ ledger walk + handoff write is the response. No "do you want to close?" AUQ prec
 
 4. State: "Open a new Claude Code session and paste the above to continue."
 5. **STOP** — no commentary after the fence
+
+The plugin's Stop hook is the absence backstop for this boundary. On a clear
+session-end signal, it requires the rendered Closure Walk Status, a same-turn
+handoff write, an `/insights` result or explicit fallback note, and the
+plugin-namespaced continuation fence. A recap alone is never enough. The hook
+blocks once, then honors `stop_hook_active` so a corrective turn cannot loop.
 
 ### Post-Handoff Verification
 

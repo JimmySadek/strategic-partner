@@ -3,13 +3,18 @@
 # Extracted verbatim from production SKILL.md frontmatter (Stop hook block)
 # for the plugin packaging; the only change is version resolution, which
 # self-locates against the plugin layout instead of walking
-# ~/.claude/commands symlinks. Violations are LOG-ONLY (always exit 0);
-# floor-check.sh relays them into context on the next user prompt.
+# ~/.claude/commands symlinks. Existing turn rules remain log-only;
+# missing startup or closure ceremonies may block Stop once.
 
 payload=$(cat 2>/dev/null || printf '%s' '{}')
 transcript_path=$(printf '%s' "$payload" | jq -r '.transcript_path // ""' 2>/dev/null || printf '')
 session_id=$(printf '%s' "$payload" | jq -r '.session_id // ""' 2>/dev/null || printf '')
 cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null || printf '')
+last_assistant_message=$(printf '%s' "$payload" | jq -r '.last_assistant_message // ""' 2>/dev/null || printf '')
+stop_hook_active=$(printf '%s' "$payload" | jq -r 'if .stop_hook_active == true then "true" else "false" end' 2>/dev/null || printf 'false')
+safe_session_id=$(printf '%s' "${session_id:-unknown}" | tr -cd 'A-Za-z0-9._-' | cut -c1-64)
+STARTUP_PENDING="/tmp/sp-plugin-startup-pending-${safe_session_id}"
+FLOOR_READY="/tmp/sp-plugin-floor-ready-${safe_session_id}"
 
 [ -z "$transcript_path" ] && exit 0
 [ ! -f "$transcript_path" ] && exit 0
@@ -20,10 +25,18 @@ THIS_SCRIPT=$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$0" 2>/dev/null)
 if [ -n "$THIS_SCRIPT" ] && [ -f "$THIS_SCRIPT" ]; then
   PLUGIN_ROOT=$(dirname "$(dirname "$THIS_SCRIPT")")
   skill_version=$(grep '^version:' "$PLUGIN_ROOT/skills/strategic-partner/SKILL.md" 2>/dev/null | head -1 | awk '{print $2}')
+  CEREMONY_LIB="$PLUGIN_ROOT/hooks/lib/session-ceremony.sh"
 else
   skill_version=""
 fi
 [ -z "$skill_version" ] && skill_version="unknown"
+CEREMONY_OK=false
+if [ -n "${CEREMONY_LIB:-}" ] && [ -f "$CEREMONY_LIB" ]; then
+  # shellcheck source=lib/session-ceremony.sh
+  # shellcheck disable=SC1091
+  . "$CEREMONY_LIB"
+  CEREMONY_OK=true
+fi
 rule_schema_version="v1"
 
 # Portable timeout (gtimeout on macOS coreutils, timeout on Linux; empty if neither)
@@ -59,6 +72,46 @@ log_violation() {
   printf -- '- %s\n' "$1" >> "$VIOLATIONS_LOG"
   violation_count=$((violation_count + 1))
 }
+
+block_stop() {
+  block_reason="$1"
+  jq -cn --arg reason "$block_reason" '{decision:"block",reason:$reason}'
+  exit 0
+}
+
+# Lifecycle absence checks are the only blocking rules in this hook. A first
+# miss gets one corrective turn. If Claude is already in that corrective turn,
+# log the remaining gap and allow Stop so the hook cannot loop indefinitely.
+if [ "$CEREMONY_OK" = true ] && [ -f "$STARTUP_PENDING" ]; then
+  continuation_path=$(head -1 "$STARTUP_PENDING" 2>/dev/null)
+  floor_ready=no
+  if [ -s "$FLOOR_READY" ]; then
+    floor_results=$(head -1 "$FLOOR_READY" 2>/dev/null)
+    [ -n "$floor_results" ] && [ -f "$floor_results" ] && floor_ready=yes
+  fi
+  startup_missing=$(sp_startup_missing_evidence "$transcript_path" "$last_assistant_message" "$continuation_path" "$floor_ready")
+  if [ -n "$startup_missing" ]; then
+    if [ "$stop_hook_active" = "true" ]; then
+      log_violation "startup-ceremony-incomplete after corrective turn: missing ${startup_missing}"
+      rm -f "$STARTUP_PENDING"
+    else
+      block_stop "Strategic Partner startup ceremony is incomplete: missing ${startup_missing}. Continue by rendering a concise project-first recenter and end that orientation with AskUserQuestion. If a handoff path was supplied, read it or surface an honest load-failure choice before stopping."
+    fi
+  else
+    rm -f "$STARTUP_PENDING"
+  fi
+fi
+
+if [ "$CEREMONY_OK" = true ] && sp_transcript_has_session_end_intent "$transcript_path"; then
+  closure_missing=$(sp_closure_missing_evidence "$transcript_path")
+  if [ -n "$closure_missing" ]; then
+    if [ "$stop_hook_active" = "true" ]; then
+      log_violation "closure-ceremony-incomplete after corrective turn: missing ${closure_missing}"
+    else
+      block_stop "Strategic Partner closure ceremony is incomplete: missing ${closure_missing}. Continue through the existing handoff workflow: render the full Closure Walk Status, capture /insights or an explicit fallback, write the continuation handoff, and show the plugin continuation fence before stopping."
+    fi
+  fi
+fi
 
 # Rule 11: question-visible-lead. For the turn span after the last
 # genuine user text prompt, an AskUserQuestion must not be the first

@@ -5,7 +5,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh\" SessionStart",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh", "SessionStart"],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh", "UserPromptExpansion"],
             "timeout": 15
           }
         ]
@@ -16,7 +29,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh\" UserPromptSubmit",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh", "UserPromptSubmit"],
             "timeout": 15
           }
         ]
@@ -28,7 +42,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh\" PreToolUse",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh", "PreToolUse"],
             "timeout": 5
           }
         ]
@@ -39,7 +54,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh\" Stop",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh", "Stop"],
             "timeout": 10
           }
         ]

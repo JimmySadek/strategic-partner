@@ -157,9 +157,10 @@ protocol. When the user indicates they are finishing, the SP auto-dispatches to 
 mode — no "do you want to close?" AUQ precedes it.
 
 **Signal patterns** (keywords and intent indicators):
-- Explicit: "done", "done for now", "closing", "stopping", "that's it"
+- Explicit: "stop here for now", "done", "done for now", "closing", "stopping", "that's it"
 - Wrap-up: "let's wrap up", "let's stop", "wrapping up", "ending session"
-- Intent: any clear indication the user is finishing work for this session
+- Intent: any clear indication the user is finishing work for this session,
+  including an `AskUserQuestion` answer carrying one of these choices
 
 ```
 ┌─ Two Trigger Paths, One Protocol ──────────────────────────────────┐
@@ -205,10 +206,11 @@ DECISION row via "skip" in its AUQ; that row is marked SKIPPED-USER and the flow
 > A summary is NOT a handoff. Without the handoff file and continuation prompt,
 > all session state is lost when the session closes.
 
-**No automated backstop:** Session-end detection relies entirely on the SP's
-behavioral protocol — keyword detection for session-end signals and periodic
-behavioral keyword and pattern detection (see SKILL.md). There is no automated hook fallback.
-The SP must catch session-end signals proactively.
+**Plugin backstop:** The behavioral protocol still initiates closure, and the
+plugin Stop hook checks for total absence. When a clear session-end signal is
+present but the response is only a recap, Stop blocks once and directs SP to
+finish the existing handoff workflow. The corrective turn is never blocked a
+second time. This is an absence check, not permission to wait for the hook.
 
 ---
 
@@ -216,7 +218,7 @@ The SP must catch session-end signals proactively.
 
 ### Step 1: 🔍 Reflect on the Session
 
-> **Note:** When invoked from `/strategic-partner:handoff`, the reflection
+> **Note:** When invoked from `/strategic-partner-plugin:handoff`, the reflection
 > in this step is informed by the **8-group closure floor walk** that
 > ran as Steps 1-8 of the command body (see `commands/handoff.md`).
 > Each group's state output populates a slice of the handoff file:
@@ -269,7 +271,7 @@ Append to the handoff file after the final `---`.
 
 **🔴 Critical**: The continuation prompt's **FIRST LINE** must be:
 ```
-/strategic-partner .handoffs/[topic-slug]-[MMDD-HHMM].md
+/strategic-partner-plugin:strategic-partner .handoffs/[topic-slug]-[MMDD-HHMM].md
 ```
 
 This restores the advisor persona via the argument path (startup uses `$ARGUMENTS`
@@ -281,7 +283,7 @@ what to do. Write it as if briefing a new expert collaborator.
 
 **Structure:**
 ```
-/strategic-partner .handoffs/[filename]
+/strategic-partner-plugin:strategic-partner .handoffs/[filename]
 
 We're working on [project name and one-line description].
 
@@ -342,7 +344,7 @@ This is an enforced guardrail, not a discretionary decision — ❌ never ask be
 
 ```
 ══════════════════════ START 🟢 COPY ══════════════════════
-/strategic-partner .handoffs/[topic-slug]-[MMDD-HHMM].md
+/strategic-partner-plugin:strategic-partner .handoffs/[topic-slug]-[MMDD-HHMM].md
 
 [Full continuation prompt from Step 4]
 ══════════════════════= END 🛑 COPY ═══════════════════════

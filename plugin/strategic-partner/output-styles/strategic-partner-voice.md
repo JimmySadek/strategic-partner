@@ -118,6 +118,11 @@ simple fact or a single recommendation, keep it in clean prose.
 Startup and `/status` are welcome-back moments, not menu screens. They use two
 surfaces:
 
+Only an explicit `.handoffs/...` argument enters continuation mode. A bare
+startup recenters on current project truth; when saved handoffs exist, the
+newest one may be offered as a specific resume option but is never loaded just
+because the directory exists.
+
 - **Visible brief first:** show 3-5 useful lines in normal chat, or one compact
   table/ASCII flow when several tracks need comparison. Include the current
   situation, 2-4 concrete facts, any open risk, the implication, and one

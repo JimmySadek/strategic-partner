@@ -1,10 +1,11 @@
 # Strategic Partner — Claude Code plugin
 
-This directory is the **plugin packaging** of Strategic Partner (SP): the same
-advisory skill, commands, guard, floor, and rhythm hooks as the skill-first
-install, delivered through Claude Code's native plugin format — plus a
-revised voice and startup behavior aimed at making SP feel like a thinking
-partner rather than a protocol runner.
+This directory is the **plugin packaging** of Strategic Partner (SP). Shared
+advisory policy stays aligned with the skill-first install, while command
+namespaces, install resolution, startup entry hooks, and voice delivery are
+deliberately plugin-native. The plugin also carries a revised voice and startup
+behavior aimed at making SP feel like a thinking partner rather than a protocol
+runner.
 
 Status: **supported plugin packaging**. The standalone skill remains supported
 too; use the switch commands when you want to move between install shapes.
@@ -15,9 +16,9 @@ too; use the switch commands when you want to move between install shapes.
 |---|---|---|
 | Skill | `skills/strategic-partner/SKILL.md` | Full standalone-skill behavior, minus the 260-line inlined hook block (now `hooks/hooks.json`), plus the Presence revisions (see below) |
 | Commands | `commands/*.md` | The shared subcommands under `/strategic-partner-plugin:<name>`, plus `/strategic-partner-plugin:switch-to-skill` for returning to the standalone skill |
-| Hooks | `hooks/hooks.json` + `hooks/entry.sh` | SessionStart, UserPromptSubmit (floor), PreToolUse (guard), Stop (rhythm — includes a log-only check that a question wasn't asked without its lead-in text shown first) — all scoped by a session gate |
+| Hooks | `hooks/hooks.json` + `hooks/entry.sh` | UserPromptExpansion for typed commands, PreToolUse for model-invoked Skill activation and the source guard, SessionStart for the resident advisor, UserPromptSubmit compatibility/relay, and one-shot Stop checks for missing startup or closure ceremonies |
 | Guard chain | `hooks/guard-impl.sh`, `hooks/context-file-guard.sh`, `.scripts/context-file-scan/` | Same source-file-blocking logic as the standalone skill, including writes to `/tmp`, `/private/tmp`, and `$TMPDIR` for scratchpad file tools |
-| Reference bundle | `skills/strategic-partner/references/`, `…/assets/templates/`, `…/.scripts/migrate-backlog.sh` | The skill's on-demand files (fast-lane, startup checklist, floor-signal patterns, closure floor, prompt templates…), verbatim, laid out as siblings of SKILL.md exactly like the standalone skill |
+| Reference bundle | `skills/strategic-partner/references/`, `…/assets/templates/`, `…/.scripts/migrate-backlog.sh` | Shared advisory policy stays aligned with the standalone skill; startup mechanics and continuation commands intentionally use plugin paths and names |
 | Voice | `output-styles/strategic-partner-voice.md` | Native plugin component (no copy-install, no staleness); style v7-plugin |
 | Resident advisor | `agents/sp-advisor.md` + `settings.json.example` | Opt-in only — see below |
 
@@ -26,24 +27,27 @@ too; use the switch commands when you want to move between install shapes.
 Plugin hooks fire in **every** session while a plugin is enabled. SP's guard
 must not block source edits in ordinary executor sessions. `hooks/entry.sh`
 therefore scopes every hook to sessions where SP is actually active, arming on
-three structural signals only (never content sniffing):
+three structural activation signals only (never transcript content sniffing):
 
 ```
-Typed SP invocation, including:
+Typed SP invocation (UserPromptExpansion, with UserPromptSubmit fallback), including:
   /strategic-partner-plugin:strategic-partner
   /strategic-partner-plugin:handoff (and other non-utility subcommands)
   /strategic-partner..., /sp, /advisor              →  armed
 Utility prompts :help / :copy-prompt / :update      →  not armed
-Skill tool invoked with …strategic-partner          →  armed  (natural-language path)
-Project settings opt into sp-advisor                →  armed at SessionStart (resident)
+Skill tool invoked with …strategic-partner          →  armed + startup floor
+SessionStart agent_type or settings select sp-advisor → armed + startup floor
 Anything else                                       →  every hook exits 0 in a few ms
 ```
 
 The matcher also accepts trial or custom plugin namespaces containing
 `strategic-partner` for the same subcommand set.
 
-The armed state is a per-session marker; `/clear` starts a new session and
-disarms naturally.
+Every activation also creates a startup-pending marker until Stop confirms the
+floor, visible project recenter, and orientation question. Clear session-end
+intent is checked for the full handoff evidence set. Either ceremony may block
+Stop once for a corrective turn; `stop_hook_active` prevents loops. The armed
+state remains per-session, and `/clear` starts a new lifecycle boundary.
 
 ## Behavior changes vs standalone SP (deliberate)
 

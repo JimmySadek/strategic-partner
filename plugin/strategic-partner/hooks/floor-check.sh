@@ -5,6 +5,8 @@ session_id=$(printf '%s' "$payload" | jq -r '.session_id // ""' 2>/dev/null || p
 cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null || printf '')
 transcript_path=$(printf '%s' "$payload" | jq -r '.transcript_path // ""' 2>/dev/null || printf '')
 prompt=$(printf '%s' "$payload" | jq -r '.prompt // ""' 2>/dev/null || printf '')
+safe_session_id=$(printf '%s' "${session_id:-unknown}" | tr -cd 'A-Za-z0-9._-' | cut -c1-64)
+FLOOR_READY="/tmp/sp-plugin-floor-ready-${safe_session_id}"
 
 if printf '%s' "$prompt" | perl -e 'undef $/; $_=<STDIN>; exit($_ =~ /\A\s*\/(strategic-partner|advisor|sp):(help|copy-prompt|update)\s*\z/ ? 0 : 1)' 2>/dev/null; then
   exit 0
@@ -50,6 +52,11 @@ RESULTS="/tmp/sp-floor-${KEY}.txt"
 LOCK="/tmp/sp-floor-${KEY}.lock"
 VIOLATIONS_LOG="/tmp/sp-rule-violations-${RELAY_KEY}.log"
 
+expose_floor_ready() {
+  [ -s "$RESULTS" ] || return 1
+  printf '%s\n' "$RESULTS" > "$FLOOR_READY"
+}
+
 if [ -f "$VIOLATIONS_LOG" ]; then
   VIOL_COUNT=$(grep -c '^- ' "$VIOLATIONS_LOG" 2>/dev/null | tr -d ' \n')
   [ -z "$VIOL_COUNT" ] && VIOL_COUNT=0
@@ -61,7 +68,11 @@ if [ -f "$VIOLATIONS_LOG" ]; then
   fi
 fi
 
-[ -f "$MARKER" ] && exit 0
+if [ -f "$MARKER" ] && expose_floor_ready; then
+  exit 0
+elif [ -f "$MARKER" ]; then
+  rm -f "$MARKER"
+fi
 
 if ! mkdir "$LOCK" 2>/dev/null; then exit 0; fi
 trap "rmdir '$LOCK' 2>/dev/null" EXIT
@@ -406,6 +417,7 @@ review_policy=$(grep '^g2.review_policy=' "$RESULTS" 2>/dev/null | head -1 | awk
 plugin=$(grep '^g6.plugin=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
 
 touch "$MARKER"
+expose_floor_ready
 
 printf 'SP-FLOOR-COMPLETE key=%s session=%s model=%s conventions=%s memory=%s findings=%s backlog=%s oldschema=%s git=%s version=%s claudemd_band=%s routing=%s output_style=%s output_style_state=%s commands_registered=%s review_policy=%s plugin=%s. Full results: %s\n' \
   "$KEY" "$session_id" "$model_id" "$conventions" "$memory" "$findings" "$backlog" "$oldschema" "$git_summary" "$version_summary" "$claudemd_band" "$routing" "$output_style" "$output_style_state" "$commands_registered" "$review_policy" "$plugin" "$RESULTS"
