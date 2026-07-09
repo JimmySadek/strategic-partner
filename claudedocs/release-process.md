@@ -118,6 +118,19 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    reference, local activation note, or guard mirror check is missing. Address
    before proceeding.
 
+9. **Confirmation event-correlation replay (v7.5.1+)**: whenever guarded
+   transcript parsing changes, run the full guard regression harness:
+   ```
+   bash tests/guard-regression.sh
+   ```
+   The passing set must include an exact dispatch confirmation and an exact
+   `.sp-managed` activation with metadata rows between `AskUserQuestion` and
+   its matching `tool_result`. It must also prove that an unknown metadata row
+   is ignored, a later typed user message makes the answer stale, one answer
+   cannot authorize a second protected action, and a missing correlated answer
+   reports `answer_not_found_in_window`. Do not replace this replay with a list
+   of metadata row names; the stable join is the matching tool-use ID.
+
 **Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. See the Provisional Guard *Don't use `${CLAUDE_*}` env vars in hook commands* in `claudedocs/provisional-guards.md`; `claudedocs/INCIDENTS.md` has the v5.4.0→v5.4.1 archaeology. Layer 1 (the PreToolUse source-edit guard, predates v5.14.0) and Layer 3 (the release-time transcript lint) are the only enforcement layers in play; Layer 2 (a runtime PostToolUse / Stop validator family that was prototyped during v5.14.0) was pulled before release after the hook surface proved fragile, so the transcript lint is the sole post-execution backstop for the AUQ, tool-availability, and fence-write-coupling rules.
 
 ### 2b. Codex Pre-Release Review (Mandatory for non-docs-only pushes)

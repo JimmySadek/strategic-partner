@@ -2,6 +2,65 @@
 
 This file accumulates incident write-ups for SP project incidents that produced Provisional Guards or otherwise shaped SP process. Each entry is identified by an `INC-YYYY-MM-DD` ID matching the date the incident occurred and is referenced by one or more guards in `claudedocs/provisional-guards.md`. New entries follow the same `## INC-YYYY-MM-DD — <one-line summary>` heading pattern.
 
+## INC-2026-07-10 — Exact confirmation blocked because transcript rows were joined by position
+
+### What happened
+
+During the v7.5.1 pre-release review, the user selected the exact required
+option, `Dispatch now — general-purpose`. The plugin guard rejected the Agent
+call twice and claimed no valid confirmation existed. The visible question and
+answer matched, including the agent type.
+
+The live transcript showed the question at row 542 and its answer at row 548.
+Five runtime metadata rows — `last-prompt`, `ai-title`, `mode`,
+`permission-mode`, and `bridge-session` — appeared between them. Both guarded
+confirmation paths read row `question + 1` as the answer, so they inspected the
+first metadata row instead of the matching tool result. The same assumption was
+present in the newer `.sp-managed` activation path.
+
+### Why it broke
+
+The v7.4.4 decision-engine fix correctly bound authorization to the selected
+option label and exact agent, but its fixtures placed every answer immediately
+after its question. The implementation therefore preserved an unverified row-
+adjacency assumption. v7.5.0 normalized visually similar dash characters and
+whitespace, but that representation fix could not help when the parser read the
+wrong event entirely.
+
+Claude Code already exposes the stable relationship the guard needs:
+`AskUserQuestion` has a tool-use ID, its answer is a `tool_result` carrying the
+same `tool_use_id`, and the protected PreToolUse call has its own
+`tool_use_id`. Row position and metadata row names are not part of that
+identity contract.
+
+### Fix implemented
+
+- Replaced the duplicated adjacency parsers with one shared confirmation engine
+  used by agent dispatch and `.sp-managed` activation.
+- Correlated questions and answers by matching tool-use IDs, so any number or
+  kind of metadata rows can appear between them.
+- Bound each confirmation to the current protected action ID and blocked reuse
+  after an earlier Agent, Task, or trust-marker write consumed it.
+- Preserved exact selected-label, exact-agent, exact-marker, staleness, unreadable
+  transcript, and no-`jq` fail-closed behavior.
+- Added a distinct `answer_not_found_in_window` reason and plain recovery message
+  so transcript-window drift is immediately diagnosable.
+
+### Verification
+
+The guard regression harness now covers the screenshot-shaped five-row gap,
+unknown future metadata, wrong and missing IDs, an older answer followed by a
+new unanswered question, ordinary missing answers, bounded-window exhaustion,
+typed-user staleness, first-action success, dispatch replay, and trust-marker
+replay. The root and plugin guard copies remain byte-identical and parse under
+Bash 3.2-compatible syntax.
+
+### Lesson formalized as Provisional Guard
+
+Hook code must join transcript events by tool-use ID, never by neighboring row
+position or a list of metadata row types. The release gate replays the
+interleaved confirmation shape whenever guarded transcript parsing changes.
+
 ## INC-2026-07-09 — Startup and closure ceremonies existed in prose but not at every runtime boundary
 
 ### What happened

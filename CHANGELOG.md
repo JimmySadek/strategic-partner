@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- An exact confirmation no longer fails when Claude Code inserts internal
+  session metadata before recording the answer. The guard now follows the
+  question, selected answer, and protected action by their IDs instead of
+  assuming adjacent rows; one confirmation authorizes one action, and an
+  answer outside the recent session window gets a precise recovery message.
 - Starting Strategic Partner through a typed command, a natural-language request,
   or the resident advisor now reaches the same startup floor and orientation check.
 - Bare plugin startup now recenters on the current project. Only an explicit saved

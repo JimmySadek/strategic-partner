@@ -46,6 +46,7 @@ json_field() {
 
 PAYLOAD_CWD=$(json_field cwd)
 PAYLOAD_TRANSCRIPT_PATH=$(json_field transcript_path)
+PAYLOAD_TOOL_USE_ID=$(json_field tool_use_id)
 
 hash_text() {
   if command -v shasum >/dev/null 2>&1; then
@@ -250,19 +251,33 @@ stewardship_candidate_path() {
   return 1
 }
 
-trust_marker_confirmation_present() {
-  marker_path="$1"
-  TRUST_MARKER_BLOCK_REASON=""
+confirmation_decision() {
+  transcript_path="$1"
+  confirmation_mode="$2"
+  confirmation_subject="$3"
+  current_action_id="$4"
 
-  [ -n "$marker_path" ] || return 1
-  [ -n "$PAYLOAD_TRANSCRIPT_PATH" ] && [ -r "$PAYLOAD_TRANSCRIPT_PATH" ] || return 1
+  CONFIRMATION_BLOCK_REASON=""
 
-  if ! command -v jq >/dev/null 2>&1 || ! printf '{}' | jq -e type >/dev/null 2>&1; then
-    TRUST_MARKER_BLOCK_REASON="jq_unavailable"
+  if [ -z "$transcript_path" ] || [ ! -r "$transcript_path" ]; then
+    CONFIRMATION_BLOCK_REASON="transcript_unreadable"
     return 1
   fi
 
-  decision=$(tail -160 "$PAYLOAD_TRANSCRIPT_PATH" 2>/dev/null | jq -sr --arg marker "$marker_path" '
+  if ! command -v jq >/dev/null 2>&1 || ! printf '{}' | jq -e type >/dev/null 2>&1; then
+    CONFIRMATION_BLOCK_REASON="jq_unavailable"
+    return 1
+  fi
+
+  if [ -z "$current_action_id" ]; then
+    CONFIRMATION_BLOCK_REASON="missing_current_action_id"
+    return 1
+  fi
+
+  decision=$(tail -160 "$transcript_path" 2>/dev/null | jq -sr \
+    --arg mode "$confirmation_mode" \
+    --arg subject "$confirmation_subject" \
+    --arg current_action_id "$current_action_id" '
     def norm: gsub("[—–]"; "-") | gsub("[[:space:]]+"; " ") | gsub("^\\s+|\\s+$"; "");
     def role: (.message.role // .role // "");
     def content: (.message.content // .content // []);
@@ -297,34 +312,77 @@ trust_marker_confirmation_present() {
     def block($reason): "BLOCK " + $reason;
 
     (map(select(type == "object"))) as $rows
-    | ([ $rows | to_entries[] | select((.value | role) == "assistant" and (.value | has_auq)) | .key ] | last // -1) as $idx
-    | if $idx == -1 then block("no_question")
-      elif ($idx + 1) >= ($rows | length) then block("missing_answer")
-      elif (($rows[$idx + 2:] | map(select(genuine_user_text)) | length) > 0) then block("stale")
+    | ([ $rows | to_entries[] | select((.value | role) == "assistant" and (.value | has_auq)) | .key ] | last // -1) as $question_idx
+    | if $question_idx == -1 then block("no_question")
       else
-        ([ $rows[$idx] | .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | last) as $auq
-        | (($rows[$idx + 1].message.content // $rows[$idx + 1].content // "") | text_from_content(.)) as $raw_answer
-        | (parsed_answer($raw_answer)) as $selected
-        | ($selected.answer | norm) as $answer
-        | if ($answer | length) == 0 then block("missing_answer")
+        ([ $rows[$question_idx] | .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | last) as $auq
+        | ($auq.id // "") as $question_id
+        | if ($question_id | length) == 0 then block("question_id_missing")
           else
-            ($auq.input.questions // []) as $questions
-            | (if (($selected.question // "") | length) > 0 then
-                [ $questions[]? | select((.question // "") == $selected.question) ]
-              elif ($questions | length) == 1 then
-                [ $questions[0] ]
-              else [] end) as $matched_questions
-            | if ($matched_questions | length) != 1 then block("question_mismatch")
+            ([ $rows | to_entries[] as $entry
+              | $entry.value | .. | objects
+              | select(.type? == "tool_result" and ((.tool_use_id? // "") == $question_id))
+              | {idx: $entry.key, result: .}
+            ]) as $answers
+            | if ($answers | length) == 0 then
+                if (($rows | length) > ($question_idx + 1)) then block("answer_not_found_in_window")
+                else block("missing_answer") end
+              elif ($answers | length) != 1 then block("duplicate_answer")
               else
-                ($matched_questions[0]) as $question
-                | ($question.options // []) as $options
-                | ([ $options[]? | {label: ((.label // "") | norm)} | select(.label == $answer) ] | .[0] // null) as $selected_option
-                | (question_text($question)) as $visible_text
-                | if $selected_option == null then block("selected_option_label")
-                  elif ($selected_option.label != "Activate stewardship contract") then block("selected_option_label")
-                  elif (($visible_text | index($marker)) == null) then block("missing_marker_path")
-                  elif (($visible_text | index(".sp-managed")) == null) then block("missing_contract_name")
-                  else "ALLOW" end
+                ($answers[0]) as $answer_event
+                | if ($answer_event.idx <= $question_idx) then block("answer_before_question")
+                  elif (($rows[$answer_event.idx + 1:] | map(select(genuine_user_text)) | length) > 0) then block("stale")
+                  else
+                    ([ $rows[$answer_event.idx + 1:][]?
+                      | .. | objects
+                      | select(.type? == "tool_use")
+                      | select(
+                          if $mode == "dispatch" then
+                            (.name? == "Agent" or .name? == "Task")
+                          elif $mode == "trust_marker" then
+                            ((.name? == "Edit" or .name? == "Write" or .name? == "MultiEdit" or .name? == "NotebookEdit") and
+                             ((.input.file_path? // .input.relative_path? // "") == $subject))
+                          else false end
+                        )
+                      | {id: (.id // "")}
+                    ]) as $protected_actions
+                    | if ([ $protected_actions[]? | select(.id != $current_action_id) ] | length) > 0 then block("confirmation_replayed")
+                      else
+                        (text_from_content($answer_event.result.content // "")) as $raw_answer
+                        | (parsed_answer($raw_answer)) as $selected
+                        | ($selected.answer | norm) as $answer
+                        | if ($answer | length) == 0 then block("missing_answer")
+                          else
+                            ($auq.input.questions // []) as $questions
+                            | (if (($selected.question // "") | length) > 0 then
+                                [ $questions[]? | select((.question // "") == $selected.question) ]
+                              elif ($questions | length) == 1 then
+                                [ $questions[0] ]
+                              else [] end) as $matched_questions
+                            | if ($matched_questions | length) != 1 then block("question_mismatch")
+                              else
+                                ($matched_questions[0]) as $question
+                                | ($question.options // []) as $options
+                                | ([ $options[]? | {label: ((.label // "") | norm)} | select(.label == $answer) ] | .[0] // null) as $selected_option
+                                | if $selected_option == null then block("selected_option_label")
+                                  elif $mode == "dispatch" then
+                                    ([ $options[]? | ((.label // "") | norm) ]) as $labels
+                                    | ("Dispatch now - " + $subject) as $expected_dispatch
+                                    | if ($selected_option.label != $expected_dispatch) then block("selected_option_label")
+                                      elif (($labels | index("Hold - let me review the brief first")) == null) then block("missing_hold_label")
+                                      elif (($labels | index("Wrong agent - let me pick")) == null) then block("missing_wrong_agent_label")
+                                      else "ALLOW" end
+                                  elif $mode == "trust_marker" then
+                                    (question_text($question)) as $visible_text
+                                    | if ($selected_option.label != "Activate stewardship contract") then block("selected_option_label")
+                                      elif (($visible_text | index($subject)) == null) then block("missing_marker_path")
+                                      elif (($visible_text | index(".sp-managed")) == null) then block("missing_contract_name")
+                                      else "ALLOW" end
+                                  else block("unknown_confirmation_mode") end
+                              end
+                          end
+                      end
+                  end
               end
           end
       end
@@ -335,113 +393,43 @@ trust_marker_confirmation_present() {
       return 0
       ;;
     BLOCK\ *)
-      TRUST_MARKER_BLOCK_REASON=${decision#BLOCK }
+      CONFIRMATION_BLOCK_REASON=${decision#BLOCK }
       return 1
       ;;
     *)
-      TRUST_MARKER_BLOCK_REASON="parse_error"
+      CONFIRMATION_BLOCK_REASON="parse_error"
       return 1
       ;;
   esac
 }
 
+trust_marker_confirmation_present() {
+  marker_path="$1"
+  TRUST_MARKER_BLOCK_REASON=""
+
+  [ -n "$marker_path" ] || return 1
+
+  if confirmation_decision "$PAYLOAD_TRANSCRIPT_PATH" "trust_marker" "$marker_path" "$PAYLOAD_TOOL_USE_ID"; then
+    return 0
+  fi
+
+  TRUST_MARKER_BLOCK_REASON="$CONFIRMATION_BLOCK_REASON"
+  return 1
+}
+
 dispatch_confirmation_present() {
   transcript_path="$1"
   subagent_type="$2"
-
   DISPATCH_BLOCK_REASON=""
 
   [ -n "$subagent_type" ] || return 1
 
-  # A missing/unreadable transcript means we can't verify a confirmation
-  # exists — fail CLOSED. Mirrors Guard 1 (unreadable file_path on a
-  # confirmed edit tool) and Guard 3 (unreadable Serena path) below: an
-  # unverifiable state blocks rather than allows.
-  [ -n "$transcript_path" ] && [ -r "$transcript_path" ] || return 1
-
-  if ! command -v jq >/dev/null 2>&1 || ! printf '{}' | jq -e type >/dev/null 2>&1; then
-    DISPATCH_BLOCK_REASON="jq_unavailable"
-    return 1
+  if confirmation_decision "$transcript_path" "dispatch" "$subagent_type" "$PAYLOAD_TOOL_USE_ID"; then
+    return 0
   fi
 
-  decision=$(tail -160 "$transcript_path" 2>/dev/null | jq -sr --arg subagent "$subagent_type" '
-    def norm: gsub("[—–]"; "-") | gsub("[[:space:]]+"; " ") | gsub("^\\s+|\\s+$"; "");
-    def role: (.message.role // .role // "");
-    def content: (.message.content // .content // []);
-    def nonempty_text:
-      if (content | type) == "array" then any(content[]?; .type == "text" and ((.text // "") | length > 0))
-      elif (content | type) == "string" then ((content // "") | length > 0)
-      else false end;
-    def genuine_user_text: role == "user" and nonempty_text;
-    def has_auq:
-      ([ .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | length) > 0;
-    def text_from_content($value):
-      if ($value | type) == "array" then
-        ([ $value[]?
-          | if .type? == "tool_result" then (.content // "")
-            elif .type? == "text" then (.text // "")
-            else empty end
-          | if type == "array" then ([ .[]? | select(.type? == "text") | .text ] | join(" "))
-            else tostring end
-        ] | join(" "))
-      elif ($value | type) == "string" then $value
-      else "" end;
-    def parsed_answer($raw):
-      ($raw // "") as $safe
-      | if ($safe | test("Your questions have been answered:\\s*\"[^\"]+\"\\s*=\\s*\"[^\"]+\"")) then
-          ($safe | capture("Your questions have been answered:\\s*\"(?<question>[^\"]+)\"\\s*=\\s*\"(?<answer>[^\"]+)\""))
-          | {question: (.question // ""), answer: (.answer // "")}
-        else {question: "", answer: $safe}
-        end;
-    def block($reason): "BLOCK " + $reason;
-
-    (map(select(type == "object"))) as $rows
-    | ([ $rows | to_entries[] | select((.value | role) == "assistant" and (.value | has_auq)) | .key ] | last // -1) as $idx
-    | if $idx == -1 then block("no_question")
-      elif ($idx + 1) >= ($rows | length) then block("missing_answer")
-      elif (($rows[$idx + 2:] | map(select(genuine_user_text)) | length) > 0) then block("stale")
-      else
-        ([ $rows[$idx] | .. | objects | select(.type? == "tool_use" and .name? == "AskUserQuestion") ] | last) as $auq
-        | (($rows[$idx + 1].message.content // $rows[$idx + 1].content // "") | text_from_content(.)) as $raw_answer
-        | (parsed_answer($raw_answer)) as $selected
-        | ($selected.answer | norm) as $answer
-        | if ($answer | length) == 0 then block("missing_answer")
-          else
-            ($auq.input.questions // []) as $questions
-            | (if (($selected.question // "") | length) > 0 then
-                [ $questions[]? | select((.question // "") == $selected.question) ]
-              elif ($questions | length) == 1 then
-                [ $questions[0] ]
-              else [] end) as $matched_questions
-            | if ($matched_questions | length) != 1 then block("question_mismatch")
-              else
-                ($matched_questions[0].options // []) as $options
-                | ([ $options[]? | {label: ((.label // "") | norm)} | select(.label == $answer) ] | .[0] // null) as $selected_option
-                | ([ $options[]? | ((.label // "") | norm) ]) as $labels
-                | ("Dispatch now - " + $subagent) as $expected_dispatch
-                | if $selected_option == null then block("selected_option_label")
-                  elif ($selected_option.label != $expected_dispatch) then block("selected_option_label")
-                  elif (($labels | index("Hold - let me review the brief first")) == null) then block("missing_hold_label")
-                  elif (($labels | index("Wrong agent - let me pick")) == null) then block("missing_wrong_agent_label")
-                  else "ALLOW" end
-              end
-          end
-      end
-  ' 2>/dev/null)
-
-  case "$decision" in
-    ALLOW)
-      return 0
-      ;;
-    BLOCK\ *)
-      DISPATCH_BLOCK_REASON=${decision#BLOCK }
-      return 1
-      ;;
-    *)
-      DISPATCH_BLOCK_REASON="parse_error"
-      return 1
-      ;;
-  esac
+  DISPATCH_BLOCK_REASON="$CONFIRMATION_BLOCK_REASON"
+  return 1
 }
 
 # Context-file stewardship guard. This is intentionally factored out of the
@@ -499,6 +487,15 @@ if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
     stale)
       echo "BLOCKED: Strategic Partner found an older dispatch confirmation, but a later user message made it stale. Ask again before dispatching." >&2
       ;;
+    answer_not_found_in_window)
+      echo "BLOCKED: Strategic Partner found the confirmation question, but its answer is outside the recent transcript window. Please confirm once more before dispatching." >&2
+      ;;
+    missing_current_action_id)
+      echo "BLOCKED: Strategic Partner could not verify the current protected action identity. Please confirm once more before dispatching." >&2
+      ;;
+    confirmation_replayed)
+      echo "BLOCKED: Strategic Partner found that this dispatch confirmation was already used by an earlier protected action. Please confirm once more before dispatching again." >&2
+      ;;
     *)
       echo "BLOCKED: Strategic Partner must confirm the exact agent before dispatch. Ask via AskUserQuestion with: [Dispatch now — $SUBAGENT_TYPE] [Hold — let me review the brief first] [Wrong agent — let me pick]." >&2
       ;;
@@ -534,6 +531,15 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "
     case "${TRUST_MARKER_BLOCK_REASON:-}" in
       jq_unavailable)
         echo "BLOCKED: Strategic Partner could not verify .sp-managed activation because jq is unavailable. Ask again after jq is available; trust markers require transcript-confirmed approval." >&2
+        ;;
+      answer_not_found_in_window)
+        echo "BLOCKED: Strategic Partner found the .sp-managed activation question, but its answer is outside the recent transcript window. Please confirm once more before creating the trust marker." >&2
+        ;;
+      missing_current_action_id)
+        echo "BLOCKED: Strategic Partner could not verify the current protected action identity. Please confirm .sp-managed activation once more." >&2
+        ;;
+      confirmation_replayed)
+        echo "BLOCKED: Strategic Partner found that this .sp-managed confirmation was already used by an earlier protected action. Please confirm activation once more." >&2
         ;;
       *)
         echo "BLOCKED: Strategic Partner cannot write a .sp-managed trust marker without a fresh AskUserQuestion confirmation. Ask with option [Activate stewardship contract] and include the exact marker path in the question: $FILE_PATH" >&2

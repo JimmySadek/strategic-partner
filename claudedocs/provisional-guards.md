@@ -4,6 +4,16 @@ Bug-driven rules. Each guard names the pattern, the past incident that
 motivated it, and a date to revisit. See `claudedocs/INCIDENTS.md` for the
 underlying archaeology.
 
+### Join hook transcript events by tool-use ID, never row adjacency
+
+Instead: pair `AskUserQuestion.id` with the matching
+`tool_result.tool_use_id`, and bind authorization to the current PreToolUse
+`tool_use_id`; treat metadata rows as unrelated events, not positions to skip.
+
+- **Scope**: Any hook that reads a Claude Code JSONL transcript to authorize a protected action, including Agent/Task dispatch and `.sp-managed` activation.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-07-10 — an exact agent confirmation was rejected because five metadata rows appeared between the question and its matching answer.
+- **Review**: 2026-10-10.
+
 ### Don't use `${CLAUDE_*}` env vars in hook commands
 
 Instead: inline the values, use deterministic path resolution, or grep `CHANGELOG.md` for prior incidents with the variable name before relying on it.
