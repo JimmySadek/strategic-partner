@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.4.4-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.4.5-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — **7.4.4** starts a background agent only when the selected button names that exact agent, restores useful startup/status context before the question widget, and makes project-rules edit checks stricter so risky expansions are blocked while safe cleanups still pass. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
+> **What's new** — **7.4.5** stops a safety check from blocking harmless commands over a stray letter, and makes `/strategic-partner:update` detect and repair incomplete or copied installs instead of guessing. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
 
 ---
 

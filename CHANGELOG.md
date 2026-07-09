@@ -1,9 +1,10 @@
 # Changelog
 
-## [Unreleased]
+## [7.4.5] - 2026-07-09
 
 ### Fixed
-- **Updates now check whether the installed copy is complete before choosing a path** — `/strategic-partner:update` now distinguishes complete skills-managed installs, incomplete skills-managed installs, git clones, and copied/manual installs. Incomplete or copied installs are routed to a safe repair from the latest release instead of guessing that `npx skills update` or `git pull` will work.
+- **A safety check could wrongly block harmless read-only commands** — the guard watching for in-place file edits (`sed -i` / `perl -i`) matched any command with the letter "i" appearing anywhere after a dash later in the line, not just a real `-i` flag. A plain read-only command on a file whose name happened to contain an "i" could get blocked for no reason. Fixed to only match an actual in-place-edit flag.
+- **Updates now check whether a skills-managed install is complete before choosing a path** — `/strategic-partner:update` now distinguishes complete skills-managed installs, incomplete skills-managed installs, git clones, and copied/manual installs. Skills-managed installs missing supporting files, and copied/manual installs, are routed to a safe repair from the latest release instead of guessing that `npx skills update` will work; a git clone is still updated with a plain `git pull`.
 - **The standalone install guidance no longer recommends an incomplete skills CLI path as complete** — the current repo layout can make the public skills CLI install copy only `SKILL.md`, so the README now points standalone users to the full git clone install and gives a repair path for older incomplete copies.
 
 ## [7.4.4] - 2026-07-08
