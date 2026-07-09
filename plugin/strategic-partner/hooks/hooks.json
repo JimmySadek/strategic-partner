@@ -44,7 +44,7 @@
             "type": "command",
             "command": "bash",
             "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/entry.sh", "PreToolUse"],
-            "timeout": 5
+            "timeout": 15
           }
         ]
       }

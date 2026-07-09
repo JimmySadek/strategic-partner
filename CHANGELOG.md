@@ -14,6 +14,8 @@
   show the continuation prompt, while an explicit keep-open request still wins.
 - Plugin startup guidance no longer tries to repair standalone command links or
   run the standalone setup flow.
+- Starting Strategic Partner from a natural-language request now gives the startup
+  status check enough time to finish when the connection is slow.
 
 ## [7.5.0] - 2026-07-09
 
