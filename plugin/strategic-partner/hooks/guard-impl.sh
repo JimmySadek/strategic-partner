@@ -671,7 +671,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
 fi
 
 # --- Guard 3: Block Serena write tools on source files ---
-if echo "$TOOL_NAME" | grep -q "^mcp__plugin_serena_serena__"; then
+if echo "$TOOL_NAME" | grep -Eq '^mcp__(plugin_serena_serena|serena)__'; then
   case "$TOOL_NAME" in
     *replace_content|*replace_symbol_body|*insert_after_symbol|*insert_before_symbol|*create_text_file|*rename_symbol|*execute_shell_command)
       # Tolerate arbitrary whitespace around the colon, e.g. '"relative_path" : "..."'.

@@ -31,6 +31,7 @@ Key behaviors:
 | `/strategic-partner:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner:status` | Recenter briefing — where we stand, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
+| `/strategic-partner:serena` | Check, install, repair, verify, or roll back Serena safely |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI; also the Codex reviewer step for cross-model build/review |
 | `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` (18 patterns, interactive or report mode) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work |
@@ -46,6 +47,7 @@ Key behaviors:
 /strategic-partner:handoff                  → Save session state + continuation prompt
 /strategic-partner:status                   → "Where do we stand?" briefing
 /strategic-partner:update                   → Check + update to latest version
+/strategic-partner:serena                   → Check or repair Serena with a preview and rollback
 /strategic-partner:codex-feedback           → Trigger Codex review of a decision, claim, or cross-model build
 /strategic-partner:context-file-scan         → Scan CLAUDE.md / AGENTS.md / GEMINI.md for drift
 /strategic-partner:backlog                  → Surface and review parked backlog items
@@ -75,4 +77,4 @@ Key behaviors:
 
 ## See Also
 
-All SP subcommands are listed above. Each subcommand's own page includes a "See Also" section linking to logically related commands — start with `:status` for orientation, `:handoff` for closing, `:backlog` for parked work, `:codex-feedback` for adversarial review or Codex-side review, `:update` for version checks, and `:copy-prompt` for clipboard support.
+All SP subcommands are listed above. Each subcommand's own page includes a "See Also" section linking to logically related commands — start with `:status` for orientation, `:handoff` for closing, `:serena` for memory setup, `:backlog` for parked work, `:codex-feedback` for adversarial review or Codex-side review, `:update` for version checks, and `:copy-prompt` for clipboard support.

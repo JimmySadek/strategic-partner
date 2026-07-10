@@ -98,10 +98,11 @@ Quick checks run inline during startup. No agents needed — these are observati
    during the session. No settings file check needed — if Claude isn't
    saving memories, it's likely disabled.
 
-2. **Serena**: Existing check (`check_onboarding_performed`). Already in Step 2.
-   If it errors with "No active project" and the current working directory's
-   basename matches a registered Serena project, SP calls `activate_project`
-   and re-runs the check — instead of erroring out and recovering by hand. On
+2. **Serena**: Call `initial_instructions` once when exposed, then verify the
+   exact current repository path with `get_current_config`. If the active path
+   is wrong and `activate_project` is exposed, activate by exact path and
+   re-check. If activation is hidden in the single-project Claude context,
+   route to the Serena steward instead of attaching a second server. On
    no basename match, SP surfaces the project list / onboarding path and asks.
    Details in the Step 3 Serena survey below.
 

@@ -127,7 +127,7 @@ prompt_is_sp_invocation() {
     my $sub = "";
     if ($p =~ m{\A\s*/(?:[A-Za-z0-9-]+:)?(?:strategic-partner|sp|advisor)(?::([a-z-]+))?(?:\s|\z)}) {
       $sub = defined $1 ? $1 : "";
-    } elsif ($p =~ m{\A\s*/(?:strategic-partner-plugin|sp-plugin-trial|[A-Za-z0-9-]*strategic-partner[A-Za-z0-9-]*):(help|copy-prompt|update|handoff|status|codex-feedback|context-file-scan|backlog|switch-to-skill)(?:\s|\z)}) {
+    } elsif ($p =~ m{\A\s*/(?:strategic-partner-plugin|sp-plugin-trial|[A-Za-z0-9-]*strategic-partner[A-Za-z0-9-]*):(help|copy-prompt|update|handoff|status|serena|codex-feedback|context-file-scan|backlog|switch-to-skill)(?:\s|\z)}) {
       $sub = $1;
     } else {
       exit 1;

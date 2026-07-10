@@ -114,30 +114,27 @@ The session gate detects this at SessionStart, runs the startup floor once at
 session open (off the prompt path — something the skill-first install cannot
 do), and arms the advisory guard for that session only.
 
-## MCP / Serena — deliberate external dependency
+## MCP / Serena — SP-managed now, plugin-owned next
 
-A plugin **can** bundle an MCP server (a `.mcp.json` at plugin root — the
-official Serena plugin itself ships exactly that, via `uvx`). Note that
-plugin-bundled MCP servers **auto-connect with no approval prompt** the moment
-the plugin is enabled — unlike project-level `.mcp.json` servers, which Claude
-Code asks the user to approve first. This plugin deliberately does **not**
-bundle Serena, for three reasons (the missing consent gate strengthens all
-three):
+Strategic Partner owns the Serena experience it recommends. Run
+`/strategic-partner-plugin:serena` to check the current setup. If Serena is
+missing, outdated, noisy, partially configured, or duplicated, the command
+explains the impact, previews the exact changes, and offers a reversible fix.
+Healthy setups stay quiet.
 
-1. **Double registration.** Most SP users already have Serena (its own plugin
-   or a user-level MCP entry). Bundling a second instance duplicates every
-   tool and its token cost, with no dedup mechanism.
-2. **Guard coverage.** SP's Serena write-guard matches the tool prefix of the
-   standalone Serena plugin (`mcp__plugin_serena_serena__`). A bundled copy
-   would register under a different prefix and its write tools would bypass
-   the guard — bundling would be actively less safe.
-3. **Weight.** Serena pulls a Python toolchain at session start. SP works
-   without it (the floor reports `memory=missing` and SP degrades gracefully),
-   so forcing the dependency on every install is not the smallest change.
+During the current dual skill/plugin period, both distributions use one stable
+user-level Serena server. The supported launcher uses Claude's Serena context,
+binds to the exact current repository or worktree, and prevents the dashboard
+from opening a browser tab automatically. Existing `.serena` memories and
+project artifacts are not moved or rewritten.
 
-To get memory features, install Serena once from the official marketplace
-(`/plugin install serena@claude-plugins-official`) — SP detects it
-automatically.
+**Plugin-owned auto-connect is the declared destination.** It is intentionally
+gated, not rejected. Before this plugin ships an automatic MCP connection, SP
+must prove the stable runtime, observe and guard the plugin-owned namespace,
+migrate existing standalone registrations without duplicates, and pass cold
+session tests for exact-worktree activation, quiet startup, memory preservation,
+and rollback. Until those gates pass, bundling a second server would create the
+very conflict the steward is designed to prevent.
 
 ## Known limitations
 
@@ -148,5 +145,5 @@ automatically.
 - **`:update` subcommand:** still targets the git/skillshare install flow. On
   the skills-dir route this is correct only if the copied directory is a
   symlink back into the repo; a plain copy must be re-copied after updates.
-- **Serena write-guard prefix:** the guard covers the official Serena plugin's
-  tool prefix only — same as the standalone skill today.
+- **Serena connection ownership:** auto-connect remains on the published
+  roadmap while the plugin uses the shared, SP-managed user-level runtime.

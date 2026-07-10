@@ -87,7 +87,11 @@ After updating, re-run the setup script to refresh command registrations:
    - Installing the voice output style if absent, or warning if the
      installed copy is stale (a different `style-version` than the
      shipped one) — your copy is preserved, not overwritten
-4. Final message: "Start a new session to use the updated skill."
+4. Resolve the plugin root and run
+   `{plugin-root}/.scripts/serena-doctor.sh --field state`. If the state is
+   `healthy`, stay silent. Otherwise, offer `/strategic-partner-plugin:serena`;
+   never repair Serena as an unannounced side effect of updating SP.
+5. Final message: "Start a new session to use the updated plugin."
 
 ## Boundaries
 
@@ -106,3 +110,4 @@ After updating, re-run the setup script to refresh command registrations:
 
 - `/strategic-partner-plugin:codex-feedback` — adversarial review of the next release. Use after updating to check whether the new version's behavior matches what the CHANGELOG entry promised.
 - `/strategic-partner-plugin:help` — full subcommand reference. Use when you want to see what changed alongside the version bump.
+- `/strategic-partner-plugin:serena` — check or repair Serena after an SP compatibility update.

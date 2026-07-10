@@ -114,6 +114,10 @@ if [ -d "$HOOKS_DIR" ]; then
   echo "✅ Hook scripts verified executable in ${HOOKS_DIR}"
 fi
 
+# ── Ensure Serena stewardship scripts are executable ──────────────────
+chmod +x "${SKILL_DIR}/.scripts/serena-doctor.sh" \
+         "${SKILL_DIR}/.scripts/serena-repair.sh" 2>/dev/null || true
+
 # ── Install Output Styles ──────────────────────────────────────────────
 OUTPUT_STYLES_SRC="${SKILL_DIR}/output-styles"
 OUTPUT_STYLES_DST="${HOME}/.claude/output-styles"
@@ -152,9 +156,17 @@ fi
 SETTINGS_FILE="${HOME}/.claude/settings.json"
 if [ -f "$SETTINGS_FILE" ]; then
   missing=""
-  grep -q "mcp__plugin_serena_serena__" "$SETTINGS_FILE" || missing="serena"
   grep -q "mcp__plugin_context7_context7__" "$SETTINGS_FILE" || missing="${missing:+$missing }context7"
   if [ -n "$missing" ]; then
     echo "💡 Missing SP permissions. Run: bash ${SKILL_DIR}/setup --audit-permissions"
+  fi
+fi
+
+# ── Quiet Serena health check ─────────────────────────────────────────
+SERENA_DOCTOR="${SKILL_DIR}/.scripts/serena-doctor.sh"
+if [ -x "$SERENA_DOCTOR" ]; then
+  serena_state=$("$SERENA_DOCTOR" --field state 2>/dev/null || printf 'unknown')
+  if [ "$serena_state" != healthy ]; then
+    echo "💡 Serena setup needs attention (${serena_state}). In Claude Code, run /strategic-partner:serena for a safe preview and repair offer."
   fi
 fi

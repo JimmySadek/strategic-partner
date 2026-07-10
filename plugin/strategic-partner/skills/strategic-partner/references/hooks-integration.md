@@ -399,7 +399,7 @@ hooks:
 ```
 
 **Important exception — SP's own guard:** The SP's existing PreToolUse guard uses
-pipe-alternation `Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__plugin_serena_serena__`
+pipe-alternation `Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__serena__|mcp__plugin_serena_serena__`
 and is empirically verified firing on this same Claude Code version (the guard
 demonstrably blocks `/tmp/` Bash redirects with exit code 2 in normal use). The
 isolated "alternation + first-invocation" failure mode was not re-tested; the
@@ -641,7 +641,7 @@ hook audit (see trace log in the Stop section above).
 
 | Hook | Event | Matcher | Purpose | Ships via | Status |
 |---|---|---|---|---|---|
-| Identity guard | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|mcp__plugin_serena_serena__` | Block implementation source-file mutations; allow built-in SP artifacts and locally activated `.sp-managed` paths | SKILL.md frontmatter | Shipping ✅ |
+| Identity guard | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|mcp__serena__\|mcp__plugin_serena_serena__` | Block implementation source-file mutations; allow built-in SP artifacts and locally activated `.sp-managed` paths | SKILL.md frontmatter | Shipping ✅ |
 | Floor sentinel | UserPromptSubmit | (non-tool event, no matcher) | Inject minimum-floor reminder per user turn | SKILL.md frontmatter | Shipping ✅ (v5.15.0) |
 | Rhythm enforcer | Stop | (non-tool event, no matcher) | Enforce 5 per-turn rules (AUQ-as-AUQ, identity-reset announcements after agent dispatch returns, tool-availability claims, fence-write coupling, floor-signal acknowledgment) | SKILL.md frontmatter | Shipping ✅ (v5.15.0) |
 

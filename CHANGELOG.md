@@ -1,5 +1,40 @@
 # Changelog
 
+## [7.6.0] - 2026-07-11
+
+### Added
+
+- **Strategic Partner can now set up and care for Serena for every user** — the
+  new `:serena` command diagnoses the local setup without changing it, explains
+  the impact in plain language, and offers a consent-gated install or repair
+  with backup, verification, and rollback.
+- **Serena starts in the right project without opening a surprise browser tab** —
+  the supported launcher uses Serena's Claude Code profile, binds to the exact
+  current repository or worktree, keeps the dashboard available on demand, and
+  adds the recommended activation, reminder, cleanup, and permission-aware
+  approval hooks.
+
+### Changed
+
+- **Skill and plugin users now receive the same Serena stewardship** — both
+  distributions ship the doctor, repair runner, compatibility policy, command,
+  update check, and guard coverage. Existing `.serena` project files and
+  memories are preserved.
+- **The plugin now declares automatic Serena connection as its destination** —
+  shared stewardship ships first so existing users can migrate to one stable
+  server safely. Plugin-owned auto-connect remains gated on duplicate removal,
+  namespace guard proof, exact-worktree activation, and rollback testing.
+
+### Fixed
+
+- **Strategic Partner no longer assumes one Serena tool name forever** — current
+  user-level and legacy plugin connections are both recognized and protected,
+  while startup and handoff workflows discover capabilities instead of calling
+  a retired onboarding check.
+- **Legacy marketplace Serena setups no longer remain the public recommendation** —
+  SP detects development builds, missing Claude context, partial hooks, stale
+  permissions, and duplicate servers, then offers the smallest supported repair.
+
 ## [7.5.1] - 2026-07-10
 
 ### Fixed

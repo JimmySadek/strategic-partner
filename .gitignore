@@ -12,6 +12,8 @@ specs/
 !.scripts/release-publish.sh
 !.scripts/context-file-scan/
 !.scripts/migrate-backlog.sh
+!.scripts/serena-doctor.sh
+!.scripts/serena-repair.sh
 # External Codex-integration runtime state (e.g. state.json); not part of SP source.
 .strategic-partner/
 awesome-list-submission.md

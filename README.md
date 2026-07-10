@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.5.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.6.0-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — **7.5.1** fixes a guarded confirmation check that could wrongly reject an exact answer when Claude Code inserts routine session bookkeeping between the question and the answer, and makes sure one confirmation can't be reused to approve a second action. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
+> **What's new** — **7.6.0** adds a Serena setup steward: it checks each user's real setup, offers a reversible fix when needed, binds Serena to the exact repository or worktree, and stops the dashboard from opening a browser tab automatically. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
 
 ---
 
@@ -227,6 +227,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism de
 | `/strategic-partner:handoff` | Trigger a context handoff with split writes |
 | `/strategic-partner:status` | Where we stand, what's done, what's next |
 | `/strategic-partner:update` | Check for updates and self-update to latest version |
+| `/strategic-partner:serena` | Check, install, repair, verify, or roll back Serena with a preview first |
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI |
 | `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (18 patterns) |
 | `/strategic-partner:backlog` | Triage the project backlog (items grouped by lifecycle state, with an action menu) — including a scan that flags backlog work which has already shipped and asks before closing it |
@@ -237,11 +238,11 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism de
 
 - **Claude Code** — the skill runs inside Claude Code sessions
 - **`jq`** (a small command-line JSON processor) — used by the rules-file scanner, startup/status hooks, and background-agent dispatch confirmation. Install via `brew install jq` (macOS) or `apt install jq` / `dnf install jq` (Linux). Without `jq`, the rules-file scanner won't run, the startup snapshot is reduced, and context-file writes plus background-agent dispatch fail closed instead of guessing; ordinary chat and prompt delivery are not blocked.
-- **Serena MCP** (recommended) — an MCP server (a tool plugin Claude Code can call) that provides cross-session memory and semantic code navigation
+- **Serena MCP** (recommended) — SP can install and maintain the supported stable setup for cross-session memory and semantic code navigation
 - **Context7 MCP** (optional) — for library documentation lookup
 - **Codex CLI** (optional) — for cross-model adversarial review
 
-The skill works without Serena, but loses cross-session memory and semantic code navigation. `jq` is strongly recommended — the rules-file scanner and verified background-agent dispatch require it, and the startup snapshot is reduced without it.
+The skill works without Serena, but loses cross-session memory and semantic code navigation. Run `/strategic-partner:serena` for a read-only check and a plain-language repair offer. SP-managed Serena uses the exact current repository or worktree, starts without opening a browser tab, preserves existing `.serena` memories, and never changes the setup without approval. `jq` is strongly recommended — the rules-file scanner and verified background-agent dispatch require it, and the startup snapshot is reduced without it.
 
 ### Supported platforms
 
@@ -273,7 +274,9 @@ After setup runs, restart your Claude Code session so the CLI picks up refreshed
 
 | Scenario | What happens | What to do |
 |---|---|---|
-| **Serena MCP unavailable** | Cross-session memory and semantic navigation disabled | SP falls back to Grep/Glob. Memory features degrade but prompt crafting works. |
+| **Serena missing or unreliable** | Cross-session memory and semantic navigation are reduced | Run `/strategic-partner:serena`. SP diagnoses locally, previews the smallest safe fix, and keeps working with repository-native search if you decline. |
+| **Serena opens a browser tab** | The launcher still uses Serena's noisy default | Run `/strategic-partner:serena`; the supported repair keeps the dashboard available but disables automatic opening. |
+| **Two Serena servers appear** | A legacy plugin and user server are both active | Run `/strategic-partner:serena`. SP fails closed and offers a reversible one-server migration. |
 | **Skills missing** | The installed-tool picker can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
 | **No automatic warning before context fills up** | SP relies on self-assessed thresholds and periodic checks | A user-owned hook (Claude Code's pre-fill warning event — the signal Claude Code fires just before it compacts a full context) can serve as an extra backstop if you choose to configure one. |
 | **Sub-agents hit permission walls** | Background agents can't prompt for approval | Specify `mode` on every agent spawn. Pre-approve `WebFetch(*)` and `WebSearch(*)` in `~/.claude/settings.json` for research agents. Run `./setup --audit-permissions` to check for gaps. |

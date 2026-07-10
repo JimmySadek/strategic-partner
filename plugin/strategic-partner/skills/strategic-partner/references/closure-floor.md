@@ -779,8 +779,8 @@ with "Serena unavailable, will check next session." No verification
 that Serena is actually unavailable.
 
 **What the correct walk does:** Group 1's `verify-activate-fallback`
-chain (see `commands/handoff.md` Group 1) forces SP to call
-`check_onboarding_performed` before declaring Serena unavailable.
+chain (see `commands/handoff.md` Group 1) forces SP to discover Serena's
+capabilities and call `get_current_config` before declaring it unavailable.
 Silent skip on apparent unavailability is the failure pattern
 findings-0428 issue 4 captured.
 

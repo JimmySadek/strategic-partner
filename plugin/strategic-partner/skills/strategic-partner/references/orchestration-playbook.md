@@ -446,7 +446,7 @@ prompt crafting — not in implementation prompts.
 
 ### Pattern A: Initialization Scan (2 parallel agents)
 
-Spawn after `check_onboarding_performed` completes. Both agents are read-only —
+Spawn after Serena's current configuration and exact project path are verified. Both agents are read-only —
 use `mode: "auto"` for background compatibility.
 
 **Agent 1 — Onboarding/Staleness Check (Sonnet 4.6, mode: "auto"):**

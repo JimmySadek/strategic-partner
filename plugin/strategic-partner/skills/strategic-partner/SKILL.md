@@ -9,7 +9,7 @@ description: >
   "which skill do I use", "route this task", "hand off context", "manage my session".
   Plugin command: /strategic-partner-plugin:strategic-partner. Natural-language
   activation works for the same advisory intents.
-version: 7.5.1
+version: 7.6.0
 argument-hint: "[path-to-handoff-file]"
 category: advisory
 complexity: advanced
@@ -199,6 +199,7 @@ Never skip a load — these contain critical protocol details not inlined here.
 | `partner-protocols.md` | Version discussions, handoff prep |
 | `provider-guides/` | Before crafting any prompt (match target provider) |
 | `hooks-integration.md` | Hook setup discussions |
+| `serena-compatibility-policy.md` | Serena setup, diagnosis, migration, or capability discussions |
 | `cognitive-patterns.md` | Cognitive operations and pattern examples |
 </reference_files>
 
@@ -2216,22 +2217,22 @@ Route correctly: user preferences → auto-memory, no explicit save needed.
 
 **Session-start:**
 ```
-check_onboarding_performed
-  ├─ "No active project" error → auto-activate, don't recover manually:
-  │     ├─ cwd basename matches a registered Serena project
-  │     │     → call activate_project, then re-run check_onboarding_performed
-  │     └─ no match → surface the project list / onboarding path, ask the user
-  ├─ Not onboarded → run onboarding (ask first)
-  └─ Onboarded → list_memories → read 2–3 relevant → staleness spot-check
+initial_instructions (once per session, when exposed)
+  └─ get_current_config
+       ├─ exact cwd/project path active → list_memories → read 2–3 relevant
+       ├─ wrong/no project + activate_project exposed
+       │     → activate the exact path, then verify get_current_config
+       ├─ wrong/no project + activate_project hidden
+       │     → launcher is misconfigured; route to /strategic-partner-plugin:serena
+       └─ onboarding needed → ask before calling onboarding
 ```
 
-When the Serena MCP is available but no project is active, `check_onboarding_performed`
-errors with "No active project." SP does not stop and recover by hand. If the current
-working directory's basename matches a project already registered with Serena, SP calls
-`activate_project` for that project and proceeds. If the basename matches no registered
-project, SP falls back to the existing path — surface the project list (or the onboarding
-route) and ask the user. SP never auto-runs onboarding here; only `activate_project` is
-automatic.
+Discover capabilities instead of assuming one namespace or permanent tool list. A correctly
+managed `claude-code` launcher binds Serena to the exact working directory and may hide
+`activate_project` because that context is intentionally single-project. If the active path
+is wrong in that mode, do not guess by basename or attach a second server: run the Serena
+stewardship diagnosis. Retry one transient MCP failure once, then use repository-native
+fallbacks while clearly reporting the connection failure.
 
 **Ongoing**: After major decisions, check memories. Updating existing → automatic.
 Creating/deleting → `AskUserQuestion`. Keep <1500 words. Persistent memories

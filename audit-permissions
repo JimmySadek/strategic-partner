@@ -26,8 +26,12 @@ SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
 
 MANDATORY = [
     "Read(*)",
-    "mcp__plugin_serena_serena__*",
     "mcp__plugin_context7_context7__*",
+]
+
+SERENA_BROAD_ALLOWS = [
+    "mcp__serena__*",
+    "mcp__plugin_serena_serena__*",
 ]
 
 RECOMMENDED = [
@@ -323,6 +327,15 @@ def check_requirements(settings):
     missing_mandatory = []
     missing_recommended = []
     results = []
+
+    # Broad static Serena approvals bypass the permission-aware Serena hook,
+    # which should approve tools only in acceptEdits or auto mode.
+    broad_serena = [entry for entry in SERENA_BROAD_ALLOWS if entry in allow_list]
+    if broad_serena:
+        results.append(("hint", "Serena permission safety",
+                        "broad static approval found; use the conditional Serena hook"))
+    else:
+        results.append(("ok", "Serena permission safety", "conditional approval preserved"))
 
     # Check mandatory
     for entry in MANDATORY:

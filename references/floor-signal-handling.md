@@ -87,7 +87,7 @@ floor sentinel's Group 7 hook in SKILL.md so the next session sees
 
 Persistence — write to ONE source of truth based on Serena availability:
 
-- If Serena memory tools (mcp__plugin_serena_serena__*) are available
+- If Serena memory capabilities are available under a supported namespace
   in this conversation → write the matrix to Serena memory
   `skill_routing_matrix` via write_memory. The memory body includes the
   table + footer with inventory_hash + other metadata.
@@ -112,10 +112,10 @@ returns):**
 
 ```
 # When Serena was the persistence target:
-mcp__plugin_serena_serena__list_memories
+Serena list_memories
 # expect skill_routing_matrix in the list
 
-mcp__plugin_serena_serena__read_memory(memory_file_name="skill_routing_matrix")
+Serena read_memory(memory_file_name="skill_routing_matrix")
 # expect a markdown table with task categories AND a footer line:
 # inventory_hash: "sha256:<short>"
 
@@ -159,7 +159,7 @@ recommend onboarding. Frame as a one-time investment.
 Wrap the question in `AskUserQuestion`. Options:
 
 - [Yes, run onboarding now]
-- [Skip — I'll run it later via `mcp__plugin_serena_serena__onboarding`]
+- [Skip — I'll run Serena onboarding later]
 - [What does onboarding write?]
 
 **Dispatch parameters (only after user confirms):**
@@ -176,8 +176,8 @@ Wrap the question in `AskUserQuestion`. Options:
 You are running Serena onboarding for the project at [PROJECT_PATH].
 
 Use these tools in order:
-1. mcp__plugin_serena_serena__check_onboarding_performed — confirm not yet onboarded
-2. mcp__plugin_serena_serena__onboarding — run the full onboarding workflow
+1. Serena `get_current_config` — verify the exact project and onboarding state
+2. Serena `onboarding` — run the full onboarding workflow after user approval
 
 The onboarding workflow will analyze the codebase and write the standard
 memory set (project_overview, codebase_structure, code_style_and_conventions,
@@ -192,7 +192,7 @@ written before the failure.
 **Verification:**
 
 ```
-mcp__plugin_serena_serena__list_memories
+Serena list_memories
 # expect at least project_overview, codebase_structure, code_style_and_conventions
 ```
 

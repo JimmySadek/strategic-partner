@@ -64,12 +64,12 @@ a project-wide pattern search.
 
 ```
 # Verification (executed via Serena tools):
-# 1. mcp__plugin_serena_serena__read_memory codebase_structure
+# 1. Serena read_memory codebase_structure
 #    → extract 2 file paths
-# 2. mcp__plugin_serena_serena__find_file <path> for each → confirm exists
-# 3. mcp__plugin_serena_serena__read_memory code_style_and_conventions
+# 2. Serena find_file <path> for each → confirm exists
+# 3. Serena read_memory code_style_and_conventions
 #    → extract 1 convention
-# 4. mcp__plugin_serena_serena__search_for_pattern <convention>
+# 4. Serena search_for_pattern <convention>
 #    → confirm match
 ```
 
@@ -79,12 +79,12 @@ State logic:
   specific staleness identified
 - Serena unavailable → DO NOT silently skip. Run the
   verify-activate-fallback chain:
-  - **(a) Verify**: call `mcp__plugin_serena_serena__check_onboarding_performed`.
-    If it returns a project list, Serena IS available — activate the
-    project for current cwd and retry Group 1 from the top.
-  - **(a.1) MCP error / timeout / crash handling**: if
-    `check_onboarding_performed` itself returns an error, times out,
-    or the MCP server crashes — retry ONCE with a 5-second cooldown
+  - **(a) Verify**: discover Serena's exposed capabilities, then call
+    `get_current_config`. If Serena reports the exact current repository
+    path, retry Group 1 from the top.
+  - **(a.1) MCP error / timeout / crash handling**: if the configuration
+    check returns an error, times out, or the MCP server crashes — retry
+    ONCE with a 5-second cooldown
     (`sleep 5`). If the retry ALSO fails, surface DECISION via AUQ:
     - [Investigate MCP failure] — pause closure to diagnose; provide
       user with the error output and stack trace for triage
@@ -95,12 +95,14 @@ State logic:
       only after explicit user choice on the AUQ above. Silent skip
       on MCP error reproduces the same failure pattern this group's
       chain exists to prevent.
-  - **(b) Retry after activation**: if step (a) found a matching
-    project, call `mcp__plugin_serena_serena__activate_project` with
-    the cwd-matching project name, then re-run Group 1's three
-    checks. Mark state per the normal logic above.
-  - **(c) Fallback dispatch**: if step (a) finds NO project for current
-    cwd (or onboarding has not been done), surface DECISION via AUQ:
+  - **(b) Retry after activation**: if the active project is wrong and
+    `activate_project` is exposed, activate the exact cwd path, verify it
+    with `get_current_config`, then re-run Group 1. Never select by basename.
+    If `activate_project` is hidden in Serena's single-project Claude context,
+    route to `/strategic-partner:serena` to repair the launcher; do not attach
+    a duplicate server.
+  - **(c) Fallback dispatch**: if the exact current project is not registered
+    (or onboarding has not been done), surface DECISION via AUQ:
     - [Run Serena onboarding now] — dispatch background Opus 4.8
       agent to onboard this project
     - [Defer to next session with explicit acknowledgment] — note
@@ -156,7 +158,7 @@ just check freshness.
 ```
 # Verification (executed by SP — runs the rediscovery in a focused
 # background dispatch: Opus 4.8, run_in_background=true):
-# 1. mcp__plugin_serena_serena__read_memory skill_routing_matrix
+# 1. Serena read_memory skill_routing_matrix
 #    → cached state (skill count, agent count, MCP server count, build_timestamp)
 # 2. Read system-reminder skill list → current skill inventory
 # 3. ls ~/.claude/agents/*.md AND .claude/agents/*.md (project-level)
@@ -195,7 +197,7 @@ session's substantive decisions against `decision_log` updates.
 
 ```
 # Verification:
-# 1. mcp__plugin_serena_serena__list_memories → current state
+# 1. Serena list_memories → current state
 # 2. Diff against the same call's output captured at session start
 #    (if available)
 # 3. Cross-reference: every "key decision" from session conversation
