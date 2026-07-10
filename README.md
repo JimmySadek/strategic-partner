@@ -2,13 +2,13 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.5.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.5.1-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new** — **7.5.0** lets a project opt in to letting SP manage its own planning and decision files directly (with explicit local activation, not just by the file being present), and fixes a dispatch-confirmation check that could reject a visually-identical answer. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
+> **What's new** — **7.5.1** fixes a guarded confirmation check that could wrongly reject an exact answer when Claude Code inserts routine session bookkeeping between the question and the answer, and makes sure one confirmation can't be reused to approve a second action. See [CHANGELOG.md](CHANGELOG.md) for the full list and prior releases.
 
 ---
 

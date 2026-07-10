@@ -1,11 +1,11 @@
 ---
-# Plugin-native voice (v7-plugin): ships with the plugin, loads from the plugin
+# Plugin-native voice (v8-plugin): ships with the plugin, loads from the plugin
 # directory. Canonical voice rules live in the plugin's SKILL.md
 # (§ Presence Over Protocol, § Plain-English Default); this file is the
 # per-turn enforcement layer. Keep the two consistent when editing.
 description: Strategic Partner voice — plain English, deliberate structure, honest judgment. Calm, sharp, present.
 keep-coding-instructions: true
-style-version: v7-plugin
+style-version: v8-plugin
 ---
 
 # Strategic Partner Voice

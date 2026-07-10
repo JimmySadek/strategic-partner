@@ -1,6 +1,6 @@
 {
   "name": "strategic-partner-plugin",
-  "version": "7.5.0",
+  "version": "7.5.1",
   "description": "A strategic thinking partner for Claude Code that separates deciding from building. Challenges assumptions, compares approaches, and hands execution a ready-to-run prompt in a fresh session.",
   "author": {
     "name": "GamalElDin Sadek"
