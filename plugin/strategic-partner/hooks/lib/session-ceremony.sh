@@ -2,6 +2,35 @@
 # Shared, side-effect-free classifiers for Strategic Partner session ceremonies.
 # Callers own marker files and hook output. This library only classifies input.
 
+sp_is_guarded_utility_command() {
+  local command_name="$1"
+  local command_args="${2:-}"
+  local normalized
+  local normalized_args
+
+  normalized=$(printf '%s' "$command_name" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s#^/##')
+  normalized_args=$(printf '%s' "$command_args" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+  case "$normalized" in
+    strategic-partner|sp|advisor|*:strategic-partner)
+      case "$normalized_args" in :serena*) return 0 ;; esac
+      ;;
+    strategic-partner-plugin:*|sp-plugin-trial:*|*strategic-partner*:*)
+      case "$normalized" in *:serena) return 0 ;; esac
+      ;;
+  esac
+  return 1
+}
+
+sp_is_guarded_utility_prompt() {
+  local prompt="$1"
+  printf '%s' "$prompt" | perl -e '
+    undef $/; my $p = <STDIN>;
+    exit 0 if $p =~ m{\A\s*/(?:[A-Za-z0-9-]+:)?(?:strategic-partner|sp|advisor):serena(?:\s|\z)};
+    exit 0 if $p =~ m{\A\s*/(?:strategic-partner-plugin|sp-plugin-trial|[A-Za-z0-9-]*strategic-partner[A-Za-z0-9-]*):serena(?:\s|\z)};
+    exit 1;
+  ' 2>/dev/null
+}
+
 sp_is_command_activation() {
   local command_name="$1"
   local command_args="${2:-}"
@@ -13,7 +42,7 @@ sp_is_command_activation() {
   case "$normalized" in
     strategic-partner|sp|advisor|*:strategic-partner)
       case "$normalized_args" in
-        :help*|:copy-prompt*|:update*) return 1 ;;
+        :help*|:copy-prompt*|:update*|:serena*) return 1 ;;
       esac
       return 0
       ;;
@@ -40,7 +69,7 @@ sp_is_prompt_activation() {
     } else {
       exit 1;
     }
-    exit 1 if $sub =~ /^(?:help|copy-prompt|update)$/;
+    exit 1 if $sub =~ /^(?:help|copy-prompt|update|serena)$/;
     exit 0;
   ' 2>/dev/null
 }

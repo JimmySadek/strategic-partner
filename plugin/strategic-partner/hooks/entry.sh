@@ -16,9 +16,9 @@
 #      UserPromptSubmit retained as a compatibility fallback:
 #      /strategic-partner[...], /sp, /advisor, a namespaced plugin skill form
 #      like /sp-plugin-trial:strategic-partner, or a namespaced SP plugin
-#      subcommand like /strategic-partner-plugin:handoff — EXCEPT the three
-#      utility subcommands (:help :copy-prompt :update), matching the exemption
-#      already inside floor-check.sh.
+#      subcommand like /strategic-partner-plugin:handoff. The :help,
+#      :copy-prompt, and :update utilities remain unarmed. The :serena utility
+#      activates only the source guard, never the advisory ceremony.
 #   2. PreToolUse on the Skill tool whose skill input is
 #      "strategic-partner" or "<namespace>:strategic-partner"
 #      (the natural-language activation path).
@@ -62,6 +62,7 @@ SESSION_ID=$(json_field session_id)
 [ -z "$SESSION_ID" ] && SESSION_ID=unknown
 SAFE_SID=$(printf '%s' "$SESSION_ID" | tr -cd 'A-Za-z0-9._-' | cut -c1-64)
 MARKER="/tmp/sp-plugin-active-${SAFE_SID}"
+UTILITY_GUARD_MARKER="/tmp/sp-plugin-utility-guard-${SAFE_SID}"
 STARTUP_PENDING="/tmp/sp-plugin-startup-pending-${SAFE_SID}"
 FLOOR_READY="/tmp/sp-plugin-floor-ready-${SAFE_SID}"
 
@@ -99,6 +100,8 @@ flush_probe() {
 
 arm() { : > "$MARKER"; trace "armed reason=$1"; }
 armed() { [ -f "$MARKER" ]; }
+arm_utility_guard() { : > "$UTILITY_GUARD_MARKER"; trace "utility-guard reason=$1"; }
+utility_guarded() { [ -f "$UTILITY_GUARD_MARKER" ]; }
 
 arm_startup() {
   startup_reason="$1"
@@ -120,7 +123,7 @@ delegate() {
   exit $?
 }
 
-# Does this prompt invoke SP? (Exempts :help :copy-prompt :update.)
+# Does this prompt invoke SP? (Exempts :help :copy-prompt :update :serena.)
 prompt_is_sp_invocation() {
   printf '%s' "$1" | perl -e '
     undef $/; my $p = <STDIN>;
@@ -132,7 +135,7 @@ prompt_is_sp_invocation() {
     } else {
       exit 1;
     }
-    exit 1 if $sub =~ /^(?:help|copy-prompt|update)$/;
+    exit 1 if $sub =~ /^(?:help|copy-prompt|update|serena)$/;
     exit 0;
   ' 2>/dev/null
 }
@@ -182,6 +185,11 @@ case "$EVENT" in
   UserPromptExpansion)
     COMMAND_NAME=$(json_field command_name)
     COMMAND_ARGS=$(json_field command_args)
+    if [ "$CEREMONY_OK" = true ] && sp_is_guarded_utility_command "$COMMAND_NAME" "$COMMAND_ARGS"; then
+      arm_utility_guard "command-expansion name=$COMMAND_NAME"
+      trace "pass-through guarded-utility command=$COMMAND_NAME"
+      exit 0
+    fi
     if [ "$CEREMONY_OK" = true ] && sp_is_command_activation "$COMMAND_NAME" "$COMMAND_ARGS"; then
       CONTINUATION_PATH=$(sp_extract_continuation_path "$COMMAND_ARGS" 2>/dev/null || printf '')
       arm_startup "command-expansion name=$COMMAND_NAME" "$CONTINUATION_PATH"
@@ -193,6 +201,11 @@ case "$EVENT" in
 
   UserPromptSubmit)
     PROMPT=$(json_field prompt)
+    if [ -n "$PROMPT" ] && [ "$CEREMONY_OK" = true ] && sp_is_guarded_utility_prompt "$PROMPT"; then
+      arm_utility_guard "prompt-invocation"
+      trace "pass-through guarded-utility"
+      exit 0
+    fi
     if [ -n "$PROMPT" ] && prompt_is_sp_invocation "$PROMPT"; then
       CONTINUATION_PATH=""
       if [ "$CEREMONY_OK" = true ]; then
@@ -232,7 +245,7 @@ case "$EVENT" in
       esac
       exit 0
     fi
-    if armed; then
+    if armed || utility_guarded; then
       delegate guard-impl.sh
     fi
     trace "pass-through tool=$TOOL_NAME"

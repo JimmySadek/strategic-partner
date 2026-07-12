@@ -32,11 +32,16 @@
   option before falling back to display text. Existing checks for the named
   worker, stale answers, conflicting records, and reused confirmations remain
   fail-closed.
-- **Serena repair no longer gets trapped behind Strategic Partner's worker guard** —
-  after approving the repair, the user now sees a separate confirmation naming
-  the exact worker that will run it. A blocked dispatch stops instead of
-  retrying with an already-used confirmation, and no repair command runs until
-  both approvals are present.
+- **Serena repair now keeps direct consent and execution in one trusted session** —
+  before anything changes, Strategic Partner names the machine-wide Claude
+  files, server registration, plugin state, hooks, backup, rollback, and restart
+  effect. The same Claude session that receives that exact approval runs the
+  reviewed repair and verification once; no worker has to trust relayed consent.
+- **The Serena utility no longer triggers the full advisory startup ceremony** —
+  running `:serena` activates source protection without arming the advisor
+  ceremony, so waiting for repair no longer produces repeated requests for an
+  unrelated project recenter or advisory question. Genuine advisor and handoff
+  sessions keep the existing startup and Stop-hook checks.
 - **The Serena command now uses the exact plugin copy that supplied it** —
   Claude Code substitutes the active plugin root directly, so an older
   same-name Strategic Partner installation can no longer be mistaken for the

@@ -45,39 +45,56 @@ any Serena change.
      preserved memories, and a rollback backup.
    If the doctor reports `uv_available: false` and installation or upgrade is
    required, preview the package-manager command and ask a separate question
-   before dispatching
+   before running
    `{sp-dir}/.scripts/serena-repair.sh --install-prerequisite --yes`. Re-run
    the doctor and repair preview afterward. Never combine executable-code
    download consent with Serena repair consent.
 5. For automatically repairable states, run
    `{sp-dir}/.scripts/serena-repair.sh --plan` and show its output. Then use
    `AskUserQuestion` with:
-   - **Fix Serena for me (Recommended)** — dispatch the approved repair and
-     verify its result;
+   - **Fix Serena for me (Recommended)** — review the machine-wide scope and
+     apply the approved repair in this Claude session, then verify its result;
    - **Show technical details** — show detected state, versions, files touched,
      launcher flags, and rollback location without changing anything;
    - **Not now** — continue with SP's repository-native fallbacks.
-6. Only after **Fix Serena for me** is selected, explain that a
-   `general-purpose` worker will run only the two already-previewed commands
-   below, return their complete output, and stop on rollback or non-zero exit:
+6. Only after **Fix Serena for me** is selected, show the complete scope before
+   requesting mutation authority:
+
+   - `~/.claude/settings.json` — merge Serena lifecycle hooks and disable the
+     official Serena plugin;
+   - `~/.claude.json` — replace the existing Serena entry with one user-scope
+     Serena MCP registration;
+   - the supported stable Serena runtime — install or repair it only when the
+     preview says that is required;
+   - the SP backup directory — capture the current state before any write so
+     rollback can restore it;
+   - the next fresh Claude session — required to attach and verify the repaired
+     server.
+
+   Then use a second `AskUserQuestion` with these exact option labels:
+   - **Apply machine-wide Serena repair (Recommended)** — authorize only the
+     reviewed Serena transaction above;
+   - **Review machine-wide changes** — repeat the affected files, commands,
+     backup, and rollback behavior without changing anything;
+   - **Not now** — leave the current Serena and Claude configuration unchanged.
+
+   Only after **Apply machine-wide Serena repair (Recommended)** is selected,
+   run these bundled commands directly in this same Claude session, exactly
+   once and in this order:
 
    ```text
    {sp-dir}/.scripts/serena-repair.sh --apply --yes
    {sp-dir}/.scripts/serena-repair.sh --verify
    ```
 
-   Then use a second `AskUserQuestion` with these exact option labels:
-   - **Dispatch now — general-purpose** — run the approved repair and verify it;
-   - **Hold — let me review the brief first** — show the bounded worker brief
-     without dispatching;
-   - **Wrong agent — let me pick** — reopen worker selection without
-     dispatching.
+   If apply exits non-zero or reports rollback, show the relevant complete
+   output and stop without running verify. If verify fails, show its output and
+   the recorded recovery state. Never retry, broaden the approved scope, or
+   treat this approval as authority for a later repair.
 
-   Only after **Dispatch now — general-purpose** is selected, invoke Agent once
-   with `subagent_type: general-purpose` and the bounded brief above. If the
-   dispatch guard blocks, explain the reason and stop. **Do not retry** the same
-   Agent call automatically, reuse the repair approval as worker authorization,
-   or run the mutation directly inside the advisory thread.
+   This same-session execution is a narrow exception for SP's reviewed,
+   backup-first Serena configuration utility. Application and plugin source
+   work still follows SP's established source-edit boundary.
 7. On success, tell the user to start a fresh Claude session in the repository.
    In that session, verify the exact active path with Serena's current
    configuration capability. A worktree must report the worktree path, never
@@ -86,7 +103,7 @@ any Serena change.
 ## Rollback
 
 When the user explicitly requests rollback, preview it first and require
-confirmation before dispatching:
+confirmation before running it directly in the same Claude session:
 
 ```text
 {sp-dir}/.scripts/serena-repair.sh --rollback --yes

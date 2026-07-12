@@ -4,6 +4,23 @@ Bug-driven rules. Each guard names the pattern, the past incident that
 motivated it, and a date to revisit. See `claudedocs/INCIDENTS.md` for the
 underlying archaeology.
 
+### Utility-command exemptions must agree across every activation path
+
+Instead: whenever a plugin subcommand is advisory-neutral, test its exact
+plugin and legacy spellings through both `UserPromptExpansion` and the
+`UserPromptSubmit` compatibility path. Neither path may create the active or
+startup-pending advisory marker. A mutating utility may use a distinct
+guard-only marker when it must preserve source protection without enabling
+Stop-hook ceremony.
+
+- **Scope**: Plugin command activation classifiers in `hooks/entry.sh` and
+  `hooks/lib/session-ceremony.sh`, including any duplicated compatibility
+  parser retained for older Claude Code event shapes.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-07-13 — `:serena` was
+  correctly exempt in command expansion but armed by prompt submission, so the
+  Stop hook demanded an advisory recenter during a utility-only repair flow.
+- **Review**: 2026-10-13.
+
 ### Join hook transcript events by tool-use ID, never row adjacency
 
 Instead: pair `AskUserQuestion.id` with the matching

@@ -6,7 +6,7 @@ cwd=$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null || printf '')
 transcript_path=$(printf '%s' "$payload" | jq -r '.transcript_path // ""' 2>/dev/null || printf '')
 prompt=$(printf '%s' "$payload" | jq -r '.prompt // ""' 2>/dev/null || printf '')
 
-if printf '%s' "$prompt" | perl -e 'undef $/; $_=<STDIN>; exit($_ =~ /\A\s*\/(strategic-partner|advisor|sp):(help|copy-prompt|update)\s*\z/ ? 0 : 1)' 2>/dev/null; then
+if printf '%s' "$prompt" | perl -e 'undef $/; $_=<STDIN>; exit($_ =~ /\A\s*\/(strategic-partner|advisor|sp):(help|copy-prompt|update|serena)\s*\z/ ? 0 : 1)' 2>/dev/null; then
   exit 0
 fi
 

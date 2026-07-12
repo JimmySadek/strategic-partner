@@ -2,6 +2,44 @@
 
 This file accumulates incident write-ups for SP project incidents that produced Provisional Guards or otherwise shaped SP process. Each entry is identified by an `INC-YYYY-MM-DD` ID matching the date the incident occurred and is referenced by one or more guards in `claudedocs/provisional-guards.md`. New entries follow the same `## INC-YYYY-MM-DD — <one-line summary>` heading pattern.
 
+## INC-2026-07-13 — Serena utility armed the advisory startup ceremony
+
+### What happened
+
+During the fourth Serena stewardship validation run, the plugin correctly
+opened the utility command and reached the repair flow. While the repair task
+was running, the Stop hook blocked repeatedly because it expected a visible
+project recenter and an advisory `AskUserQuestion`. Those requirements belong
+to a full Strategic Partner advisory session, not to the focused Serena setup
+utility.
+
+### Why it broke
+
+The plugin has two activation paths. `UserPromptExpansion` already classified
+the namespaced `:serena` command as a utility and left the advisory ceremony
+unarmed. The compatibility `UserPromptSubmit` parser duplicated the command
+list, included `serena`, and exempted only `help`, `copy-prompt`, and `update`.
+The same typed command therefore received opposite answers depending on which
+hook event processed it. The fallback path created the per-session startup
+marker, and the Stop hook then enforced a ceremony the utility never promised.
+
+### Fix implemented
+
+- Added `serena` to the explicit ceremony exemptions in both prompt classifiers
+  and the legacy `:serena` argument path.
+- Added a separate per-session utility-guard marker. Serena keeps the source
+  mutation guard without creating the advisory active or startup-pending
+  markers consumed by the Stop hook.
+- Added a utility transcript replay proving both plugin and legacy command
+  shapes skip the startup floor, create no advisory markers, retain source
+  protection, and never produce a Stop block while the repair is running.
+
+### Guard produced
+
+`claudedocs/provisional-guards.md` now requires every plugin utility command to
+be tested through both command-expansion and prompt-submit activation paths.
+One classifier passing is insufficient while the compatibility path exists.
+
 ## INC-2026-07-10 — Exact confirmation blocked because transcript rows were joined by position
 
 ### What happened

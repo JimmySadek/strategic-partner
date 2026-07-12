@@ -309,29 +309,32 @@ up the new fields cleanly.
 
 ## Carve-Out for Utility Subcommands
 
-Three subcommands are exempt from the floor and the rhythm enforcer:
+Four subcommands are exempt from the floor and the rhythm enforcer:
 
 - `/strategic-partner:help`
 - `/strategic-partner:copy-prompt`
 - `/strategic-partner:update`
+- `/strategic-partner:serena`
 
-These are stateless utility commands — the user just wants the
-subcommand to run, not a full advisory orientation. Running the floor
-on them adds latency without informing any decision the subcommand
-will make.
+These commands do not need a full advisory orientation. Help, copy, and update
+are stateless. Serena may change user-level configuration, so the plugin gives
+it a separate source-guard marker without enabling startup or Stop-hook
+ceremony. Running the floor on any of them adds latency without informing a
+decision the subcommand will make.
 
 The carve-out is enforced by a Perl regex check at the top of the hook:
 
 ```
-if printf '%s' "$prompt" | perl -e 'undef $/; $_=<STDIN>; exit($_ =~ /\A\s*\/(strategic-partner|advisor|sp):(help|copy-prompt|update)\s*\z/ ? 0 : 1)' 2>/dev/null; then
+if printf '%s' "$prompt" | perl -e 'undef $/; $_=<STDIN>; exit($_ =~ /\A\s*\/(strategic-partner|advisor|sp):(help|copy-prompt|update|serena)\s*\z/ ? 0 : 1)' 2>/dev/null; then
   exit 0
 fi
 ```
 
-When the carve-out matches, the hook exits 0 immediately — no
-SP-FLOOR-COMPLETE line, no /tmp markers, no rhythm-enforcer relay. The
-SP body still runs normally; it just does not get the context-injected
-floor summary on these specific utility invocations.
+When the carve-out matches, the floor hook exits 0 immediately — no
+SP-FLOOR-COMPLETE line and no rhythm-enforcer relay. The plugin entry hook may
+still create Serena's separate guard-only marker before reaching this script.
+The SP body runs normally; it just does not get the context-injected floor
+summary on these utility invocations.
 
 ---
 
