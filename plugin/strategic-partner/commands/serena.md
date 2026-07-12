@@ -81,18 +81,19 @@ making any Serena change.
    - **Not now** — leave the current Serena and Claude configuration unchanged.
 
    Only after **Apply machine-wide Serena repair (Recommended)** is selected,
-   run these bundled commands directly in this same Claude session, exactly
-   once and in this order:
+   run this single bundled shell transaction directly in this same Claude
+   session, exactly once:
 
    ```text
-   "${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --apply --yes
-   "${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --verify
+   "${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --apply --yes && "${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --verify
    ```
 
-   If apply exits non-zero or reports rollback, show the relevant complete
-   output and stop without running verify. If verify fails, show its output and
-   the recorded recovery state. Never retry, broaden the approved scope, or
-   treat this approval as authority for a later repair.
+   The shell's `&&` must enforce the boundary: verify runs only when apply exits
+   zero. Do not split the transaction into separate tool calls or infer success
+   from output text. If apply exits non-zero or reports rollback, show the
+   relevant complete output and stop. If verify fails, show its output and the
+   recorded recovery state. Never retry, broaden the approved scope, or treat
+   this approval as authority for a later repair.
 
    This same-session execution is a narrow exception for SP's reviewed,
    backup-first Serena configuration utility. Application and plugin source

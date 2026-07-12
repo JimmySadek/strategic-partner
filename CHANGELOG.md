@@ -37,6 +37,8 @@
   files, server registration, plugin state, hooks, backup, rollback, and restart
   effect. The same Claude session that receives that exact approval runs the
   reviewed repair and verification once; no worker has to trust relayed consent.
+  Apply and verification are one shell-enforced transaction, so verification
+  cannot run after a failed apply and Claude never has to infer success from text.
 - **The Serena utility no longer triggers the full advisory startup ceremony** —
   running `:serena` activates source protection without arming the advisor
   ceremony, so waiting for repair no longer produces repeated requests for an
