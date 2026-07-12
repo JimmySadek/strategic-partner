@@ -14,15 +14,18 @@ user asks.
 
 ## Resolve the bundled tools
 
-Find this plugin's root directory from the command location, then require:
+Claude Code substitutes `${CLAUDE_PLUGIN_ROOT}` below with the exact root of
+the plugin copy that supplied this command. Use that substituted path directly:
 
 ```text
-{plugin-root}/.scripts/serena-doctor.sh
-{plugin-root}/.scripts/serena-repair.sh
+"${CLAUDE_PLUGIN_ROOT}/.scripts/serena-doctor.sh"
+"${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh"
 ```
 
-Never substitute a maintainer checkout path. If either script is missing,
-explain that the plugin install is incomplete and route to `:update` before
+Do not search installed skills, inspect another Strategic Partner manifest, or
+substitute any other checkout—even if another SP copy has the same plugin name.
+First verify the substituted root's manifest and both scripts. If either script
+is missing, explain that this exact plugin copy is incomplete and stop before
 making any Serena change.
 
 ## Flow
@@ -45,11 +48,11 @@ making any Serena change.
    If the doctor reports `uv_available: false` and installation or upgrade is
    required, preview the package-manager command and ask a separate question
    before dispatching
-   `{plugin-root}/.scripts/serena-repair.sh --install-prerequisite --yes`.
+   `"${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --install-prerequisite --yes`.
    Re-run the doctor and repair preview afterward. Never combine executable-code
    download consent with Serena repair consent.
 5. For automatically repairable states, run
-   `{plugin-root}/.scripts/serena-repair.sh --plan` and show its output.
+   `"${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --plan` and show its output.
    Then use `AskUserQuestion` with:
    - **Fix Serena for me (Recommended)** — dispatch the approved repair and
      verify its result;
@@ -60,8 +63,8 @@ making any Serena change.
    worker to run:
 
    ```text
-   {plugin-root}/.scripts/serena-repair.sh --apply --yes
-   {plugin-root}/.scripts/serena-repair.sh --verify
+   "${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --apply --yes
+   "${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --verify
    ```
 
    The worker must return the command output and stop on any rollback or
@@ -77,7 +80,7 @@ When the user explicitly requests rollback, preview it first and require
 confirmation before dispatching:
 
 ```text
-{plugin-root}/.scripts/serena-repair.sh --rollback --yes
+"${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --rollback --yes
 ```
 
 Rollback restores the captured Claude settings and prior Serena runtime state.

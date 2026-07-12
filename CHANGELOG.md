@@ -27,6 +27,10 @@
 
 ### Fixed
 
+- **The Serena command now uses the exact plugin copy that supplied it** —
+  Claude Code substitutes the active plugin root directly, so an older
+  same-name Strategic Partner installation can no longer be mistaken for the
+  v7.6.0 candidate or make its bundled Serena scripts appear missing.
 - **Strategic Partner no longer assumes one Serena tool name forever** — current
   user-level and legacy plugin connections are both recognized and protected,
   while startup and handoff workflows discover capabilities instead of calling
