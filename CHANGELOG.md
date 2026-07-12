@@ -27,6 +27,11 @@
 
 ### Fixed
 
+- **Serena repair no longer gets trapped behind Strategic Partner's worker guard** —
+  after approving the repair, the user now sees a separate confirmation naming
+  the exact worker that will run it. A blocked dispatch stops instead of
+  retrying with an already-used confirmation, and no repair command runs until
+  both approvals are present.
 - **The Serena command now uses the exact plugin copy that supplied it** —
   Claude Code substitutes the active plugin root directly, so an older
   same-name Strategic Partner installation can no longer be mistaken for the

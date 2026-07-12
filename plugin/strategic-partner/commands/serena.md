@@ -59,16 +59,27 @@ making any Serena change.
    - **Show technical details** — show detected state, versions, files touched,
      launcher flags, and rollback location without changing anything;
    - **Not now** — continue with SP's repository-native fallbacks.
-6. Only after **Fix Serena for me** is selected, dispatch an implementation
-   worker to run:
+6. Only after **Fix Serena for me** is selected, explain that a
+   `general-purpose` worker will run only the two already-previewed commands
+   below, return their complete output, and stop on rollback or non-zero exit:
 
    ```text
    "${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --apply --yes
    "${CLAUDE_PLUGIN_ROOT}/.scripts/serena-repair.sh" --verify
    ```
 
-   The worker must return the command output and stop on any rollback or
-   non-zero exit. Do not run the mutation directly inside the advisory thread.
+   Then use a second `AskUserQuestion` with these exact option labels:
+   - **Dispatch now — general-purpose** — run the approved repair and verify it;
+   - **Hold — let me review the brief first** — show the bounded worker brief
+     without dispatching;
+   - **Wrong agent — let me pick** — reopen worker selection without
+     dispatching.
+
+   Only after **Dispatch now — general-purpose** is selected, invoke Agent once
+   with `subagent_type: general-purpose` and the bounded brief above. If the
+   dispatch guard blocks, explain the reason and stop. **Do not retry** the same
+   Agent call automatically, reuse the repair approval as worker authorization,
+   or run the mutation directly inside the advisory thread.
 7. On success, tell the user to start a fresh Claude session in the repository.
    In that session, verify the exact active path with Serena's current
    configuration capability. A worktree must report the worktree path, never
