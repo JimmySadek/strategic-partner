@@ -303,8 +303,10 @@ confirmation_decision() {
       ($raw // "") as $safe
       | if ($safe | test("Your questions have been answered:\\s*\"[^\"]+\"\\s*=\\s*\"[^\"]+\"")) then
           ($safe | capture("Your questions have been answered:\\s*\"(?<question>[^\"]+)\"\\s*=\\s*\"(?<answer>[^\"]+)\""))
-          | {question: (.question // ""), answer: (.answer // "")}
-        else {question: "", answer: $safe}
+          | {question: (.question // ""), answer: (.answer // ""), kind: "wrapped"}
+        elif ($safe | startswith("Your questions have been answered:")) then
+          {question: "", answer: "", kind: "malformed_wrapper"}
+        else {question: "", answer: $safe, kind: "direct"}
         end;
     def question_text($q):
       (($q.question // "") + " " + ($q.header // "") + " " +
@@ -322,7 +324,7 @@ confirmation_decision() {
             ([ $rows | to_entries[] as $entry
               | $entry.value | .. | objects
               | select(.type? == "tool_result" and ((.tool_use_id? // "") == $question_id))
-              | {idx: $entry.key, result: .}
+              | {idx: $entry.key, result: ., row: $entry.value}
             ]) as $answers
             | if ($answers | length) == 0 then
                 if (($rows | length) > ($question_idx + 1)) then block("answer_not_found_in_window")
@@ -349,36 +351,62 @@ confirmation_decision() {
                     | if ([ $protected_actions[]? | select(.id != $current_action_id) ] | length) > 0 then block("confirmation_replayed")
                       else
                         (text_from_content($answer_event.result.content // "")) as $raw_answer
-                        | (parsed_answer($raw_answer)) as $selected
-                        | ($selected.answer | norm) as $answer
-                        | if ($answer | length) == 0 then block("missing_answer")
+                        | (parsed_answer($raw_answer)) as $display_selected
+                        | ($auq.input.questions // []) as $questions
+                        | ($answer_event.row.toolUseResult? // null) as $tool_use_result
+                        | ((($tool_use_result | type) == "object") and ($tool_use_result | has("answers"))) as $has_structured_answers
+                        | (if $has_structured_answers then $tool_use_result.answers else null end) as $structured_answers
+                        | (if $has_structured_answers and (($structured_answers | type) == "object") then
+                            [ $questions[]? as $q
+                              | select($structured_answers | has($q.question // ""))
+                              | {question: ($q.question // ""), answer: $structured_answers[$q.question]}
+                            ]
+                          else [] end) as $structured_matches
+                        | if $has_structured_answers and
+                             ((($structured_answers | type) != "object") or
+                              (($structured_answers | length) != 1) or
+                              (($structured_matches | length) != 1) or
+                              (($structured_matches[0].answer | type) != "string")) then
+                            block("structured_answers_invalid")
                           else
-                            ($auq.input.questions // []) as $questions
-                            | (if (($selected.question // "") | length) > 0 then
-                                [ $questions[]? | select((.question // "") == $selected.question) ]
-                              elif ($questions | length) == 1 then
-                                [ $questions[0] ]
-                              else [] end) as $matched_questions
-                            | if ($matched_questions | length) != 1 then block("question_mismatch")
+                            (if $has_structured_answers then $structured_matches[0] else $display_selected end) as $selected
+                            | if $has_structured_answers and ($display_selected.kind == "wrapped") and
+                                 ((($display_selected.question // "") != ($selected.question // "")) or
+                                  (($display_selected.answer | norm) != ($selected.answer | norm))) then
+                                block("structured_display_disagree")
+                              elif ($has_structured_answers | not) and ($display_selected.kind == "malformed_wrapper") then
+                                block("display_answer_parse_error")
                               else
-                                ($matched_questions[0]) as $question
-                                | ($question.options // []) as $options
-                                | ([ $options[]? | {label: ((.label // "") | norm)} | select(.label == $answer) ] | .[0] // null) as $selected_option
-                                | if $selected_option == null then block("selected_option_label")
-                                  elif $mode == "dispatch" then
-                                    ([ $options[]? | ((.label // "") | norm) ]) as $labels
-                                    | ("Dispatch now - " + $subject) as $expected_dispatch
-                                    | if ($selected_option.label != $expected_dispatch) then block("selected_option_label")
-                                      elif (($labels | index("Hold - let me review the brief first")) == null) then block("missing_hold_label")
-                                      elif (($labels | index("Wrong agent - let me pick")) == null) then block("missing_wrong_agent_label")
-                                      else "ALLOW" end
-                                  elif $mode == "trust_marker" then
-                                    (question_text($question)) as $visible_text
-                                    | if ($selected_option.label != "Activate stewardship contract") then block("selected_option_label")
-                                      elif (($visible_text | index($subject)) == null) then block("missing_marker_path")
-                                      elif (($visible_text | index(".sp-managed")) == null) then block("missing_contract_name")
-                                      else "ALLOW" end
-                                  else block("unknown_confirmation_mode") end
+                                ($selected.answer | norm) as $answer
+                                | if ($answer | length) == 0 then block("missing_answer")
+                                  else
+                                    (if (($selected.question // "") | length) > 0 then
+                                       [ $questions[]? | select((.question // "") == $selected.question) ]
+                                     elif ($questions | length) == 1 then
+                                       [ $questions[0] ]
+                                     else [] end) as $matched_questions
+                                    | if ($matched_questions | length) != 1 then block("question_mismatch")
+                                      else
+                                        ($matched_questions[0]) as $question
+                                        | ($question.options // []) as $options
+                                        | ([ $options[]? | {label: ((.label // "") | norm)} | select(.label == $answer) ] | .[0] // null) as $selected_option
+                                        | if $selected_option == null then block("selected_option_label")
+                                          elif $mode == "dispatch" then
+                                            ([ $options[]? | ((.label // "") | norm) ]) as $labels
+                                            | ("Dispatch now - " + $subject) as $expected_dispatch
+                                            | if ($selected_option.label != $expected_dispatch) then block("selected_option_label")
+                                              elif (($labels | index("Hold - let me review the brief first")) == null) then block("missing_hold_label")
+                                              elif (($labels | index("Wrong agent - let me pick")) == null) then block("missing_wrong_agent_label")
+                                              else "ALLOW" end
+                                          elif $mode == "trust_marker" then
+                                            (question_text($question)) as $visible_text
+                                            | if ($selected_option.label != "Activate stewardship contract") then block("selected_option_label")
+                                              elif (($visible_text | index($subject)) == null) then block("missing_marker_path")
+                                              elif (($visible_text | index(".sp-managed")) == null) then block("missing_contract_name")
+                                              else "ALLOW" end
+                                          else block("unknown_confirmation_mode") end
+                                      end
+                                  end
                               end
                           end
                       end
@@ -483,6 +511,9 @@ if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
       ;;
     selected_option_label|missing_hold_label|missing_wrong_agent_label|question_mismatch)
       echo "BLOCKED: Strategic Partner must confirm dispatch with a selected option label exactly matching: [Dispatch now — $SUBAGENT_TYPE]. Descriptions do not authorize dispatch; ask again with the exact labels." >&2
+      ;;
+    structured_answers_invalid|structured_display_disagree|display_answer_parse_error)
+      echo "BLOCKED: Strategic Partner could not safely correlate the selected answer with the exact confirmation question. Ask again with a fresh structured confirmation before dispatching." >&2
       ;;
     stale)
       echo "BLOCKED: Strategic Partner found an older dispatch confirmation, but a later user message made it stale. Ask again before dispatching." >&2

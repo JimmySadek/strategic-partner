@@ -27,6 +27,11 @@
 
 ### Fixed
 
+- **Valid worker confirmations no longer fail when the question contains quoted commands** —
+  Strategic Partner now reads Claude's exact structured question and selected
+  option before falling back to display text. Existing checks for the named
+  worker, stale answers, conflicting records, and reused confirmations remain
+  fail-closed.
 - **Serena repair no longer gets trapped behind Strategic Partner's worker guard** —
   after approving the repair, the user now sees a separate confirmation naming
   the exact worker that will run it. A blocked dispatch stops instead of
