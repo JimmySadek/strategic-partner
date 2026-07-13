@@ -150,12 +150,28 @@ valid closure; explicit override; stale stop intent; malformed input; and the
 no-loop path. The existing source guard regression suite and Claude Code's
 strict plugin validator also pass.
 
+### 2026-07-13 correction
+
+The closure half of this fix remains valid, but the startup half overreached.
+A real cold-start session produced the correct project-first orientation and
+then received repeated Stop corrections solely because it did not end with
+`AskUserQuestion`. A later read-only orientation was delayed further when a
+floor signal triggered optional routing maintenance before the useful answer.
+
+Startup evidence is now a log-only quality signal: the first Stop evaluation
+records any missing floor, recenter, or named-handoff evidence, clears the
+startup marker, and allows the response to finish. Orientation asks only when
+the user owns a concrete decision. Closure remains the durable boundary: clear
+session-end intent with missing continuation artifacts may still receive one
+corrective block. Loop safety no longer depends on `stop_hook_active` for
+startup because startup never blocks.
+
 ### Lesson
 
 A written ceremony is not a reliable boundary until every supported entry path
-converges on it and the exit boundary can detect total absence. Conditional
-validators catch malformed output; lifecycle state is needed to catch output
-that never happened.
+converges on it. Runtime blocking belongs only where absence can lose durable
+state or bypass consent; response-shape quality at startup should be observed
+and tested without trapping Stop.
 
 ## INC-2026-03-30 — Hook command relies on `${CLAUDE_SKILL_DIR}` (v5.4.0 → v5.4.1)
 
