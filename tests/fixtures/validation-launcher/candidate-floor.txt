@@ -1,0 +1,1 @@
+[SP-FLOOR-COMPLETE] source=candidate-plugin version=7.6.0 memory=missing routing=missing

@@ -460,17 +460,17 @@ Never skip a load — these contain critical protocol details not inlined here.
 
 | File | Load When |
 |---|---|
-| `startup-checklist.md` | Every fresh session |
-| `prompt-crafting-guide.md` | Before crafting any prompt |
-| `fast-lane.md` | Delivery Choice Checkpoint reaches its load step — implementation-shaped work not categorically disqualified |
-| `context-handoff.md` | Context ≥60% or session-end signal |
-| `skill-routing-matrix.md` | Startup + edge-case routing |
-| `orchestration-playbook.md` | Multi-agent prompts |
-| `partner-protocols.md` | Version discussions, handoff prep |
+| `references/startup-checklist.md` | Every fresh session |
+| `references/prompt-crafting-guide.md` | Before crafting any prompt |
+| `references/fast-lane.md` | Delivery Choice Checkpoint reaches its load step — implementation-shaped work not categorically disqualified |
+| `references/context-handoff.md` | Context ≥60% or session-end signal |
+| `references/skill-routing-matrix.md` | Demand-only routing when a task materially needs the matrix |
+| `references/orchestration-playbook.md` | Multi-agent prompts |
+| `references/partner-protocols.md` | Version discussions, handoff prep |
 | `provider-guides/` | Before crafting any prompt (match target provider) |
-| `hooks-integration.md` | Hook setup discussions |
-| `serena-compatibility-policy.md` | Serena setup, diagnosis, migration, or capability discussions |
-| `cognitive-patterns.md` | Cognitive operations and pattern examples |
+| `references/hooks-integration.md` | Hook setup discussions |
+| `references/serena-compatibility-policy.md` | Serena setup, diagnosis, migration, or capability discussions |
+| `references/cognitive-patterns.md` | Cognitive operations and pattern examples |
 </reference_files>
 
 ---

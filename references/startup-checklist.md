@@ -14,16 +14,12 @@ Do not display to user.
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  SP Startup Flow                                                          │
 │                                                                           │
-│  Step 1          Step 2          Step 3       Step 4                    │
-│  Checks    →  Spawn Agents  → Read State → Verify                      │
-│  Self-repair    ┌─ Agent A     $ARGUMENTS    ✅ Agent D                 │
-│  Version ✓     ├─ Agent B     Serena              │                     │
-│  Target model  └─ Agent D     CLAUDE.md           │                     │
-│  (inline)        🗺️ Matrix          │              │                     │
-│                     │              │              ▼                     │
-│                     │              │         Step 5                     │
-│                     └──────────────┘         📋 Orient                  │
-│                                              + Context advisory         │
+│  Step 1            Step 2             Step 3             Step 4       │
+│  Checks      →  Read exact state  →  Verify truth  →  📋 Orient       │
+│  Self-repair      $ARGUMENTS          Project path       + Context     │
+│  Version ✓        Serena              Live Serena        advisory      │
+│  Target model     CLAUDE.md           Floor agreement                  │
+│  (inline)                                                               │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,15 +86,7 @@ idempotent and handles its own legacy cleanup warnings.
 
 Quick checks run inline during startup. No agents needed — these are observations.
 
-1. **Auto-memory**: Check if auto-memory is enabled (it is by default).
-   If the user has disabled it, note in orientation:
-   "⚠️ Auto-memory is disabled. User preferences and corrections won't persist
-   across sessions. Consider enabling via /memory."
-   Detection: the SP can observe whether auto-memory writes are happening
-   during the session. No settings file check needed — if Claude isn't
-   saving memories, it's likely disabled.
-
-2. **Serena**: Call `initial_instructions` once when exposed, then verify the
+1. **Serena**: Call `initial_instructions` once when exposed, then verify the
    exact current repository path with `get_current_config`. If the active path
    is wrong and `activate_project` is exposed, activate by exact path and
    re-check. If activation is hidden in the single-project Claude context,
@@ -106,11 +94,11 @@ Quick checks run inline during startup. No agents needed — these are observati
    no basename match, SP surfaces the project list / onboarding path and asks.
    Details in the Step 3 Serena survey below.
 
-3. **.claude/rules/**: Check if `.claude/rules/` directory exists in the project.
+2. **.claude/rules/**: Check if `.claude/rules/` directory exists in the project.
    If it exists, note in orientation: "{N} path-scoped rule files found."
    If it doesn't exist, don't mention it — it's optional.
 
-4. **CLAUDE.md size**: Read `g2.claude_md` from the floor sentinel output (see `references/floor.md` Group 2). Claude Code's current guidance is to target under 200 lines; the band field combines line count and char count:
+3. **CLAUDE.md size**: Read `g2.claude_md` from the floor sentinel output (see `references/floor.md` Group 2). Claude Code's current guidance is to target under 200 lines; the band field combines line count and char count:
    - `under-soft` → silent
    - `soft-warn` → "💡 CLAUDE.md is {M} lines / {N} chars — growing toward the preferred under-200-line shape."
    - `warn` → "⚠️ CLAUDE.md is {M} lines / {N} chars. Consider running `/strategic-partner:context-file-scan` before adding anything."
@@ -604,8 +592,8 @@ and ask what the user wants to work on.
   noted), active MCP servers. Source depends on the floor's routing signal:
   - `routing=fresh hash=<short>` → counts read from the cached matrix's
     `counts:` footer (Agent D was skipped, so use the existing matrix).
-  - `routing=stale ...` or `routing=missing` → counts come from Agent D's
-    return summary.
+  - `routing=stale ...` or `routing=missing` → use visible capabilities and
+    omit unavailable counts. Orientation never waits for maintenance.
 - 📌 **Output Style status row** (always visible): read `g8.output_style`
   from the floor signal and render the permanent status row per
   `references/floor-signal-handling.md` § Pattern: output_style. The
