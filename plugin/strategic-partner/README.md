@@ -16,7 +16,7 @@ too; use the switch commands when you want to move between install shapes.
 |---|---|---|
 | Skill | `skills/strategic-partner/SKILL.md` | Full standalone-skill behavior, minus the 260-line inlined hook block (now `hooks/hooks.json`), plus the Presence revisions (see below) |
 | Commands | `commands/*.md` | The shared subcommands under `/strategic-partner-plugin:<name>`, plus `/strategic-partner-plugin:switch-to-skill` for returning to the standalone skill |
-| Hooks | `hooks/hooks.json` + `hooks/entry.sh` | UserPromptExpansion for typed commands, PreToolUse for model-invoked Skill activation and the source guard, SessionStart for the resident advisor, UserPromptSubmit compatibility/relay, and one-shot Stop checks for missing startup or closure ceremonies |
+| Hooks | `hooks/hooks.json` + `hooks/entry.sh` | UserPromptExpansion for typed commands, PreToolUse for model-invoked Skill activation and the source guard, SessionStart for the resident advisor, UserPromptSubmit compatibility/relay, startup-quality tracking, and the one-shot closure check |
 | Guard chain | `hooks/guard-impl.sh`, `hooks/context-file-guard.sh`, `.scripts/context-file-scan/` | Same source-file-blocking logic as the standalone skill, including writes to `/tmp`, `/private/tmp`, and `$TMPDIR` for scratchpad file tools |
 | Reference bundle | `skills/strategic-partner/references/`, `…/assets/templates/`, `…/.scripts/migrate-backlog.sh` | Shared advisory policy stays aligned with the standalone skill; startup mechanics and continuation commands intentionally use plugin paths and names |
 | Voice | `output-styles/strategic-partner-voice.md` | Native plugin component (no copy-install, no staleness); style v7-plugin |
@@ -43,11 +43,13 @@ Anything else                                       →  every hook exits 0 in a
 The matcher also accepts trial or custom plugin namespaces containing
 `strategic-partner` for the same subcommand set.
 
-Every activation also creates a startup-pending marker until Stop confirms the
-floor, visible project recenter, and orientation question. Clear session-end
-intent is checked for the full handoff evidence set. Either ceremony may block
-Stop once for a corrective turn; `stop_hook_active` prevents loops. The armed
-state remains per-session, and `/clear` starts a new lifecycle boundary.
+Every activation also creates a startup-pending marker so Stop can observe the
+floor and visible project recenter once. Missing startup evidence is logged and
+the marker is cleared; it never blocks a useful answer or requires an artificial
+closing question. Clear session-end intent is still checked for the full handoff
+evidence set, and closure may block Stop once for a corrective turn.
+`stop_hook_active` prevents loops. The armed state remains per-session, and
+`/clear` starts a new lifecycle boundary.
 
 ## Behavior changes vs standalone SP (deliberate)
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## [7.6.0] - 2026-07-11
+## [7.6.0] - 2026-07-13
 
 ### Added
 
@@ -27,6 +27,20 @@
 
 ### Fixed
 
+- **Linked worktrees now start with truthful, scannable project status** — Git
+  detection asks the repository itself instead of assuming `.git` is a
+  directory, so a linked worktree reports its real clean or dirty state. When
+  three or more startup signals are visible, orientation leads with a compact
+  Project, Git, Serena, and Voice table instead of flattening them into prose.
+- **Session-only voice choices now reach the startup receipt in time** — an
+  isolated launcher can pass the same transient output-style choice to the
+  floor hook before Claude appends its later transcript attachment. Persistent
+  settings remain unchanged, and transcript and settings-file fallbacks still
+  work for ordinary launches.
+- **Startup references now resolve directly without recovery searches** — the
+  opening path uses complete reference locations, no longer loads the routing
+  matrix merely to orient, and removes stale Agent D and raw auto-memory probes
+  from the startup flow.
 - **Fresh Strategic Partner sessions no longer wait for routing maintenance before helping** —
   a missing or stale routing matrix is now diagnostic information, not permission
   to dispatch a writer. Read-only orientations use the visible capabilities or a
