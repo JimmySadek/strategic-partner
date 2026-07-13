@@ -342,17 +342,22 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
   fi
 } >> "${RESULTS}.tmp" 2>/dev/null
 
-# Group 8 — Output Style (settings-file resolved; runtime header
-# disagreement detection lives on the model side, since the hook
-# cannot read the system prompt's `# Output Style:` header).
+# Group 8 — Output Style. Prefer Claude's runtime attachment from the
+# transcript, then fall back to settings-file precedence. The runtime event is
+# the only hook-visible authority for transient `--settings` values.
 {
   os_value=""
-  # Precedence: project-local override → project → user.
+  if [ -n "$transcript_path" ] && [ -f "$transcript_path" ] && command -v jq >/dev/null 2>&1; then
+    os_value=$(${TIMEOUT:+$TIMEOUT 1} tail -200 "$transcript_path" 2>/dev/null \
+      | jq -rs '[.[] | select(.attachment.type? == "output_style") | .attachment.style] | last // ""' 2>/dev/null)
+  fi
+  # Fallback precedence: project-local override → project → user.
   for os_file in \
     "${cwd:+$cwd/.claude/settings.local.json}" \
     "${cwd:+$cwd/.claude/settings.json}" \
     "${HOME}/.claude/settings.json"
   do
+    [ -n "$os_value" ] && break
     [ -z "$os_file" ] && continue
     [ -f "$os_file" ] || continue
     if command -v jq >/dev/null 2>&1; then
