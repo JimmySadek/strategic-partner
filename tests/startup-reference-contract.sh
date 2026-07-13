@@ -32,6 +32,12 @@ for checklist in "$ROOT/references/startup-checklist.md" "$ROOT/plugin/strategic
   grep -F '1. **Auto-memory**' "$checklist" >/dev/null \
     && fail "$(basename "$checklist") removes Claude auto-memory startup probing" \
     || pass "$(basename "$checklist") removes Claude auto-memory startup probing"
+  grep -F 'Three or more visible status signals require the compact table below.' "$checklist" >/dev/null \
+    && pass "$(basename "$checklist") requires a visual multi-signal orientation" \
+    || fail "$(basename "$checklist") requires a visual multi-signal orientation"
+  grep -F '| Area | Status | What it means |' "$checklist" >/dev/null \
+    && pass "$(basename "$checklist") defines the compact orientation table" \
+    || fail "$(basename "$checklist") defines the compact orientation table"
 done
 
 printf '\nResult: %s passed, %s failed\n' "$PASS" "$FAIL"

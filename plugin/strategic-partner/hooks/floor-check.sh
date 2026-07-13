@@ -233,7 +233,11 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
 
 # Group 5 — Git state (timeout-bounded git ops)
 {
-  if [ -n "$cwd" ] && [ -d "$cwd/.git" ]; then
+  git_inside=""
+  if [ -n "$cwd" ]; then
+    git_inside=$(${TIMEOUT:+$TIMEOUT 1} git -C "$cwd" rev-parse --is-inside-work-tree 2>/dev/null)
+  fi
+  if [ "$git_inside" = "true" ]; then
     branch=$(cd "$cwd" 2>/dev/null && ${TIMEOUT:+$TIMEOUT 1} git branch --show-current 2>/dev/null)
     printf 'g5.branch=%s\n' "${branch:-unknown}"
     porcelain_count=$(cd "$cwd" 2>/dev/null && ${TIMEOUT:+$TIMEOUT 1} git status --porcelain 2>/dev/null | head -10 | wc -l | tr -d ' ')

@@ -91,6 +91,16 @@ printf '%s\n' '{"type":"attachment","attachment":{"type":"output_style","style":
 pre_attachment_transcript="$TMP_ROOT/pre-output-style.jsonl"
 : > "$pre_attachment_transcript"
 
+git_parent="$TMP_ROOT/git-parent"
+git_worktree="$TMP_ROOT/git-linked-worktree"
+git init -q "$git_parent"
+git -C "$git_parent" config user.name "Floor Contract"
+git -C "$git_parent" config user.email "floor-contract@example.invalid"
+printf '%s\n' 'tracked' > "$git_parent/tracked.txt"
+git -C "$git_parent" add tracked.txt
+git -C "$git_parent" commit -q -m "test: seed linked worktree"
+git -C "$git_parent" worktree add -q -b validation/floor-contract "$git_worktree"
+
 for floor_script in "$ROOT/hooks/floor-check.sh" "$ROOT/plugin/strategic-partner/hooks/floor-check.sh"; do
   surface=skill
   case "$floor_script" in */plugin/*) surface=plugin ;; esac
@@ -123,6 +133,11 @@ for floor_script in "$ROOT/hooks/floor-check.sh" "$ROOT/plugin/strategic-partner
     "floor-${surface}-pre-attachment-$$" "$pre_attachment_transcript" "strategic-partner-voice")
   assert_contains "$surface launcher style is available before runtime attachment" \
     "$pre_attachment_output" "output_style=strategic-partner-voice"
+
+  worktree_output=$(run_floor "$floor_script" "$git_worktree" \
+    "floor-${surface}-linked-worktree-$$")
+  assert_contains "$surface linked worktree reports clean git" "$worktree_output" "git=clean"
+  assert_not_contains "$surface linked worktree never reports git missing" "$worktree_output" "git=missing"
 done
 
 for policy_file in \

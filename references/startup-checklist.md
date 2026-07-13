@@ -584,6 +584,26 @@ last session, present next steps from handoff file.
 **🆕 Initialization mode**: Present project overview, available capabilities,
 and ask what the user wants to work on.
 
+### 📋 Visual rendering contract
+
+Three or more visible status signals require the compact table below. This is
+the orientation briefing, not a ceremonial menu: keep it to the signals that
+help the user understand the current session, then follow with at most three
+sentences of context. One or two signals may use a small status block instead.
+
+| Area | Status | What it means |
+|---|---|---|
+| 📁 Project | ✅ Exact checkout | `{project}` at the verified current path |
+| 🌿 Git | ✅ Clean / ⚠️ Dirty | `{branch}` with the real working-tree state |
+| 🧠 Serena | ✅ Ready / ⚠️ Setup choice | Exact project binding and memory state |
+| 🎭 Voice | ✅ Active / ⚠️ Not active | Current output style from the floor/runtime evidence |
+| ⚡ Version | ℹ️ Update available | Include only when the installed build is behind |
+
+Adapt the values to live evidence, omit rows that do not apply, and keep the
+project, Git, Serena, and voice rows whenever those four signals were checked.
+Do not flatten a multi-signal orientation into prose or a loose bullet list.
+Any real choice, such as Serena onboarding, appears after this useful table.
+
 **Include in orientation:**
 - ⚠️ Any agent warnings from Step 4
 - ❌ Staleness check results (if FAIL)

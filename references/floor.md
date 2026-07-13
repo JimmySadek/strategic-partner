@@ -116,7 +116,9 @@ Runs timeout-bounded git commands (1 second each). Detects:
 - **`g5.branch`** — current branch name
 - **`g5.status`** — `clean` or `dirty changed=N`
 - **`g5.last_commit`** — first 80 chars of `git log --oneline -1`
-- **`g5.git`** — `missing` if `.git/` not present
+- **`g5.git`** — `missing` only when the current path is not inside a Git
+  working tree. Linked worktrees use a `.git` pointer file and must still report
+  their real branch and clean/dirty state.
 
 ### Group 6 — Version
 
