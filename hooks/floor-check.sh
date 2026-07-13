@@ -376,12 +376,13 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
   fi
 } >> "${RESULTS}.tmp" 2>/dev/null
 
-# Group 8 — Output Style. Prefer Claude's runtime attachment from the
-# transcript, then fall back to settings-file precedence. The runtime event is
-# the only hook-visible authority for transient `--settings` values.
+# Group 8 — Output Style. An isolated launcher may provide the same transient
+# value it passes through `--settings`, because Claude records the runtime
+# attachment only after this hook returns. Then prefer an existing runtime
+# attachment before falling back to settings-file precedence.
 {
-  os_value=""
-  if [ -n "$transcript_path" ] && [ -f "$transcript_path" ] && command -v jq >/dev/null 2>&1; then
+  os_value="${SP_SESSION_OUTPUT_STYLE:-}"
+  if [ -z "$os_value" ] && [ -n "$transcript_path" ] && [ -f "$transcript_path" ] && command -v jq >/dev/null 2>&1; then
     os_value=$(${TIMEOUT:+$TIMEOUT 1} tail -200 "$transcript_path" 2>/dev/null \
       | jq -rs '[.[] | select(.attachment.type? == "output_style") | .attachment.style] | last // ""' 2>/dev/null)
   fi

@@ -26,6 +26,7 @@ require_text "candidate plugin is explicit" '--plugin-dir "$PLUGIN_DIR"'
 require_text "Serena config is explicit" '--mcp-config "$MCP_CONFIG"'
 require_text "only the explicit MCP config is accepted" "--strict-mcp-config"
 require_text "SP voice is session-only" '--settings "$SESSION_SETTINGS"'
+require_text "floor receives the same session-only voice" 'SP_SESSION_OUTPUT_STYLE="$SESSION_OUTPUT_STYLE"'
 require_text "preflight mode is available" "SP_VALIDATION_PREFLIGHT_ONLY"
 
 printf '\nResult: %s passed, %s failed\n' "$PASS" "$FAIL"

@@ -75,8 +75,21 @@ run_floor_with_transcript() {
   printf '%s' "$payload" | bash "$script" 2>&1
 }
 
+run_floor_with_session_style() {
+  script="$1"
+  project="$2"
+  sid="$3"
+  transcript="$4"
+  style="$5"
+  payload=$(jq -cn --arg sid "$sid" --arg cwd "$project" --arg transcript "$transcript" \
+    '{session_id:$sid,cwd:$cwd,transcript_path:$transcript,prompt:"/strategic-partner"}')
+  printf '%s' "$payload" | SP_SESSION_OUTPUT_STYLE="$style" bash "$script" 2>&1
+}
+
 runtime_style_transcript="$TMP_ROOT/runtime-output-style.jsonl"
 printf '%s\n' '{"type":"attachment","attachment":{"type":"output_style","style":"strategic-partner-voice"}}' > "$runtime_style_transcript"
+pre_attachment_transcript="$TMP_ROOT/pre-output-style.jsonl"
+: > "$pre_attachment_transcript"
 
 for floor_script in "$ROOT/hooks/floor-check.sh" "$ROOT/plugin/strategic-partner/hooks/floor-check.sh"; do
   surface=skill
@@ -105,6 +118,11 @@ for floor_script in "$ROOT/hooks/floor-check.sh" "$ROOT/plugin/strategic-partner
     "floor-${surface}-runtime-style-$$" "$runtime_style_transcript")
   assert_contains "$surface runtime output style overrides absent persistent setting" \
     "$runtime_style_output" "output_style=strategic-partner-voice"
+
+  pre_attachment_output=$(run_floor_with_session_style "$floor_script" "$healthy_project" \
+    "floor-${surface}-pre-attachment-$$" "$pre_attachment_transcript" "strategic-partner-voice")
+  assert_contains "$surface launcher style is available before runtime attachment" \
+    "$pre_attachment_output" "output_style=strategic-partner-voice"
 done
 
 for policy_file in \
