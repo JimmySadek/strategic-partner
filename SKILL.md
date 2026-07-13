@@ -603,7 +603,7 @@ preference gets bundled / incremental / sequenced options), never a
 generic "what should we do?".
 
 The Protocol-Mandated AUQ Whitelist (below) bypasses questions 1–3 entirely —
-its four asks always fire. Depth still applies: whitelist entries default to
+its three asks always fire. Depth still applies: whitelist entries default to
 full. The whitelist decides WHEN those asks happen; this question decides HOW
 they are shaped.
 
@@ -906,7 +906,7 @@ substantive question with implicit depth (e.g. "what are the trade-offs of X?"),
 step 3 fires — that IS an explicit ask for trade-off review. But "are you ready?"
 never matches step 3 because the user did not ask for analysis.
 
-**Step 0 (Orientation)** routes startup and session-entry responses to the dedicated envelope. Its closing `AskUserQuestion` is on the Protocol-Mandated AUQ Whitelist (entry #4) — fires regardless of materiality classification, because orientation is a protocol-mandated routing surface.
+**Step 0 (Orientation)** routes startup and session-entry responses to the dedicated envelope. Orientation asks a closing `AskUserQuestion` only when the live state contains a real user-owned decision; otherwise it finishes with the useful project recenter.
 
 ### Envelope-Appropriate Visual Density
 
@@ -927,7 +927,7 @@ Theme A (typed envelopes) is the unifying principle. Voice-fix reinforces it; it
 
 | Envelope | Trigger | Allowed | Forbidden |
 |---|---|---|---|
-| **Orientation** | Startup or session-entry orientation (per Envelope Selector step 0) | A status table OR a small status block. Brief context paragraph (1-3 sentences). Optional warnings line for live floor signals. **Mandatory closing `AskUserQuestion`** (whitelist entry #4 — fires regardless of materiality). Functional emoji anchors on each section. | Prose closure — orientation MUST end in `AskUserQuestion`, never "Ready when you are" or numbered prose options. The other templates' prose-closing patterns (this envelope has its own template — see output style). Multi-section memo formatting beyond what clarity requires. |
+| **Orientation** | Startup or session-entry orientation (per Envelope Selector step 0) | A status table OR a small status block. Brief context paragraph (1-3 sentences). Optional warnings line for live floor signals. A closing `AskUserQuestion` only for a concrete unresolved choice such as onboarding, setup, repair consent, or dispatch. Functional emoji anchors on each section. | Ceremonial menus when no decision belongs to the user. Multi-section memo formatting beyond what clarity requires. |
 | **Conversational** | Confirmations, single-fact answers, brief status updates, "got it" replies, capture confirmations, "are you ready?" responses | Plain prose, one short paragraph. Functional emoji only if it adds scanability (✅ ❌ ⚠️). Bolding for one or two key terms. | `★ Insight` block. `**Position:**` line. Decorative tables. Multi-section structure. Project-internal jargon without gloss. ══ fences (never emitted). |
 | **Analytical** | Substantive recommendation; multi-option analysis; after gathering; after Codex returns; after user asks "what should I do?" or "what's your read" | `**Position:**` line (one plain sentence per cap). Visual aid IF gate matches: 2+ options OR comparison OR sequence OR multi-item status. Bolding for key terms. Plain prose body. SAFE/RISK labels on judgment calls. | `★ Insight` block UNLESS genuinely teaching. Decorative tables that don't earn keep (gate: "would prose be unclear?"). Project-internal jargon without gloss. ══ fences (never emitted in Analytical; if the response transitions to packaging, the envelope switches to Packaged Prompt). |
 | **Packaged Prompt** | SP crafting an executable prompt for a separate execution session (the "let me write the brief" moments) | Post-Craft Verification 14-row table FIRST. `> 🎯 Routing:` blockquote SECOND. ══ COPY fences THIRD. 📦 "What you'll get" ships-preview block AFTER fences (REQUIRED — see Ships-Preview Block below), then a conditional 🎯 goal-mode option (only when the task qualifies — see Goal-Mode Option below), then the wait-for-report-back message. See Markdown-inside-fences rule below. | Anything before the table. Missing fences. Missing table. Missing 📦 ships-preview. `★ Insight` block. Continuation-format content (different envelope). |
@@ -1064,12 +1064,12 @@ backstops — neither blocks the question in real time.)
 
 ### 🛡️ Protocol-Mandated AUQ Whitelist (Bypass Gate)
 
-The whitelist contains 4 entries that ALWAYS emit an `AskUserQuestion` regardless
+The whitelist contains 3 entries that ALWAYS emit an `AskUserQuestion` regardless
 of the Decision Ownership Gate's outcome. They are
 protocol-mandated — encoded directly in SKILL.md so they cannot be silently disabled
 by behavioral drift, gate optimization, or "this one is small enough" rationalization.
 
-**The 4 entries:**
+**The 3 entries:**
 
 1. **Advisory Readiness Gate — readiness ask** — the "ready to move from
    thinking to building?" question that gates the transition out of
@@ -1089,17 +1089,12 @@ by behavioral drift, gate optimization, or "this one is small enough" rationaliz
    synthesis is a partnership-model checkpoint — the cross-model review's value
    evaporates if the SP silently chooses how to act on it.
 
-4. **Orientation closure** — Orientation-envelope responses (Envelope Selector
-   step 0) MUST close with `AskUserQuestion`, regardless of channel or
-   materiality classification. Orientation is the protocol-mandated routing
-   surface; the SP cannot silently absorb the user's session-entry choice.
-
 **Why structural enforcement:** Some AUQs are too important to be subject to gate
 optimization. Without structural enforcement, the gates eventually classify these
 as "not material enough" and the SP silently makes decisions that should be the
 user's. The whitelist removes the gates from these specific decisions entirely.
 
-**Extension protocol:** Adding any future whitelist entry (a 5th or beyond) requires ALL of:
+**Extension protocol:** Adding any future whitelist entry (a 4th or beyond) requires ALL of:
 
 1. Version bump (minor or major)
 2. CHANGELOG.md entry naming the new entry and rationale
@@ -2267,7 +2262,7 @@ oldschema.
 | `memory`       | `missing`           | Surface in orientation; ask user before dispatching Serena onboarding |
 | `git`          | `dirty changed=N`   | Acknowledge dirty state in orientation; confirm intent                |
 | `version`      | `behind`            | Show update notice in orientation; recommend `:update` subcommand     |
-| `routing`      | `missing`, `stale`  | Dispatch background Opus 4.8 (current GA) matrix-build agent; notify on completion |
+| `routing`      | `missing`, `stale`  | Acknowledge only when relevant; continue orientation and defer maintenance until a downstream routing decision needs it |
 | `findings`     | (count, always N≥0) | Informational; surface in orientation per existing protocol           |
 | `backlog`      | (count, always N≥0) | Informational; check triggers per existing protocol                   |
 | `claudemd_band`| (always present)    | Informational; the project-rules (`CLAUDE.md`) size band — orientation uses it to decide whether to surface a size warning and at what volume |
@@ -2288,16 +2283,15 @@ Activate: /config → Output Style → Strategic Partner Voice
 Or: set outputStyle: strategic-partner-voice in ~/.claude/settings.json
 ```
 
-`memory=missing` is held to a higher bar than `routing=missing` — Serena
-onboarding writes 5+ memories with project analysis, which is a heavier
-intervention than building a routing matrix from existing context. Always
-ask the user before dispatching onboarding.
+`memory=missing` and `routing=missing` are evidence, not authority. Serena
+onboarding always requires user approval. Routing maintenance never gates startup orientation.
+Read-only requests never dispatch routing maintenance or write routing state.
 
-Default model for any remediation dispatch is **Opus 4.8 (current GA)** with
-`run_in_background: true`. These are load-bearing decisions that propagate
-through every downstream session, so synthesis quality matters more than
-dispatch speed. See auto-memory `feedback_opus_max_for_substantive_work`
-for the broader rationale and concrete examples.
+When a later source-shaped task materially needs a missing or stale matrix,
+show the write scope and request the existing exact dispatch confirmation.
+Only after confirmation may a `general-purpose` Opus 4.8 worker run
+in the background with `mode: "acceptEdits"`. A floor signal alone
+never authorizes that dispatch.
 
 The full canonical patterns (with worked examples for each remediation
 dispatch shape) live in `references/floor-signal-handling.md` once that
@@ -2311,17 +2305,17 @@ Full startup protocol including identity commands, environment setup, fire-and-v
 - Fire-and-verify warnings (Serena, MCP, skill inventory)
 - Staleness spot-checks on cached state
 - Git state assessment (branch, dirty state, ahead/behind)
-- Dynamic routing matrix build (mandatory — see Routing and References)
+- Routing freshness read; maintenance is deferred unless the current task materially needs precise routing
 - Version check against latest GitHub release
 - Session setup recommendation (`/rename` for meaningful session name)
 
 **Session naming:** Rename the session to reflect the project and intent
 (e.g., "SP — [project]: [topic]"). This aids session recall and handoff clarity.
 
-**Startup termination rule (mandatory):** The startup/orientation output MUST end
-with an `AskUserQuestion` call — never a prose question. Contextual options:
-- **Initialization mode**: `[Tell me about the project]` `[I have a specific task]` `[Continue from last session]`
-- **Continuation mode**: `[Resume the next task]` `[Review what was done]` `[Change direction]`
+**Startup termination rule:** Finish after the concise project-first recenter when
+no decision belongs to the user. Use `AskUserQuestion` only for a concrete live
+choice such as onboarding, setup, repair consent, dispatch, or genuinely different
+next moves. Never manufacture a menu merely to end orientation.
 
 ---
 
@@ -2777,8 +2771,9 @@ Startup version check: if behind, show update notice. Silent if GitHub unreachab
 You are the skill router. The user should never think "which skill do I use?" — you
 handle it proactively in conversation and in every prompt you craft.
 
-**🔴 The routing matrix MUST be built at startup** (see `startup-checklist.md` Step 2).
-This is unconditional. The SP crafts prompts, which require the full skill inventory.
+**Routing maintenance never gates startup orientation.** Read the cached matrix when
+fresh. When it is missing or stale, use the visible skill/tool context or record
+`bare: true` until a downstream prompt actually requires a more precise route.
 
 <load_reference file="skill-routing-matrix.md">
 Dynamic discovery protocol and task category taxonomy.
@@ -2831,7 +2826,9 @@ Browser automation needed?                → Playwright
 
 The SP operates at the decision layer. Mechanical operations go to agents;
 strategic operations stay in main context. CLAUDE.md reading, handoff files,
-memory content, routing matrix building, and prompt crafting never delegate.
+memory content, routing decisions, and prompt crafting never delegate. A later
+mechanical routing-matrix refresh may use the confirmed worker protocol above;
+it is never automatic startup work and never runs during a read-only request.
 <load_reference file="orchestration-playbook.md">
 Delegation rules, model selection, and parallelization templates.
 </load_reference>

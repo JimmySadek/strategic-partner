@@ -4,7 +4,7 @@
 # for the plugin packaging; the only change is version resolution, which
 # self-locates against the plugin layout instead of walking
 # ~/.claude/commands symlinks. Existing turn rules remain log-only;
-# missing startup or closure ceremonies may block Stop once.
+# startup gaps are log-only; missing closure artifacts may block Stop once.
 
 payload=$(cat 2>/dev/null || printf '%s' '{}')
 transcript_path=$(printf '%s' "$payload" | jq -r '.transcript_path // ""' 2>/dev/null || printf '')
@@ -79,9 +79,9 @@ block_stop() {
   exit 0
 }
 
-# Lifecycle absence checks are the only blocking rules in this hook. A first
-# miss gets one corrective turn. If Claude is already in that corrective turn,
-# log the remaining gap and allow Stop so the hook cannot loop indefinitely.
+# Startup gaps are log-only quality signals. Closure gaps remain the only
+# blocking lifecycle rule because stopping without durable continuation can
+# lose session state.
 if [ "$CEREMONY_OK" = true ] && [ -f "$STARTUP_PENDING" ]; then
   continuation_path=$(head -1 "$STARTUP_PENDING" 2>/dev/null)
   floor_ready=no
@@ -91,15 +91,9 @@ if [ "$CEREMONY_OK" = true ] && [ -f "$STARTUP_PENDING" ]; then
   fi
   startup_missing=$(sp_startup_missing_evidence "$transcript_path" "$last_assistant_message" "$continuation_path" "$floor_ready")
   if [ -n "$startup_missing" ]; then
-    if [ "$stop_hook_active" = "true" ]; then
-      log_violation "startup-ceremony-incomplete after corrective turn: missing ${startup_missing}"
-      rm -f "$STARTUP_PENDING"
-    else
-      block_stop "Strategic Partner startup ceremony is incomplete: missing ${startup_missing}. Continue by rendering a concise project-first recenter and end that orientation with AskUserQuestion. If a handoff path was supplied, read it or surface an honest load-failure choice before stopping."
-    fi
-  else
-    rm -f "$STARTUP_PENDING"
+    log_violation "startup-ceremony-incomplete: missing ${startup_missing}"
   fi
+  rm -f "$STARTUP_PENDING"
 fi
 
 if [ "$CEREMONY_OK" = true ] && sp_transcript_has_session_end_intent "$transcript_path"; then

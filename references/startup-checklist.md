@@ -312,21 +312,27 @@ ensures commands are registered even if setup was never run manually.
 **Version check** is handled inline in Step 1.5 via a single curl command.
 See the "Version Check (inline, not an agent)" section above.
 
-### Agent D: 🗺️ Environment Discovery + Routing Matrix (mode: "auto", DISPATCHED ONLY ON FLOOR-SIGNAL)
+### Agent D: 🗺️ Deferred Routing-Matrix Maintenance (mode: "acceptEdits", USER-CONFIRMED ONLY)
 
 Full environment scan: skills, custom agents, MCP servers/plugins, and routing
-matrix build. This is mechanical work — exactly what agents should handle.
+matrix build. Agent D is not a startup prerequisite. Orientation continues from
+visible capabilities or a conservative `bare: true` route.
 
-**When to dispatch (v5.16.0+ contract):** Agent D is dispatched only when
-the floor sentinel reports the matrix is not current — concretely, when
-the `SP-FLOOR-COMPLETE` line carries `routing=stale ...` or
-`routing=missing`. When the floor reports `routing=fresh hash=<short>`,
-the cached matrix's `inventory_hash` matched the live filesystem
-inventory, and Agent D is skipped — the SP uses the cached matrix.
+**When to dispatch:** all four conditions must be true:
 
-Earlier releases dispatched Agent D unconditionally on every fresh
-session, which is what caused the every-session rebuild waste this
-release fixes. Treat the floor signal as authoritative.
+1. The floor reports `routing=stale ...` or `routing=missing`.
+2. A later source-shaped task materially needs precise routing now.
+3. The user's request permits project writes; read-only intent always wins.
+4. The user selected the exact `[Dispatch now — general-purpose]` confirmation.
+
+The floor signal is diagnostic evidence, never dispatch authority. When the
+floor reports `routing=fresh hash=<short>`, use the cached matrix. When it is
+missing or stale but the current work does not need it, acknowledge only when
+relevant and continue without dispatch.
+
+Earlier releases dispatched Agent D during startup, which caused multi-minute
+delays and crossed the write boundary before users received an orientation.
+Never restore that behavior.
 
 **What it does:**
 
@@ -365,9 +371,8 @@ release fixes. Treat the floor signal as authoritative.
 
 After steps 1-4 complete, Agent D MUST emit an `inventory_hash` field in
 the matrix footer. The floor sentinel (Group 7) reads this hash on the
-next session start to decide whether to skip the rebuild — if the hash
-still matches the live inventory, the matrix is current and no rebuild
-dispatches.
+next session start to classify freshness. A stale result never dispatches
+maintenance by itself.
 
 **Inventory hash scope (v5.16.0): agent filenames only.**
 `inventory_hash = sha256(sorted basenames of ~/.claude/agents/*.md + count)`,
@@ -534,30 +539,27 @@ While agents are running, read session context in parallel:
    git commands with `echo "---"` separators — this triggers Claude Code's
    "quoted characters in flag names" safety warning.
 
-**Note**: Custom agent scanning and routing matrix building are handled by
-Agent D (Step 2). When the floor sentinel reports `routing=fresh hash=<short>`,
-Agent D is skipped and the SP uses the cached matrix at the canonical
-location (Serena memory `skill_routing_matrix` if active, else
-`.claude/skill-routing-matrix.md`). When the floor reports `routing=stale ...`
-or `routing=missing`, Agent D works in parallel with the state reads here.
+**Note**: Use the cached matrix when the floor reports
+`routing=fresh hash=<short>`. Missing or stale routing never blocks these state
+reads or orientation. Agent D runs only later, after the four conditions in
+its deferred-maintenance contract are satisfied.
 
 ---
 
 ## ✅ Step 4: Verify Agent Results (Gate)
 
-Before presenting orientation, verify any agents that were dispatched.
-**Agent D verification is required only when Agent D was dispatched** —
-it is skipped on `routing=fresh hash=<short>`. Agents A and B provide
-useful context but are not security-critical.
+Before presenting orientation, verify only agents already dispatched for other
+independent work. Orientation never waits for Agent D. Verify Agent D only after
+a later confirmed maintenance dispatch.
 
 ### 🗺️ Routing Matrix Source
 
 | Floor signal | Source for orientation | Verification |
 |---|---|---|
 | `routing=fresh hash=<short>` | Cached matrix at canonical location (Agent D skipped) | None — the floor's hash match is itself the verification |
-| `routing=stale ...` or `routing=missing` (Agent D dispatched) | Agent D's return summary | Per the table below |
+| `routing=stale ...` or `routing=missing` | Visible capabilities or `bare: true`; no startup dispatch | None during orientation |
 
-### 🗺️ Agent D Verification (Required only when Agent D ran)
+### 🗺️ Agent D Verification (Required only after a confirmed maintenance dispatch)
 
 | Result | Action |
 |---|---|
@@ -798,9 +800,9 @@ This is a **user-only slash command** — the SP cannot execute it programmatica
 As the session topic crystallizes (after 2-3 exchanges), suggest the user
 refine the name: `/rename sp-[topic]-MMDD` (e.g., `sp-auth-refactor-0316`).
 
-**Mandatory termination:** Step 5 MUST end with an `AskUserQuestion` call.
-The SP never finishes orientation with prose and waits passively. See SKILL.md
-"Startup termination rule" for the specific questions by mode.
+**Termination:** Finish after the useful orientation when no decision belongs
+to the user. Use `AskUserQuestion` only for a concrete choice surfaced by the
+live state; never manufacture a startup menu.
 
 **Provider selection** (ask when the session topic involves implementation prompts):
 

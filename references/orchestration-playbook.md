@@ -759,7 +759,7 @@ definition exists, recommend it to the user alongside the standard `Agent()` opt
 - ❌ **Agent vs skill**: Using Agent tool when a direct skill command exists (unnecessary overhead)
 - ❌ **Delegating strategy reads**: Delegating CLAUDE.md or handoff file reading (SP must internalize)
 - ❌ **Delegating memory reads**: Delegating memory content reading (SP reasons from full content)
-- ❌ **Delegating matrix build**: Having an agent build the routing matrix (costs as much to review)
+- ❌ **Delegating matrix build during startup or read-only work**: Floor state is not authority. A later material routing need may use the confirmed Agent D maintenance contract.
 - ❌ **Waiting on fire-and-forget**: Waiting for non-blocking scan agents (spawn and move on)
 - ❌ **Opus for parallel workers**: Using Opus for constrained subtasks in parallel spawns (Sonnet handles scoped work)
 - ❌ **Sonnet for synthesis**: Using Sonnet to combine outputs from multiple parallel agents (Opus reasons across inputs)

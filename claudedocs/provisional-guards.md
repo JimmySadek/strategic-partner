@@ -4,6 +4,23 @@ Bug-driven rules. Each guard names the pattern, the past incident that
 motivated it, and a date to revisit. See `claudedocs/INCIDENTS.md` for the
 underlying archaeology.
 
+### Floor signals describe state; they never grant write or dispatch authority
+
+Instead: derive compact health from the detailed receipt, treat live tool state as
+authoritative when it disagrees, and keep optional maintenance out of read-only or
+startup critical paths. A missing or stale routing matrix may be acknowledged and
+deferred; it can dispatch a write-capable worker only after a later task materially
+needs the matrix and the user gives the existing exact agent confirmation.
+
+- **Scope**: startup floor summary derivation, orientation instructions, routing
+  matrix maintenance, onboarding suggestions, and any worker brief produced from a
+  non-clean floor signal.
+- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-07-13-B — an empty Serena memory
+  directory became `memory=ok`, then `routing=missing` triggered an unapproved
+  write-capable worker during a read-only orientation and delayed the answer by
+  nearly four minutes.
+- **Review**: 2026-10-13.
+
 ### Utility-command exemptions must agree across every activation path
 
 Instead: whenever a plugin subcommand is advisory-neutral, test its exact

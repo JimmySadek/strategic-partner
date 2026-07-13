@@ -3,17 +3,16 @@
 Implementation-level reference for the SKILL.md § Floor-Signal Handling
 table. Each non-clean signal from the startup-floor sentinel
 (`SP-FLOOR-COMPLETE` line) gets a worked example of the expected
-remediation pattern: agent type, model, prompt skeleton, verification,
-and post-dispatch state.
+acknowledgment or remediation pattern.
 
 The summary table in SKILL.md tells the SP **what** to do for each signal.
-This document tells the SP **how** — exact dispatch parameters, prompt
-shapes, and verification commands the model should run.
+This document tells the SP **how**. Floor signals describe state; they do not
+grant authority. Read-only requests never dispatch routing maintenance or
+write routing state.
 
-Default model for any remediation dispatch is **Opus 4.8 (current GA)** with
-`run_in_background: true`. These are load-bearing decisions that
-propagate through every downstream session, so synthesis quality
-matters more than dispatch speed.
+When a later task genuinely needs write-capable remediation and the user gives
+the exact confirmation, the default is **Opus 4.8 (current GA)** with
+`run_in_background: true` and `mode: "acceptEdits"`.
 
 ---
 
@@ -39,17 +38,17 @@ matters more than dispatch speed.
 - `routing=stale hash_compute_failed inventory_unavailable` —
   `~/.claude/agents/` is missing or empty so the hash cannot be
   computed. Fail stale rather than emit a placeholder hash that would
-  never match Agent D's. Rebuild dispatches and reseeds the inventory.
+  never match Agent D's. Report the limitation; a later confirmed maintenance
+  run may reseed the inventory.
 
 `routing=fresh hash=<short>` is the no-action case: the cached matrix is
-current, and no rebuild dispatches.
+current.
 
-**Surface in orientation:** Note the matrix state in one line.
-"Routing matrix is stale (inventory changed since last build) —
-dispatching a background rebuild." or "No routing matrix found —
-dispatching a background build."
+**Surface in orientation:** Mention the matrix only when it affects the user's
+current task. Continue orientation immediately. Never manufacture a dispatch
+question solely because the floor reported missing or stale routing.
 
-**Dispatch parameters:**
+**Later maintenance parameters (only after material need and exact confirmation):**
 
 - **Tool**: Agent (built-in)
 - **Agent type**: `general-purpose`

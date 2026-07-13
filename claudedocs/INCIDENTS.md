@@ -409,3 +409,60 @@ A separate forensic report at `/Users/OldJimmy/Developer/Claude-CoWork/Padel-Rel
 ### Lesson formalized as Provisional Guard
 
 Captured in `claudedocs/provisional-guards.md` as: *User project files don't get SP-flavored framing.* Scope: SP advisory turns evaluating, rating, drafting, or auditing a user's `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`, plus the scanner rule S9 in `.scripts/context-file-scan/rules/structural.sh`. Review: 2026-08-06.
+
+## INC-2026-07-13-B — Empty memory reported healthy and routing maintenance gated read-only startup
+
+### What happened
+
+A fresh disposable validation session proved Serena was connected to the exact
+repository with the `claude-code` context and quiet dashboard startup. The first
+useful Strategic Partner orientation still took almost four minutes.
+
+The floor receipt contained the detailed truth:
+
+- `g3.serena_memories=present count=0`
+- `g3.project_overview=missing`
+- `g3.decision_log=missing`
+- `g7.routing=missing`
+
+Its compact line nevertheless reported `memory=ok`. Claude then read live Serena,
+correctly learned that onboarding had never run, and treated the missing routing
+matrix as a mandatory startup prerequisite. It invoked a `general-purpose` Agent
+before asking the dispatch question. The brief called the work read-only while also
+instructing the worker to write Serena memory or a fallback project file. The
+existing dispatch guard correctly blocked the call. Claude performed unrelated
+hygiene checks and only then asked the exact confirmation question.
+
+### Why it broke
+
+Four contracts disagreed:
+
+1. The floor summary checked only whether the `g3.serena_memories=present` prefix
+   existed. Directory existence therefore became health even when the count was
+   zero and both required memories were missing.
+2. Startup instructions treated `routing=missing` as automatic dispatch authority,
+   while the guard correctly requires direct, exact confirmation before every Agent.
+3. The routing worker was described as read-only but had write-capable instructions.
+4. Routing construction was simultaneously described as mandatory Agent D work and
+   as work that should never be delegated, causing hesitation and mode drift.
+
+The guard was not defective. It prevented an unauthorized project write.
+
+### Fix shipped
+
+- Both floor scripts now report `memory=ok` only when the memory count is greater
+  than zero and `project_overview` plus `decision_log` are present.
+- Startup gaps are log-only and clear their pending marker on the first Stop pass.
+  Closure remains the only lifecycle ceremony allowed to block once.
+- Routing maintenance is demand-driven. Orientation uses visible capabilities or
+  `bare: true` and never waits for a matrix rebuild.
+- Read-only intent forbids routing writes, onboarding, fallback files, and Agent
+  dispatch. A later material routing need uses one documented background
+  `general-purpose` / Opus / `acceptEdits` contract after exact confirmation.
+- Regression coverage exercises empty, partial, and healthy memory states, repeated
+  Stop evaluation, mirrored routing instructions, and unchanged dispatch guards.
+
+### Lesson formalized as Provisional Guard
+
+Captured in `claudedocs/provisional-guards.md` as: *Floor signals describe state;
+they never grant write or dispatch authority.* Review: 2026-10-13.

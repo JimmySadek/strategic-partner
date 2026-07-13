@@ -27,6 +27,19 @@
 
 ### Fixed
 
+- **Fresh Strategic Partner sessions no longer wait for routing maintenance before helping** —
+  a missing or stale routing matrix is now diagnostic information, not permission
+  to dispatch a writer. Read-only orientations use the visible capabilities or a
+  conservative route, create no project artifacts, and ask about maintenance only
+  when a later task genuinely needs it.
+- **An empty Serena memory folder no longer appears healthy** — the startup floor
+  reports memory ready only when project memory exists and both the project overview
+  and decision log are present. Live Serena state wins when a stale floor receipt
+  disagrees with the active server.
+- **Startup quality checks no longer trap Claude in corrective Stop turns** — missing
+  recenter evidence is logged once and the startup marker is cleared immediately.
+  Closure still blocks once when durable handoff evidence is missing, and every
+  source, dispatch, onboarding, and configuration guard remains fail-closed.
 - **Valid worker confirmations no longer fail when the question contains quoted commands** —
   Strategic Partner now reads Claude's exact structured question and selected
   option before falling back to display text. Existing checks for the named

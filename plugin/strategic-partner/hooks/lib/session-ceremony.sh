@@ -189,10 +189,6 @@ sp_startup_missing_evidence() {
     [ -n "$missing" ] && missing="$missing, "
     missing="${missing}visible project recenter"
   fi
-  if ! _sp_latest_assistant_has_auq "$transcript_path"; then
-    [ -n "$missing" ] && missing="$missing, "
-    missing="${missing}AskUserQuestion"
-  fi
   if [ -n "$continuation_path" ] && ! _sp_continuation_loaded_or_failed_honestly "$transcript_path" "$continuation_path" "$last_assistant_message"; then
     [ -n "$missing" ] && missing="$missing, "
     missing="${missing}named handoff load"

@@ -1,8 +1,9 @@
 # Skill Routing Matrix — Dynamic Routing Rules
 
 Reference file for the strategic-partner advisor. Defines task categories, dynamic
-discovery protocol, and routing rules. Agent D builds the actual matrix at runtime
-from each user's installed skills and agents.
+discovery protocol, and routing rules. Routing maintenance is demand-driven.
+Agent D builds the actual matrix only after a later task needs it and the user
+confirms the write-capable dispatch.
 
 ```
 Task Categories (static) + Discovered Skills (dynamic) → Routing Matrix → Store in Serena → Delta on Continuation
@@ -115,7 +116,8 @@ version; confirm before relying on it.
 
 ## Dynamic Discovery Protocol
 
-Agent D builds the routing matrix at runtime. The system-reminder message is the
+Agent D builds the routing matrix during confirmed maintenance, never as a startup
+prerequisite. The system-reminder message is the
 **authoritative source** for each user's installed skills — it lists every available
 skill with its description.
 

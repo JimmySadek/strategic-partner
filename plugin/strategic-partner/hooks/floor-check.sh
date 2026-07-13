@@ -389,7 +389,14 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
 mv "${RESULTS}.tmp" "$RESULTS" 2>/dev/null
 
 conventions=$(grep -q '^g2.claude_md=present' "$RESULTS" 2>/dev/null && printf 'present' || printf 'missing')
-memory=$(grep -q '^g3.serena_memories=present' "$RESULTS" 2>/dev/null && printf 'ok' || printf 'missing')
+memory_count=$(grep '^g3.serena_memories=present count=' "$RESULTS" 2>/dev/null | head -1 | sed 's/.*count=//')
+if [ "${memory_count:-0}" -gt 0 ] 2>/dev/null \
+  && grep -q '^g3.project_overview=present' "$RESULTS" 2>/dev/null \
+  && grep -q '^g3.decision_log=present' "$RESULTS" 2>/dev/null; then
+  memory=ok
+else
+  memory=missing
+fi
 findings=$(grep '^g4.findings=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')
 [ -z "$findings" ] && findings=0
 backlog=$(grep '^g4.backlog_count=' "$RESULTS" 2>/dev/null | head -1 | awk -F= '{print $2}')

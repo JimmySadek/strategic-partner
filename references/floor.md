@@ -84,6 +84,10 @@ tools). Detects:
 - **`g3.project_overview`** — `present` if `project_overview.md` exists
 - **`g3.decision_log`** — `present lines=N` if `decision_log.md` exists
 
+The compact summary reports `memory=ok` only when the count is greater than
+zero and both `project_overview` and `decision_log` are present. Directory
+existence alone never counts as healthy memory.
+
 ### Group 4 — Working Memory
 
 Reads `.handoffs/findings-*.md` and `.backlog/*.md` for counts and
