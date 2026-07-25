@@ -509,8 +509,14 @@ if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
     jq_unavailable)
       echo "BLOCKED: Strategic Partner could not verify the dispatch confirmation because jq is unavailable. Use prompt delivery, or install jq and ask again." >&2
       ;;
-    selected_option_label|missing_hold_label|missing_wrong_agent_label|question_mismatch)
+    selected_option_label|question_mismatch)
       echo "BLOCKED: Strategic Partner must confirm dispatch with a selected option label exactly matching: [Dispatch now — $SUBAGENT_TYPE]. Descriptions do not authorize dispatch; ask again with the exact labels." >&2
+      ;;
+    missing_hold_label)
+      echo "BLOCKED: The selected dispatch label was correct, but the required review option was missing or reworded. Ask again with this option present, character for character: [Hold — let me review the brief first]" >&2
+      ;;
+    missing_wrong_agent_label)
+      echo "BLOCKED: The selected dispatch label was correct, but the required agent-reselection option was missing or reworded. Ask again with this option present, character for character: [Wrong agent — let me pick]" >&2
       ;;
     structured_answers_invalid|structured_display_disagree|display_answer_parse_error)
       echo "BLOCKED: Strategic Partner could not safely correlate the selected answer with the exact confirmation question. Ask again with a fresh structured confirmation before dispatching." >&2

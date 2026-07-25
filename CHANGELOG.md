@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- **A local build that's ahead of the published release no longer shows a false "update available" notice** — the floor sentinel now distinguishes local-ahead work from genuine updates.
+- **The plugin's update check no longer offers to replace a newer local build
+  with an older published release** — version comparison now runs in both
+  directions and says plainly when the local copy is ahead of the latest GitHub
+  Release. Before choosing a path, the check also inspects the installed bundle
+  and then either pulls the repository the plugin lives in or refreshes from the
+  release tag. The step after updating no longer reaches for setup work a plugin
+  install has never had — there is no setup script and no command symlinks to
+  refresh — and instead re-checks the bundle files and the version before
+  looking at the Serena setup.
+- **When a dispatch is refused because one of the confirmation choices was
+  reworded, the message now names that choice instead of the one you picked
+  correctly** — Strategic Partner asks you to confirm a dispatch with a fixed set
+  of options, and all of them must be worded exactly. Previously, rewording an
+  option you did not select still produced the message about the selected
+  option's wording, which sent you looking at the part that was already right.
+  The refusal now quotes the specific option to restore, so the retry is a
+  one-step fix.
+
 ## [7.6.0] - 2026-07-13
 
 ### Added
