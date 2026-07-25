@@ -1519,7 +1519,7 @@ Every prompt must pass all 14 checks. Fix failures before presenting.
 | 7 | Conventional commit message | Missing or malformed |
 | 8 | Fully self-contained | References "our discussion" |
 | 9 | Format matches provider guide | Wrong tag convention |
-| 10 | Inline is copy-safe | Markdown formatting in fences, or 🟢/🛑 fence markers missing |
+| 10 | Inline is copy-safe | Markdown formatting in fences; 🟢/🛑 fence markers missing; an XML-tag prompt not wrapped in a backtick code fence (bare tags get stripped as HTML, losing the structure); or HTML entity escapes standing in for angle brackets — they render literally in the terminal instead of turning back into characters, so the code-fence wrapper is the only correct approach |
 | 11 | Not-in-scope for multi-file | Missing or vague platitudes |
 | 12 | SAFE/RISK labels on recommendations | Opinions presented as fact |
 | 13 | Relevant blocks included for target model/task | Missing blocks when task shape or target model clearly warrants them (e.g., multi-file refactor without `<subagent_usage>`, pattern-application task without `<scope_explicit>`, long agentic task without `<context_awareness>`) |

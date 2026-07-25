@@ -22,6 +22,11 @@
   option's wording, which sent you looking at the part that was already right.
   The refusal now quotes the specific option to restore, so the retry is a
   one-step fix.
+- **Copyable prompts that use structured tags now display correctly in the
+  terminal** — a prompt shown on screen could render raw escape text where the
+  tags belonged, which made it hard to read even though the copied version was
+  always correct. The pre-send checklist now names the wrapper that keeps tags
+  intact, so what you see matches what you copy.
 
 ## [7.6.0] - 2026-07-13
 
