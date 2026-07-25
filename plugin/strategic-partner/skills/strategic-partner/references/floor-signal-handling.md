@@ -255,6 +255,31 @@ on the user's behalf. The update flow has its own confirmation step.
 
 ---
 
+## Pattern: version=ahead
+
+**Trigger:** Floor sentinel emits `version=ahead` (local SKILL.md
+`version:` field is newer than the latest published GitHub release — a
+tagged release landed locally before the GitHub Release step ran, or local
+work is simply ahead of what's published).
+
+**Unreleased-work pattern.** Nothing for the user to update — the local
+copy is already the newer one. Note it as expected during release work, or
+as a nudge to publish if the tag is ready.
+
+**Surface in orientation:** One-line note.
+
+> "🚧 vLOCAL is tagged locally; vREMOTE is the latest published release.
+> Run `.scripts/release-publish.sh` if vLOCAL is ready to publish —
+> otherwise this is expected mid-release."
+
+**No automatic publish.** The SP never runs the release-publish script on
+the user's behalf.
+
+**No dispatch.** The user runs the publish step directly, per the release
+process.
+
+---
+
 ## Pattern: conventions=missing
 
 **Trigger:** Floor sentinel emits `conventions=missing` (no `CLAUDE.md`

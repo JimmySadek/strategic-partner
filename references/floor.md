@@ -129,7 +129,7 @@ pretty-printed JSON (whitespace between key and value). Detects:
 - **`g6.local`** — local version string from `SKILL.md`
 - **`g6.remote`** — remote version from GitHub releases, or `unreachable`
   if the curl failed
-- **`g6.diff`** — `current` / `behind` / `unreachable` / `unknown`
+- **`g6.diff`** — `current` / `ahead` / `behind` / `unreachable` / `unknown`
 
 ### Group 7 — Routing Matrix Freshness
 
@@ -226,7 +226,7 @@ stdout (which Claude Code injects into the model's context for the
 current turn):
 
 ```
-SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N oldschema=N git=clean|dirty version=current|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME output_style_state=fresh|stale|missing commands_registered=yes|no review_policy=cross-model-go-no-go|unset. Full results: /tmp/sp-floor-${KEY}.txt
+SP-FLOOR-COMPLETE key=KEY session=SID model=MODEL conventions=present|missing memory=ok|missing findings=N backlog=N oldschema=N git=clean|dirty version=current|ahead|behind|unreachable|unknown claudemd_band=under-soft|soft-warn|warn|surface-loudly|none routing=fresh|stale|missing output_style=NAME output_style_state=fresh|stale|missing commands_registered=yes|no review_policy=cross-model-go-no-go|unset. Full results: /tmp/sp-floor-${KEY}.txt
 ```
 
 The `claudemd_band` field mirrors the scanner's S1 size taxonomy (see Group 2

@@ -2762,7 +2762,7 @@ Own version awareness. Never bump autonomously.
 Session naming, version bumps, and handoff prep protocol.
 </load_reference>
 
-Startup version check: if behind, show update notice. Silent if GitHub unreachable.
+Startup version check: if behind, show update notice; if ahead, note the local build isn't published yet. Silent if GitHub unreachable or current.
 
 ---
 

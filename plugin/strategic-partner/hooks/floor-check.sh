@@ -267,7 +267,15 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
       printf 'g6.diff=current\n'
     else
       printf 'g6.remote=%s\n' "$remote_version"
-      printf 'g6.diff=behind\n'
+      IFS='.' read -r l_major l_minor l_patch <<< "$local_version"
+      IFS='.' read -r r_major r_minor r_patch <<< "$remote_version"
+      l_num=$(( ${l_major:-0} * 1000000 + ${l_minor:-0} * 1000 + ${l_patch:-0} ))
+      r_num=$(( ${r_major:-0} * 1000000 + ${r_minor:-0} * 1000 + ${r_patch:-0} ))
+      if [ "$l_num" -gt "$r_num" ] 2>/dev/null; then
+        printf 'g6.diff=ahead\n'
+      else
+        printf 'g6.diff=behind\n'
+      fi
     fi
   else
     printf 'g6.local=unknown\n'
