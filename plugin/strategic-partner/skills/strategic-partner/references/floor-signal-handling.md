@@ -280,6 +280,33 @@ process.
 
 ---
 
+## Pattern: version=unknown
+
+**Trigger:** Floor sentinel emits `version=unknown` — the sentinel could not
+read one of the two versions it compares. Either the local `version:` field or
+the version in the latest published release tag failed to parse: a pre-release
+suffix, a missing or extra component, a leading zero, or a non-numeric
+component all land here.
+
+**Stay-silent pattern.** An unreadable version is not evidence that an update
+exists. The sentinel cannot tell which copy is newer, so orientation says
+nothing about versions rather than claiming an update is available — that false
+notice is exactly what this state exists to prevent.
+
+**Surface in orientation:** Nothing. No update line, no version line.
+
+If the user asks about versions directly, say plainly that the startup check
+could not read one of the two versions, and point at
+`/strategic-partner:update` — it runs its own comparison and reports what it
+finds.
+
+**No automatic update.** As with the patterns above, the SP never invokes
+`/strategic-partner:update` on the user's behalf.
+
+**No dispatch.** Nothing to hand off.
+
+---
+
 ## Pattern: conventions=missing
 
 **Trigger:** Floor sentinel emits `conventions=missing` (no `CLAUDE.md`

@@ -274,29 +274,72 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
   fi
 } >> "${RESULTS}.tmp" 2>/dev/null
 
+# Version comparison helpers for Group 6. Strict on purpose: a version this
+# cannot parse must report "unknown", never "behind" — a false "update
+# available" notice is the exact bug the earlier packed-integer form produced.
+sp_version_valid() {
+  # Valid = exactly three dot-separated components, each one or more decimal
+  # digits, with no leading zero unless the component is exactly "0".
+  local rest comp
+  case "$1" in
+    *[!0-9.]*) return 1 ;;
+    *.*.*.*) return 1 ;;
+    *.*.*) : ;;
+    *) return 1 ;;
+  esac
+  rest="${1#*.}"
+  for comp in "${1%%.*}" "${rest%%.*}" "${rest#*.}"; do
+    case "$comp" in
+      '' | 0?*) return 1 ;;
+    esac
+  done
+  return 0
+}
+
+# Prints one of: current | ahead | behind | unknown. Compares major, then
+# minor, then patch as independent integers. The earlier form packed them as
+# major*1000000 + minor*1000 + patch, which made the multiplier a radix — a
+# minor of 1000 or more carried into the major place, so 2.0.0 compared equal
+# to 1.1000.0. Validation runs before the equality check so two identical but
+# unparseable strings report unknown rather than claiming a match.
+sp_version_diff() {
+  local lv="$1" rv="$2" lrest rrest lmaj lmin lpat rmaj rmin rpat
+  if ! sp_version_valid "$lv" || ! sp_version_valid "$rv"; then
+    printf 'unknown'
+    return 0
+  fi
+  lrest="${lv#*.}"
+  lmaj="${lv%%.*}"; lmin="${lrest%%.*}"; lpat="${lrest#*.}"
+  rrest="${rv#*.}"
+  rmaj="${rv%%.*}"; rmin="${rrest%%.*}"; rpat="${rrest#*.}"
+  if [ "$lmaj" -ne "$rmaj" ]; then
+    if [ "$lmaj" -gt "$rmaj" ]; then printf 'ahead'; else printf 'behind'; fi
+  elif [ "$lmin" -ne "$rmin" ]; then
+    if [ "$lmin" -gt "$rmin" ]; then printf 'ahead'; else printf 'behind'; fi
+  elif [ "$lpat" -ne "$rpat" ]; then
+    if [ "$lpat" -gt "$rpat" ]; then printf 'ahead'; else printf 'behind'; fi
+  else
+    printf 'current'
+  fi
+  return 0
+}
+
 # Group 6 — Version (local SKILL.md grep + remote GitHub release lookup, bounded curl)
 {
   if [ -n "$SP_SKILL_PATH" ] && [ -f "$SP_SKILL_PATH" ]; then
     local_version=$(grep '^version:' "$SP_SKILL_PATH" 2>/dev/null | head -1 | awk '{print $2}')
     printf 'g6.local=%s\n' "${local_version:-unknown}"
-    remote_version=$(curl --max-time 8 -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null | grep -oE '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
-    if [ -z "$remote_version" ]; then
+    # Keep the raw response so a failed lookup stays distinguishable from a
+    # response whose tag could not be parsed: no response is unreachable,
+    # an unparseable tag is unknown.
+    remote_raw=$(curl --max-time 8 -sf "https://api.github.com/repos/JimmySadek/strategic-partner/releases/latest" 2>/dev/null)
+    remote_version=$(printf '%s' "$remote_raw" | grep -oE '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
+    if [ -z "$remote_raw" ]; then
       printf 'g6.remote=unreachable\n'
       printf 'g6.diff=unreachable\n'
-    elif [ "$remote_version" = "$local_version" ]; then
-      printf 'g6.remote=%s\n' "$remote_version"
-      printf 'g6.diff=current\n'
     else
-      printf 'g6.remote=%s\n' "$remote_version"
-      IFS='.' read -r l_major l_minor l_patch <<< "$local_version"
-      IFS='.' read -r r_major r_minor r_patch <<< "$remote_version"
-      l_num=$(( ${l_major:-0} * 1000000 + ${l_minor:-0} * 1000 + ${l_patch:-0} ))
-      r_num=$(( ${r_major:-0} * 1000000 + ${r_minor:-0} * 1000 + ${r_patch:-0} ))
-      if [ "$l_num" -gt "$r_num" ] 2>/dev/null; then
-        printf 'g6.diff=ahead\n'
-      else
-        printf 'g6.diff=behind\n'
-      fi
+      printf 'g6.remote=%s\n' "${remote_version:-unknown}"
+      printf 'g6.diff=%s\n' "$(sp_version_diff "$local_version" "$remote_version")"
     fi
   else
     printf 'g6.local=unknown\n'
