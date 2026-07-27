@@ -53,6 +53,32 @@
   longer leave a half-updated install. The refresh also checks up front that
   the file-copying tool it needs is installed, and names what to install if it
   is missing, rather than stopping halfway through.
+- **The startup version check now compares versions correctly no matter how
+  large the numbers get** — the comparison used to read each number as a number,
+  which breaks once a number is bigger than the shell can hold. The comparison
+  then failed, and instead of stopping, the check moved on to the next number
+  and answered from that one — so a local build far ahead of the published
+  release could still be reported as behind. Version numbers are now compared as
+  text rather than converted, which has no size limit at all, and any comparison
+  that cannot be completed stops on the spot and says it cannot tell rather than
+  carrying on to a guess.
+- **Updating a plugin that sits inside a checked-out repository no longer
+  touches that repository** — the update used to offer to move the repository
+  forward on your behalf whenever it looked like the plugin's own source. A
+  review showed that the test for "is this really the right repository" could be
+  passed by any repository at all, in minutes, using nothing but an ordinary
+  local one. Rather than add another test that could be passed the same way, the
+  capability was removed: the update now reports the version gap and stops, and
+  moving your own repository stays your decision. Plugin directories that no
+  repository maintains are still refreshed from the latest release, exactly as
+  before.
+- **A refresh that fails its final check now puts your previous copy back** —
+  the refresh builds the new version beside the live one and checks it before
+  swapping them. That final check was written as an instruction to follow while
+  the clean-up ran regardless, so a failed check could still end with the
+  previous copy deleted. The clean-up now runs only when the check passes; when
+  it does not, the previous version is put back and the copy that failed is kept
+  where you can look at it.
 
 ## [7.6.0] - 2026-07-13
 
