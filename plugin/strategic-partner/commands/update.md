@@ -57,25 +57,64 @@ the update path is whether pulling a repository refreshes these files.
    test -f "{plugin-root}/hooks/guard-impl.sh"
    test -f "{plugin-root}/output-styles/strategic-partner-voice.md"
    test -f "{plugin-root}/.claude-plugin/plugin.json"
+   test -x "{plugin-root}/.scripts/serena-doctor.sh"
    ```
-   Bundle is **complete** only when every one of those six checks passes. A
-   plugin bundle ships no setup script, so never check for one.
-4. Check whether the plugin directory sits inside a git checkout:
-   ```
-   git -C "{plugin-root}" rev-parse --show-toplevel
-   ```
+   Bundle is **complete** only when every one of those seven checks passes. The
+   Serena doctor script is on the list because Step 5 runs it — without it, a
+   bundle could be called complete and then immediately fail the health check
+   this command prescribes. A plugin bundle ships no setup script, so never
+   check for one.
+4. Decide whether the enclosing repository actually **owns** this plugin
+   directory. Sitting inside somebody's git checkout is not ownership: a plugin
+   copied into an unrelated repository — a dotfiles repo, say — also sits
+   inside one, and pulling that repository would mutate something the user
+   never meant to touch. Ownership requires **both** of these:
+
+   a. **The repository tracks this plugin's own files.** Treat a non-zero exit
+      as untracked:
+      ```
+      git -C "{plugin-root}" ls-files --error-unmatch -- skills/strategic-partner/SKILL.md
+      ```
+   b. **The plugin sits where the Strategic Partner repository puts it** —
+      exactly `plugin/strategic-partner` below the repository root, not at
+      some arbitrary depth:
+      ```
+      repo_root="$(cd "$(git -C "{plugin-root}" rev-parse --show-toplevel)" && pwd -P)"
+      plugin_real="$(cd "{plugin-root}" && pwd -P)"
+      test "$plugin_real" = "$repo_root/plugin/strategic-partner"
+      ```
+      Resolving both sides with `pwd -P` keeps a symlinked install working —
+      the symlink and the checkout resolve to the same real path.
+
+   If no work tree encloses the plugin at all, or either check above fails,
+   the enclosing repository does not own this plugin.
+
 5. Classify the install:
 
 | State | Signal | Allowed path |
 |---|---|---|
-| `repo-live` | the `git -C` check above resolves a work tree root | Pull the containing repository; nothing needs re-copying |
-| `detached-copy` | that same check fails | Refresh from the latest release tag |
+| `repo-tracked` | a work tree encloses the plugin, that repository tracks the plugin's own files, and the plugin sits at `plugin/strategic-partner` below the repository root | Pull the containing repository; nothing needs re-copying |
+| `detached-copy` | anything else — no enclosing work tree, or an enclosing repository that does not track or does not own this path | Refresh from the latest release tag |
 
-`repo-live` — the plugin directory sits inside a git checkout — covers both a
-directory reached straight from the checkout and one reached through a symlink
-into it. In either shape, updating that repository updates the plugin.
-`detached-copy` means the bundle was copied out of a repository and has no
-upstream to pull, so the only safe refresh comes from the published release.
+`repo-tracked` means pulling that repository genuinely updates this plugin,
+which holds both for a directory reached straight from the checkout and one
+reached through a symlink into it. `detached-copy` covers two shapes that share
+the same problem — no upstream of their own: a bundle copied out of a
+repository, and a bundle sitting inside an unrelated repository that merely
+encloses it. For both, the only safe refresh comes from the published release.
+**Never pull a repository that does not track this plugin.**
+
+6. If the install is `detached-copy`, confirm the file-copying tool the refresh
+   depends on is present — before offering the update, not partway through it:
+   ```
+   command -v rsync
+   ```
+   If it is missing, stop and say so plainly: "❌ This refresh needs `rsync`,
+   which is not installed here. Install it and run this command again — `apt
+   install rsync` on Debian or Ubuntu, `dnf install rsync` on Fedora, or
+   `brew install rsync` on macOS." Do not begin the refresh without it; a
+   refresh that dies halfway leaves temporary files behind and the plugin
+   unfinished.
 
 ### Step 3 — Compare and Present
 
@@ -115,8 +154,8 @@ repair from GitHub is unsafe until the matching release exists.
 
 | State | User-facing status |
 |---|---|
-| `repo-live` | "This plugin lives inside a git checkout, so updating that repository updates the plugin — nothing needs re-copying." |
-| `detached-copy` | "This is a copied plugin with no repository behind it, so the update refreshes it from the latest release." |
+| `repo-tracked` | "This plugin is tracked by the repository it lives in, so updating that repository updates the plugin — nothing needs re-copying." |
+| `detached-copy` | "No repository tracks this plugin, so the update refreshes it from the latest release. Anything edited locally inside the plugin directory is replaced." |
 
 4. Present via `AskUserQuestion`:
    - **Question**: "Update to v{remote}?"
@@ -132,7 +171,7 @@ For an incomplete same-version install, change the question to
 
 Run only the path allowed by the install-state classification.
 
-**For `repo-live`:**
+**For `repo-tracked`:**
 
 ```
 git -C "{plugin-root}" fetch --tags --prune
@@ -144,21 +183,54 @@ Then verify `{plugin-root}/skills/strategic-partner/SKILL.md` reports
 
 **For `detached-copy`:**
 
-Use the latest release tag, not an unqualified branch, and sync only the
-plugin subtree:
+Build the new content beside the live directory, verify it there, and only then
+swap it in. Nothing touches the live plugin until a fully verified replacement
+is ready, so an interruption can never leave a half-updated install.
 
 ```
+parent="$(dirname "{plugin-root}")"
+staging="$parent/.strategic-partner.new.$$"
+backup="$parent/.strategic-partner.old.$$"
 tmp="$(mktemp -d)"
-git clone --depth 1 --branch "v{remote}" "https://github.com/{repo}.git" "$tmp/strategic-partner"
-rsync -a --delete --exclude='.git' "$tmp/strategic-partner/plugin/strategic-partner/" "{plugin-root}/"
-rm -rf "$tmp"
+
+# 1. Fetch the release tag, never an unqualified branch.
+git clone --depth 1 --branch "v{remote}" "https://github.com/{repo}.git" "$tmp/src"
+
+# 2. Assemble the new bundle in staging. Staging sits beside the live
+#    directory so the swap in step 4 is a same-directory rename. No --delete
+#    is needed or wanted: staging starts empty.
+mkdir -p "$staging"
+rsync -a --exclude='.git' "$tmp/src/plugin/strategic-partner/" "$staging/"
+
+# 3. Verify staging while the live plugin is still untouched: all seven bundle
+#    paths from Step 2, the strategic-partner name, and version v{remote}.
+#    On any failure, delete staging and stop — nothing live has changed.
+
+# 4. Swap: two renames in the same directory. The previous content stays
+#    intact under $backup.
+mv "{plugin-root}" "$backup"
+mv "$staging" "{plugin-root}"
+
+# 5. Re-verify the live directory. Only once it checks out, discard the backup.
+rm -rf "$backup" "$tmp"
 ```
 
-Before running `rsync`, confirm all of these are true:
+Before starting, confirm all of these are true:
 
 - `{plugin-root}` exists and contains `skills/strategic-partner/SKILL.md`
 - `{plugin-root}` is the plugin directory shown to the user
 - the user approved replacing that directory's contents from the release
+
+**What happens if it is interrupted.** Verification in step 3 runs before
+anything live is touched, so a failure there means deleting staging and
+reporting what was missing — the installed plugin never changed and needs no
+recovery. The two renames in step 4 run one after the other, so a crash
+between them leaves the plugin directory missing and its previous content
+sitting beside it under a name starting with `.strategic-partner.old.`.
+Nothing is deleted and nothing is half-written: renaming that directory back
+to the plugin's own name restores the previous version exactly. If anything
+fails from step 4 onward, tell the user that path — never leave them guessing
+where their install went.
 
 After success:
    ```
@@ -171,7 +243,7 @@ A plugin install has no setup script and no command symlinks to refresh —
 Claude Code reads the commands, hooks, and voice style out of the plugin
 directory itself. So the only work left is confirming the update landed.
 
-1. Re-verify the six bundle paths from Step 2, and confirm
+1. Re-verify the seven bundle paths from Step 2, and confirm
    `{plugin-root}/skills/strategic-partner/SKILL.md` now reports `v{remote}`.
    If either check fails, stop and report it instead of claiming success.
 2. Resolve the plugin root and run
@@ -186,13 +258,16 @@ directory itself. So the only work left is confirming the update landed.
 - Check versions against GitHub releases/tags
 - Display changelog highlights from release notes
 - Inspect the plugin bundle before choosing an update path
-- Classify the install as `repo-live` or `detached-copy`
+- Prove the enclosing repository tracks and owns the plugin before pulling it
+- Classify the install as `repo-tracked` or `detached-copy`
 - Refuse to update when the local build is newer than the latest published release
-- Execute update commands (repository pull, or safe clone and sync repair)
+- Execute update commands (repository pull, or staged clone-and-swap refresh)
 
 **Will Not:**
 - Implement source code changes
 - Auto-update without explicit user confirmation
+- Pull an enclosing repository that does not track this plugin — a repository
+  that merely contains the directory is never treated as its upstream
 - Modify any project files beyond the skill itself
 - Run a setup script or create command symlinks — a plugin install has neither
 

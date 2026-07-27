@@ -144,8 +144,12 @@ very conflict the steward is designed to prevent.
   `/strategic-partner-plugin:strategic-partner`; `/sp` and `/advisor` no longer
   resolve as typed plugin commands (natural-language triggering still works). No
   alias mechanism exists in the plugin format.
-- **`:update` subcommand:** still targets the git/skillshare install flow. On
-  the skills-dir route this is correct only if the copied directory is a
-  symlink back into the repo; a plain copy must be re-copied after updates.
+- **`:update` subcommand:** handles both install shapes without manual
+  re-copying. When the repository the plugin lives in actually tracks it, the
+  update pulls that repository; otherwise the update refreshes the plugin from
+  the latest published release. The real limitation is what a refresh means: it
+  replaces the plugin directory's contents wholesale, so any local edits made
+  inside a copied plugin are lost. Keep local changes in a checkout the
+  repository tracks, not in a copied directory.
 - **Serena connection ownership:** auto-connect remains on the published
   roadmap while the plugin uses the shared, SP-managed user-level runtime.

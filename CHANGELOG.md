@@ -22,11 +22,37 @@
   option's wording, which sent you looking at the part that was already right.
   The refusal now quotes the specific option to restore, so the retry is a
   one-step fix.
-- **Copyable prompts that use structured tags now display correctly in the
-  terminal** — a prompt shown on screen could render raw escape text where the
-  tags belonged, which made it hard to read even though the copied version was
-  always correct. The pre-send checklist now names the wrapper that keeps tags
-  intact, so what you see matches what you copy.
+- **Copyable prompts that use structured tags should stop rendering as raw
+  escape text** — a prompt shown on screen could display escaped characters
+  where the tags belonged, which made it hard to read even though the copied
+  version was always correct. The pre-send checklist now requires the wrapper
+  that keeps tags intact, which should stop the recurrence. This is a
+  discipline change, not a mechanical one: nothing checks the rendering
+  automatically, so report it if a prompt still displays wrong.
+- **The startup version check no longer claims an update is available when it
+  cannot read a version** — the check compares the installed version against
+  the latest published release. Any version it could not parse — a pre-release
+  label, a missing or extra number, a stray character — used to come out as
+  "behind", producing an update notice for an update that did not exist. The
+  check now says plainly that it could not read the version and stays quiet
+  about updates. The comparison itself was rebuilt too: it weighs the major,
+  minor, and patch numbers separately instead of squeezing all three into one
+  number, which previously made versions like 2.0.0 and 1.1000.0 look
+  identical and mis-ordered large version numbers.
+- **Updating a plugin that was copied somewhere else can no longer pull an
+  unrelated repository** — the update used to treat "this plugin sits inside
+  some git repository" as proof that pulling that repository would update the
+  plugin. A plugin copied into an unrelated repository — a dotfiles repo, for
+  instance — passed that test, so approving a Strategic Partner update could
+  have changed something else entirely. The update now requires proof that the
+  repository genuinely tracks the plugin and holds it where Strategic Partner
+  keeps it; without that proof, it refreshes from the published release
+  instead. That refresh is now staged: the replacement is assembled and checked
+  beside the live plugin before anything is swapped, and the previous version
+  stays recoverable until the new one is verified — so an interruption can no
+  longer leave a half-updated install. The refresh also checks up front that
+  the file-copying tool it needs is installed, and names what to install if it
+  is missing, rather than stopping halfway through.
 
 ## [7.6.0] - 2026-07-13
 
