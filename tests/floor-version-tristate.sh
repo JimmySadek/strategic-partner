@@ -137,8 +137,65 @@ for target in "hooks/floor-check.sh:root" "plugin/strategic-partner/hooks/floor-
 x.2.3|7.6.0|unknown
 |7.6.0|unknown
 7.6.0||unknown
+999999999999999999999999999999.0.0|1.1.0|ahead
+1.999999999999999999999999999999.0|1.1.1|ahead
+999999999999999999999999999999.0.0|1.0.0|ahead
+1.1.0|999999999999999999999999999999.0.0|behind
+999999999999999999999999999999.0.0|999999999999999999999999999999.0.0|current
+1.0.0|1.0.0000000000000000000000000001|unknown
 ROWS
 done
+
+# --- Structural: no version component is ever read as a number --------------
+#
+# The rows above prove today's answers. This proves the property that keeps
+# them true. Both failure modes this suite exists for came from converting a
+# component to a number: first a packed integer whose multiplier acted as a
+# radix, then a per-component numeric test that errored on a long component
+# and let control fall through to the next one. A length cap would have left
+# that class in place; removing the conversion removes it.
+#
+# Length comparisons (${#...}) are the one permitted numeric test — they read
+# how long a string is, never what number it holds, and they are what makes
+# the string comparison correct. Anything else numeric fails this check.
+# Scoped to the marked comparator region, so arithmetic elsewhere in the hook
+# is none of this assertion's business.
+assert_no_component_arithmetic() {
+  label="$1"
+  script="$2"
+  region=$(awk '/^# sp-comparator-region: begin$/{f=1} /^# sp-comparator-region: end$/{print; f=0} f' "$script")
+  if [ -z "$region" ]; then
+    record_fail "$label: comparator region markers missing from $script"
+    return
+  fi
+
+  offenders=""
+  while IFS= read -r line; do
+    if printf '%s' "$line" | grep -qE '\$\(\(' ; then
+      offenders="${offenders}    ${line}
+"
+      continue
+    fi
+    ops=$(printf '%s' "$line" | grep -oE '[[:space:]]-(eq|ne|gt|lt|ge|le)[[:space:]]' | wc -l | tr -d ' ')
+    safe=$(printf '%s' "$line" | grep -oE '"\$\{#[^}]*\}"[[:space:]]-(eq|ne|gt|lt|ge|le)[[:space:]]"\$\{#[^}]*\}"' | wc -l | tr -d ' ')
+    if [ "$ops" != "$safe" ]; then
+      offenders="${offenders}    ${line}
+"
+    fi
+  done <<EOF
+$region
+EOF
+
+  if [ -n "$offenders" ]; then
+    record_fail "$label: comparator region reads a version component as a number:
+$offenders"
+  else
+    record_pass "$label: comparator region converts no version component to a number"
+  fi
+}
+
+assert_no_component_arithmetic "root" "$ROOT/hooks/floor-check.sh"
+assert_no_component_arithmetic "plugin" "$ROOT/plugin/strategic-partner/hooks/floor-check.sh"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

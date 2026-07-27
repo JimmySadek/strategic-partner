@@ -256,6 +256,16 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
 # Version comparison helpers for Group 6. Strict on purpose: a version this
 # cannot parse must report "unknown", never "behind" — a false "update
 # available" notice is the exact bug the earlier packed-integer form produced.
+#
+# sp-comparator-region: begin
+# Nothing between this marker and the matching end marker may turn a version
+# component into a number. Two earlier forms did, and both reported "behind"
+# for a local build that was ahead: first a packed integer whose multiplier
+# acted as a radix, then a per-component numeric test that errored on a long
+# component and let control fall through to the next component. The comparison
+# below is string-only, so neither failure has anything left to stand on. The
+# only numeric tests allowed here compare string LENGTHS (${#...}), never
+# component values — tests/floor-version-tristate.sh asserts that mechanically.
 sp_version_valid() {
   # Valid = exactly three dot-separated components, each one or more decimal
   # digits, with no leading zero unless the component is exactly "0".
@@ -275,33 +285,57 @@ sp_version_valid() {
   return 0
 }
 
-# Prints one of: current | ahead | behind | unknown. Compares major, then
-# minor, then patch as independent integers. The earlier form packed them as
-# major*1000000 + minor*1000 + patch, which made the multiplier a radix — a
-# minor of 1000 or more carried into the major place, so 2.0.0 compared equal
-# to 1.1000.0. Validation runs before the equality check so two identical but
-# unparseable strings report unknown rather than claiming a match.
+# Compares two version components as decimal strings. Returns 0 when they are
+# equal, 1 when the left is greater, 2 when the right is greater, and 3 when
+# the pair cannot be compared at all. Validation upstream guarantees digits
+# with no leading zero, so a longer string is always the larger number and
+# equal-length strings order correctly byte by byte — no size limit applies,
+# because no component is ever read as a number.
+sp_component_cmp() {
+  case "$1" in '' | *[!0-9]*) return 3 ;; esac
+  case "$2" in '' | *[!0-9]*) return 3 ;; esac
+  if [ "$1" = "$2" ]; then
+    return 0
+  fi
+  if [ "${#1}" -ne "${#2}" ]; then
+    if [ "${#1}" -gt "${#2}" ]; then return 1; fi
+    return 2
+  fi
+  # Equal length: byte order is numeric order for digit strings. LC_ALL is
+  # pinned to C so that holds whatever the ambient locale collates, and scoped
+  # with local so the rest of the hook keeps the caller's locale.
+  local LC_ALL=C
+  if [[ "$1" > "$2" ]]; then return 1; fi
+  return 2
+}
+
+# Prints one of: current | ahead | behind | unknown. Walks major, then minor,
+# then patch, stopping at the first pair that is not equal. Every failure —
+# a version that will not parse, or a pair that cannot be compared — prints
+# unknown and returns on the spot. Continuing past a failed comparison is what
+# produced the wrong answer before, not the failure itself, so no branch here
+# falls through to a later component.
 sp_version_diff() {
-  local lv="$1" rv="$2" lrest rrest lmaj lmin lpat rmaj rmin rpat
+  local lv="$1" rv="$2" lrest rrest pair
   if ! sp_version_valid "$lv" || ! sp_version_valid "$rv"; then
     printf 'unknown'
     return 0
   fi
   lrest="${lv#*.}"
-  lmaj="${lv%%.*}"; lmin="${lrest%%.*}"; lpat="${lrest#*.}"
   rrest="${rv#*.}"
-  rmaj="${rv%%.*}"; rmin="${rrest%%.*}"; rpat="${rrest#*.}"
-  if [ "$lmaj" -ne "$rmaj" ]; then
-    if [ "$lmaj" -gt "$rmaj" ]; then printf 'ahead'; else printf 'behind'; fi
-  elif [ "$lmin" -ne "$rmin" ]; then
-    if [ "$lmin" -gt "$rmin" ]; then printf 'ahead'; else printf 'behind'; fi
-  elif [ "$lpat" -ne "$rpat" ]; then
-    if [ "$lpat" -gt "$rpat" ]; then printf 'ahead'; else printf 'behind'; fi
-  else
-    printf 'current'
-  fi
+  for pair in "${lv%%.*}:${rv%%.*}" "${lrest%%.*}:${rrest%%.*}" "${lrest#*.}:${rrest#*.}"; do
+    sp_component_cmp "${pair%%:*}" "${pair##*:}"
+    case "$?" in
+      0) : ;;
+      1) printf 'ahead'; return 0 ;;
+      2) printf 'behind'; return 0 ;;
+      *) printf 'unknown'; return 0 ;;
+    esac
+  done
+  printf 'current'
   return 0
 }
+# sp-comparator-region: end
 
 # Group 6 — Version (local SKILL.md grep + remote GitHub release lookup, bounded curl)
 {
