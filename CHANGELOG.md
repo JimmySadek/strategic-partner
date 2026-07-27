@@ -79,6 +79,18 @@
   previous copy deleted. The clean-up now runs only when the check passes; when
   it does not, the previous version is put back and the copy that failed is kept
   where you can look at it.
+- **A cross-model review that needs longer than ten minutes now runs to
+  completion instead of being cut off partway** — these reviews ask a second AI
+  model to audit a change independently, and the guidance allowed them as much as
+  forty minutes. The way the review was actually started could never grant more
+  than ten, so the longest and most valuable audits were killed mid-run with
+  nothing to show for the time they had spent. A review is now started so that it
+  outlives whatever is watching it and reports for itself when it has finished; a
+  check that gives up early simply looks again instead of losing the work.
+  Reviews also no longer spend their time reading unrelated material before
+  starting — one audit used its whole budget on unrelated guidance and never
+  opened the change it was asked to examine, so every review now begins with a
+  plain instruction naming the first thing to look at.
 
 ## [7.6.0] - 2026-07-13
 

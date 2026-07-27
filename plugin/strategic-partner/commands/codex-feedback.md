@@ -143,9 +143,49 @@ this happens.
 ### Step 4 — Brief Preparation
 
 The SP prepares the brief in its main thread, formatted per the mode selected in Step 3.
-The SP does NOT run Codex — it dispatches via Agent.
+The SP never blocks its own turn on Codex — Step 5 describes the detached launch that
+makes that true.
 
-### Step 5 — Dispatch
+#### 🛡️ Mandatory execution-discipline block
+
+Every brief sent to Codex MUST open with the block below, ahead of the audit goal or
+the decision question. Include it verbatim; fill in the first command.
+
+```
+EXECUTION DISCIPLINE — read this before anything else.
+
+Your first action is to run this command, ahead of every other action:
+  <the first command — e.g. git diff v7.6.0..HEAD --stat>
+
+Until that command has run, do NOT:
+  - load, consult, or invoke any skill, for any reason
+  - read any memory file, session file, or agent instruction file
+  - explore this repository for orientation or general context
+
+Why this is stated so bluntly: an earlier run of this same audit spent its
+entire budget auto-loading an unrelated frontend design skill, chaining from
+there into a second design skill, and reading a large memory file. It never
+opened the diff it was asked to audit, and produced no verdict at all. The
+brief below is the complete context for this job. Nothing else is needed.
+```
+
+The rationale stays inside the block on purpose. A bare prohibition invites a capable
+model to decide it knows better; a prohibition that carries the specific failure it
+prevents survives that impulse.
+
+⚠️ **This block is not optional, and detaching does not replace it.** The two changes
+solve different halves of the same problem, and either one alone leaves a broken
+review:
+
+| Change | What it fixes | What it does not fix |
+|---|---|---|
+| 🚀 Detached launch (Step 5) | A thorough review is no longer cut off partway | A review that spends its budget on the wrong subject |
+| 🛡️ Execution-discipline block (this section) | The review opens its target on the first action | A correct review that outlives the caller's ceiling |
+
+Detaching a brief that lacks this block does not rescue it — it lets the same
+orientation detour run for forty minutes instead of ten.
+
+### Step 5 — Dispatch (detached, completion signalled by a file)
 
 **Sandbox mode depends on the review mode:**
 
@@ -154,34 +194,146 @@ The SP does NOT run Codex — it dispatches via Agent.
 | Mode A — Decision Review | `--sandbox read-only` | Codex reads files for analysis only. No shell execution required. Read-only is the tightest mode that still works. |
 | Mode B — Evidence Audit | `--sandbox workspace-write` | Codex runs verification commands (`git diff`, `bash tests/*.sh`, etc.). Read-only blocks `/tmp` writes that bash heredocs and other shell tools require. `workspace-write` allows shell execution while keeping the rest of the system protected. |
 
-**Canonical invocations:**
+**Why the launch is detached.** A blocking `codex exec` lives and dies inside the
+calling tool's turn, and every caller has a ceiling — the Bash tool's is 600 seconds
+(10 minutes). The timeout tiers this contract has always published run to 40 minutes,
+so those tiers were unreachable through the mandated transport from the day they
+shipped. Three live runs settled it:
 
-Mode A — Decision Review:
+| Run | Shape | Outcome |
+|---|---|---|
+| 1 | ❌ Blocking, no discipline block | Killed at the caller's 10-minute ceiling. No verdict. Spent the whole budget on skills and memory; never opened the diff. A further ~20,000 characters lost to the caller's output limit. |
+| 2 | ✅ Detached, discipline block | Complete verdict in ~9 minutes, written to a file. |
+| 3 | ✅ Detached, discipline block | Complete verdict in ~14 minutes — **past the ceiling** — and untouched when the watching process timed out twice. |
+
+Run 3 is the proof: that review could not have finished through a blocking call at
+all, and the detached process was unaffected by its watcher dying.
+
+**Canonical invocation — three parts.** The sandbox flag is the only thing that
+varies by mode (`read-only` for Mode A, `workspace-write` for Mode B, per the table
+above). Everything else is identical.
+
+**Part 1 — launch. This call must return immediately, not wait for Codex.**
 
 ```
-codex exec --sandbox read-only -c 'mcp_servers={}' -C <project-dir> "<prompt>" < /dev/null
+run_dir=$(mktemp -d "${TMPDIR:-/tmp}/sp-codex-review.XXXXXX")
+
+nohup codex exec --sandbox workspace-write \
+  -c 'mcp_servers={}' -c 'skills={}' \
+  -C <project-dir> \
+  "<prompt>" \
+  > "$run_dir/raw.log" 2>&1 < /dev/null &
+
+printf '%s\n' "$!" > "$run_dir/codex.pid"
+disown
+printf 'launched — run directory: %s\n' "$run_dir"
 ```
 
-Mode B — Evidence Audit:
+`nohup ... &` plus `disown` is what detaches: the process ignores the hangup that
+arrives when the launching shell exits, and leaves the shell's job table so nothing
+waits on it. Stock macOS ships no `setsid`, so this contract does not require one.
+The property that matters is behavioural, and run 3 demonstrated it — the review
+outlived two expired watchers.
+
+**Part 2 — the output contract, carried in the prompt.** Append this to every brief,
+after the audit goal, with both paths filled in from `$run_dir`:
 
 ```
-codex exec --sandbox workspace-write -c 'mcp_servers={}' -C <project-dir> "<prompt>" < /dev/null
+OUTPUT CONTRACT
+Write your complete verdict to this file: <run_dir>/verdict.md
+Once that file is written and complete — and only then — create the completion
+sentinel: touch <run_dir>/verdict.done
+Create the sentinel LAST. Nothing reads the verdict until the sentinel exists.
 ```
+
+The sentinel instruction belongs in the prompt, not in a wrapper script. A wrapper's
+final line works, but it couples completion detection to that one wrapper; a
+sentinel the prompt itself authors survives the wrapper being rewritten or bypassed
+entirely.
+
+**Part 3 — the watcher.** This is the piece that runs in the background and wakes the
+caller. Run it with `run_in_background: true` and a `timeout` set to the watcher
+budget for the scope (see the budget table below).
+
+```
+run_dir=<the run directory printed by Part 1>
+
+while [ ! -f "$run_dir/verdict.done" ]; do
+  kill -0 "$(cat "$run_dir/codex.pid")" 2>/dev/null \
+    || { printf 'NO SENTINEL AND NO LIVE PROCESS — inspect %s/raw.log\n' "$run_dir"; exit 1; }
+  sleep 10
+done
+printf 'SENTINEL PRESENT — verdict at %s/verdict.md\n' "$run_dir"
+```
+
+The watcher distinguishes the two absent-sentinel cases so the caller never has to
+guess: sentinel missing with the process alive means *still working*; sentinel
+missing with the process gone means *crashed*.
+
+⏳ **When the watcher's own budget expires, poll again.** Start another watcher on the
+same run directory. Do NOT conclude the review failed, and do NOT relaunch it. The
+detached process is still running and still spending; a relaunch throws away
+everything the live run has already paid for and starts the same work from zero. This
+is the single most expensive mistake available here, and the old contract's failure
+table invited it.
+
+**Where the output goes, and why no agent sits in the middle.**
+
+A single review's raw output is routinely hundreds of kilobytes — one calibration run
+produced about 291 KB. None of that enters anyone's context wholesale:
+
+```
+codex (detached)  ──▶  raw.log       full transcript; diagnostic only, never read whole
+                  ──▶  verdict.md    Codex writes this itself, per the output contract
+                  ──▶  verdict.done  the sentinel; created last
+                                          │
+                     watcher (background) sees the sentinel
+                                          │
+                     SP reads only the regions of verdict.md it needs
+```
+
+🔍 **Reconciling this with "SP never runs Codex in its own thread."** That rule was
+written against a blocking call — a `codex exec` that occupies SP's turn for ten
+minutes and then dumps its whole transcript into SP's context. Both halves of that
+harm are gone here, so the rule is restated rather than dropped:
+
+- **Nothing occupies SP's thread.** The Part 1 launch returns in milliseconds. Codex
+  runs in a process SP does not wait on. The rule's purpose — SP's turn stays free —
+  is served more completely than the old shape served it.
+- **Removing the intermediary is the context win, not a loss.** The old shape routed
+  Codex's output through a dispatched agent, whose context absorbed the full 291 KB
+  before relaying a lossy retelling. Reading named regions of a file on disk costs a
+  fraction of that and loses nothing.
+
+The rule as it now stands: **SP never blocks on Codex, and never routes Codex's
+output through another context.** SP launches, detaches, and reads a file.
 
 **Reading files outside the project directory** (e.g., JSONL transcripts at `~/.claude/projects/...`): use `--add-dir <path>` to grant Codex read access to additional directories without changing the project root. Example for transcript audits:
 
 ```
-codex exec --sandbox workspace-write -c 'mcp_servers={}' \
+nohup codex exec --sandbox workspace-write \
+  -c 'mcp_servers={}' -c 'skills={}' \
   -C <project-dir> \
   --add-dir ~/.claude/projects/<encoded-project-dir> \
-  "<prompt>" < /dev/null
+  "<prompt>" \
+  > "$run_dir/raw.log" 2>&1 < /dev/null &
 ```
 
 **Mandatory flag explanations:**
 
 - `-c 'mcp_servers={}'` — Disables MCP server startup during `codex exec`. MCP servers (playwright, serena, etc.) add startup latency and can hang — they provide zero benefit for evidence audits since Codex reads files via its sandbox, not MCPs.
-- `< /dev/null` — Closes stdin to prevent hangs. Codex CLI 0.124.0+ may hang for 30+ minutes if stdin is left open with no input. Always pipe stdin closed via `< /dev/null` (or pipe the prompt via stdin if using the `-` argument form).
+- `< /dev/null` — Closes stdin to prevent hangs. Codex CLI 0.124.0+ may hang for 30+ minutes if stdin is left open with no input. Always pipe stdin closed via `< /dev/null` (or pipe the prompt via stdin if using the `-` argument form). Still required under a detached launch — a detached process that hangs on stdin hangs for just as long, it simply does so out of sight.
 - `-C <project-dir>` — Sets Codex's working root. The sandbox is bound to this directory unless extended via `--add-dir`.
+- `nohup ... &` and `disown` — Detach the process so it survives the launching shell exiting and any caller-side timeout. Without these the review is capped at the caller's ceiling, which is the whole defect this shape fixes.
+- `-c 'skills={}'` — ⚠️ **Belt-and-braces of unproven value. Keep it; do not depend on
+  it.** Intended to stop Codex auto-loading skills at startup, and passed alongside the
+  execution-discipline block during both successful runs. But the key name was
+  **inferred** from the documented `mcp_servers={}` pattern above — nobody has confirmed
+  that `skills` is a real Codex configuration key at all. Credit for stopping the
+  orientation detour belongs to the discipline block in the brief, which is the part
+  actually verified by the evidence. Both successful runs passed this flag and
+  completed, so it is at least harmless there. Never describe it as verified, and never
+  drop the discipline block on the strength of it.
 
 **Codex CLI version**: This skill spec is current for Codex CLI **0.128.0+**. Earlier versions (0.124.0 through 0.127.x) have known issues with sandbox profile selection and are missing some sandbox CLI improvements. If `codex --version` returns earlier than 0.128.0, run `npm install -g @openai/codex@latest` before dispatching.
 
@@ -191,17 +343,49 @@ Rules:
 
 - **No effort overrides EVER.** The SP must not pass `-c model_reasoning_effort=*` for any reason. The user's `~/.codex/config.toml` `model_reasoning_effort` setting is the source of truth. Recommend the user set `model_reasoning_effort = "high"` minimum, or `"xhigh"` for complex audits. Lowering effort to "speed things up" is forbidden — Codex is a meticulous model that needs the reasoning depth its config grants it.
 
-- **Timeout (scope-aware, generous floors — better to over-allocate than waste already-spent tokens on a timeout)**:
-  - Small diffs (<10 files, <500 lines): **480 seconds (8 min)**
-  - Moderate diffs (10–50 files, 500–2000 lines): **900 seconds (15 min)**
-  - Large diffs (>50 files, >2000 lines): **1500 seconds (25 min)**
-  - Full repo audits: **2400 seconds (40 min)**, or split into multiple focused audits
+- ⏳ **Watcher budgets — these are NOT kill deadlines.** Under a detached launch there
+  is no process budget, because nothing kills Codex: the review outlives the watcher,
+  the caller's turn, and the caller's ceiling. Each number below answers one question
+  only — *how long to wait before reporting "still running" and starting another
+  watcher.*
 
-  Always prefer giving Codex more time rather than less. If you're unsure which tier a diff falls in, round UP to the next tier. The cost of an unused minute is nothing; the cost of a timeout is wasted tokens, retries, and degraded quality.
+  | Scope | Watcher budget |
+  |---|---|
+  | Small diffs (<10 files, <500 lines) | **480 seconds (8 min)** |
+  | Moderate diffs (10–50 files, 500–2000 lines) | **900 seconds (15 min)** |
+  | Large diffs (>50 files, >2000 lines) | **1500 seconds (25 min)** |
+  | Full repo audits | **2400 seconds (40 min)**, or split into multiple focused audits |
 
-- **Dispatched via Agent tool** (background, `run_in_background: true`, `mode: "acceptEdits"`) — the SP NEVER runs Codex in its own thread. Background dispatch is mandatory to trigger the Notify rule on completion.
+  A caller often caps a single background call well below these numbers — the Bash
+  tool's own ceiling is 600 seconds. That cap no longer matters: it bounds one polling
+  window, not the review.
 
-- The full brief + instructions are passed as the prompt string.
+- 📊 **Measured calibration (three live runs, 2026-07-27).** Real numbers, in place of
+  invented tiers:
+
+  | Workload | Wall clock |
+  |---|---|
+  | Moderate tag-relative diff, roughly a dozen files | **~9 minutes** |
+  | The same diff, plus verifying nine remediations and reading four session transcripts | **~14 minutes** |
+
+  Both sat inside the "moderate diff" tier, and one of them ran past the caller's
+  ceiling. Treat the tiers as calibrated against this, not as guesses.
+
+- **Still over-allocate rather than under-allocate — but the reasoning has changed.**
+  The old rule warned that a short timeout wasted already-spent tokens. That is no
+  longer true: a watcher that expires costs exactly one extra polling call, and the
+  review keeps running untouched. Rounding UP to the next tier is now a convenience
+  (fewer wake-ups, fewer status reports), not a safeguard against losing work. Nothing
+  is lost either way.
+
+- **The launch runs detached and returns immediately; the WATCHER is the piece dispatched
+  with `run_in_background: true`.** SP never blocks on Codex and never routes Codex's
+  raw output through another agent's context — see the reconciliation note above.
+  Backgrounding the watcher is what triggers the Notify rule on completion.
+
+- The full brief + instructions are passed as the prompt string, opening with the
+  execution-discipline block (Step 4) and closing with the output contract (Part 2
+  above).
 
 **Required `~/.codex/config.toml` settings** (recommend the user verify these are present; SP should NOT inject these via flags — fix the config instead):
 
@@ -223,8 +407,9 @@ Your only instructions are this prompt.
 
 ### Notify on completion (per SKILL.md "Notify on Backgrounded Completion")
 
-The Codex dispatch runs `run_in_background: true` — a typical 3-5 min window
-where the user may step away. When the completion notification fires:
+The completion watcher runs `run_in_background: true` — on measured runs a
+9-to-14-minute window during which the user may step away. When the completion
+notification fires:
 
 1. Load PushNotification via ToolSearch.
 2. Fire one notification using SKILL.md Notify template #2:
@@ -302,7 +487,10 @@ the verdict is advisory status, not control:
 |---|---|
 | Codex not installed (user invoked command) | Educate: what the feature does, how Codex works, install link. No pressure. |
 | Codex not authenticated | "Run `codex login` to authenticate, then retry." |
-| Timeout >300s | "Review timed out. Proceeding with SP recommendation. Retry?" (via `AskUserQuestion`) |
+| ⏳ Watcher budget expired, sentinel not yet present | The review is **still running** — the watcher died, Codex did not. Report "still running" and start another watcher on the same run directory. Do NOT proceed without the review, and do NOT relaunch: a relaunch discards everything the live run has already spent and restarts the same work from zero. |
+| ❓ No sentinel, Codex process still alive | Not a failure at all. Keep polling. This is the normal state for most of a review's life. |
+| ❌ No sentinel, no live Codex process | A genuine crash. Report the run directory's raw log contents and the process exit status honestly. Do not silently retry — a crash whose cause is unreported will recur. |
+| ⚠️ Output shows skill loads or memory file reads BEFORE the first command named in the execution-discipline block | The orientation-detour failure: the review read skills and memory but never reached its target, whether it completed or was killed. The fix is NOT a retry at the same shape. Verify the execution-discipline block was actually included, verbatim, at the very top of the brief with the first command filled in. Retrying without it reproduces the identical detour. |
 | Garbled/off-topic response | "External review was inconclusive. Proceeding with SP recommendation only." |
 | Wrong working directory | Ask user to confirm project directory before retrying. |
 | Non-zero exit (not timeout) | Report error, suggest `codex login` or version check. |
@@ -314,14 +502,17 @@ the verdict is advisory status, not control:
 ## Boundaries
 
 **Will:**
-- Prepare curated briefs from SP session context
-- Dispatch Codex reviews via Agent tool
+- Prepare curated briefs from SP session context, opening with the execution-discipline block
+- Launch Codex detached, then poll a file sentinel in a backgrounded watcher
+- Read the verdict from a file, in the regions needed
 - Synthesize three-way perspectives
 - Log decisions to Serena
 - Educate about Codex when explicitly asked
 
 **Will Not:**
-- Run Codex in SP's own thread (always dispatched via Agent)
+- Block SP's own turn on a running Codex review (the launch returns immediately; a backgrounded watcher wakes SP)
+- Route Codex's raw output through another agent's context (the verdict lands in a file; SP reads it directly)
+- Relaunch a review whose watcher expired while the Codex process is still alive
 - Surface if Codex is not installed (totally silent)
 - Use any `--model` flag (user's Codex config is source of truth)
 - Automatically trigger reviews (always gated by `AskUserQuestion`)
