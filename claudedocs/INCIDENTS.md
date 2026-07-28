@@ -54,7 +54,7 @@ its own terms below.
 | `RAW-LINE-REF` | 32 | A bare line number in chat prose ("see line 245") | 🟡 **Harmless; no new prevention this release** |
 | `LAYER-REF` | 9 | An internal structural label ("Layer 3") with no plain-English gloss | 🟡 **Harmless; no new prevention this release** |
 | `FUNCTION-CALL-IN-PROSE` | 4 | A function written as a call inside prose | 🟡 **Harmless; no new prevention this release** |
-| `FENCE-ENTITY` | 2 | A copyable prompt whose body carries HTML escapes, so it renders wrong on screen | 🟢 **Fixed in this release** |
+| `FENCE-ENTITY` | 2 | A copyable prompt whose body carries HTML escapes, so it renders wrong on screen | 🟢 **Checklist prevention added this release; not mechanically enforced** |
 | `DELIVERABLE-REF` | 2 | "deliverable N" numbering used in chat | 🟡 **Harmless; no new prevention this release** |
 | `INCIDENT-ID-IN-PROSE` | 1 | An incident ID dropped into prose with no explanation | 🔴 **Real; accepted for this release** |
 | `AUQ` | 1 | A question put to the user in prose instead of a structured choice | 🔴 **Real behavioural violation; accepted for this release** |
@@ -75,10 +75,17 @@ edit. Calling that "fixed" would let the same 47 reappear next release under a
 label suggesting they had been dealt with. They are accepted on the harmlessness
 argument alone, and that argument is the whole of their disposition.
 
-**🟢 The 2 fence findings are already fixed.** Both sit in one session that
-predates the change, and this release is the one that added the requirement to
-wrap tag-structured prompts in a code fence so they render correctly. The
-mechanism that caused them is gone; only the record of it remains.
+**🟢 The 2 fence findings have a prevention added this release.** Both sit in one
+session that predates the change, and this release is the one that added the
+requirement to wrap tag-structured prompts in a code fence so they render
+correctly.
+
+⚠️ Stated precisely: that is a **checklist requirement, not a mechanical gate**.
+Nothing verifies the rendering automatically, so the prevention holds because it
+is followed, not because it is enforced. An earlier version of this entry said
+"the mechanism that caused them is gone", which claims more than a discipline
+change can deliver — the same overclaiming this release has been correcting
+elsewhere. It is a real prevention and a weaker one than enforcement.
 
 **🔴 The 2 real findings were read individually rather than counted.** This is
 the part the old entry collapsed:
