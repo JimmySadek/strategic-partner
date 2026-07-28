@@ -251,6 +251,21 @@ assert_both_contain "a stall threshold is defined (phrase presence)" \
 assert_both_contain "a stalled review is surfaced rather than killed (phrase presence)" \
   "SP never kills a review on its own."
 
+# The stall check MUST sample raw.log, never verdict.md. Measured over a
+# 300-second review sampled every ten seconds: verdict.md held 0 bytes for the
+# whole run (Codex delivers standard output at the end, not as a stream) while
+# raw.log grew continuously and was never flat for more than ~40 seconds. A
+# stall rule pointed at verdict.md therefore reports every healthy review past
+# the threshold as stalled — firing on exactly the long audits this contract
+# exists to enable. This assertion exists so a future edit cannot quietly swap
+# the file back.
+assert_both_contain "the stall check samples the live trace, not the verdict (phrase presence)" \
+  'size=$(wc -c < "$run_dir/raw.log" 2>/dev/null | tr -d '"'"' '"'"')'
+assert_neither_contains "the stall check does not sample the verdict file" \
+  'size=$(wc -c < "$run_dir/verdict.md"'
+assert_both_contain "the buffering measurement is recorded as the reason (phrase presence)" \
+  "Why the stall check watches"
+
 # --- Detachment itself -------------------------------------------------------
 # Detachment is the primary property this change exists to deliver, and until
 # now nothing asserted it — every mention of detaching in this file was a

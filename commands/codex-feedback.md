@@ -368,9 +368,11 @@ while [ ! -f "$run_dir/verdict.done" ]; do
     exit 1
   fi
 
-  # Stall detection. Counters live in the run directory, so they survive one
-  # watcher expiring and the next one taking over.
-  size=$(wc -c < "$run_dir/verdict.md" 2>/dev/null | tr -d ' ')
+  # Stall detection reads raw.log, NOT verdict.md. See the note below — the
+  # verdict file stays empty until the very end, so watching it would report
+  # every healthy long review as stalled. Counters live in the run directory,
+  # so they survive one watcher expiring and the next one taking over.
+  size=$(wc -c < "$run_dir/raw.log" 2>/dev/null | tr -d ' ')
   if [ "$size" = "$(cat "$run_dir/watch.size" 2>/dev/null)" ]; then
     quiet=$(( $(cat "$run_dir/watch.quiet" 2>/dev/null || printf '0') + 1 ))
   else
@@ -399,11 +401,27 @@ The watcher separates three states so the caller never has to guess:
 | `1` | No sentinel, wrapper gone | A genuine crash. Report `raw.log` honestly; do not silently retry |
 | `2` | Alive but silent for ten minutes | ⚠️ Stalled — surface it to the user, do NOT kill it (see below) |
 
+📊 **Why the stall check watches `raw.log` and not the verdict.** This is the
+counter-intuitive part, and getting it backwards produces a rule that fires on
+exactly the reviews it is meant to protect. Codex does not stream its final
+answer — standard output is delivered essentially all at once when the run ends.
+Sampled every ten seconds across a 300-second review:
+
+| Stream | Behaviour |
+|---|---|
+| `verdict.md` (standard output) | **0 bytes for the entire run**, then the whole verdict at completion |
+| `raw.log` (standard error) | Grew continuously, 0 → ~492 KB, never flat for longer than about 40 seconds |
+
+So the verdict file is useless as a liveness signal — a perfectly healthy
+fourteen-minute audit shows zero growth in it for fourteen minutes. Standard
+error is the live stream: it carries the running trace, and it keeps ticking
+even through long reasoning blocks. A genuinely wedged Codex stops writing to it.
+
 ⚠️ **The stall rule, and why it does not kill anything.** Without a terminal rule,
 every live process reads as healthy forever, so an authenticated but wedged Codex
 can burn resources indefinitely with no one noticing. Ten minutes of zero growth in
-`verdict.md` is the escalation threshold — comfortably longer than any silent gap
-the measured runs produced, and short enough that a wedge is caught the same
+`raw.log` is the escalation threshold — an order of magnitude longer than the
+longest quiet stretch measured, and short enough that a wedge is caught the same
 session. What the watcher does with it is report, not act: it prints `STALLED` and
 hands the decision to the user via `AskUserQuestion`, because only the user can
 weigh whether a long-running audit is worth abandoning.
@@ -676,7 +694,7 @@ the verdict is advisory status, not control:
 | ⏳ Watcher budget expired, sentinel not yet present | The review is **still running** — the watcher died, Codex did not. Report "still running" and start another watcher on the same run directory. Do NOT proceed without the review, and do NOT relaunch: a relaunch discards everything the live run has already spent and restarts the same work from zero. |
 | ❓ No sentinel, wrapper process still alive | Not a failure at all. Keep polling. This is the normal state for most of a review's life. |
 | ❌ No sentinel, no live wrapper process | A genuine crash — and a rarer one than before, because the wrapper survives Codex failing and still records a non-zero status. Nothing killed Codex politely: something signalled the process group or sent an unconditional kill (see the survival table in Part 1). Report the run directory's `raw.log` contents honestly, and say plainly that no exit status was captured. Do not silently retry — a crash whose cause is unreported will recur. |
-| ⚠️ Watcher exits `2` — STALLED | `verdict.md` has not grown for ten minutes while the wrapper is still alive. Do NOT kill it. Report the byte count, how long it has been silent, and the run directory, then ask the user via `AskUserQuestion` whether to keep waiting, abandon the run, or inspect `raw.log`. Only the user can weigh whether a wedged audit is worth abandoning. |
+| ⚠️ Watcher exits `2` — STALLED | `raw.log` — the live trace, not the verdict file — has not grown for ten minutes while the wrapper is still alive. Do NOT kill it. Report the byte count, how long it has been silent, and the run directory, then ask the user via `AskUserQuestion` whether to keep waiting, abandon the run, or inspect `raw.log`. Only the user can weigh whether a wedged audit is worth abandoning. |
 | ⚠️ Output shows skill loads or memory file reads BEFORE the first command named in the execution-discipline block | The orientation-detour failure: the review read skills and memory but never reached its target, whether it completed or was killed. The fix is NOT a retry at the same shape. Verify the execution-discipline block was actually included, verbatim, at the very top of the brief with the first command filled in. Retrying without it reproduces the identical detour. |
 | Garbled/off-topic response | "External review was inconclusive. Proceeding with SP recommendation only." |
 | Wrong working directory | Ask user to confirm project directory before retrying. |
