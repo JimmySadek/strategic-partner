@@ -287,9 +287,20 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
 # below is string-only, so neither failure has anything left to stand on. The
 # only numeric tests allowed here compare string LENGTHS (${#...}), never
 # component values — tests/floor-version-tristate.sh asserts that mechanically.
+#
+# Every function below pins LC_ALL=C as its first statement, before any pattern
+# match. Bash matches a digit range by collation rather than by codepoint, so
+# under a locale whose digit range runs wider than ASCII a character like ٢
+# satisfies [0-9], passes validation, and then reaches a byte comparison that
+# cannot rank it — which reported 9.0.0 as "behind" ٢.0.0. Pinning the whole
+# comparator, not only its ordering step, makes validation accept ASCII digits
+# and nothing else, with no character list to maintain. The same suite asserts
+# the pin mechanically.
 sp_version_valid() {
   # Valid = exactly three dot-separated components, each one or more decimal
-  # digits, with no leading zero unless the component is exactly "0".
+  # digits, with no leading zero unless the component is exactly "0". Pinned
+  # first, because the digit range below is the gate a wide locale widens.
+  local LC_ALL=C
   local rest comp
   case "$1" in
     *[!0-9.]*) return 1 ;;
@@ -313,6 +324,12 @@ sp_version_valid() {
 # equal-length strings order correctly byte by byte — no size limit applies,
 # because no component is ever read as a number.
 sp_component_cmp() {
+  # Pinned before the first pattern match, not merely before the ordering step
+  # below. The digit gate is matched by collation, so an unpinned locale lets a
+  # non-ASCII digit through it and into a byte comparison that cannot rank the
+  # character. Scoped with local, so the rest of the hook keeps the caller's
+  # locale.
+  local LC_ALL=C
   case "$1" in '' | *[!0-9]*) return 3 ;; esac
   case "$2" in '' | *[!0-9]*) return 3 ;; esac
   if [ "$1" = "$2" ]; then
@@ -322,10 +339,8 @@ sp_component_cmp() {
     if [ "${#1}" -gt "${#2}" ]; then return 1; fi
     return 2
   fi
-  # Equal length: byte order is numeric order for digit strings. LC_ALL is
-  # pinned to C so that holds whatever the ambient locale collates, and scoped
-  # with local so the rest of the hook keeps the caller's locale.
-  local LC_ALL=C
+  # Equal length: byte order is numeric order for digit strings, which holds
+  # whatever the ambient locale collates because of the pin at the top.
   if [[ "$1" > "$2" ]]; then return 1; fi
   return 2
 }
@@ -337,6 +352,9 @@ sp_component_cmp() {
 # produced the wrong answer before, not the failure itself, so no branch here
 # falls through to a later component.
 sp_version_diff() {
+  # Pinned here too, so the region holds the property uniformly rather than
+  # depending on which function a future caller happens to enter through.
+  local LC_ALL=C
   local lv="$1" rv="$2" lrest rrest pair
   if ! sp_version_valid "$lv" || ! sp_version_valid "$rv"; then
     printf 'unknown'
