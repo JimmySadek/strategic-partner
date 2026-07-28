@@ -111,18 +111,6 @@ nested there. A `working-copy` directory already has an upstream, maintained by
 whoever set the repository up. Strategic Partner reports what is available
 there and leaves the repository untouched.
 
-6. If the install is `standalone`, confirm the file-copying tool the refresh
-   depends on is present — before offering the update, not partway through it:
-   ```
-   command -v rsync
-   ```
-   If it is missing, stop and say so plainly: "❌ This refresh needs `rsync`,
-   which is not installed here. Install it and run this command again — `apt
-   install rsync` on Debian or Ubuntu, `dnf install rsync` on Fedora, or
-   `brew install rsync` on macOS." Do not begin the refresh without it; a
-   refresh that dies halfway leaves temporary files behind and the plugin
-   unfinished.
-
 ### Step 3 — Compare and Present
 
 **If versions match and the bundle is complete:**
@@ -173,160 +161,41 @@ End the interaction there. No question follows, because there is nothing for
 this command to do: the user's repository is theirs to move, and no check
 performed here could make moving it on their behalf safe.
 
-**For `standalone` — offer the refresh.**
-
-Say what the refresh does before asking: "This plugin directory does not sit
-inside a checked-out repository, so the update refreshes it from the latest
-release rather than leaving it to one. That replaces
-everything inside the plugin directory — not just edited files, but anything
-kept in there, including a git repository of your own. Nothing is changed by a
-git command; the whole directory is swapped for a verified copy and the old one
-is deleted. Keep anything you care about outside the plugin directory."
-
-Then present via `AskUserQuestion`:
-   - **Question**: "Update to v{remote}?"
-   - **Options**:
-     - [Update now] (Recommended) — Refresh this directory from the v{remote} release
-     - [Show full changelog] — Fetch and display the full CHANGELOG.md from the repo
-     - [Not now] — Skip this update
-
-For an incomplete same-version `standalone` install, change the question to
-"Repair this Strategic Partner plugin from v{remote}?"
-
-### Step 4 — Refresh From The Release Tag (if confirmed)
-
-This is the only execution path this command has, and it runs only for a
-`standalone` install. A `working-copy` install already ended at Step 3.
-
-Build the new content beside the live directory, verify it there, and only then
-swap it in. Nothing touches the live plugin until a fully verified replacement
-is ready, so an interruption can never leave a half-updated install.
+**For `standalone` — report the gap and hand the update to the user.**
 
 ```
-parent="$(dirname "{plugin-root}")"
+⚡ Update available: v{local} → v{remote}
 
-# The same verification used before the swap and after it: every bundle path,
-# the name, and the version. It prints what failed and returns non-zero, so
-# the shell conditions below decide what happens — no step is left to
-# recollection at the moment it matters.
-sp_verify() {
-  d="$1"
-  for p in skills/strategic-partner/SKILL.md \
-           skills/strategic-partner/references/startup-checklist.md \
-           commands/update.md \
-           hooks/guard-impl.sh \
-           output-styles/strategic-partner-voice.md \
-           .claude-plugin/plugin.json; do
-    [ -f "$d/$p" ] || { echo "missing $p"; return 1; }
-  done
-  [ -x "$d/.scripts/serena-doctor.sh" ] || { echo "missing .scripts/serena-doctor.sh"; return 1; }
-  grep -q '^name: strategic-partner$' "$d/skills/strategic-partner/SKILL.md" \
-    || { echo "not a Strategic Partner bundle"; return 1; }
-  grep -q '^version: {remote}$' "$d/skills/strategic-partner/SKILL.md" \
-    || { echo "version is not {remote}"; return 1; }
-  return 0
-}
-
-# 1. One fresh work directory beside the live plugin. mktemp picks a name
-#    nobody can predict or pre-create, and it starts empty because mktemp
-#    just made it. Beside the live directory, so the swap in step 5 is a
-#    rename within one filesystem rather than a copy.
-work="$(mktemp -d "$parent/.strategic-partner-update.XXXXXX")"
-staging="$work/new"
-backup="$work/old"
-mkdir "$staging"
-tmp="$(mktemp -d)"
-
-# 2. Take the release tag, never an unqualified branch. This reads a public
-#    repository into a temporary directory it just created; it changes nothing
-#    that already existed.
-git clone --depth 1 --branch "v{remote}" "https://github.com/{repo}.git" "$tmp/src"
-
-# 3. Assemble the new bundle in staging. No --delete is needed: staging is new.
-rsync -a --exclude='.git' "$tmp/src/plugin/strategic-partner/" "$staging/"
-
-# 4. Verify staging while the live plugin is still untouched.
-if ! reason="$(sp_verify "$staging")"; then
-  echo "❌ The downloaded copy failed verification: $reason"
-  echo "Nothing was changed. The copy that failed is in $work if you want to look."
-  exit 1
-fi
-
-# sp-swap-region: begin
-# Every rename below is checked. A rename is a filesystem operation and can
-# fail — a permission change, a full disk, a directory held open elsewhere.
-# Unchecked, the recovery path still printed "your previous version is back in
-# place" whether or not the restore had actually happened, which is the one
-# thing recovery must never say wrongly. Success is claimed only after the live
-# path is re-verified. tests/plugin-update-contract.sh injects a failure at each
-# rename and asserts what gets printed.
-
-# 5. Swap: two renames inside $parent. The previous content survives as $backup.
-if ! mv "{plugin-root}" "$backup"; then
-  echo "❌ Could not move the current plugin aside. Nothing was changed."
-  echo "The verified replacement is in $staging if you want to look."
-  exit 1
-fi
-
-if ! mv "$staging" "{plugin-root}"; then
-  echo "❌ Could not move the new copy into place."
-  if mv "$backup" "{plugin-root}" && sp_verify "{plugin-root}" >/dev/null; then
-    echo "Your previous version is back in place. Nothing else changed."
-  else
-    echo "🚨 RESTORE FAILED — there is no working plugin at {plugin-root}."
-    echo "Your previous version is intact at: $backup"
-    echo "Put it back with:  mv \"$backup\" \"{plugin-root}\""
-  fi
-  exit 1
-fi
-
-# 6. Verify what is now live. The backup is discarded ONLY if this passes.
-if reason="$(sp_verify "{plugin-root}")"; then
-  rm -rf "$work" "$tmp"
-else
-  echo "❌ The updated copy failed verification: $reason"
-  if mv "{plugin-root}" "$work/failed" \
-     && mv "$backup" "{plugin-root}" \
-     && sp_verify "{plugin-root}" >/dev/null; then
-    echo "Your previous version is back in place. The copy that failed is in $work."
-  else
-    echo "🚨 RESTORE FAILED — there is no working plugin at {plugin-root}."
-    echo "Your previous version is intact at: $backup"
-    echo "Put it back with:  mv \"$backup\" \"{plugin-root}\""
-    echo "Do not run this command again until that is done."
-  fi
-  exit 1
-fi
-# sp-swap-region: end
+This plugin directory does not sit inside a checked-out repository, so nothing
+here maintains it automatically. Reinstall it from the v{remote} release when
+you're ready.
 ```
 
-Before starting, confirm all of these are true:
+Name the reinstall route that matches how the directory was put there — the
+plugin marketplace entry, or whatever command originally installed it — and
+stop. Do not offer to replace the directory on this command's behalf.
 
-- `{plugin-root}` exists and contains `skills/strategic-partner/SKILL.md`
-- `{plugin-root}` is the plugin directory shown to the user
-- the user approved replacing that directory's contents from the release
+⚠️ **Why this command does not refresh the directory itself.** Replacing a
+directory in place means moving the live copy aside, moving a new one in, and
+moving the old one back if anything fails. Each of those is a rename that can
+fail on its own, and a recovery path built from them reported success after a
+failed restore in three consecutive review rounds — the last time by printing a
+command that nested the backup inside the broken copy rather than replacing it.
+The capability was removed rather than guarded a fourth time, for the same
+reason the repository-pull path was removed earlier in this release: a
+mechanism that keeps producing the same class of defect is the wrong mechanism.
 
-**What happens if it is interrupted.** Step 4 verifies before anything live is
-touched, so a failure there leaves the installed plugin exactly as it was. The
-two renames in step 5 run one after the other, so a crash between them leaves
-the plugin directory missing and its previous content sitting beside it, inside
-a directory whose name starts with `.strategic-partner-update.`. Nothing is
-deleted and nothing is half-written: moving `old` back to the plugin's own name
-restores the previous version exactly. Step 6 deletes the backup only after the
-live directory passes the same verification, and puts the previous version back
-if it does not. If anything fails from step 5 onward, tell the user where their
-previous copy is — never leave them guessing.
+The replacement is designed and filed, not improvised here. A published release
+should be unpacked into its own directory beside the current one, with the
+plugin path a symbolic link pointed at whichever release is live. Rollback then
+costs one flip of that link, the previous release is never moved, and the
+failure branches this command grew simply do not exist. See
+`.backlog/redesign-plugin-refresh-as-symlinked-generations.md`.
 
-After success:
-   ```
-   ✅ Updated to v{remote}.
-   ```
+### Step 4 — After The User Reinstalls
 
-### Step 5 — After The Refresh
-
-A plugin install has no setup script and no command symlinks to refresh —
-Claude Code reads the commands, hooks, and voice style out of the plugin
-directory itself. So the only work left is confirming the update landed.
+This command performs no refresh, so this step runs only when the user says
+they have reinstalled and asks for a check.
 
 1. Re-verify the seven bundle paths from Step 2, and confirm
    `{plugin-root}/skills/strategic-partner/SKILL.md` now reports `v{remote}`.
@@ -344,12 +213,11 @@ directory itself. So the only work left is confirming the update landed.
 - Display changelog highlights from release notes
 - Inspect the plugin bundle before choosing a path
 - Classify the install as `working-copy` or `standalone`
-- Report the version gap and stop when the plugin lives inside a git working copy
-- Refresh a `standalone` plugin directory from the release tag, staged and
-  verified beside the live copy before anything is swapped in
-- Replace the **entire contents** of that plugin directory when it refreshes,
-  including anything nested inside it
-- Refuse to update when the local build is newer than the latest published release
+- Report the version gap and stop, whichever way the install is classified
+- Name the reinstall route that matches how the directory was installed
+- Re-check the bundle and version after the user reinstalls, on request
+- Refuse to report an update as available when the local build is newer than
+  the latest published release
 
 **Will Not:**
 - **Run a repository-changing git command against an existing repository.**
@@ -360,6 +228,9 @@ directory itself. So the only work left is confirming the update landed.
   hold the plugin is the user's own operation, and this command will not run it
   for them — there is no filesystem check that could make doing so safe, which
   is why the capability was removed rather than guarded.
+- **Replace, delete, or move the plugin directory, or anything inside it.** This
+  command reads and reports. It performs no staging, no swap, and no rollback,
+  because it performs no refresh. Reinstalling is the user's own action.
 - Implement source code changes
 - Auto-update without explicit user confirmation
 - Modify any project files beyond the plugin directory itself

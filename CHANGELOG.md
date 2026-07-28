@@ -10,14 +10,13 @@
   directions and says plainly when the local copy is ahead of the latest GitHub
   Release. Before choosing a path, the check also inspects the installed bundle
   and works out which of two shapes it is: a plugin directory that does not sit
-  inside a checked-out repository, which the check can refresh from the published
-  release, or one that does, which the check reports on and leaves alone. That
-  test asks only about the plugin directory itself — it does not go looking for
-  repositories kept inside it, which is why the warning before a refresh spells
-  out that everything nested there is replaced. The step after updating no longer reaches for setup work a plugin
-  install has never had — there is no setup script and no command symlinks to
-  refresh — and instead re-checks the bundle files and the version before
-  looking at the Serena setup.
+  inside a checked-out repository, or one that does. That test asks only about
+  the plugin directory itself and nothing nested inside it, and it now decides
+  only which reinstall advice you get — neither shape is touched by this command.
+  The check after an update no longer reaches for setup work a plugin install has
+  never had — there is no setup script and no command symlinks to refresh — and
+  instead re-checks the bundle files and the version before looking at the Serena
+  setup.
 - **When a dispatch is refused because one of the confirmation choices was
   reworded, the message now names that choice instead of the one you picked
   correctly** — Strategic Partner asks you to confirm a dispatch with a fixed set
@@ -52,38 +51,24 @@
   text rather than converted, which has no size limit at all, and any comparison
   that cannot be completed stops on the spot and says it cannot tell rather than
   carrying on to a guess.
-- **The update no longer runs a git command against a repository you already
-  have** — it used to offer to move a repository forward on your behalf whenever
-  the plugin looked like it was sitting in its own source. Two different tests
-  were tried for "is this really the right repository," and a review defeated
-  both in minutes using nothing but an ordinary local repository built for the
-  purpose: any repository can be made to look like the right one, so neither
-  test proved what it claimed. Rather than add a third test that could be beaten
-  the same way, the capability was removed. The update now runs no fetch, pull,
-  merge, checkout, rebase, or reset against anything already on disk. A plugin
-  inside a checked-out repository gets a version report and nothing else — moving
-  that repository stays your decision. A plugin directory that no repository
-  maintains is still refreshed from the latest release, and that refresh is
-  staged: the replacement is assembled and checked beside the live copy before
-  anything is swapped, and the previous version stays recoverable until the new
-  one is verified, so an interruption cannot leave a half-updated install. The
-  refresh also checks up front that the file-copying tool it needs is installed,
-  and names what to install if it is missing, rather than stopping halfway
-  through. If a step of that swap cannot be completed — a rename the filesystem
-  refuses — the update now says so instead of reporting a recovery that did not
-  happen, and tells you exactly where your previous copy is and the one command
-  that puts it back. One thing to know about that refresh: it replaces **everything**
-  inside the plugin directory, including anything nested in it. No git command
-  is involved — the whole directory is swapped for a verified copy and the old
-  one is deleted — so a repository of your own kept inside the plugin directory
-  would go with it. Keep anything you care about somewhere else.
-- **A refresh that fails its final check now puts your previous copy back** —
-  the refresh builds the new version beside the live one and checks it before
-  swapping them. That final check was written as an instruction to follow while
-  the clean-up ran regardless, so a failed check could still end with the
-  previous copy deleted. The clean-up now runs only when the check passes; when
-  it does not, the previous version is put back and the copy that failed is kept
-  where you can look at it.
+- **The plugin update no longer replaces the plugin folder for you — it tells
+  you what changed and leaves the reinstall to you** — earlier work in this
+  release built an automatic refresh that swapped the folder for a freshly
+  downloaded copy, keeping the old one aside in case the new one failed its
+  checks. Putting the old one back turned out to be the hard part: three rounds
+  of independent review each found a new way for that recovery to go wrong, the
+  last being a printed recovery command that tucked your previous copy *inside*
+  the broken one instead of replacing it, under a message saying your previous
+  version was back. Rather than patch that a fourth time, the automatic refresh
+  was removed. The update check still does everything it did before it — compares
+  versions in both directions, refuses to talk you into replacing a newer local
+  build with an older published one, inspects the folder for missing files, and
+  says which of the two install shapes you have — and then points you at the
+  reinstall instead of performing it. Nothing on your disk is moved, replaced, or
+  deleted by this command. A better design is written up and waiting: keep each
+  released version in its own folder and point a shortcut at the one in use, so
+  going back is a single flick of that shortcut and the previous version is never
+  disturbed at all.
 - **A cross-model review that needs longer than ten minutes now runs to
   completion, and a review left to finish always has its result captured** —
   these reviews ask a second AI
