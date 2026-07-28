@@ -175,8 +175,9 @@ performed here could make moving it on their behalf safe.
 
 **For `standalone` — offer the refresh.**
 
-Say what the refresh does before asking: "No repository maintains this plugin
-directory, so the update refreshes it from the latest release. That replaces
+Say what the refresh does before asking: "This plugin directory does not sit
+inside a checked-out repository, so the update refreshes it from the latest
+release rather than leaving it to one. That replaces
 everything inside the plugin directory — not just edited files, but anything
 kept in there, including a git repository of your own. Nothing is changed by a
 git command; the whole directory is swapped for a verified copy and the old one
@@ -251,20 +252,52 @@ if ! reason="$(sp_verify "$staging")"; then
   exit 1
 fi
 
+# sp-swap-region: begin
+# Every rename below is checked. A rename is a filesystem operation and can
+# fail — a permission change, a full disk, a directory held open elsewhere.
+# Unchecked, the recovery path still printed "your previous version is back in
+# place" whether or not the restore had actually happened, which is the one
+# thing recovery must never say wrongly. Success is claimed only after the live
+# path is re-verified. tests/plugin-update-contract.sh injects a failure at each
+# rename and asserts what gets printed.
+
 # 5. Swap: two renames inside $parent. The previous content survives as $backup.
-mv "{plugin-root}" "$backup"
-mv "$staging" "{plugin-root}"
+if ! mv "{plugin-root}" "$backup"; then
+  echo "❌ Could not move the current plugin aside. Nothing was changed."
+  echo "The verified replacement is in $staging if you want to look."
+  exit 1
+fi
+
+if ! mv "$staging" "{plugin-root}"; then
+  echo "❌ Could not move the new copy into place."
+  if mv "$backup" "{plugin-root}" && sp_verify "{plugin-root}" >/dev/null; then
+    echo "Your previous version is back in place. Nothing else changed."
+  else
+    echo "🚨 RESTORE FAILED — there is no working plugin at {plugin-root}."
+    echo "Your previous version is intact at: $backup"
+    echo "Put it back with:  mv \"$backup\" \"{plugin-root}\""
+  fi
+  exit 1
+fi
 
 # 6. Verify what is now live. The backup is discarded ONLY if this passes.
 if reason="$(sp_verify "{plugin-root}")"; then
   rm -rf "$work" "$tmp"
 else
-  mv "{plugin-root}" "$work/failed"
-  mv "$backup" "{plugin-root}"
   echo "❌ The updated copy failed verification: $reason"
-  echo "Your previous version is back in place. The copy that failed is in $work."
+  if mv "{plugin-root}" "$work/failed" \
+     && mv "$backup" "{plugin-root}" \
+     && sp_verify "{plugin-root}" >/dev/null; then
+    echo "Your previous version is back in place. The copy that failed is in $work."
+  else
+    echo "🚨 RESTORE FAILED — there is no working plugin at {plugin-root}."
+    echo "Your previous version is intact at: $backup"
+    echo "Put it back with:  mv \"$backup\" \"{plugin-root}\""
+    echo "Do not run this command again until that is done."
+  fi
   exit 1
 fi
+# sp-swap-region: end
 ```
 
 Before starting, confirm all of these are true:
