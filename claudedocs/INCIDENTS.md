@@ -11,46 +11,101 @@ being prepared for release. It is not being cleared before the release, and it
 is not being suppressed. It is being waived, on the record, for this release
 only.
 
-Measured directly for this entry rather than quoted from a review:
+### Every number below is a snapshot, not a state
+
+⚠️ **Read no count in this entry as current.** The lint reads live session
+transcripts, which grow while anyone works — including while the release review
+that reads them is running. Three measurements of the *same unchanged tree*, in
+order:
+
+| Measured | Violations | Files with violations | Files scanned | Warnings |
+|---|---|---|---|---|
+| 2026-07-27, second review round | 48 | — | — | — |
+| 2026-07-28, waiver first recorded | 50 | 6 | 14 | 21 |
+| 2026-07-28, this remediation round | 51 | 7 | 15 | 21 |
+
+The direction of drift is **upward and monotonic**, and the cause is mechanical:
+new sessions appear, and some of them are the review sessions themselves. The
+most recent measurement, taken directly for this entry:
 
 ```
 $ bash tests/lint-transcripts.sh
-Transcript lint: 50 violation(s) found across 6 of 14 file(s) (21 warning(s))
+Transcript lint: 51 violation(s) found across 7 of 15 file(s) (21 warning(s))
 $ echo $?
 1
 ```
 
-Per-file breakdown of the 50 mechanical violations:
+Any number quoted here is what one run saw at one moment. The next run will
+almost certainly see more. Nothing in the disposition below depends on a
+specific count — it disposes of rule *classes*, which is the part that stays
+stable while the totals move.
 
-| Session transcript | Violations | Rule categories | Origin |
+### Disposition by rule class
+
+The previous version of this entry dispositioned all findings together on the
+grounds that transcripts cannot be edited. That is an answer to "why can't this
+be fixed", which is a different question from "why is it safe to ship". A
+readability slip in past chat and a broken behavioural rule are not the same
+risk and cannot be waived by the same sentence. Each class is dispositioned on
+its own terms below.
+
+| Rule class | Count (2026-07-28 snapshot) | What it flags | Disposition |
 |---|---|---|---|
-| `f6c212b8…` | 36 | `RAW-LINE-REF`, `LAYER-REF`, `FUNCTION-CALL-IN-PROSE`, `DELIVERABLE-REF`, `FENCE-ENTITY` | this release |
-| `a2755716…` | 4 | `RAW-LINE-REF`, `AUQ` | this release |
-| `1c7e5096…` | 3 | `RAW-LINE-REF` | this release |
-| `d66d25db…` | 3 | `RAW-LINE-REF` | predates this release |
-| `4f9c847c…` | 2 | `RAW-LINE-REF` | this release |
-| `1b81f9b3…` | 2 | `RAW-LINE-REF` | this release |
+| `RAW-LINE-REF` | 32 | A bare line number in chat prose ("see line 245") | 🟡 **Harmless; fixed going forward** |
+| `LAYER-REF` | 9 | An internal structural label ("Layer 3") with no plain-English gloss | 🟡 **Harmless; fixed going forward** |
+| `FUNCTION-CALL-IN-PROSE` | 4 | A function written as a call inside prose | 🟡 **Harmless; fixed going forward** |
+| `FENCE-ENTITY` | 2 | A copyable prompt whose body carries HTML escapes, so it renders wrong on screen | 🟢 **Fixed in this release** |
+| `DELIVERABLE-REF` | 2 | "deliverable N" numbering used in chat | 🟡 **Harmless; fixed going forward** |
+| `INCIDENT-ID-IN-PROSE` | 1 | An incident ID dropped into prose with no explanation | 🔴 **Real; accepted for this release** |
+| `AUQ` | 1 | A question put to the user in prose instead of a structured choice | 🔴 **Real behavioural violation; accepted for this release** |
 
-By rule: `RAW-LINE-REF` 32, `LAYER-REF` 9, `FUNCTION-CALL-IN-PROSE` 4,
-`FENCE-ENTITY` 2, `DELIVERABLE-REF` 2, `AUQ` 1.
+**🟡 The 47 readability findings** — raw line references, layer labels,
+function-call prose, deliverable numbering — are all one thing: chat that was
+harder to read than it should have been. Nothing downstream consumed them, no
+decision turned on them, and no user acted on a wrong instruction because of
+them. They are a quality signal about past writing, not a defect shipping to
+anyone. They account for 47 of the 51.
 
-Five of the six files are this release's own executor sessions, dated
-2026-07-25 through 2026-07-28, and account for 47 of the 50 violations. One
-file — `d66d25db…`, dated 2026-07-13 — predates the release window and carries
-the remaining 3.
+**🟢 The 2 fence findings are already fixed.** Both sit in one session that
+predates the change, and this release is the one that added the requirement to
+wrap tag-structured prompts in a code fence so they render correctly. The
+mechanism that caused them is gone; only the record of it remains.
 
-### Why it broke
+**🔴 The 2 real findings were read individually rather than counted.** This is
+the part the old entry collapsed:
 
-The findings live in session transcripts under the Claude projects directory.
-Those files are an append-only record of conversations that already happened.
-They cannot be edited into compliance: rewriting them would falsify the record
-of what was actually said, and the violations would be no less real for having
-been erased. There is no version of "fix the findings" available here that is
-not falsification.
+- The `AUQ` finding is a genuine rule break. Strategic Partner asked the user a
+  question in plain prose — *"I don't see any actual content from Codex in your
+  message… Could you paste it?"* — where the rule requires a structured choice
+  with options. The effect was mild: the user answered and the session
+  continued. It is accepted because it is one instance, its effect ended when
+  that turn ended, and the rule itself is unchanged and still enforced live by
+  the turn-end check. It is accepted as a **known rule break**, not reclassified
+  as harmless.
+- The `INCIDENT-ID-IN-PROSE` finding is also real, and it is this entry's own
+  subject: a turn wrote `INC-2026-07-28` and a run of compressed figures
+  ("50/6-of-14/21", "48→50 drift") into user-facing prose with no gloss. It was
+  checked in context rather than waved through as self-referential — the rule
+  applies, and the writing broke it.
 
-So the gate cannot be cleared by fixing its inputs, and the release either
-stops indefinitely or proceeds with the failure documented. This entry is the
-documentation.
+### Why the release is safe to ship with the gate open
+
+Three things, in order of weight:
+
+1. **Nothing in the failing set ships.** Every finding lives in a session
+   transcript — a record of conversations that already happened. None of it is
+   in `SKILL.md`, the hooks, the commands, or anything a user installs. The gate
+   is failing on a description of past work, not on the work.
+2. **The two real findings are bounded and spent.** Both are single turns whose
+   effect ended with the turn. Neither changes what the released code does,
+   neither leaves a wrong instruction anywhere a user will read it, and the
+   rules they broke remain in force for future sessions.
+3. **The remaining 47 are a writing-quality signal.** Worth improving, not worth
+   blocking a release that fixes real defects for users.
+
+That is the disposition. It is not "the evidence cannot be edited, therefore
+ship" — being unable to rewrite a record says nothing about whether the thing
+recorded is dangerous. It is "each class was examined, and none of them is."
 
 ### Why no filename exemption was added
 
@@ -69,23 +124,36 @@ set would have silently grown during the very review that proposed the exemption
 An exemption whose scope grows after it is granted is not an exemption. It is a
 blind spot with a filename attached.
 
-### Durable fix, filed separately
+### Durable fix, and what it is called
 
 The correct mechanism is rule-scoped or hit-scoped exemptions carrying a content
 fingerprint, so an exemption covers one specific known finding and stops applying
-the moment the content changes. That work is filed separately and is not part of
-this release. Until it exists, there is no exemption shape available here that is
-narrow enough to be safe.
+the moment the content changes. That work exists as a backlog item —
+`.backlog/add-scoped-lint-exemptions.md`, "Scope transcript-lint exemptions to a
+rule or a recorded violation instead of a whole file by basename" — and is not
+part of this release. Until it lands, there is no exemption shape available here
+that is narrow enough to be safe.
 
-### Scope of this waiver
+### Scope of this waiver, and the condition that ends it
 
 This is a waiver. The gate is failing, and it is recorded as failing. Nothing in
 this release makes the transcript lint pass, and no part of the release process
 should read it as passing.
 
-The waiver covers **this release only**. It establishes no precedent. The next
-release confronts the same gate on its own terms, with whatever count it measures
-at that time, and must decide again.
+The waiver covers **this release only** — and unlike the previous version of this
+entry, that phrase now has something behind it. Left unbounded, "this release
+only" is a sentence that can be copied verbatim into the next release forever.
+
+| | |
+|---|---|
+| **Owner** | Whoever runs the pre-release review in `claudedocs/release-process.md`. It is that step's job to check this section, not a general aspiration. |
+| **Expires** | At the next release. This entry may not be renewed by reference or by copying. |
+| **Renewal requires** | A fresh measurement recorded with its date; every rule class in the table above re-examined against *that* measurement, including any class that did not exist this time; and an explicit statement of whether `add-scoped-lint-exemptions` has landed. |
+| **Escalation** | 🚨 If a **second consecutive** release reaches this gate and waives it, `add-scoped-lint-exemptions` stops being a backlog item and becomes a blocker for that release. A third waiver is not available. |
+
+The next release therefore confronts the same gate on its own terms, with
+whatever count it measures at that time — and if it wants to waive it again, it
+inherits a deadline rather than a precedent.
 
 ## INC-2026-07-13 — Serena utility armed the advisory startup ceremony
 
