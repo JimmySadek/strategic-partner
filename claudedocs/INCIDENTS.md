@@ -51,11 +51,11 @@ its own terms below.
 
 | Rule class | Count (2026-07-28 snapshot) | What it flags | Disposition |
 |---|---|---|---|
-| `RAW-LINE-REF` | 32 | A bare line number in chat prose ("see line 245") | 🟡 **Harmless; fixed going forward** |
-| `LAYER-REF` | 9 | An internal structural label ("Layer 3") with no plain-English gloss | 🟡 **Harmless; fixed going forward** |
-| `FUNCTION-CALL-IN-PROSE` | 4 | A function written as a call inside prose | 🟡 **Harmless; fixed going forward** |
+| `RAW-LINE-REF` | 32 | A bare line number in chat prose ("see line 245") | 🟡 **Harmless; no new prevention this release** |
+| `LAYER-REF` | 9 | An internal structural label ("Layer 3") with no plain-English gloss | 🟡 **Harmless; no new prevention this release** |
+| `FUNCTION-CALL-IN-PROSE` | 4 | A function written as a call inside prose | 🟡 **Harmless; no new prevention this release** |
 | `FENCE-ENTITY` | 2 | A copyable prompt whose body carries HTML escapes, so it renders wrong on screen | 🟢 **Fixed in this release** |
-| `DELIVERABLE-REF` | 2 | "deliverable N" numbering used in chat | 🟡 **Harmless; fixed going forward** |
+| `DELIVERABLE-REF` | 2 | "deliverable N" numbering used in chat | 🟡 **Harmless; no new prevention this release** |
 | `INCIDENT-ID-IN-PROSE` | 1 | An incident ID dropped into prose with no explanation | 🔴 **Real; accepted for this release** |
 | `AUQ` | 1 | A question put to the user in prose instead of a structured choice | 🔴 **Real behavioural violation; accepted for this release** |
 
@@ -65,6 +65,15 @@ harder to read than it should have been. Nothing downstream consumed them, no
 decision turned on them, and no user acted on a wrong instruction because of
 them. They are a quality signal about past writing, not a defect shipping to
 anyone. They account for 47 of the 51.
+
+⚠️ **These four are accepted, not fixed.** An earlier version of this entry
+marked them "fixed going forward". That was an overclaim, and a cross-model
+review was right to call it: this release adds no new mechanism preventing any
+of the four. The rules that flag them already existed before this release and
+still only catch them after the fact, at release time, in transcripts nobody can
+edit. Calling that "fixed" would let the same 47 reappear next release under a
+label suggesting they had been dealt with. They are accepted on the harmlessness
+argument alone, and that argument is the whole of their disposition.
 
 **🟢 The 2 fence findings are already fixed.** Both sit in one session that
 predates the change, and this release is the one that added the requirement to
