@@ -273,6 +273,48 @@ $offenders"
 assert_no_component_arithmetic "root" "$ROOT/hooks/floor-check.sh"
 assert_no_component_arithmetic "plugin" "$ROOT/plugin/strategic-partner/hooks/floor-check.sh"
 
+# --- A pin that cannot be applied answers "unknown" -------------------------
+#
+# `local LC_ALL=C` is an assignment, and an assignment can be refused. A caller
+# that exports LC_ALL and marks it readonly makes the declaration fail: bash
+# prints a diagnostic, the function CARRIES ON, and validation runs under the
+# caller's locale — which is exactly the hole the pin was added to close,
+# reopened without a trace. The comparator must fail closed instead.
+#
+# Unlike the wide-locale rows above, this needs no particular locale installed,
+# so it runs on every machine rather than skipping. Two rows: the refused pin
+# must answer "unknown", and the identical comparison with the pin allowed must
+# still answer "ahead" — otherwise a comparator that answered "unknown" to
+# everything would look like a fix.
+for target in "hooks/floor-check.sh:root" "plugin/strategic-partner/hooks/floor-check.sh:plugin"; do
+  script_rel="${target%%:*}"
+  label="${target##*:}"
+
+  # Region only, with no trailing call line: this row sources it into a shell
+  # that has already marked LC_ALL readonly, then calls the entry point there.
+  region_probe=$(mktemp -t sp-readonly-probe.XXXXXX)
+  awk '/^# sp-comparator-region: begin$/{f=1} /^# sp-comparator-region: end$/{print; f=0} f' \
+    "$ROOT/$script_rel" > "$region_probe"
+
+  got=$(LC_ALL=C bash -c 'readonly LC_ALL; . "$1"; sp_version_diff "$2" "$3"' \
+    bash "$region_probe" "7.6.1" "7.6.0" 2>&1)
+  if [ "$got" = "unknown" ]; then
+    record_pass "$label: readonly LC_ALL (pin refused) -> unknown"
+  else
+    record_fail "$label: readonly LC_ALL (pin refused) -> expected unknown, got ${got:-(empty)}"
+  fi
+
+  got=$(LC_ALL=C bash -c '. "$1"; sp_version_diff "$2" "$3"' \
+    bash "$region_probe" "7.6.1" "7.6.0" 2>&1)
+  if [ "$got" = "ahead" ]; then
+    record_pass "$label: writable LC_ALL (pin applied) -> ahead"
+  else
+    record_fail "$label: writable LC_ALL (pin applied) -> expected ahead, got ${got:-(empty)}"
+  fi
+
+  rm -f "$region_probe"
+done
+
 # --- Structural: the locale is pinned before anything is validated ----------
 #
 # The rows above prove today's answers on this machine's locales. This proves
@@ -285,6 +327,11 @@ assert_no_component_arithmetic "plugin" "$ROOT/plugin/strategic-partner/hooks/fl
 # somewhere in the region": the old code contained the pin and was still wrong,
 # because of where it sat. Requiring it first is what encodes the ordering.
 # A region with no functions fails rather than passing vacuously.
+#
+# The required form is the GUARDED pin — `local LC_ALL=C 2>/dev/null || ...` —
+# not the bare assignment. A bare pin is refused silently when LC_ALL is
+# exported readonly and the function proceeds unpinned, so requiring only
+# `local LC_ALL=C` would accept the very shape the row above exists to catch.
 assert_locale_pinned_first() {
   label="$1"
   script="$2"
@@ -311,10 +358,13 @@ assert_locale_pinned_first() {
       '' | '#'*) continue ;;
     esac
     checked=$((checked + 1))
-    if [ "$trimmed" != "local LC_ALL=C" ]; then
-      offenders="${offenders}    ${fn}: first statement is '${trimmed}'
+    case "$trimmed" in
+      'local LC_ALL=C 2>/dev/null || '*) : ;;
+      *)
+        offenders="${offenders}    ${fn}: first statement is '${trimmed}'
 "
-    fi
+        ;;
+    esac
     fn=""
   done <<EOF
 $region
@@ -323,10 +373,10 @@ EOF
   if [ "$checked" -eq 0 ]; then
     record_fail "$label: comparator region declares no functions — nothing was checked"
   elif [ -n "$offenders" ]; then
-    record_fail "$label: comparator region validates before pinning the locale:
+    record_fail "$label: comparator region validates before pinning the locale, or pins without guarding:
 $offenders"
   else
-    record_pass "$label: comparator region pins LC_ALL=C before it validates ($checked functions)"
+    record_pass "$label: comparator region pins LC_ALL=C, guarded, before it validates ($checked functions)"
   fi
 }
 

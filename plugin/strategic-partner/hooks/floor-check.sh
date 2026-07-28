@@ -275,11 +275,19 @@ trap "rmdir '$LOCK' 2>/dev/null" EXIT
 # comparator, not only its ordering step, makes validation accept ASCII digits
 # and nothing else, with no character list to maintain. The same suite asserts
 # the pin mechanically.
+#
+# The pin is an assignment, and an assignment can be refused. A caller that
+# exports LC_ALL and marks it readonly makes `local LC_ALL=C` fail; bash prints
+# a diagnostic, the function carries on, and validation is back under the
+# caller's locale — the hole the pin exists to close, reopened silently. So
+# every pin below is guarded: a pin that cannot be applied answers "cannot
+# tell" on the spot rather than proceeding unpinned.
 sp_version_valid() {
   # Valid = exactly three dot-separated components, each one or more decimal
   # digits, with no leading zero unless the component is exactly "0". Pinned
   # first, because the digit range below is the gate a wide locale widens.
-  local LC_ALL=C
+  # A refused pin reports invalid, which the caller turns into "unknown".
+  local LC_ALL=C 2>/dev/null || return 1
   local rest comp
   case "$1" in
     *[!0-9.]*) return 1 ;;
@@ -307,8 +315,8 @@ sp_component_cmp() {
   # below. The digit gate is matched by collation, so an unpinned locale lets a
   # non-ASCII digit through it and into a byte comparison that cannot rank the
   # character. Scoped with local, so the rest of the hook keeps the caller's
-  # locale.
-  local LC_ALL=C
+  # locale. A refused pin reports the pair as uncomparable.
+  local LC_ALL=C 2>/dev/null || return 3
   case "$1" in '' | *[!0-9]*) return 3 ;; esac
   case "$2" in '' | *[!0-9]*) return 3 ;; esac
   if [ "$1" = "$2" ]; then
@@ -333,7 +341,8 @@ sp_component_cmp() {
 sp_version_diff() {
   # Pinned here too, so the region holds the property uniformly rather than
   # depending on which function a future caller happens to enter through.
-  local LC_ALL=C
+  # This is the entry point callers use, so a refused pin prints the answer.
+  local LC_ALL=C 2>/dev/null || { printf 'unknown'; return 0; }
   local lv="$1" rv="$2" lrest rrest pair
   if ! sp_version_valid "$lv" || ! sp_version_valid "$rv"; then
     printf 'unknown'

@@ -103,8 +103,11 @@ repository the user maintains themselves.
 | `standalone` | anything else | Refresh from the latest release tag |
 
 A `standalone` directory has no upstream of its own, so the published release
-is the only thing that can refresh it — and the command owns that directory
-outright. A `working-copy` directory already has an upstream, maintained by
+is the only thing that can refresh it. That is all the absence of an enclosing
+work tree establishes — the directory is *eligible* for a refresh from the
+release. It says nothing about what else may be sitting inside it, which is
+exactly why the warning above spells out that a refresh replaces everything
+nested there. A `working-copy` directory already has an upstream, maintained by
 whoever set the repository up. Strategic Partner reports what is available
 there and leaves the repository untouched.
 
