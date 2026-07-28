@@ -80,17 +80,34 @@
   it does not, the previous version is put back and the copy that failed is kept
   where you can look at it.
 - **A cross-model review that needs longer than ten minutes now runs to
-  completion instead of being cut off partway** — these reviews ask a second AI
+  completion, and its result is always captured** — these reviews ask a second AI
   model to audit a change independently, and the guidance allowed them as much as
   forty minutes. The way the review was actually started could never grant more
   than ten, so the longest and most valuable audits were killed mid-run with
   nothing to show for the time they had spent. A review is now started so that it
-  outlives whatever is watching it and reports for itself when it has finished; a
-  check that gives up early simply looks again instead of losing the work.
-  Reviews also no longer spend their time reading unrelated material before
-  starting — one audit used its whole budget on unrelated guidance and never
+  outlives whatever is watching it, and the part that starts it — rather than the
+  review itself — saves the result and signals that the work is finished. That
+  second half matters most for the stricter of the two review modes, where the
+  review is given no permission to save anything: it used to end either with
+  nothing to show, or with a result saved only by stepping outside the limits it
+  was supposed to be running under. Neither happens now, and whether the review
+  ended cleanly or crashed is recorded either way. A check that gives up early
+  simply looks again instead of losing the work, and a review that has produced
+  nothing new for ten minutes is now reported to you as stuck rather than waited
+  on indefinitely. Reviews also no longer spend their time reading unrelated
+  material — one audit used its whole budget on unrelated guidance and never
   opened the change it was asked to examine, so every review now begins with a
-  plain instruction naming the first thing to look at.
+  plain instruction naming the first thing to look at, and the instruction to
+  stay on task holds for the whole review instead of lapsing once that first
+  step is done.
+- **A review asked to read files from outside the project is no longer described
+  as getting read-only access to them** — the option that widens a review's reach
+  grants it the ability to write in those places, not merely to read them. The
+  guidance said the opposite. In practice that meant an audit of your own past
+  sessions was quietly handed permission to write into the very records it was
+  checking. The description now matches what the option actually does, and the
+  guidance requires naming the narrowest folder that answers the question rather
+  than reaching for the option by habit.
 
 ## [7.6.0] - 2026-07-13
 
