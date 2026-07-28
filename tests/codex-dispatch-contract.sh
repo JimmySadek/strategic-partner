@@ -47,9 +47,8 @@
 # `validation-launcher-contract.sh` are all force-tracked contract suites
 # already, and this one is the same genre.
 #
-# `tests/plugin-update-contract.sh` remains untracked and is the remaining
-# inconsistency. It is out of scope for this change and is called out rather
-# than quietly fixed or quietly ignored.
+# `tests/plugin-update-contract.sh` is force-tracked on the same grounds, so both
+# contract suites now travel with the release.
 #
 # That distinction is not pedantry. A sibling suite in this directory
 # (tests/plugin-update-contract.sh) was found asserting that the NAMES of two
@@ -270,13 +269,13 @@ assert_both_contain "the limits of the stall evidence are stated (phrase presenc
 # mode-dependent value written as a constant silently deletes the mode
 # distinction, so these assertions require the placeholder AND both exact lines.
 assert_both_contain "the launch leaves the sandbox mode to be filled in (phrase presence)" \
-  'nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> <project-dir>'
+  'nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> "<project-dir>"'
 assert_both_contain "the sandbox mode is stated to have no default (phrase presence)" \
   "There is no default, and the two"
 assert_both_contain "Mode A's exact launch line names read-only (phrase presence)" \
-  '"$run_dir/run.sh" "$run_dir" read-only <project-dir>'
+  '"$run_dir/run.sh" "$run_dir" read-only "<project-dir>"'
 assert_both_contain "Mode B's exact launch line names workspace-write (phrase presence)" \
-  '"$run_dir/run.sh" "$run_dir" workspace-write <project-dir>'
+  '"$run_dir/run.sh" "$run_dir" workspace-write "<project-dir>"'
 
 # Shape check, not phrase presence. Every copyable launch block must carry the
 # placeholder; only the two mode-table rows may name a concrete mode. A block
@@ -293,6 +292,27 @@ assert_no_hardcoded_launch_mode() {
     record_pass "$label"
   fi
 }
+
+# A path containing spaces splits when unquoted, and the wrapper reads only $3 —
+# so Codex silently gets a truncated working directory. Plausible under WSL,
+# where Windows profile paths routinely contain a space.
+assert_launch_quotes_project_dir() {
+  label="$1"
+  body="$2"
+  offenders=$(printf '%s\n' "$body" \
+    | grep -E 'nohup sh "\$run_dir/run\.sh"' \
+    | grep -vF '"<project-dir>"')
+  if [ -n "$offenders" ]; then
+    record_fail "$label (unquoted project path: $(printf '%s' "$offenders" | head -1))"
+  else
+    record_pass "$label"
+  fi
+}
+
+assert_launch_quotes_project_dir \
+  "root copy: every launch line quotes the project path" "$root_cmd"
+assert_launch_quotes_project_dir \
+  "plugin copy: every launch line quotes the project path" "$plugin_cmd"
 
 assert_no_hardcoded_launch_mode \
   "root copy: no copyable launch block hard-codes a sandbox mode" "$root_cmd"

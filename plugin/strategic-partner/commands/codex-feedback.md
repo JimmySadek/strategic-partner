@@ -265,7 +265,7 @@ SP_WRAPPER
 
 # Detach the WRAPPER, not the caller. This returns in milliseconds.
 # <sandbox-mode> has NO default. Fill it from the table below before running.
-nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> <project-dir> \
+nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> "<project-dir>" \
   >/dev/null 2>&1 &
 printf '%s\n' "$!" > "$run_dir/wrapper.pid"
 disown
@@ -273,12 +273,15 @@ printf 'launched — run directory: %s\n' "$run_dir"
 ```
 
 🚨 **Fill `<sandbox-mode>` from the review mode. There is no default, and the two
-modes are not interchangeable.** The exact line for each:
+modes are not interchangeable.** Keep the quotes around `"<project-dir>"` — an
+unquoted path splits on spaces and the wrapper reads only the first piece, so a
+project under a path like `/mnt/c/Users/Jane Doe/repo` would silently hand Codex
+the wrong working directory. The exact line for each:
 
 | Review mode | The launch line, in full |
 |---|---|
-| **Mode A** — Decision Review | `nohup sh "$run_dir/run.sh" "$run_dir" read-only <project-dir> \` |
-| **Mode B** — Evidence Audit | `nohup sh "$run_dir/run.sh" "$run_dir" workspace-write <project-dir> \` |
+| **Mode A** — Decision Review | `nohup sh "$run_dir/run.sh" "$run_dir" read-only "<project-dir>" \` |
+| **Mode B** — Evidence Audit | `nohup sh "$run_dir/run.sh" "$run_dir" workspace-write "<project-dir>" \` |
 
 ⚠️ **Why this is spelled out rather than left to the reader.** An earlier version
 of this block hard-coded `workspace-write` while the prose above claimed the
@@ -541,7 +544,7 @@ mv "$run_dir/verdict.done.tmp" "$run_dir/verdict.done"
 SP_WRAPPER
 
 # <sandbox-mode> has NO default here either — fill it from the mode table in Part 1.
-nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> <project-dir> \
+nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> "<project-dir>" \
   ~/.claude/projects/<encoded-project-dir> \
   >/dev/null 2>&1 &
 printf '%s\n' "$!" > "$run_dir/wrapper.pid"
