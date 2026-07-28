@@ -9,8 +9,10 @@
   with an older published release** — version comparison now runs in both
   directions and says plainly when the local copy is ahead of the latest GitHub
   Release. Before choosing a path, the check also inspects the installed bundle
-  and then either pulls the repository the plugin lives in or refreshes from the
-  release tag. The step after updating no longer reaches for setup work a plugin
+  and works out which of two shapes it is: a plugin directory that no repository
+  maintains, which the check can refresh from the published release, or one that
+  sits inside a checked-out repository, which the check reports on and leaves
+  alone. The step after updating no longer reaches for setup work a plugin
   install has never had — there is no setup script and no command symlinks to
   refresh — and instead re-checks the bundle files and the version before
   looking at the Serena setup.
@@ -39,20 +41,6 @@
   minor, and patch numbers separately instead of squeezing all three into one
   number, which previously made versions like 2.0.0 and 1.1000.0 look
   identical and mis-ordered large version numbers.
-- **Updating a plugin that was copied somewhere else can no longer pull an
-  unrelated repository** — the update used to treat "this plugin sits inside
-  some git repository" as proof that pulling that repository would update the
-  plugin. A plugin copied into an unrelated repository — a dotfiles repo, for
-  instance — passed that test, so approving a Strategic Partner update could
-  have changed something else entirely. The update now requires proof that the
-  repository genuinely tracks the plugin and holds it where Strategic Partner
-  keeps it; without that proof, it refreshes from the published release
-  instead. That refresh is now staged: the replacement is assembled and checked
-  beside the live plugin before anything is swapped, and the previous version
-  stays recoverable until the new one is verified — so an interruption can no
-  longer leave a half-updated install. The refresh also checks up front that
-  the file-copying tool it needs is installed, and names what to install if it
-  is missing, rather than stopping halfway through.
 - **The startup version check now compares versions correctly no matter how
   large the numbers get** — the comparison used to read each number as a number,
   which breaks once a number is bigger than the shell can hold. The comparison
@@ -62,16 +50,28 @@
   text rather than converted, which has no size limit at all, and any comparison
   that cannot be completed stops on the spot and says it cannot tell rather than
   carrying on to a guess.
-- **Updating a plugin that sits inside a checked-out repository no longer
-  touches that repository** — the update used to offer to move the repository
-  forward on your behalf whenever it looked like the plugin's own source. A
-  review showed that the test for "is this really the right repository" could be
-  passed by any repository at all, in minutes, using nothing but an ordinary
-  local one. Rather than add another test that could be passed the same way, the
-  capability was removed: the update now reports the version gap and stops, and
-  moving your own repository stays your decision. Plugin directories that no
-  repository maintains are still refreshed from the latest release, exactly as
-  before.
+- **The update no longer runs a git command against a repository you already
+  have** — it used to offer to move a repository forward on your behalf whenever
+  the plugin looked like it was sitting in its own source. Two different tests
+  were tried for "is this really the right repository," and a review defeated
+  both in minutes using nothing but an ordinary local repository built for the
+  purpose: any repository can be made to look like the right one, so neither
+  test proved what it claimed. Rather than add a third test that could be beaten
+  the same way, the capability was removed. The update now runs no fetch, pull,
+  merge, checkout, rebase, or reset against anything already on disk. A plugin
+  inside a checked-out repository gets a version report and nothing else — moving
+  that repository stays your decision. A plugin directory that no repository
+  maintains is still refreshed from the latest release, and that refresh is
+  staged: the replacement is assembled and checked beside the live copy before
+  anything is swapped, and the previous version stays recoverable until the new
+  one is verified, so an interruption cannot leave a half-updated install. The
+  refresh also checks up front that the file-copying tool it needs is installed,
+  and names what to install if it is missing, rather than stopping halfway
+  through. One thing to know about that refresh: it replaces **everything**
+  inside the plugin directory, including anything nested in it. No git command
+  is involved — the whole directory is swapped for a verified copy and the old
+  one is deleted — so a repository of your own kept inside the plugin directory
+  would go with it. Keep anything you care about somewhere else.
 - **A refresh that fails its final check now puts your previous copy back** —
   the refresh builds the new version beside the live one and checks it before
   swapping them. That final check was written as an instruction to follow while

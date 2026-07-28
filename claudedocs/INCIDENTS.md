@@ -2,6 +2,91 @@
 
 This file accumulates incident write-ups for SP project incidents that produced Provisional Guards or otherwise shaped SP process. Each entry is identified by an `INC-YYYY-MM-DD` ID matching the date the incident occurred and is referenced by one or more guards in `claudedocs/provisional-guards.md`. New entries follow the same `## INC-YYYY-MM-DD — <one-line summary>` heading pattern.
 
+## INC-2026-07-28 — Transcript lint waived, not satisfied, for the current release
+
+### What happened
+
+The transcript lint (`tests/lint-transcripts.sh`) exits non-zero on the tree
+being prepared for release. It is not being cleared before the release, and it
+is not being suppressed. It is being waived, on the record, for this release
+only.
+
+Measured directly for this entry rather than quoted from a review:
+
+```
+$ bash tests/lint-transcripts.sh
+Transcript lint: 50 violation(s) found across 6 of 14 file(s) (21 warning(s))
+$ echo $?
+1
+```
+
+Per-file breakdown of the 50 mechanical violations:
+
+| Session transcript | Violations | Rule categories | Origin |
+|---|---|---|---|
+| `f6c212b8…` | 36 | `RAW-LINE-REF`, `LAYER-REF`, `FUNCTION-CALL-IN-PROSE`, `DELIVERABLE-REF`, `FENCE-ENTITY` | this release |
+| `a2755716…` | 4 | `RAW-LINE-REF`, `AUQ` | this release |
+| `1c7e5096…` | 3 | `RAW-LINE-REF` | this release |
+| `d66d25db…` | 3 | `RAW-LINE-REF` | predates this release |
+| `4f9c847c…` | 2 | `RAW-LINE-REF` | this release |
+| `1b81f9b3…` | 2 | `RAW-LINE-REF` | this release |
+
+By rule: `RAW-LINE-REF` 32, `LAYER-REF` 9, `FUNCTION-CALL-IN-PROSE` 4,
+`FENCE-ENTITY` 2, `DELIVERABLE-REF` 2, `AUQ` 1.
+
+Five of the six files are this release's own executor sessions, dated
+2026-07-25 through 2026-07-28, and account for 47 of the 50 violations. One
+file — `d66d25db…`, dated 2026-07-13 — predates the release window and carries
+the remaining 3.
+
+### Why it broke
+
+The findings live in session transcripts under the Claude projects directory.
+Those files are an append-only record of conversations that already happened.
+They cannot be edited into compliance: rewriting them would falsify the record
+of what was actually said, and the violations would be no less real for having
+been erased. There is no version of "fix the findings" available here that is
+not falsification.
+
+So the gate cannot be cleared by fixing its inputs, and the release either
+stops indefinitely or proceeds with the failure documented. This entry is the
+documentation.
+
+### Why no filename exemption was added
+
+The obvious move — adding the six basenames to `.lint-allowlist` — was
+considered and rejected. No allowlist entry was added, and none was removed.
+
+The evidence against filename scope is the count itself. During a review of
+this same unchanged tree, the violation count rose from 48 to 50. Nothing in
+the tree changed; new session transcripts simply appeared, and the review's own
+activity produced some of them. A filename exemption granted to a live session
+file therefore does not suppress a known, bounded set of findings — it suppresses
+whatever that file accumulates afterwards, indefinitely, including violations
+nobody has seen. The 48-to-50 drift is a direct measurement of that: the exempted
+set would have silently grown during the very review that proposed the exemption.
+
+An exemption whose scope grows after it is granted is not an exemption. It is a
+blind spot with a filename attached.
+
+### Durable fix, filed separately
+
+The correct mechanism is rule-scoped or hit-scoped exemptions carrying a content
+fingerprint, so an exemption covers one specific known finding and stops applying
+the moment the content changes. That work is filed separately and is not part of
+this release. Until it exists, there is no exemption shape available here that is
+narrow enough to be safe.
+
+### Scope of this waiver
+
+This is a waiver. The gate is failing, and it is recorded as failing. Nothing in
+this release makes the transcript lint pass, and no part of the release process
+should read it as passing.
+
+The waiver covers **this release only**. It establishes no precedent. The next
+release confronts the same gate on its own terms, with whatever count it measures
+at that time, and must decide again.
+
 ## INC-2026-07-13 — Serena utility armed the advisory startup ceremony
 
 ### What happened

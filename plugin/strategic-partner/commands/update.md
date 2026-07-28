@@ -1,14 +1,16 @@
 ---
 name: update
-description: "Check for updates and self-update to latest version"
+description: "Check for a newer release, then refresh a standalone plugin directory or report the gap and stop"
 category: utility
 complexity: standard
 mcp-servers: []
 ---
 
-# /strategic-partner-plugin:update — Self-Update
+# /strategic-partner-plugin:update — Update Check
 
-> Check for newer versions of the strategic-partner skill and update in place.
+> Check for a newer strategic-partner release. A standalone plugin directory is
+> refreshed from that release; a plugin sitting inside a git working copy is
+> reported and left alone.
 
 ## Output Style
 
@@ -39,9 +41,10 @@ It does not require the full startup sequence.
 ### Step 2 — Inspect Install Shape
 
 Before choosing an update path, inspect the installed plugin bundle. This
-command never changes a repository, so the install shape decides only one
-thing: whether this directory can be refreshed from the published release, or
-whether it belongs to a repository the user maintains themselves.
+command never runs a repository-changing git command against an existing
+repository, so the install shape decides only one thing: whether this directory
+can be refreshed from the published release, or whether it belongs to a
+repository the user maintains themselves.
 
 1. Determine `{plugin-root}` as the parent of the directory containing this
    command file (`{plugin-root}/commands/update.md` → `{plugin-root}`).
@@ -80,9 +83,17 @@ whether it belongs to a repository the user maintains themselves.
    purpose-built repository in minutes: any repository can track any path, so
    neither check proved what it claimed. "Is it safe to change this repository"
    cannot be answered from the filesystem, so this command stopped asking and
-   stopped changing repositories at all. Nothing below mutates one, which is
-   what makes a coarse test safe — misreading a plain copy as a working copy
-   now costs an unhelpful message, not an unwanted change.
+   stopped running repository-changing git commands altogether. No step below
+   runs one, which is what makes a coarse test safe — misreading a plain copy
+   as a working copy now costs an unhelpful message, not an unwanted git
+   operation.
+
+   The test asks only whether `{plugin-root}` sits inside a work tree. It does
+   not look for repositories nested *underneath* the plugin directory, and it
+   does not need to: a refresh replaces that directory's entire contents, so
+   anything stored inside it — a nested repository included — is replaced along
+   with everything else. That is the reason the warning before the refresh says
+   so plainly, rather than the reason for another guard.
 
 5. Classify the install:
 
@@ -162,8 +173,11 @@ performed here could make moving it on their behalf safe.
 **For `standalone` — offer the refresh.**
 
 Say what the refresh does before asking: "No repository maintains this plugin
-directory, so the update refreshes it from the latest release. Anything edited
-locally inside the plugin directory is replaced."
+directory, so the update refreshes it from the latest release. That replaces
+everything inside the plugin directory — not just edited files, but anything
+kept in there, including a git repository of your own. Nothing is changed by a
+git command; the whole directory is swapped for a verified copy and the old one
+is deleted. Keep anything you care about outside the plugin directory."
 
 Then present via `AskUserQuestion`:
    - **Question**: "Update to v{remote}?"
@@ -220,7 +234,8 @@ mkdir "$staging"
 tmp="$(mktemp -d)"
 
 # 2. Take the release tag, never an unqualified branch. This reads a public
-#    repository into a temporary directory; it changes nothing anywhere.
+#    repository into a temporary directory it just created; it changes nothing
+#    that already existed.
 git clone --depth 1 --branch "v{remote}" "https://github.com/{repo}.git" "$tmp/src"
 
 # 3. Assemble the new bundle in staging. No --delete is needed: staging is new.
@@ -296,16 +311,19 @@ directory itself. So the only work left is confirming the update landed.
 - Report the version gap and stop when the plugin lives inside a git working copy
 - Refresh a `standalone` plugin directory from the release tag, staged and
   verified beside the live copy before anything is swapped in
+- Replace the **entire contents** of that plugin directory when it refreshes,
+  including anything nested inside it
 - Refuse to update when the local build is newer than the latest published release
 
 **Will Not:**
-- **Change any repository, ever.** Under no classification does this command
-  fetch, pull, merge, check out, rebase, or reset anything. The single
-  repository operation it performs is a shallow read-only copy of the published
-  release tag into a temporary directory it just created. Updating a repository
-  that happens to hold the plugin is the user's own operation, and this command
-  will not run it for them — there is no filesystem check that could make doing
-  so safe, which is why the capability was removed rather than guarded.
+- **Run a repository-changing git command against an existing repository.**
+  Under no classification does this command fetch, pull, merge, check out,
+  rebase, or reset anything already on disk. The single repository operation it
+  performs is a shallow read-only clone of the published release tag into a
+  temporary directory it just created. Updating a repository that happens to
+  hold the plugin is the user's own operation, and this command will not run it
+  for them — there is no filesystem check that could make doing so safe, which
+  is why the capability was removed rather than guarded.
 - Implement source code changes
 - Auto-update without explicit user confirmation
 - Modify any project files beyond the plugin directory itself

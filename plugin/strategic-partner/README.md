@@ -144,13 +144,17 @@ very conflict the steward is designed to prevent.
   `/strategic-partner-plugin:strategic-partner`; `/sp` and `/advisor` no longer
   resolve as typed plugin commands (natural-language triggering still works). No
   alias mechanism exists in the plugin format.
-- **`:update` subcommand:** refreshes a plugin directory it owns outright, and
-  never touches a repository. If the plugin sits inside a git working copy, the
-  update reports the version gap and stops — moving that repository is your own
+- **`:update` subcommand:** never runs a repository-changing git command — no
+  fetch, pull, merge, checkout, rebase, or reset — against a repository that
+  already exists on disk. If the plugin sits inside a git working copy, the
+  update reports the version gap and stops; moving that repository is your own
   operation, not something this command will do for you. Otherwise it refreshes
-  the plugin from the latest published release, which replaces the directory's
-  contents wholesale, so any local edits made inside a copied plugin are lost.
-  Keep local changes in a checkout you manage yourself, not in a copied
-  directory.
+  the plugin from the latest published release, and that refresh replaces the
+  **entire contents** of the plugin directory, including anything nested inside
+  it. A git repository kept inside the plugin directory would go with the rest —
+  not because a git command ran against it, but because the whole directory is
+  swapped for a freshly staged copy and the old one is then deleted. Keep local
+  changes, and anything else you care about, somewhere you manage yourself
+  rather than inside the plugin directory.
 - **Serena connection ownership:** auto-connect remains on the published
   roadmap while the plugin uses the shared, SP-managed user-level runtime.
