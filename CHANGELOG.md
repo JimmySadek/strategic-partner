@@ -9,10 +9,12 @@
   with an older published release** — version comparison now runs in both
   directions and says plainly when the local copy is ahead of the latest GitHub
   Release. Before choosing a path, the check also inspects the installed bundle
-  and works out which of two shapes it is: a plugin directory that no repository
-  maintains, which the check can refresh from the published release, or one that
-  sits inside a checked-out repository, which the check reports on and leaves
-  alone. The step after updating no longer reaches for setup work a plugin
+  and works out which of two shapes it is: a plugin directory that does not sit
+  inside a checked-out repository, which the check can refresh from the published
+  release, or one that does, which the check reports on and leaves alone. That
+  test asks only about the plugin directory itself — it does not go looking for
+  repositories kept inside it, which is why the warning before a refresh spells
+  out that everything nested there is replaced. The step after updating no longer reaches for setup work a plugin
   install has never had — there is no setup script and no command symlinks to
   refresh — and instead re-checks the bundle files and the version before
   looking at the Serena setup.
@@ -67,7 +69,10 @@
   one is verified, so an interruption cannot leave a half-updated install. The
   refresh also checks up front that the file-copying tool it needs is installed,
   and names what to install if it is missing, rather than stopping halfway
-  through. One thing to know about that refresh: it replaces **everything**
+  through. If a step of that swap cannot be completed — a rename the filesystem
+  refuses — the update now says so instead of reporting a recovery that did not
+  happen, and tells you exactly where your previous copy is and the one command
+  that puts it back. One thing to know about that refresh: it replaces **everything**
   inside the plugin directory, including anything nested in it. No git command
   is involved — the whole directory is swapped for a verified copy and the old
   one is deleted — so a repository of your own kept inside the plugin directory
@@ -80,7 +85,8 @@
   it does not, the previous version is put back and the copy that failed is kept
   where you can look at it.
 - **A cross-model review that needs longer than ten minutes now runs to
-  completion, and its result is always captured** — these reviews ask a second AI
+  completion, and a review left to finish always has its result captured** —
+  these reviews ask a second AI
   model to audit a change independently, and the guidance allowed them as much as
   forty minutes. The way the review was actually started could never grant more
   than ten, so the longest and most valuable audits were killed mid-run with
@@ -91,7 +97,10 @@
   review is given no permission to save anything: it used to end either with
   nothing to show, or with a result saved only by stepping outside the limits it
   was supposed to be running under. Neither happens now, and whether the review
-  ended cleanly or crashed is recorded either way. A check that gives up early
+  ended cleanly or failed on its own is recorded either way. The one case that
+  leaves nothing behind is a review killed outright from outside — by something
+  shutting down every process in the group, or by an unconditional stop signal —
+  which by its nature gets no chance to record anything. A check that gives up early
   simply looks again instead of losing the work, and a review that has produced
   nothing new for ten minutes is now reported to you as stuck rather than waited
   on indefinitely. Reviews also no longer spend their time reading unrelated

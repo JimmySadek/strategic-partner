@@ -251,6 +251,54 @@ assert_both_contain "a stall threshold is defined (phrase presence)" \
 assert_both_contain "a stalled review is surfaced rather than killed (phrase presence)" \
   "SP never kills a review on its own."
 
+# Ten silent minutes on stderr is evidence of a wedge, not proof of one — a slow
+# verification command or a long reasoning block looks identical from outside.
+# The watcher must therefore report a suspicion, not a finding.
+assert_both_contain "the stall is reported as suspected, not established (phrase presence)" \
+  "SUSPECTED STALL"
+assert_neither_contains "the bare established-fact stall label is gone" \
+  "printf 'STALLED"
+assert_both_contain "the limits of the stall evidence are stated (phrase presence)" \
+  "is the accurate word, and the watcher says so"
+
+# --- The sandbox mode is filled in per review mode, never hard-coded ---------
+# The wrapper takes the sandbox as a parameter and always did. The published
+# launcher, however, passed `workspace-write` as a constant in every copyable
+# block, while the prose claimed the sandbox flag was the only thing that varied
+# by mode. A user selecting Mode A — the STRICTER review — copied a launcher
+# granting project-write access, and the release notes said the opposite. A
+# mode-dependent value written as a constant silently deletes the mode
+# distinction, so these assertions require the placeholder AND both exact lines.
+assert_both_contain "the launch leaves the sandbox mode to be filled in (phrase presence)" \
+  'nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> <project-dir>'
+assert_both_contain "the sandbox mode is stated to have no default (phrase presence)" \
+  "There is no default, and the two"
+assert_both_contain "Mode A's exact launch line names read-only (phrase presence)" \
+  '"$run_dir/run.sh" "$run_dir" read-only <project-dir>'
+assert_both_contain "Mode B's exact launch line names workspace-write (phrase presence)" \
+  '"$run_dir/run.sh" "$run_dir" workspace-write <project-dir>'
+
+# Shape check, not phrase presence. Every copyable launch block must carry the
+# placeholder; only the two mode-table rows may name a concrete mode. A block
+# that hard-codes a mode outside that table is the exact regression above.
+assert_no_hardcoded_launch_mode() {
+  label="$1"
+  body="$2"
+  offenders=$(printf '%s\n' "$body" \
+    | grep -E '^\s*(#\s*)?nohup sh "\$run_dir/run\.sh"' \
+    | grep -vF '<sandbox-mode>')
+  if [ -n "$offenders" ]; then
+    record_fail "$label (launch block hard-codes a mode: $(printf '%s' "$offenders" | head -1))"
+  else
+    record_pass "$label"
+  fi
+}
+
+assert_no_hardcoded_launch_mode \
+  "root copy: no copyable launch block hard-codes a sandbox mode" "$root_cmd"
+assert_no_hardcoded_launch_mode \
+  "plugin copy: no copyable launch block hard-codes a sandbox mode" "$plugin_cmd"
+
 # The stall check MUST sample raw.log, never verdict.md. Measured over a
 # 300-second review sampled every ten seconds: verdict.md held 0 bytes for the
 # whole run (Codex delivers standard output at the end, not as a stream) while

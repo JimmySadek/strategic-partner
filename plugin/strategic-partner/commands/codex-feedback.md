@@ -264,12 +264,30 @@ mv "$run_dir/verdict.done.tmp" "$run_dir/verdict.done"
 SP_WRAPPER
 
 # Detach the WRAPPER, not the caller. This returns in milliseconds.
-nohup sh "$run_dir/run.sh" "$run_dir" workspace-write <project-dir> \
+# <sandbox-mode> has NO default. Fill it from the table below before running.
+nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> <project-dir> \
   >/dev/null 2>&1 &
 printf '%s\n' "$!" > "$run_dir/wrapper.pid"
 disown
 printf 'launched — run directory: %s\n' "$run_dir"
 ```
+
+🚨 **Fill `<sandbox-mode>` from the review mode. There is no default, and the two
+modes are not interchangeable.** The exact line for each:
+
+| Review mode | The launch line, in full |
+|---|---|
+| **Mode A** — Decision Review | `nohup sh "$run_dir/run.sh" "$run_dir" read-only <project-dir> \` |
+| **Mode B** — Evidence Audit | `nohup sh "$run_dir/run.sh" "$run_dir" workspace-write <project-dir> \` |
+
+⚠️ **Why this is spelled out rather than left to the reader.** An earlier version
+of this block hard-coded `workspace-write` while the prose above claimed the
+sandbox flag was the only thing that varied by mode. The wrapper was correctly
+parameterized the whole time; the published launcher simply never passed anything
+else. So a user selecting the *stricter* review copied a launcher that granted
+project-write access anyway, and the release notes said the opposite. A
+mode-dependent value written as a constant is not a typo — it silently deletes the
+difference between the two modes.
 
 `nohup ... &` plus `disown` is what detaches: the wrapper ignores the hangup signal
 that arrives when the launching shell exits, and leaves that shell's job table so
@@ -382,7 +400,7 @@ while [ ! -f "$run_dir/verdict.done" ]; do
   printf '%s' "$quiet" > "$run_dir/watch.quiet"
 
   if [ "$quiet" -ge "$stall_windows" ]; then
-    printf 'STALLED — %s bytes unchanged across %s windows; run dir %s\n' \
+    printf 'SUSPECTED STALL — %s bytes unchanged across %s windows; run dir %s\n' \
       "$size" "$quiet" "$run_dir"
     exit 2
   fi
@@ -422,10 +440,18 @@ every live process reads as healthy forever, so an authenticated but wedged Code
 can burn resources indefinitely with no one noticing. Ten minutes of zero growth in
 `raw.log` is the escalation threshold — an order of magnitude longer than the
 longest quiet stretch measured, and short enough that a wedge is caught the same
-session. What the watcher does with it is report, not act: it prints `STALLED` and
-hands the decision to the user via `AskUserQuestion`, because only the user can
-weigh whether a long-running audit is worth abandoning.
+session. What the watcher does with it is report, not act: it prints
+`SUSPECTED STALL` and hands the decision to the user via `AskUserQuestion`, because
+only the user can weigh whether a long-running audit is worth abandoning.
 SP never kills a review on its own.
+
+📌 **"Suspected" is the accurate word, and the watcher says so.** Ten silent
+minutes on standard error is *evidence* of a wedge, not proof of one. A healthy
+review can go quiet that long inside a slow verification command, a provider-side
+delay, or an unusually long reasoning block. The threshold was chosen to make that
+rare, not impossible. Report it to the user as a suspicion with the byte count and
+the silent duration attached, and let them decide — never as an established fact,
+and never as grounds for SP to end the run by itself.
 
 ⏳ **When the watcher's own budget expires, poll again.** Start another watcher on the
 same run directory. Do NOT conclude the review failed, and do NOT relaunch it. The
@@ -514,7 +540,8 @@ printf '%s\n' "$status" > "$run_dir/verdict.done.tmp"
 mv "$run_dir/verdict.done.tmp" "$run_dir/verdict.done"
 SP_WRAPPER
 
-nohup sh "$run_dir/run.sh" "$run_dir" workspace-write <project-dir> \
+# <sandbox-mode> has NO default here either — fill it from the mode table in Part 1.
+nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> <project-dir> \
   ~/.claude/projects/<encoded-project-dir> \
   >/dev/null 2>&1 &
 printf '%s\n' "$!" > "$run_dir/wrapper.pid"
@@ -694,7 +721,7 @@ the verdict is advisory status, not control:
 | ⏳ Watcher budget expired, sentinel not yet present | The review is **still running** — the watcher died, Codex did not. Report "still running" and start another watcher on the same run directory. Do NOT proceed without the review, and do NOT relaunch: a relaunch discards everything the live run has already spent and restarts the same work from zero. |
 | ❓ No sentinel, wrapper process still alive | Not a failure at all. Keep polling. This is the normal state for most of a review's life. |
 | ❌ No sentinel, no live wrapper process | A genuine crash — and a rarer one than before, because the wrapper survives Codex failing and still records a non-zero status. Nothing killed Codex politely: something signalled the process group or sent an unconditional kill (see the survival table in Part 1). Report the run directory's `raw.log` contents honestly, and say plainly that no exit status was captured. Do not silently retry — a crash whose cause is unreported will recur. |
-| ⚠️ Watcher exits `2` — STALLED | `raw.log` — the live trace, not the verdict file — has not grown for ten minutes while the wrapper is still alive. Do NOT kill it. Report the byte count, how long it has been silent, and the run directory, then ask the user via `AskUserQuestion` whether to keep waiting, abandon the run, or inspect `raw.log`. Only the user can weigh whether a wedged audit is worth abandoning. |
+| ⚠️ Watcher exits `2` — SUSPECTED STALL | `raw.log` — the live trace, not the verdict file — has not grown for ten minutes while the wrapper is still alive. This is evidence of a wedge, **not proof**: a slow verification command or a long reasoning block can look identical. Do NOT kill it. Report it as *suspected*, with the byte count, how long it has been silent, and the run directory, then ask the user via `AskUserQuestion` whether to keep waiting, abandon the run, or inspect `raw.log`. Only the user can weigh whether to abandon an audit that may still be working. |
 | ⚠️ Output shows skill loads or memory file reads BEFORE the first command named in the execution-discipline block | The orientation-detour failure: the review read skills and memory but never reached its target, whether it completed or was killed. The fix is NOT a retry at the same shape. Verify the execution-discipline block was actually included, verbatim, at the very top of the brief with the first command filled in. Retrying without it reproduces the identical detour. |
 | Garbled/off-topic response | "External review was inconclusive. Proceeding with SP recommendation only." |
 | Wrong working directory | Ask user to confirm project directory before retrying. |
