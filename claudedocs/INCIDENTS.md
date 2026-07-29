@@ -47,9 +47,11 @@ Two changes, neither of which is another patch:
    list the reader self-selects from. Rounds 7, 9 and 10's findings all describe
    a state machine disagreeing with itself, and none of them can occur in a
    document that has no states. The command also now runs no command of any kind,
-   git included, which makes its absolute no-git boundary true for the first
-   time — round 10 found the previous version promising that while running
-   `git rev-parse` three sections above the promise.
+   git included, which makes its no-git boundary true for the first time — round
+   10 found the previous version promising that while running `git rev-parse`
+   three sections above the promise. (The command still READS the disk, via
+   `grep`, `test` and the Serena doctor. "Runs no command at all" was the wrong
+   claim and is corrected below rather than repeated here.)
 
    Two claims made about the removal were themselves too strong, and round 11
    caught both. "Runs no command against anything on disk" was false: the bundle

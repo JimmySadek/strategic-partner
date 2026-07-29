@@ -141,9 +141,11 @@ You paste each phase into a fresh session and report back; the SP reviews what l
 /reload-plugins
 ```
 
-Claude Code then handles updates itself, in the background shortly after a
-session starts. To update on demand instead, two commands in order — the first
-refreshes the listing, the second moves the install:
+Claude Code then handles updates itself. It can do so in the background shortly
+after a session starts, but only once background updating is switched on — it is
+**off by default** for listings that do not come from Anthropic. To update on
+demand, two commands in order — the first refreshes the listing, the second moves
+the install:
 
 ```
 /plugin marketplace update strategic-partner

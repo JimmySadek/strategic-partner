@@ -53,8 +53,9 @@
   Code recognises the plugin as something it can install and keep current. Add it
   once with `/plugin marketplace add JimmySadek/strategic-partner`, install with
   `/plugin install strategic-partner-plugin@strategic-partner`, and updates
-  afterwards are Claude Code's job rather than Strategic Partner's: it refreshes
-  in the background shortly after a session starts. To update on demand instead,
+  afterwards are Claude Code's job rather than Strategic Partner's: once you
+  switch background updating on, it refreshes shortly after a session starts —
+  it is off by default for listings that do not come from Anthropic. To update on demand instead,
   run `/plugin marketplace update strategic-partner` to refresh the listing and
   then `/plugin update strategic-partner-plugin@strategic-partner` to move the
   install, and restart Claude Code afterwards — the first command alone only
@@ -69,7 +70,8 @@
   inspects your machine to work that out. The inspecting version kept getting it
   wrong — badly enough that it could tell someone running their own copy to
   update a different copy entirely — so the guessing was removed rather than
-  corrected again. Everything it reports is unchanged; only the choosing is gone,
+  corrected again. Every version and bundle fact it reported before is still
+  reported; only the install-shape inspection and the choosing are gone,
   and a list cannot pick the wrong route for you. The command performs no update
   and changes nothing on your disk, and runs no git command at all. It does still
   read your disk to check the bundle and, on request, the Serena setup.
@@ -124,6 +126,12 @@
   plain instruction naming the first thing to look at, and the instruction to
   stay on task holds for the whole review instead of lapsing once that first
   step is done.
+- **Cross-model reviews now work when your project path contains a space** — the
+  commands that start a review passed the folder path without quotes, so a path
+  like `C:\Users\Jane Doe\project` was cut at the space and the review ran
+  against the wrong folder, silently. Every such path is now quoted. This mostly
+  affects Windows users running through WSL, where profile paths routinely
+  contain a space.
 - **A review asked to read files from outside the project is no longer described
   as getting read-only access to them** — the option that widens a review's reach
   grants it the ability to write in those places, not merely to read them. The

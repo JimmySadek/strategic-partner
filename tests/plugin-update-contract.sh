@@ -7,7 +7,7 @@
 # out what it says. This suite reads the same document and checks which
 # contract text is present and which is absent. That is all it does.
 #
-#   It CAN prove:  no git verb of any kind appears in the document; the refresh
+#   It CAN prove:  no git invocation appears in the document; the refresh
 #                  machinery removed from this release has not drifted back in;
 #                  the document still names the bundle paths, the three update
 #                  routes, and the two-command ordering the platform requires.
@@ -15,9 +15,11 @@
 #                  Nothing here executes the update.
 #
 # The invariant these assertions are scoped to: the update command reads and
-# reports. It runs no command against anything on disk, inspects nothing about
-# how the plugin was installed, and chooses no route on the user's behalf — it
-# prints the same three routes every time and lets the reader pick.
+# reports. It performs no update, modifies nothing on disk, and invokes no git —
+# it DOES read the disk, via `grep`, `test`, and the Serena doctor, so "runs no
+# command at all" would be false and was corrected out of this file. It inspects
+# nothing about how the plugin was installed and chooses no route on the user's
+# behalf; it prints the routes and lets the reader pick.
 #
 # That last clause is the point, and it is why this suite no longer has a
 # coherence sibling. A previous version of this command classified the install
@@ -201,7 +203,7 @@ done
 # was accepted immediately after `git`. Global options, and wrappers such as
 # `command git`, `env git`, `sudo git`, `if git` and `! git`, are all covered now.
 assert_no_match "plugin update invokes no git command anywhere" \
-  "$plugin_update" "^[[:space:]]*(command|env|sudo|exec|if|!|then|else)?[[:space:]]*git([[:space:]]|\$)"
+  "$plugin_update" "^[[:space:]]*(command|env|sudo|exec|if|!|then|else)?[[:space:]]*(/[^[:space:]]*)?git([[:space:]]|\$)"
 
 assert_contains "plugin update states plainly that it performs no update" \
   "$plugin_update" "This command performs no update"

@@ -180,8 +180,12 @@ have updated and asks for a check.
 - Check versions against GitHub releases, falling back to tags
 - Display changelog highlights from release notes
 - Verify the bundle's seven paths and report what is missing
-- Show the same three update routes every time, and let the reader pick
-- Withhold the routes when the local build is newer than the published release
+- Show the routes whenever a newer release exists, unchanged from run to run,
+  and let the reader pick the one matching their install
+- Show NO routes when the local build is newer than the published release, when
+  the versions match, or when GitHub could not be reached — there is nothing to
+  update to in any of those cases, and every route would be a downgrade in the
+  first
 - Re-check the bundle and the Serena state after the user reports updating
 
 **Will Not:**
