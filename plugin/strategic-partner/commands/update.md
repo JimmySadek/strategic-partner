@@ -180,12 +180,11 @@ have updated and asks for a check.
 - Check versions against GitHub releases, falling back to tags
 - Display changelog highlights from release notes
 - Verify the bundle's seven paths and report what is missing
-- Show the routes whenever a newer release exists, unchanged from run to run,
-  and let the reader pick the one matching their install
-- Show NO routes when the local build is newer than the published release, when
-  the versions match, or when GitHub could not be reached — there is nothing to
-  update to in any of those cases, and every route would be a downgrade in the
-  first
+- Show the routes exactly when Step 3 says to, and let the reader pick the one
+  matching their install. Step 3 is the only statement of when routes appear;
+  this list deliberately does not restate its cases. Three consecutive reviews
+  found a blocking contradiction between the two, each time because a summary
+  here had drifted from the rule there.
 - Re-check the bundle and the Serena state after the user reports updating
 
 **Will Not:**
