@@ -236,11 +236,11 @@ falls outside the source-edit allow-list.
 `version:` field is older than the latest GitHub release).
 
 **Update-notice pattern.** Surface the available version and recommend
-the user run `/strategic-partner:update` when convenient.
+the user run `/strategic-partner-plugin:update` when convenient.
 
 **Surface in orientation:** One-line update notice.
 
-> "Update available: vLOCAL → vREMOTE. Run `/strategic-partner:update`
+> "Update available: vLOCAL → vREMOTE. Run `/strategic-partner-plugin:update`
 > when convenient — the update brings [one-line summary if known from
 > the release notes]."
 
@@ -248,7 +248,7 @@ If the SP can fetch the release notes summary cheaply (single curl,
 already cached from the floor sentinel's Group 6 work), include the
 one-line summary; otherwise omit and let the user decide.
 
-**No automatic update.** The SP never invokes `/strategic-partner:update`
+**No automatic update.** The SP never invokes `/strategic-partner-plugin:update`
 on the user's behalf. The update flow has its own confirmation step.
 
 **No dispatch.** The user runs the update subcommand directly.
@@ -268,9 +268,9 @@ as a nudge to publish if the tag is ready.
 
 **Surface in orientation:** One-line note.
 
-> "🚧 vLOCAL is tagged locally; vREMOTE is the latest published release.
-> Run `.scripts/release-publish.sh` if vLOCAL is ready to publish —
-> otherwise this is expected mid-release."
+> "🚧 The installed copy reports vLOCAL; vREMOTE is the latest published
+> release. This is expected while a release is being prepared; publishing
+> happens from the project repository, not from this install."
 
 **No automatic publish.** The SP never runs the release-publish script on
 the user's behalf.
@@ -297,11 +297,11 @@ notice is exactly what this state exists to prevent.
 
 If the user asks about versions directly, say plainly that the startup check
 could not read one of the two versions, and point at
-`/strategic-partner:update` — it runs its own comparison and reports what it
+`/strategic-partner-plugin:update` — it runs its own comparison and reports what it
 finds.
 
 **No automatic update.** As with the patterns above, the SP never invokes
-`/strategic-partner:update` on the user's behalf.
+`/strategic-partner-plugin:update` on the user's behalf.
 
 **No dispatch.** Nothing to hand off.
 

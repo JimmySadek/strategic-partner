@@ -133,8 +133,25 @@ You paste each phase into a fresh session and report back; the SP reviews what l
 
 ### Install
 
+**As a Claude Code plugin (recommended — Claude Code keeps it updated):**
+
+```
+/plugin marketplace add JimmySadek/strategic-partner
+/plugin install strategic-partner-plugin@strategic-partner
+/reload-plugins
+```
+
+Claude Code then handles updates itself: it refreshes in the background shortly
+after a session starts, or on demand with `/plugin marketplace update
+strategic-partner`. Background updating is **off by default** for listings that
+do not come from Anthropic — switch it on under `/plugin` → **Marketplaces** →
+`strategic-partner` → **Enable auto-update** if you want it hands-free. Commands
+are namespaced `/strategic-partner-plugin:` in this install.
+
+**As a standalone skill:**
+
 ```bash
-# Recommended — clone the full standalone skill bundle
+# Clone the full standalone skill bundle
 git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/strategic-partner
 ```
 

@@ -1,6 +1,6 @@
 ---
 name: update
-description: "Check for a newer release, then refresh a standalone plugin directory or report the gap and stop"
+description: "Check for a newer release and name the update route that matches how this plugin was installed"
 category: utility
 complexity: standard
 mcp-servers: []
@@ -8,9 +8,10 @@ mcp-servers: []
 
 # /strategic-partner-plugin:update — Update Check
 
-> Check for a newer strategic-partner release. A standalone plugin directory is
-> refreshed from that release; a plugin sitting inside a git working copy is
-> reported and left alone.
+> Check for a newer strategic-partner release and name the update route that
+> matches how this plugin was installed. Claude Code updates marketplace plugins
+> itself; this command reports the gap and points at the right route. It never
+> moves, replaces, or deletes anything on disk.
 
 ## Output Style
 
@@ -40,11 +41,9 @@ It does not require the full startup sequence.
 
 ### Step 2 — Inspect Install Shape
 
-Before choosing an update path, inspect the installed plugin bundle. This
-command never runs a repository-changing git command against an existing
-repository, so the install shape decides only one thing: whether this directory
-can be refreshed from the published release, or whether it belongs to a
-repository the user maintains themselves.
+Before naming an update route, inspect the installed plugin bundle. This command
+changes nothing on disk, so the install shape decides only one thing: which
+route to name.
 
 1. Determine `{plugin-root}` as the parent of the directory containing this
    command file (`{plugin-root}/commands/update.md` → `{plugin-root}`).
@@ -90,26 +89,50 @@ repository the user maintains themselves.
 
    The test asks only whether `{plugin-root}` sits inside a work tree. It does
    not look for repositories nested *underneath* the plugin directory, and it
-   does not need to: a refresh replaces that directory's entire contents, so
-   anything stored inside it — a nested repository included — is replaced along
-   with everything else. That is the reason the warning before the refresh says
-   so plainly, rather than the reason for another guard.
+   does not need to: this command changes nothing on disk, so nothing nested
+   there is at risk from it. If the user later reinstalls through the
+   marketplace, Claude Code replaces the plugin's own directory — worth
+   mentioning to anyone who keeps unrelated files inside it.
 
-5. Classify the install:
+5. Determine whether Claude Code installed this plugin from a marketplace —
+   the case that owns its own updates:
+   ```
+   ls "${HOME}/.claude/plugins/marketplaces/strategic-partner" 2>/dev/null
+   ```
+   A directory here means the marketplace is registered and Claude Code manages
+   this install.
 
-| State | Signal | What this command does |
+6. Classify the install:
+
+| State | Signal | The route this command names |
 |---|---|---|
-| `working-copy` | the plugin sits inside a git working copy | Report the version gap and stop — updating it is the user's own repository operation |
-| `standalone` | anything else | Refresh from the latest release tag |
+| `marketplace` | the `strategic-partner` marketplace is registered | Claude Code's own update path — see below |
+| `working-copy` | the plugin sits inside a git working copy | The user's repository operation; report the gap and stop |
+| `standalone` | anything else | Add the marketplace, or reinstall by whatever route put it there |
 
-A `standalone` directory has no upstream of its own, so the published release
-is the only thing that can refresh it. That is all the absence of an enclosing
-work tree establishes — the directory is *eligible* for a refresh from the
-release. It says nothing about what else may be sitting inside it, which is
-exactly why the warning above spells out that a refresh replaces everything
-nested there. A `working-copy` directory already has an upstream, maintained by
-whoever set the repository up. Strategic Partner reports what is available
-there and leaves the repository untouched.
+🔑 **`marketplace` is the route worth having, and the one to steer users toward.**
+Claude Code refreshes marketplace data and updates installed plugins on its own,
+in the background shortly after a session starts. It does that far better than
+this command could: nothing here moves a directory, so nothing here can fail
+half-way. Auto-update is **off by default for third-party marketplaces**, so a
+user who wants it hands-free has to turn it on once — that is worth telling
+them, because most will assume it is already on.
+
+| What the user wants | What to tell them |
+|---|---|
+| Update now | `/plugin marketplace update strategic-partner`, then `/reload-plugins` |
+| Update automatically from now on | `/plugin` → **Marketplaces** → `strategic-partner` → **Enable auto-update** |
+| Not installed from the marketplace yet | `/plugin marketplace add JimmySadek/strategic-partner`, then `/plugin install strategic-partner-plugin@strategic-partner` |
+
+A `working-copy` install already has an upstream that someone maintains. Report
+what is available and leave the repository alone — moving it is the user's own
+operation, and no filesystem check performed here could make doing it on their
+behalf safe.
+
+A `standalone` directory has no upstream and no marketplace behind it. That is
+all the absence of an enclosing work tree establishes; it says nothing about
+what else may be sitting inside the directory. Point the user at the marketplace
+route above, which replaces the manual reinstall going forward.
 
 ### Step 3 — Compare and Present
 
@@ -175,22 +198,17 @@ Name the reinstall route that matches how the directory was put there — the
 plugin marketplace entry, or whatever command originally installed it — and
 stop. Do not offer to replace the directory on this command's behalf.
 
-⚠️ **Why this command does not refresh the directory itself.** Replacing a
+⚠️ **Why this command performs no refresh of its own.** It used to. Replacing a
 directory in place means moving the live copy aside, moving a new one in, and
-moving the old one back if anything fails. Each of those is a rename that can
-fail on its own, and a recovery path built from them reported success after a
-failed restore in three consecutive review rounds — the last time by printing a
-command that nested the backup inside the broken copy rather than replacing it.
-The capability was removed rather than guarded a fourth time, for the same
-reason the repository-pull path was removed earlier in this release: a
-mechanism that keeps producing the same class of defect is the wrong mechanism.
+moving the old one back if anything fails — three renames that can each fail
+independently, and a recovery path assembled from them reported success after a
+failed restore in three consecutive review rounds. The capability was removed
+rather than guarded a fourth time.
 
-The replacement is designed and filed, not improvised here. A published release
-should be unpacked into its own directory beside the current one, with the
-plugin path a symbolic link pointed at whichever release is live. Rollback then
-costs one flip of that link, the previous release is never moved, and the
-failure branches this command grew simply do not exist. See
-`.backlog/redesign-plugin-refresh-as-symlinked-generations.md`.
+What replaced it is not a safer version of the same surgery. Claude Code already
+updates marketplace plugins itself, so the right move was to stop hand-rolling a
+mechanism the platform owns and point at that one instead — the same delegation
+the skill install has always used, handing its updates to the skills CLI.
 
 ### Step 4 — After The User Reinstalls
 
@@ -222,9 +240,8 @@ they have reinstalled and asks for a check.
 **Will Not:**
 - **Run a repository-changing git command against an existing repository.**
   Under no classification does this command fetch, pull, merge, check out,
-  rebase, or reset anything already on disk. The single repository operation it
-  performs is a shallow read-only clone of the published release tag into a
-  temporary directory it just created. Updating a repository that happens to
+  rebase, or reset anything already on disk. It performs no repository operation
+  of any kind — not even a read-only clone. Updating a repository that happens to
   hold the plugin is the user's own operation, and this command will not run it
   for them — there is no filesystem check that could make doing so safe, which
   is why the capability was removed rather than guarded.

@@ -144,17 +144,15 @@ very conflict the steward is designed to prevent.
   `/strategic-partner-plugin:strategic-partner`; `/sp` and `/advisor` no longer
   resolve as typed plugin commands (natural-language triggering still works). No
   alias mechanism exists in the plugin format.
-- **`:update` subcommand:** never runs a repository-changing git command — no
-  fetch, pull, merge, checkout, rebase, or reset — against a repository that
-  already exists on disk. If the plugin sits inside a git working copy, the
-  update reports the version gap and stops; moving that repository is your own
-  operation, not something this command will do for you. Otherwise it refreshes
-  the plugin from the latest published release, and that refresh replaces the
-  **entire contents** of the plugin directory, including anything nested inside
-  it. A git repository kept inside the plugin directory would go with the rest —
-  not because a git command ran against it, but because the whole directory is
-  swapped for a freshly staged copy and the old one is then deleted. Keep local
-  changes, and anything else you care about, somewhere you manage yourself
-  rather than inside the plugin directory.
+- **`:update` subcommand:** reports the version gap and names the update route
+  that matches how this plugin was installed. It changes nothing on disk — it
+  runs no repository-changing git command, and it does not move, replace, or
+  delete any directory. Installed from the marketplace, Claude Code handles the
+  update itself: `/plugin marketplace update strategic-partner` then
+  `/reload-plugins`, or turn on background auto-update once under `/plugin` →
+  **Marketplaces** (it is off by default for third-party marketplaces). Sitting
+  inside a git working copy, the update reports the gap and stops — moving that
+  repository is your own operation. Note that a marketplace reinstall replaces
+  the plugin's own directory, so keep anything you care about outside it.
 - **Serena connection ownership:** auto-connect remains on the published
   roadmap while the plugin uses the shared, SP-managed user-level runtime.

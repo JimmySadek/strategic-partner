@@ -268,8 +268,8 @@ as a nudge to publish if the tag is ready.
 
 **Surface in orientation:** One-line note.
 
-> "🚧 vLOCAL is tagged locally; vREMOTE is the latest published release.
-> Run `.scripts/release-publish.sh` if vLOCAL is ready to publish —
+> "🚧 The installed copy reports vLOCAL; vREMOTE is the latest published
+> release. If vLOCAL is ready to publish, run the release process —
 > otherwise this is expected mid-release."
 
 **No automatic publish.** The SP never runs the release-publish script on

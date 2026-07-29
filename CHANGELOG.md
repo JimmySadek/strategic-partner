@@ -51,24 +51,32 @@
   text rather than converted, which has no size limit at all, and any comparison
   that cannot be completed stops on the spot and says it cannot tell rather than
   carrying on to a guess.
-- **The plugin update no longer replaces the plugin folder for you — it tells
-  you what changed and leaves the reinstall to you** — earlier work in this
-  release built an automatic refresh that swapped the folder for a freshly
-  downloaded copy, keeping the old one aside in case the new one failed its
-  checks. Putting the old one back turned out to be the hard part: three rounds
-  of independent review each found a new way for that recovery to go wrong, the
-  last being a printed recovery command that tucked your previous copy *inside*
-  the broken one instead of replacing it, under a message saying your previous
-  version was back. Rather than patch that a fourth time, the automatic refresh
-  was removed. The update check still does everything it did before it — compares
-  versions in both directions, refuses to talk you into replacing a newer local
-  build with an older published one, inspects the folder for missing files, and
-  says which of the two install shapes you have — and then points you at the
-  reinstall instead of performing it. Nothing on your disk is moved, replaced, or
-  deleted by this command. A better design is written up and waiting: keep each
-  released version in its own folder and point a shortcut at the one in use, so
-  going back is a single flick of that shortcut and the previous version is never
-  disturbed at all.
+- **The plugin can now be installed and updated through Claude Code itself** —
+  Strategic Partner ships a marketplace listing for the first time, so Claude
+  Code recognises the plugin as something it can install and keep current. Add it
+  once with `/plugin marketplace add JimmySadek/strategic-partner`, install with
+  `/plugin install strategic-partner-plugin@strategic-partner`, and updates
+  afterwards are Claude Code's job rather than Strategic Partner's: it refreshes
+  in the background shortly after a session starts, or on demand with `/plugin
+  marketplace update strategic-partner` followed by `/reload-plugins`. One thing
+  worth knowing — background updating is switched **off** by default for
+  listings that do not come from Anthropic, so turn it on under `/plugin` →
+  **Marketplaces** if you want it hands-free.
+- **The update command no longer replaces the plugin folder itself — it points
+  you at the route that fits your install** — v7.6.0 updated by running the
+  install tool or a repository pull on your behalf, and earlier work in this
+  release replaced that with an automatic folder swap. Both are gone. The swap
+  proved to be the wrong shape: three rounds of independent review each found a
+  new way for its recovery to go wrong, the last being a printed recovery command
+  that tucked your previous copy *inside* the broken one under a message saying
+  your previous version was back. Rather than write a safer version of the same
+  surgery, the surgery was dropped in favour of the listing above — the same
+  approach the non-plugin install has always used, where updating is handed to
+  the tool that installed it. The check still does everything else it did:
+  compares versions both ways, refuses to talk you into replacing a newer local
+  build with an older published one, looks for missing files, and works out which
+  install shape you have. Nothing on your disk is moved, replaced, or deleted by
+  this command any more.
 - **A cross-model review that needs longer than ten minutes now runs to
   completion, and a review left to finish always has its result captured** —
   these reviews ask a second AI

@@ -9,16 +9,20 @@
 #
 #   It CAN prove:  the repository-changing git verbs it looks for — fetch,
 #                  pull, merge, checkout, rebase, reset — are absent from the
-#                  document; the refresh machinery removed from this release has
-#                  not drifted back in; the document still names the paths and
-#                  the health check it must name.
+#                  document, and so is every clone; the refresh machinery removed
+#                  from this release has not drifted back in; the document names
+#                  the native marketplace update route and the paths and health
+#                  check it must name.
 #   It CANNOT prove: that following the document produces correct behaviour.
 #                  Nothing here executes the update or classifies a real install.
 #
 # The invariant these assertions are scoped to, stated narrowly enough to be
 # true: the update command runs no repository-changing git command against an
-# existing repository, and performs no staging, swap, rollback, or delete of the
-# plugin directory at all — it reports and hands the reinstall to the user.
+# existing repository, performs no staging, swap, rollback, delete, or clone of
+# any kind, and changes nothing on disk. It reports the version gap and names the
+# update route that matches the install — for a marketplace install, Claude
+# Code's own, which is the same delegation the skill install has always used with
+# the skills CLI.
 #
 # That second half used to read differently. This suite previously described a
 # staged refresh that replaced the plugin directory wholesale, and carried
@@ -28,9 +32,11 @@
 # of replacing it — and a harness that claimed per-rename coverage while missing
 # one of the four renames. The capability was removed rather than guarded a
 # fourth time. The replacement design is filed at
-# .backlog/redesign-plugin-refresh-as-symlinked-generations.md; it makes rollback
-# a single symlink flip, so the failure branches stop existing rather than being
-# guarded.
+# a marketplace manifest at .claude-plugin/marketplace.json. Claude Code updates
+# marketplace plugins itself, so the failure branches stop existing because the
+# surgery stops existing — not because a safer version of it was written. (An
+# interim design that rebuilt the refresh around symlinked release generations
+# was filed and then superseded by this, unbuilt.)
 #
 # "standalone", not "detached": the update command's install classification uses
 # `standalone` for a plugin directory that does not sit inside a checked-out
@@ -174,7 +180,7 @@ for root_only_state in skills-tracked-complete skills-tracked-incomplete git-clo
 done
 
 # --- Plugin: Serena stewardship step preserved ------------------------------
-assert_contains "plugin update still checks Serena after updating" \
+assert_contains "plugin update still checks Serena after a user-run reinstall" \
   "$plugin_update" ".scripts/serena-doctor.sh"
 
 # --- Root skill: reverse regression guard -----------------------------------
@@ -206,8 +212,36 @@ assert_contains "plugin update hands the reinstall to the user" \
   "$plugin_update" "hand the update to the user"
 assert_contains "plugin update states plainly that it performs no refresh" \
   "$plugin_update" "It performs no staging, no swap, and no rollback"
-assert_contains "plugin update points at the filed replacement design" \
-  "$plugin_update" "redesign-plugin-refresh-as-symlinked-generations"
+assert_contains "plugin update names the native marketplace update route" \
+  "$plugin_update" "/plugin marketplace update strategic-partner"
+assert_contains "plugin update names the reload step that activates it" \
+  "$plugin_update" "/reload-plugins"
+assert_contains "plugin update tells the user auto-update is off by default" \
+  "$plugin_update" "off by default for third-party marketplaces"
+assert_contains "plugin update names the add+install route for a fresh install" \
+  "$plugin_update" "/plugin marketplace add JimmySadek/strategic-partner"
+
+# The manifest is what makes the native route possible. Without it the command
+# names a route no user can take.
+MARKETPLACE_FILE="$ROOT/.claude-plugin/marketplace.json"
+if [ -f "$MARKETPLACE_FILE" ]; then
+  record_pass "marketplace manifest exists at .claude-plugin/marketplace.json"
+  mp_source=$(grep -o '"source": *"[^"]*"' "$MARKETPLACE_FILE" | head -1 | cut -d'"' -f4)
+  if [ -f "$ROOT/$mp_source/.claude-plugin/plugin.json" ]; then
+    record_pass "marketplace source path resolves to a real plugin bundle ($mp_source)"
+  else
+    record_fail "marketplace source path does not resolve: $mp_source"
+  fi
+  mp_version=$(grep -o '"version": *"[^"]*"' "$MARKETPLACE_FILE" | head -1 | cut -d'"' -f4)
+  pl_version=$(grep -o '"version": *"[^"]*"' "$ROOT/$mp_source/.claude-plugin/plugin.json" | head -1 | cut -d'"' -f4)
+  if [ "$mp_version" = "$pl_version" ]; then
+    record_pass "marketplace and plugin manifests agree on the version ($mp_version)"
+  else
+    record_fail "version mismatch: marketplace $mp_version vs plugin $pl_version"
+  fi
+else
+  record_fail "missing marketplace manifest — the update command names a route users cannot take"
+fi
 
 printf '\nResult: %s passed, %s failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
