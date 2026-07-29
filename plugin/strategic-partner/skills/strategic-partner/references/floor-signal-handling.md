@@ -249,7 +249,9 @@ already cached from the floor sentinel's Group 6 work), include the
 one-line summary; otherwise omit and let the user decide.
 
 **No automatic update.** The SP never invokes `/strategic-partner-plugin:update`
-on the user's behalf. The update flow has its own confirmation step.
+on the user's behalf. That command only reports — it changes nothing on disk and
+asks for no confirmation, because it has nothing to confirm. Updating is the
+user's own step, run through Claude Code's plugin commands.
 
 **No dispatch.** The user runs the update subcommand directly.
 

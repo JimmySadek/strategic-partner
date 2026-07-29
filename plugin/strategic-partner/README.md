@@ -148,9 +148,12 @@ very conflict the steward is designed to prevent.
   that matches how this plugin was installed. It changes nothing on disk — it
   runs no repository-changing git command, and it does not move, replace, or
   delete any directory. Installed from the marketplace, Claude Code handles the
-  update itself: `/plugin marketplace update strategic-partner` then
-  `/reload-plugins`, or turn on background auto-update once under `/plugin` →
-  **Marketplaces** (it is off by default for third-party marketplaces). Sitting
+  update itself: `/plugin marketplace update strategic-partner` to refresh the
+  listing, then `/plugin update strategic-partner-plugin@strategic-partner` to
+  move the install, then restart Claude Code. (Both commands are needed — the
+  first only refreshes the catalog.) Or turn on background auto-update once under
+  `/plugin` → **Marketplaces**; it is off by default for third-party
+  marketplaces. Sitting
   inside a git working copy, the update reports the gap and stops — moving that
   repository is your own operation. Note that a marketplace reinstall replaces
   the plugin's own directory, so keep anything you care about outside it.

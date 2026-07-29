@@ -36,7 +36,8 @@
 # marketplace plugins itself, so the failure branches stop existing because the
 # surgery stops existing — not because a safer version of it was written. (An
 # interim design that rebuilt the refresh around symlinked release generations
-# was filed and then superseded by this, unbuilt.)
+# was filed and then superseded, unbuilt; it is not referenced here, because it
+# lived in an untracked directory that never reaches a fresh clone.)
 #
 # "standalone", not "detached": the update command's install classification uses
 # `standalone` for a plugin directory that does not sit inside a checked-out
@@ -158,8 +159,8 @@ assert_contains "plugin update resolves the nested plugin skill path" \
 # it from a published tag; it has no business moving anyone's repository, and no
 # filesystem check can make moving one safe. Two shapes are checked: a command
 # line beginning with `git`, and the `git <verb>` form anywhere in the file.
-# A shallow clone into a temporary directory is permitted — it reads a published
-# tag into scratch space and changes nothing that already exists.
+# No clone of any kind is permitted any more: the refresh that needed one was
+# removed, so a clone reappearing means the machinery is drifting back.
 mutating_verbs='fetch|pull|merge|checkout|rebase|reset|push|clean|stash|apply|revert'
 assert_no_match "plugin update runs no repository-changing git command" \
   "$plugin_update" "^[[:space:]]*git[[:space:]].*[[:space:]]($mutating_verbs)([[:space:]]|\$)"
@@ -212,10 +213,24 @@ assert_contains "plugin update hands the reinstall to the user" \
   "$plugin_update" "hand the update to the user"
 assert_contains "plugin update states plainly that it performs no refresh" \
   "$plugin_update" "It performs no staging, no swap, and no rollback"
-assert_contains "plugin update names the native marketplace update route" \
+# Both commands, in order. `marketplace update` refreshes the catalog only;
+# `plugin update` is what moves the install. Verified against the CLI's own help:
+# "Update marketplace(s) from their source" vs "Update a plugin to the latest
+# version (restart required to apply)". An earlier version of this suite asserted
+# the first alone as the update route, locking in a documented route that leaves
+# the user on the old version.
+assert_contains "plugin update names the catalog refresh" \
   "$plugin_update" "/plugin marketplace update strategic-partner"
-assert_contains "plugin update names the reload step that activates it" \
-  "$plugin_update" "/reload-plugins"
+assert_contains "plugin update names the command that actually moves the install" \
+  "$plugin_update" "/plugin update strategic-partner-plugin@strategic-partner"
+assert_contains "plugin update says both are needed and why" \
+  "$plugin_update" "Both commands are needed, in that order"
+assert_contains "plugin update says a restart applies it, not a reload" \
+  "$plugin_update" "restart required to apply"
+assert_contains "plugin update detects provenance rather than mere registration" \
+  "$plugin_update" "claude plugin list"
+assert_not_contains "plugin update no longer infers provenance from a hardcoded config path" \
+  "$plugin_update" '${HOME}/.claude/plugins/marketplaces'
 assert_contains "plugin update tells the user auto-update is off by default" \
   "$plugin_update" "off by default for third-party marketplaces"
 assert_contains "plugin update names the add+install route for a fresh install" \

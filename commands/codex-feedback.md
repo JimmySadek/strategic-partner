@@ -134,8 +134,9 @@ The release-review brief lists the relevant transcript files (from
 FILES TO READ so Codex can sample them when answering question 4. Note
 that the JSONL transcript directory at `~/.claude/projects/...` is
 OUTSIDE the project sandbox by default — add
-`--add-dir ~/.claude/projects/<encoded-project-dir>` to the dispatch
-command (see Step 5) to reach it. 🚨 That flag grants **write** access to
+`--add-dir "$HOME/.claude/projects/<encoded-project-dir>"` to the dispatch
+command (see Step 5) to reach it — quoted, because a path with a space splits
+otherwise. 🚨 That flag grants **write** access to
 the directory, not read access, so the review can write into the very
 records it is auditing; scope it to the single project's directory and
 say in the verdict that it was added. Without `--add-dir`,
@@ -526,7 +527,11 @@ never a parent of it. **Do not reach for it habitually**: add it only when the
 audit genuinely cannot answer its question from inside the project root, and say in
 the verdict that it was added.
 
-Example for transcript audits — the wrapper is unchanged apart from the extra flag:
+Example for transcript audits — the wrapper is unchanged apart from the extra flag.
+Quote the extra directory too: it is the same splitting hazard as the project
+path, and the wrapper quoting `"$4"` cannot help because the split has already
+happened by then. Written as `"$HOME/..."` rather than `~/...`, because a tilde
+inside quotes is not expanded.
 
 ```
 cat > "$run_dir/run.sh" <<'SP_WRAPPER'
@@ -545,7 +550,7 @@ SP_WRAPPER
 
 # <sandbox-mode> has NO default here either — fill it from the mode table in Part 1.
 nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> "<project-dir>" \
-  ~/.claude/projects/<encoded-project-dir> \
+  "$HOME/.claude/projects/<encoded-project-dir>" \
   >/dev/null 2>&1 &
 printf '%s\n' "$!" > "$run_dir/wrapper.pid"
 disown

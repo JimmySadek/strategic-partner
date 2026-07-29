@@ -309,6 +309,26 @@ assert_launch_quotes_project_dir() {
   fi
 }
 
+# The transcript-audit launch passes a SECOND path. Quoting the project path and
+# leaving its neighbour bare splits on the same spaces; the wrapper quoting "$4"
+# is too late, the split already happened. A tilde is used nowhere here because
+# a tilde inside quotes is not expanded.
+assert_launch_quotes_extra_dir() {
+  label="$1"
+  body="$2"
+  offenders=$(printf '%s\n' "$body" | grep -E '\.claude/projects/<encoded-project-dir>' | grep -vF '"$HOME/.claude/projects/<encoded-project-dir>"')
+  if [ -n "$offenders" ]; then
+    record_fail "$label (unquoted or tilde-form extra path: $(printf '%s' "$offenders" | head -1))"
+  else
+    record_pass "$label"
+  fi
+}
+
+assert_launch_quotes_extra_dir \
+  "root copy: the --add-dir launch path is quoted too" "$root_cmd"
+assert_launch_quotes_extra_dir \
+  "plugin copy: the --add-dir launch path is quoted too" "$plugin_cmd"
+
 assert_launch_quotes_project_dir \
   "root copy: every launch line quotes the project path" "$root_cmd"
 assert_launch_quotes_project_dir \

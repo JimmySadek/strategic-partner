@@ -141,12 +141,20 @@ You paste each phase into a fresh session and report back; the SP reviews what l
 /reload-plugins
 ```
 
-Claude Code then handles updates itself: it refreshes in the background shortly
-after a session starts, or on demand with `/plugin marketplace update
-strategic-partner`. Background updating is **off by default** for listings that
-do not come from Anthropic — switch it on under `/plugin` → **Marketplaces** →
-`strategic-partner` → **Enable auto-update** if you want it hands-free. Commands
-are namespaced `/strategic-partner-plugin:` in this install.
+Claude Code then handles updates itself, in the background shortly after a
+session starts. To update on demand instead, two commands in order — the first
+refreshes the listing, the second moves the install:
+
+```
+/plugin marketplace update strategic-partner
+/plugin update strategic-partner-plugin@strategic-partner
+```
+
+Then restart Claude Code to pick up the new version. Background updating is
+**off by default** for listings that do not come from Anthropic — switch it on
+under `/plugin` → **Marketplaces** → `strategic-partner` → **Enable auto-update**
+if you want it hands-free. Commands are namespaced `/strategic-partner-plugin:`
+in this install.
 
 **As a standalone skill:**
 

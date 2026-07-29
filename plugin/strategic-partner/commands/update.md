@@ -94,13 +94,25 @@ route to name.
    marketplace, Claude Code replaces the plugin's own directory — worth
    mentioning to anyone who keeps unrelated files inside it.
 
-5. Determine whether Claude Code installed this plugin from a marketplace —
-   the case that owns its own updates:
+5. Determine whether THIS install came from a marketplace — the case that owns
+   its own updates. Ask Claude Code what it has installed, rather than inferring
+   it from the filesystem:
    ```
-   ls "${HOME}/.claude/plugins/marketplaces/strategic-partner" 2>/dev/null
+   claude plugin list 2>/dev/null | grep -i 'strategic-partner'
    ```
-   A directory here means the marketplace is registered and Claude Code manages
-   this install.
+   An entry naming `strategic-partner-plugin@strategic-partner` means Claude Code
+   installed and manages this plugin.
+
+   ⚠️ **Do not test for a registered marketplace instead.** A registered
+   marketplace and a marketplace-managed install are different facts: a user can
+   register the listing while running a plugin they cloned or symlinked
+   themselves, and the update advice for those two is not the same. An earlier
+   version of this step checked for a marketplace directory under
+   `${HOME}/.claude`, which was wrong twice over — it proved registration rather
+   than provenance, and it missed installs whose config root is elsewhere via
+   `CLAUDE_CONFIG_DIR`. If `claude plugin list` is unavailable, say the install
+   shape could not be determined and offer all three routes rather than guessing
+   one.
 
 6. Classify the install:
 
@@ -120,19 +132,32 @@ them, because most will assume it is already on.
 
 | What the user wants | What to tell them |
 |---|---|
-| Update now | `/plugin marketplace update strategic-partner`, then `/reload-plugins` |
+| Update now | `/plugin marketplace update strategic-partner` to refresh the listing, then `/plugin update strategic-partner-plugin@strategic-partner` to move the install, then restart Claude Code |
 | Update automatically from now on | `/plugin` → **Marketplaces** → `strategic-partner` → **Enable auto-update** |
 | Not installed from the marketplace yet | `/plugin marketplace add JimmySadek/strategic-partner`, then `/plugin install strategic-partner-plugin@strategic-partner` |
+
+🚨 **Both commands are needed, in that order, and they are not interchangeable.**
+`marketplace update` refreshes the catalog — it learns that a newer version
+exists. It does NOT touch the installed plugin. `plugin update` is what moves the
+install. Verified against the CLI's own help: `claude plugin marketplace update`
+is "Update marketplace(s) from their source", while `claude plugin update` is
+"Update a plugin to the latest version (restart required to apply)". Naming only
+the first leaves the user on the old version and then reloading it.
+
+⚠️ Note "restart required to apply" — a plugin *update* needs Claude Code
+restarted, not `/reload-plugins`. Reload activates newly installed or enabled
+plugins; it does not swap a running plugin for a newer copy on disk.
 
 A `working-copy` install already has an upstream that someone maintains. Report
 what is available and leave the repository alone — moving it is the user's own
 operation, and no filesystem check performed here could make doing it on their
 behalf safe.
 
-A `standalone` directory has no upstream and no marketplace behind it. That is
-all the absence of an enclosing work tree establishes; it says nothing about
-what else may be sitting inside the directory. Point the user at the marketplace
-route above, which replaces the manual reinstall going forward.
+`standalone` is the leftover case: Claude Code does not report managing this
+plugin, and it does not sit in a work tree. That is all those two checks
+establish — it is not evidence that no repository or marketplace exists anywhere,
+only that neither of the two routes above applies. Point the user at the
+marketplace route, which replaces the manual reinstall going forward.
 
 ### Step 3 — Compare and Present
 
@@ -232,7 +257,9 @@ they have reinstalled and asks for a check.
 - Inspect the plugin bundle before choosing a path
 - Classify the install as `working-copy` or `standalone`
 - Report the version gap and stop, whichever way the install is classified
-- Name the reinstall route that matches how the directory was installed
+- Name the update route that matches the install: Claude Code's own commands for
+  a marketplace install, the user's repository operation for a working copy, or
+  adding the marketplace for anything else
 - Re-check the bundle and version after the user reinstalls, on request
 - Refuse to report an update as available when the local build is newer than
   the latest published release

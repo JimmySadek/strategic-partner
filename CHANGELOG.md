@@ -57,10 +57,13 @@
   once with `/plugin marketplace add JimmySadek/strategic-partner`, install with
   `/plugin install strategic-partner-plugin@strategic-partner`, and updates
   afterwards are Claude Code's job rather than Strategic Partner's: it refreshes
-  in the background shortly after a session starts, or on demand with `/plugin
-  marketplace update strategic-partner` followed by `/reload-plugins`. One thing
-  worth knowing — background updating is switched **off** by default for
-  listings that do not come from Anthropic, so turn it on under `/plugin` →
+  in the background shortly after a session starts. To update on demand instead,
+  run `/plugin marketplace update strategic-partner` to refresh the listing and
+  then `/plugin update strategic-partner-plugin@strategic-partner` to move the
+  install, and restart Claude Code afterwards — the first command alone only
+  learns that a newer version exists, it does not install it. One more thing
+  worth knowing: background updating is switched **off** by default for listings
+  that do not come from Anthropic, so turn it on under `/plugin` →
   **Marketplaces** if you want it hands-free.
 - **The update command no longer replaces the plugin folder itself — it points
   you at the route that fits your install** — v7.6.0 updated by running the
@@ -95,7 +98,7 @@
   shutting down every process in the group, or by an unconditional stop signal —
   which by its nature gets no chance to record anything. A check that gives up early
   simply looks again instead of losing the work, and a review that has produced
-  nothing new for ten minutes is now reported to you as stuck rather than waited
+  nothing new for ten minutes is now reported to you as possibly stuck rather than waited
   on indefinitely. Reviews also no longer spend their time reading unrelated
   material — one audit used its whole budget on unrelated guidance and never
   opened the change it was asked to examine, so every review now begins with a
