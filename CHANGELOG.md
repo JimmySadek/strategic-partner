@@ -64,15 +64,26 @@
   **Marketplaces** if you want it hands-free.
 - **The update command now shows you where updating happens instead of guessing
   which route is yours** — it reports your version, whether a newer release
-  exists, and what is missing from the bundle, then lists the three places
-  updating can happen and lets you pick the one that matches how you installed
-  it. It no longer inspects your machine to work that out. The inspecting version
-  kept getting it wrong — badly enough that it could tell someone running their
-  own copy to update a different copy entirely — so the guessing was removed
-  rather than corrected again. Everything it reports is unchanged; only the
-  choosing is gone, and a list cannot pick the wrong route for you. The command
-  now runs no command of any kind against anything on your disk, git included,
-  and changes nothing.
+  exists, and what is missing from the bundle, then lists the places updating can
+  happen and lets you pick the one matching how you installed it. It no longer
+  inspects your machine to work that out. The inspecting version kept getting it
+  wrong — badly enough that it could tell someone running their own copy to
+  update a different copy entirely — so the guessing was removed rather than
+  corrected again. Everything it reports is unchanged; only the choosing is gone,
+  and a list cannot pick the wrong route for you. The command performs no update
+  and changes nothing on your disk, and runs no git command at all. It does still
+  read your disk to check the bundle and, on request, the Serena setup.
+- **One thing plugin users lose, stated plainly** — v7.6.0's update offered to
+  run the update for you. On a plugin installed through Claude Code that offer
+  never worked: it looked for the plugin in a tool that does not manage plugins,
+  then tried to pull a git repository in a folder that is not one, then tried to
+  run a setup script a plugin does not ship. Nothing is lost there. But if you
+  put the plugin in place yourself by symlinking it out of a checked-out
+  repository — a route the README supports — that pull could genuinely reach your
+  repository and update it. That convenience is gone. It was removed on purpose:
+  the same machinery that made it work for you could not reliably tell your copy
+  apart from another one, and updating the wrong copy is worse than updating
+  none. Updating a repository you maintain is now yours to run.
 - **The update command no longer replaces the plugin folder itself — it points
   you at the route that fits your install** — v7.6.0 updated by running the
   install tool or a repository pull on your behalf, and earlier work in this

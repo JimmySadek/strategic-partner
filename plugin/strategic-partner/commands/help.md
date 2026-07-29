@@ -30,7 +30,7 @@ Key behaviors:
 | `/strategic-partner-plugin:copy-prompt` | Copy a recently emitted fenced prompt to the clipboard |
 | `/strategic-partner-plugin:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner-plugin:status` | Recenter briefing — where we stand, what's next |
-| `/strategic-partner-plugin:update` | Check for updates and self-update to latest version |
+| `/strategic-partner-plugin:update` | Report your version, whether a newer release exists, and where updating happens |
 | `/strategic-partner-plugin:serena` | Check, install, repair, verify, or roll back Serena safely |
 | `/strategic-partner-plugin:codex-feedback` | Cross-model adversarial review via Codex CLI; also the Codex reviewer step for cross-model build/review |
 | `/strategic-partner-plugin:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` (18 patterns, interactive or report mode) |
@@ -47,7 +47,7 @@ Key behaviors:
 /strategic-partner-plugin:copy-prompt                    → Copy last fenced prompt to clipboard
 /strategic-partner-plugin:handoff                        → Save session state + continuation prompt
 /strategic-partner-plugin:status                         → "Where do we stand?" briefing
-/strategic-partner-plugin:update                         → Check + update to latest version
+/strategic-partner-plugin:update                         → Report version gap + where to update
 /strategic-partner-plugin:serena                         → Check or repair Serena with a preview and rollback
 /strategic-partner-plugin:codex-feedback                 → Trigger Codex review of a decision, claim, or cross-model build
 /strategic-partner-plugin:context-file-scan              → Scan CLAUDE.md / AGENTS.md / GEMINI.md for drift

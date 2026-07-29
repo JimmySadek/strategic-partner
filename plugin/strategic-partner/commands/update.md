@@ -9,8 +9,11 @@ mcp-servers: []
 # /strategic-partner-plugin:update — Update Check
 
 > Report which version is installed and whether a newer one has been published,
-> then say where updating happens. This command reads and reports. It runs no
-> command against anything on disk and changes nothing.
+> then say where updating happens. This command reads and reports: it performs no
+> update and no filesystem change, and invokes no git command. It does read the
+> disk — `grep` and `test` inspect the bundle, and the Serena doctor runs on
+> request — so "no command at all" would be false. The accurate boundary is that
+> nothing it runs modifies anything.
 
 ## Output Style
 
@@ -130,13 +133,20 @@ Running from your own git clone
   Update it the way you update any repository you maintain. Strategic Partner
   will not run git commands against it.
 
-Neither of the above
-  Install through Claude Code so future updates are handled for you:
+Copied or symlinked into Claude Code's skills directory yourself
+  This is a supported install and nothing updates it automatically. Two options.
+
+  Keep managing it yourself: replace the directory's contents from the release
+  the same way you put them there.
+
+  Or move to a managed install, which handles every future update:
       /plugin marketplace add JimmySadek/strategic-partner
       /plugin install strategic-partner-plugin@strategic-partner
-      /reload-plugins
-  This creates its own managed copy rather than adopting the directory you
-  already have.
+  This creates a SEPARATE managed copy — it does not adopt yours. Retire the old
+  one before reloading, or both will load and their commands will collide:
+      remove (or move aside) the copy or symlink you created under
+      ~/.claude/skills/, then run /reload-plugins
+  Removing it is your action, not this command's.
 ```
 
 🚨 **The first route needs both commands, in that order.** `marketplace update`
@@ -175,9 +185,11 @@ have updated and asks for a check.
 - Re-check the bundle and the Serena state after the user reports updating
 
 **Will Not:**
-- **Change anything on disk.** No file, directory, or symlink is created, moved,
+- **Modify anything on disk.** No file, directory, or symlink is created, moved,
   replaced, or deleted. No confirmation unlocks this, because there is no code
-  path behind it.
+  path behind it. The command does READ the disk — the bundle check runs `grep`
+  and `test`, and Step 4 runs the Serena doctor on request — and none of those
+  writes anything.
 - **Run any git command at all.** Not against the plugin, not against anything
   else, not even a read-only one. Updating a repository that happens to hold the
   plugin is the user's own operation.

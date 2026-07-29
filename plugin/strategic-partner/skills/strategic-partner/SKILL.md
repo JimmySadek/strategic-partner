@@ -2625,7 +2625,7 @@ Delegation rules, model selection, and parallelization templates.
 | `/strategic-partner-plugin:copy-prompt` | Copy a recently emitted fenced prompt to the clipboard |
 | `/strategic-partner-plugin:handoff` | Trigger context handoff with split writes |
 | `/strategic-partner-plugin:status` | Recenter briefing — where we stand, what's done, what's next |
-| `/strategic-partner-plugin:update` | Check for updates and self-update to latest version |
+| `/strategic-partner-plugin:update` | Report your version, whether a newer release exists, and where updating happens |
 | `/strategic-partner-plugin:codex-feedback` | Cross-model adversarial review via Codex CLI; Codex reviewer step for cross-model build/review |
 | `/strategic-partner-plugin:context-file-scan` | Read-only drift scanner for context files per the stewardship policy |
 | `/strategic-partner-plugin:backlog` | View project backlog — parked ideas, deferred work, and future improvements |

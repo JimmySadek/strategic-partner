@@ -50,6 +50,16 @@ Two changes, neither of which is another patch:
    git included, which makes its absolute no-git boundary true for the first
    time — round 10 found the previous version promising that while running
    `git rev-parse` three sections above the promise.
+
+   Two claims made about the removal were themselves too strong, and round 11
+   caught both. "Runs no command against anything on disk" was false: the bundle
+   check runs `grep` and `test`, and Step 4 runs the Serena doctor. The accurate
+   boundary is that it performs no update, modifies nothing, and invokes no git.
+   And "removing it loses nothing real" held only for marketplace installs — the
+   shape that was measured. A plugin symlinked out of a checked-out repository,
+   which the README supports, IS inside a git working tree, so v7.6.0's `git
+   pull` could genuinely have updated it. That convenience is a real if narrow
+   loss, and the release notes now say so instead of claiming none.
 2. **A coherence suite was written to guard the state machine — and then both
    were deleted.** `tests/plugin-update-coherence.sh` derived the state list from
    the classification table and required every branch, Boundaries entry, and

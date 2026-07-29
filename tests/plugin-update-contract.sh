@@ -196,8 +196,12 @@ done
 # running `git rev-parse` three sections above that promise. The English phrase
 # "your own git clone" is prose, not an invocation, so the check is anchored to
 # a command-shaped line.
+# The regex must survive the forms a review already used to defeat a weaker one:
+# `git -C /tmp rev-parse` passed an earlier version because only a lowercase word
+# was accepted immediately after `git`. Global options, and wrappers such as
+# `command git`, `env git`, `sudo git`, `if git` and `! git`, are all covered now.
 assert_no_match "plugin update invokes no git command anywhere" \
-  "$plugin_update" "^[[:space:]]*git[[:space:]]+[a-z]"
+  "$plugin_update" "^[[:space:]]*(command|env|sudo|exec|if|!|then|else)?[[:space:]]*git([[:space:]]|\$)"
 
 assert_contains "plugin update states plainly that it performs no update" \
   "$plugin_update" "This command performs no update"

@@ -144,18 +144,18 @@ very conflict the steward is designed to prevent.
   `/strategic-partner-plugin:strategic-partner`; `/sp` and `/advisor` no longer
   resolve as typed plugin commands (natural-language triggering still works). No
   alias mechanism exists in the plugin format.
-- **`:update` subcommand:** reports the version gap and names the update route
-  that matches how this plugin was installed. It changes nothing on disk — it
-  runs no repository-changing git command, and it does not move, replace, or
-  delete any directory. Installed from the marketplace, Claude Code handles the
-  update itself: `/plugin marketplace update strategic-partner` to refresh the
-  listing, then `/plugin update strategic-partner-plugin@strategic-partner` to
-  move the install, then restart Claude Code. (Both commands are needed — the
-  first only refreshes the catalog.) Or turn on background auto-update once under
-  `/plugin` → **Marketplaces**; it is off by default for third-party
-  marketplaces. Sitting
-  inside a git working copy, the update reports the gap and stops — moving that
-  repository is your own operation. Note that a marketplace reinstall replaces
-  the plugin's own directory, so keep anything you care about outside it.
+- **`:update` subcommand:** reports your version, whether a newer release
+  exists, and what is missing from the bundle — then lists the places updating
+  can happen and lets you pick the one matching how you installed it. It does not
+  work that out for you, and it performs no update: nothing is created, moved,
+  replaced, or deleted, and it runs no git command. Installed through Claude
+  Code, updating is `/plugin marketplace update strategic-partner` followed by
+  `/plugin update strategic-partner-plugin@strategic-partner`, then a restart —
+  both commands are needed, because the first only refreshes the catalog. Or turn
+  on background auto-update once under `/plugin` → **Marketplaces**; it is off by
+  default for third-party listings. Running from your own clone or a copy you
+  placed yourself, updating stays yours to do. Note that installing through
+  Claude Code creates a separate managed copy rather than adopting the directory
+  you already have — retire the old one before reloading, or both will load.
 - **Serena connection ownership:** auto-connect remains on the published
   roadmap while the plugin uses the shared, SP-managed user-level runtime.
