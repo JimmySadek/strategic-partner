@@ -2,6 +2,84 @@
 
 This file accumulates incident write-ups for SP project incidents that produced Provisional Guards or otherwise shaped SP process. Each entry is identified by an `INC-YYYY-MM-DD` ID matching the date the incident occurred and is referenced by one or more guards in `claudedocs/provisional-guards.md`. New entries follow the same `## INC-YYYY-MM-DD — <one-line summary>` heading pattern.
 
+## INC-2026-07-29 — The plugin updater took six review rounds because it was patched, not rebuilt
+
+### What happened
+
+`plugin/strategic-partner/commands/update.md` drew a HIGH-severity finding in six
+consecutive cross-model review rounds. Every round's fix produced the next
+round's finding:
+
+| Round | Finding |
+|---|---|
+| 4 | The two repository-ownership checks were forgeable — a review defeated both with a purpose-built repository |
+| 5 | The rollback path reported success after a failed restore |
+| 6 | The printed recovery command nested the backup inside the broken copy instead of replacing it |
+| 7 | Descriptions across four files still promised the refresh that had been withdrawn |
+| 8 | The documented update command refreshed the catalog without touching the install |
+| 9 | The provenance fix never reached the classification table, the branches, or Boundaries |
+
+The file grew from 113 lines at v7.6.0 to 287. Every other component in the same
+release converged: the floor sentinel drew no finding after round 4, and the
+Codex dispatch contract drew none after round 8.
+
+### Why it broke
+
+Two mechanisms were withdrawn from this file during one release — first the
+repository-pull path, then the in-place directory refresh — and both times the
+withdrawal was applied by editing the lines a review had cited. The document's
+structure still encoded the mechanism that had just been removed. Each round
+found a different seam where old structure met new intent.
+
+The deeper cause is that nothing could detect the defect class. The contract
+suite asserted that PHRASES WERE PRESENT, so it passed on a phrase check for
+`claude plugin list` while the table three lines below still classified by
+marketplace registration — the exact signal the paragraph above it rejected.
+Presence was the wrong property to test.
+
+### Fix shipped
+
+Two changes, neither of which is another patch:
+
+1. **The command was rewritten** around the three install states rather than
+   edited again, so no structure survives from either withdrawn mechanism.
+2. **`tests/plugin-update-coherence.sh`** makes the defect class mechanically
+   detectable. The classification table is the single source of truth for what
+   states exist; every branch, every Boundaries entry, and every state reference
+   is checked against it. Run against the pre-rewrite file it fails on three of
+   round 9's five findings — the missing marketplace branch, the table
+   classifying by a signal the document rejects, and the conditional
+   prohibitions contradicting a read-only contract.
+
+### Why the rationale for the removals lives here now
+
+The command file carried several paragraphs explaining why the repository-pull
+path and the in-place refresh were each removed. That reasoning is what stops
+someone reinstating them, and it is worth keeping — but it is incident history,
+not operating instructions, and keeping it in the command was part of what made
+the document 287 lines of mixed intent. It is recorded here instead:
+
+- **The repository-pull path** was removed because "is it safe to change this
+  repository" cannot be answered from the filesystem. Two checks were tried and a
+  review defeated both in minutes with an ordinary local repository built for the
+  purpose: any repository can be made to look like the right one.
+- **The in-place refresh** was removed because replacing a directory means moving
+  the live copy aside, moving a new one in, and moving the old one back on
+  failure — three renames that can each fail independently. A recovery path
+  assembled from them produced a new hole in three consecutive rounds.
+- **An interim design** that rebuilt the refresh around symlinked release
+  generations was filed and then superseded, unbuilt, when research established
+  that Claude Code updates marketplace plugins natively. The repository shipped no
+  `.claude-plugin/marketplace.json`, so the hand-rolled refresh had been filling a
+  gap that existed only because the manifest was missing.
+
+### Lesson
+
+A component that draws the same class of finding round after round is not
+unlucky. When a fix produces the next round's finding twice, the structure is the
+defect and editing cited lines will not reach it. And when a suite cannot fail on
+the defect being found repeatedly, the suite is testing the wrong property.
+
 ## INC-2026-07-28 — Transcript lint waived, not satisfied, for the current release
 
 ### What happened

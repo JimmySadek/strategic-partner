@@ -65,6 +65,13 @@
   worth knowing: background updating is switched **off** by default for listings
   that do not come from Anthropic, so turn it on under `/plugin` →
   **Marketplaces** if you want it hands-free.
+- **The update command was rebuilt around three clear install shapes** — it now
+  works out whether Claude Code manages this plugin, whether it sits in a
+  repository you maintain, or neither, and names the matching update route for
+  that case. When it cannot tell, it says so and shows all three rather than
+  guessing. It reports and stops in every case: nothing on your disk is created,
+  moved, replaced, or deleted, and no confirmation unlocks that, because there is
+  no code path behind it.
 - **The update command no longer replaces the plugin folder itself — it points
   you at the route that fits your install** — v7.6.0 updated by running the
   install tool or a repository pull on your behalf, and earlier work in this

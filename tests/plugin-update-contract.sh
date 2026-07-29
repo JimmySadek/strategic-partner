@@ -169,7 +169,7 @@ assert_no_match "plugin update never writes the inline \"git <verb>\" form eithe
 
 # --- Plugin: the two states left after the pull path was deleted ------------
 assert_contains "plugin update stops rather than touching a git working copy" \
-  "$plugin_update" "Report the version gap and stop"
+  "$plugin_update" "Updating it is your own repository operation"
 
 assert_not_contains "plugin update derives no staging path from the process id" \
   "$plugin_update" '.strategic-partner.new.$$'
@@ -209,10 +209,10 @@ for banned in 'rm -rf' 'rsync -a' 'sp_verify' '$staging' '$backup' 'git clone'; 
     "$plugin_update" "$banned"
 done
 
-assert_contains "plugin update hands the reinstall to the user" \
-  "$plugin_update" "hand the update to the user"
-assert_contains "plugin update states plainly that it performs no refresh" \
-  "$plugin_update" "It performs no staging, no swap, and no rollback"
+assert_contains "plugin update names the route rather than performing it" \
+  "$plugin_update" "Name the update route matching that state, and stop there"
+assert_contains "plugin update states plainly that it performs no update" \
+  "$plugin_update" "This command performs no update"
 # Both commands, in order. `marketplace update` refreshes the catalog only;
 # `plugin update` is what moves the install. Verified against the CLI's own help:
 # "Update marketplace(s) from their source" vs "Update a plugin to the latest
@@ -232,7 +232,7 @@ assert_contains "plugin update detects provenance rather than mere registration"
 assert_not_contains "plugin update no longer infers provenance from a hardcoded config path" \
   "$plugin_update" '${HOME}/.claude/plugins/marketplaces'
 assert_contains "plugin update tells the user auto-update is off by default" \
-  "$plugin_update" "off by default for third-party marketplaces"
+  "$plugin_update" "switched OFF by"
 assert_contains "plugin update names the add+install route for a fresh install" \
   "$plugin_update" "/plugin marketplace add JimmySadek/strategic-partner"
 

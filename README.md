@@ -171,6 +171,12 @@ complete standalone install until the public skills CLI bundle shape changes.
 
 ### Setup
 
+> ⏭️ **Plugin install? Skip this section.** A plugin ships no `setup` script and
+> needs none — Claude Code reads the commands, hooks, and voice style straight
+> out of the plugin. Setup below is for the standalone skill install only. Note
+> too that plugin commands are namespaced `/strategic-partner-plugin:` rather
+> than `/strategic-partner:`.
+
 After install completes, change into the install directory and run setup:
 
 ```bash
@@ -199,9 +205,12 @@ rm -rf "$tmp"
 
 ### Run
 
-```
-/strategic-partner
-```
+Which command depends on how it was installed:
+
+| Install | Start it with |
+|---|---|
+| Plugin | `/strategic-partner-plugin:strategic-partner` |
+| Standalone skill | `/strategic-partner` |
 
 Resume from a previous session by passing a handoff file path:
 
@@ -211,7 +220,10 @@ Resume from a previous session by passing a handoff file path:
 
 ### Aliases
 
-`/strategic-partner`, `/advisor`, `/sp` all invoke the same skill.
+On the standalone skill install, `/strategic-partner`, `/advisor` and `/sp` all
+invoke the same skill. The plugin install has no aliases — the plugin format
+provides no alias mechanism — so its commands are always namespaced
+`/strategic-partner-plugin:`. Natural-language activation works on both.
 
 ---
 
