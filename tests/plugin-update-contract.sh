@@ -7,44 +7,28 @@
 # out what it says. This suite reads the same document and checks which
 # contract text is present and which is absent. That is all it does.
 #
-#   It CAN prove:  the repository-changing git verbs it looks for — fetch,
-#                  pull, merge, checkout, rebase, reset — are absent from the
-#                  document, and so is every clone; the refresh machinery removed
-#                  from this release has not drifted back in; the document names
-#                  the native marketplace update route and the paths and health
-#                  check it must name.
+#   It CAN prove:  no git verb of any kind appears in the document; the refresh
+#                  machinery removed from this release has not drifted back in;
+#                  the document still names the bundle paths, the three update
+#                  routes, and the two-command ordering the platform requires.
 #   It CANNOT prove: that following the document produces correct behaviour.
-#                  Nothing here executes the update or classifies a real install.
+#                  Nothing here executes the update.
 #
-# The invariant these assertions are scoped to, stated narrowly enough to be
-# true: the update command runs no repository-changing git command against an
-# existing repository, performs no staging, swap, rollback, delete, or clone of
-# any kind, and changes nothing on disk. It reports the version gap and names the
-# update route that matches the install — for a marketplace install, Claude
-# Code's own, which is the same delegation the skill install has always used with
-# the skills CLI.
+# The invariant these assertions are scoped to: the update command reads and
+# reports. It runs no command against anything on disk, inspects nothing about
+# how the plugin was installed, and chooses no route on the user's behalf — it
+# prints the same three routes every time and lets the reader pick.
 #
-# That second half used to read differently. This suite previously described a
-# staged refresh that replaced the plugin directory wholesale, and carried
-# failure-injection coverage for its rollback path. Cross-model review found a
-# new hole in that recovery path in three consecutive rounds, the last being a
-# printed recovery command that nested the backup inside the broken copy instead
-# of replacing it — and a harness that claimed per-rename coverage while missing
-# one of the four renames. The capability was removed rather than guarded a
-# fourth time. The replacement design is filed at
-# a marketplace manifest at .claude-plugin/marketplace.json. Claude Code updates
-# marketplace plugins itself, so the failure branches stop existing because the
-# surgery stops existing — not because a safer version of it was written. (An
-# interim design that rebuilt the refresh around symlinked release generations
-# was filed and then superseded, unbuilt; it is not referenced here, because it
-# lived in an untracked directory that never reaches a fresh clone.)
-#
-# "standalone", not "detached": the update command's install classification uses
-# `standalone` for a plugin directory that does not sit inside a checked-out
-# repository — which is all the classifier tests, and less than "no repository
-# maintains it" would claim. "detached" now names the Codex dispatch mechanism in
-# commands/codex-feedback.md, and two meanings for one word in one test directory
-# is a collision worth not having.
+# That last clause is the point, and it is why this suite no longer has a
+# coherence sibling. A previous version of this command classified the install
+# into states and branched on the result. That machinery drew a blocking review
+# finding in SEVEN consecutive rounds. A coherence suite was written to guard it
+# and was then defeated by six deliberately broken documents, every one of which
+# passed 14/0 — including a classification table with every cell left empty. The
+# state machine and its guard were both deleted rather than repaired: a document
+# with no states cannot have inconsistent ones, which is a stronger property than
+# any suite could have asserted about them. See claudedocs/INCIDENTS.md,
+# INC-2026-07-29.
 #
 # An earlier version of this suite searched for the names of two ownership
 # checks and reported a pass. Both checks were forgeable — a review defeated
@@ -139,7 +123,7 @@ root_update=$(cat "$ROOT_UPDATE")
 
 # --- Plugin: local-ahead guard present (both the branch label and the message) --
 assert_contains "plugin update guards a local build ahead of remote" \
-  "$plugin_update" "**If local > remote:**"
+  "$plugin_update" "**Local is newer than remote:**"
 assert_contains "plugin update names the local-ahead condition in plain English" \
   "$plugin_update" "newer than the latest GitHub Release"
 
@@ -168,8 +152,6 @@ assert_no_match "plugin update never writes the inline \"git <verb>\" form eithe
   "$plugin_update" "git[[:space:]]+($mutating_verbs)([[:space:]]|\$)"
 
 # --- Plugin: the two states left after the pull path was deleted ------------
-assert_contains "plugin update stops rather than touching a git working copy" \
-  "$plugin_update" "Updating it is your own repository operation"
 
 assert_not_contains "plugin update derives no staging path from the process id" \
   "$plugin_update" '.strategic-partner.new.$$'
@@ -204,13 +186,19 @@ assert_contains "root update keeps its setup script step" \
 # establishes cleanly. They exist so the removed machinery cannot drift back in
 # without the redesign behind it: no staging, no swap, no rollback, no
 # recursive delete, no clone.
-for banned in 'rm -rf' 'rsync -a' 'sp_verify' '$staging' '$backup' 'git clone'; do
+for banned in 'rm -rf' 'rsync -a' 'sp_verify' '$staging' '$backup' 'git clone --'; do
   assert_not_contains "plugin update no longer carries refresh machinery ($banned)" \
     "$plugin_update" "$banned"
 done
 
-assert_contains "plugin update names the route rather than performing it" \
-  "$plugin_update" "Name the update route matching that state, and stop there"
+# Stronger than the token list: no line may INVOKE git at all. The command's
+# boundary says so absolutely, and a previous version contradicted itself by
+# running `git rev-parse` three sections above that promise. The English phrase
+# "your own git clone" is prose, not an invocation, so the check is anchored to
+# a command-shaped line.
+assert_no_match "plugin update invokes no git command anywhere" \
+  "$plugin_update" "^[[:space:]]*git[[:space:]]+[a-z]"
+
 assert_contains "plugin update states plainly that it performs no update" \
   "$plugin_update" "This command performs no update"
 # Both commands, in order. `marketplace update` refreshes the catalog only;
@@ -224,15 +212,11 @@ assert_contains "plugin update names the catalog refresh" \
 assert_contains "plugin update names the command that actually moves the install" \
   "$plugin_update" "/plugin update strategic-partner-plugin@strategic-partner"
 assert_contains "plugin update says both are needed and why" \
-  "$plugin_update" "Both commands are needed, in that order"
+  "$plugin_update" "The first route needs both commands, in that order"
 assert_contains "plugin update says a restart applies it, not a reload" \
   "$plugin_update" "restart required to apply"
-assert_contains "plugin update detects provenance rather than mere registration" \
-  "$plugin_update" "claude plugin list"
-assert_not_contains "plugin update no longer infers provenance from a hardcoded config path" \
-  "$plugin_update" '${HOME}/.claude/plugins/marketplaces'
 assert_contains "plugin update tells the user auto-update is off by default" \
-  "$plugin_update" "switched OFF by"
+  "$plugin_update" "OFF by default for listings not from Anthropic"
 assert_contains "plugin update names the add+install route for a fresh install" \
   "$plugin_update" "/plugin marketplace add JimmySadek/strategic-partner"
 

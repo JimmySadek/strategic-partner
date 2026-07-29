@@ -9,14 +9,11 @@
   with an older published release** — version comparison now runs in both
   directions and says plainly when the local copy is ahead of the latest GitHub
   Release. Before choosing a path, the check also inspects the installed bundle
-  and works out which of two shapes it is: a plugin directory that does not sit
-  inside a checked-out repository, or one that does. That test asks only about
-  the plugin directory itself and nothing nested inside it, and it now decides
-  only which reinstall advice you get — neither shape is touched by this command.
-  The check after an update no longer reaches for setup work a plugin install has
-  never had — there is no setup script and no command symlinks to refresh — and
-  instead re-checks the bundle files and the version before looking at the Serena
-  setup.
+  and reports what is missing. It no longer tries to work out how the plugin was
+  installed — see the entry below. The check after an update no longer reaches
+  for setup work a plugin install has never had — there is no setup script and no
+  command symlinks to refresh — and instead re-checks the bundle files and the
+  version before looking at the Serena setup.
 - **When a dispatch is refused because one of the confirmation choices was
   reworded, the message now names that choice instead of the one you picked
   correctly** — Strategic Partner asks you to confirm a dispatch with a fixed set
@@ -65,13 +62,17 @@
   worth knowing: background updating is switched **off** by default for listings
   that do not come from Anthropic, so turn it on under `/plugin` →
   **Marketplaces** if you want it hands-free.
-- **The update command was rebuilt around three clear install shapes** — it now
-  works out whether Claude Code manages this plugin, whether it sits in a
-  repository you maintain, or neither, and names the matching update route for
-  that case. When it cannot tell, it says so and shows all three rather than
-  guessing. It reports and stops in every case: nothing on your disk is created,
-  moved, replaced, or deleted, and no confirmation unlocks that, because there is
-  no code path behind it.
+- **The update command now shows you where updating happens instead of guessing
+  which route is yours** — it reports your version, whether a newer release
+  exists, and what is missing from the bundle, then lists the three places
+  updating can happen and lets you pick the one that matches how you installed
+  it. It no longer inspects your machine to work that out. The inspecting version
+  kept getting it wrong — badly enough that it could tell someone running their
+  own copy to update a different copy entirely — so the guessing was removed
+  rather than corrected again. Everything it reports is unchanged; only the
+  choosing is gone, and a list cannot pick the wrong route for you. The command
+  now runs no command of any kind against anything on your disk, git included,
+  and changes nothing.
 - **The update command no longer replaces the plugin folder itself — it points
   you at the route that fits your install** — v7.6.0 updated by running the
   install tool or a repository pull on your behalf, and earlier work in this

@@ -1,6 +1,6 @@
 ---
 name: update
-description: "Check for a newer release and name the update route that matches how this plugin was installed"
+description: "Report the installed version, whether a newer release exists, and where updating lives"
 category: utility
 complexity: standard
 mcp-servers: []
@@ -8,20 +8,34 @@ mcp-servers: []
 
 # /strategic-partner-plugin:update — Update Check
 
-> Report which version is installed, whether a newer one exists, and the update
-> route that matches how this plugin got here. This command changes nothing on
-> disk — it moves, replaces, and deletes nothing, and runs no git command against
-> anything already installed.
+> Report which version is installed and whether a newer one has been published,
+> then say where updating happens. This command reads and reports. It runs no
+> command against anything on disk and changes nothing.
 
 ## Output Style
 
 Adopt the adaptive-visual output style. Use status/action symbols for scannable output.
-Default to concise mode; expand for problems or decisions.
+Default to concise mode; expand for problems.
 
 ## Context Inheritance
 
 This subcommand can run standalone or within an active advisor session.
 It does not require the full startup sequence.
+
+## 🚫 What this command deliberately does not do
+
+It does not work out how the plugin was installed, and it does not pick an
+update route for the user.
+
+That is a removal, not an omission. Earlier versions probed the install and
+branched on the result, and that machinery drew a blocking review finding in
+seven consecutive rounds — a probe that could not tell a failed command from an
+empty result, a classification that proved a plugin was managed *somewhere*
+rather than *here*, and branch text that disagreed with the table above it. The
+routes are listed below instead, and the reader picks. A list cannot select the
+wrong one.
+
+See `claudedocs/INCIDENTS.md` (INC-2026-07-29) for the full history.
 
 ## Behavioral Flow
 
@@ -61,69 +75,32 @@ It does not require the full startup sequence.
    test -x "{plugin-root}/.scripts/serena-doctor.sh"
    ```
    The bundle is **complete** only when all seven pass. The Serena doctor script
-   is on the list because Step 5 runs it — without it a bundle could be called
+   is on the list because Step 4 runs it — without it a bundle could be called
    complete and then immediately fail the health check this command prescribes.
    A plugin bundle ships no setup script, so never check for one.
 
-### Step 3 — Classify The Install
+### Step 3 — Report
 
-Two probes, in this order. The first that answers `yes` decides the state.
+Four cases, decided entirely by comparing two version strings and the bundle
+result. Nothing else is inspected.
 
-1. **Does Claude Code manage this plugin?** Ask Claude Code, rather than
-   inferring it from the filesystem:
-   ```
-   claude plugin list 2>/dev/null | grep -i 'strategic-partner-plugin@'
-   ```
-   An entry naming `strategic-partner-plugin@strategic-partner` means yes.
-
-   ⚠️ **Do not substitute a check for a registered marketplace.** Registration
-   and provenance are different facts — a user can register the listing while
-   running a copy they cloned or symlinked themselves, and those two need
-   different advice. Do not look for a marketplace directory under a hardcoded
-   `~/.claude` either; a config root can live elsewhere via `CLAUDE_CONFIG_DIR`.
-
-2. **Does the plugin sit inside a git working copy?**
-   ```
-   git -C "{plugin-root}" rev-parse --is-inside-work-tree
-   ```
-   A zero exit printing `true` means yes. Anything else means no.
-
-   This asks only about `{plugin-root}` itself. It does not look for
-   repositories nested underneath, and does not need to: this command changes
-   nothing, so nothing nested there is at risk from it.
-
-| State | Signal | The route this command names |
-|---|---|---|
-| `managed` | `claude plugin list` reports this plugin | Claude Code's own update commands |
-| `working-copy` | not managed, and the plugin sits in a git working copy | The user's own repository operation |
-| `unmanaged` | neither probe answered yes | Install through Claude Code to get managed updates |
-
-If the first probe cannot run at all — no `claude` on PATH, or the command errors
-rather than returning an empty list — do not fall through to a guess. Say the
-install shape could not be determined, present the version comparison anyway, and
-name all three routes so the user can pick the one matching what they know.
-
-### Step 4 — Compare And Present
-
-**If versions match and the bundle is complete:**
+**Versions match, bundle complete:**
 ```
 ✅ You're on the latest version (v{local})
 ```
 Done. End interaction.
 
-**If versions match and the bundle is incomplete:** name the missing files, then
-the repair route for the install's state — reinstalling through Claude Code for
-`managed`, the owning repository for `working-copy`, or whatever route put it
-there for `unmanaged`.
+**Versions match, bundle incomplete:** name the missing files, then show the
+routes below — reinstalling is what restores them.
 
-**If local > remote:**
+**Local is newer than remote:**
 ```
 ⚠️ This local copy is newer than the latest GitHub Release (v{local} local, v{remote} remote).
 ```
-Report and stop. Name no update route: every one of them would replace newer work
-with an older published release.
+Report and stop. Do not show the routes: every one of them would replace newer
+work with an older published release.
 
-**If remote > local:**
+**Remote is newer than local:**
 
 1. Show the gap:
    ```
@@ -131,64 +108,50 @@ with an older published release.
    ```
 2. Fetch the release body from the GitHub API response → display as changelog
    highlights. If the body is empty: "See CHANGELOG.md in the repo for details."
-3. Name the route for the state classified in Step 3.
+3. Show the routes below, verbatim.
 
-**For `managed` — name Claude Code's own commands.**
+### 📍 Where updating happens
+
+Present this list as-is. Do not attempt to work out which line applies — say
+that the matching one depends on how the plugin was installed, and let the
+reader choose.
 
 ```
-Claude Code manages this plugin, so it handles updates — including in the
-background shortly after a session starts, though that is switched OFF by
-default for listings that do not come from Anthropic.
+Installed through Claude Code (/plugin install)
+  Claude Code updates it, including in the background shortly after a session
+  starts — though that is OFF by default for listings not from Anthropic.
+  To update now, both commands, in this order, then restart Claude Code:
+      /plugin marketplace update strategic-partner
+      /plugin update strategic-partner-plugin@strategic-partner
+  To make it automatic:
+      /plugin → Marketplaces → strategic-partner → Enable auto-update
 
-To update now, both commands, in this order:
-  /plugin marketplace update strategic-partner
-  /plugin update strategic-partner-plugin@strategic-partner
+Running from your own git clone
+  Update it the way you update any repository you maintain. Strategic Partner
+  will not run git commands against it.
 
-Then restart Claude Code.
-
-To have it happen automatically from now on:
-  /plugin → Marketplaces → strategic-partner → Enable auto-update
+Neither of the above
+  Install through Claude Code so future updates are handled for you:
+      /plugin marketplace add JimmySadek/strategic-partner
+      /plugin install strategic-partner-plugin@strategic-partner
+      /reload-plugins
+  This creates its own managed copy rather than adopting the directory you
+  already have.
 ```
 
-🚨 **Both commands are needed, in that order, and they are not interchangeable.**
-`marketplace update` refreshes the catalog — it learns a newer version exists. It
-does NOT touch the installed plugin. `plugin update` is what moves the install.
-Verified against the CLI's own help: `claude plugin marketplace update` is
-"Update marketplace(s) from their source", while `claude plugin update` is
-"Update a plugin to the latest version (restart required to apply)". Naming only
-the first leaves the user on the old version.
+🚨 **The first route needs both commands, in that order.** `marketplace update`
+refreshes the catalog — it learns a newer version exists. It does NOT touch the
+installed plugin. `plugin update` is what moves the install. Verified against the
+CLI's own help: `claude plugin marketplace update` is "Update marketplace(s) from
+their source", `claude plugin update` is "Update a plugin to the latest version
+(restart required to apply)". Naming only the first leaves the user on the old
+version.
 
-⚠️ Note "restart required to apply" — a plugin *update* needs Claude Code
+⚠️ "Restart required to apply" is literal — a plugin *update* needs Claude Code
 restarted, not `/reload-plugins`. Reload activates newly installed or enabled
 plugins; it does not swap a running plugin for a newer copy on disk.
 
-**For `working-copy` — report and stop.**
-
-```
-This plugin lives inside a git working copy, so Strategic Partner leaves it
-alone. Updating it is your own repository operation — run it yourself in
-{plugin-root} whenever you're ready.
-```
-
-End the interaction there. No question follows: the user's repository is theirs
-to move, and no check performed here could make moving it on their behalf safe.
-
-**For `unmanaged` — point at Claude Code.**
-
-```
-Nothing updates this copy automatically. Installing through Claude Code fixes
-that for every future update:
-
-  /plugin marketplace add JimmySadek/strategic-partner
-  /plugin install strategic-partner-plugin@strategic-partner
-  /reload-plugins
-```
-
-Say plainly that this creates a separate managed copy rather than adopting the
-directory that is there — otherwise the user expects this one to start updating
-itself, and it will not.
-
-### Step 5 — After The User Updates
+### Step 4 — After The User Updates
 
 This command performs no update, so this step runs only when the user says they
 have updated and asks for a check.
@@ -207,25 +170,24 @@ have updated and asks for a check.
 - Check versions against GitHub releases, falling back to tags
 - Display changelog highlights from release notes
 - Verify the bundle's seven paths and report what is missing
-- Classify the install as `managed`, `working-copy`, or `unmanaged`, and say so
-  plainly when it cannot tell
-- Name the update route matching that state, and stop there
-- Refuse to name any route when the local build is newer than the published release
+- Show the same three update routes every time, and let the reader pick
+- Withhold the routes when the local build is newer than the published release
 - Re-check the bundle and the Serena state after the user reports updating
 
 **Will Not:**
 - **Change anything on disk.** No file, directory, or symlink is created, moved,
-  replaced, or deleted — inside the plugin directory or anywhere else. No
-  confirmation unlocks this, because there is no code path behind it.
-- **Run any git command against anything already on disk.** No fetch, pull,
-  merge, checkout, rebase, reset, or clone. Updating a repository that happens to
-  hold the plugin is the user's own operation; no filesystem check could make
-  doing it for them safe.
-- Run an update command on the user's behalf, in any of the three states
+  replaced, or deleted. No confirmation unlocks this, because there is no code
+  path behind it.
+- **Run any git command at all.** Not against the plugin, not against anything
+  else, not even a read-only one. Updating a repository that happens to hold the
+  plugin is the user's own operation.
+- Inspect how the plugin was installed, or choose an update route on the user's
+  behalf
+- Run an update command for the user
 - Run a setup script or create command symlinks — a plugin install has neither
 - Implement source code changes
 
 ## See Also
 
 - `/strategic-partner-plugin:serena` — diagnose or repair the Serena setup, offered
-  by Step 5 when the health check does not report `healthy`.
+  by Step 4 when the health check does not report `healthy`.

@@ -41,15 +41,35 @@ Presence was the wrong property to test.
 
 Two changes, neither of which is another patch:
 
-1. **The command was rewritten** around the three install states rather than
-   edited again, so no structure survives from either withdrawn mechanism.
-2. **`tests/plugin-update-coherence.sh`** makes the defect class mechanically
-   detectable. The classification table is the single source of truth for what
-   states exist; every branch, every Boundaries entry, and every state reference
-   is checked against it. Run against the pre-rewrite file it fails on three of
-   round 9's five findings — the missing marketplace branch, the table
-   classifying by a signal the document rejects, and the conditional
-   prohibitions contradicting a read-only contract.
+1. **The command was stripped of the classification entirely**, not rewritten
+   around a better version of it. The two probes, the state table, and the
+   per-state branches are gone; the three update routes are printed as a static
+   list the reader self-selects from. Rounds 7, 9 and 10's findings all describe
+   a state machine disagreeing with itself, and none of them can occur in a
+   document that has no states. The command also now runs no command of any kind,
+   git included, which makes its absolute no-git boundary true for the first
+   time — round 10 found the previous version promising that while running
+   `git rev-parse` three sections above the promise.
+2. **A coherence suite was written to guard the state machine — and then both
+   were deleted.** `tests/plugin-update-coherence.sh` derived the state list from
+   the classification table and required every branch, Boundaries entry, and
+   state reference to agree. Against the pre-rewrite file it failed on three of
+   round 9's five findings, which looked like success.
+
+   Round 10 was asked to attack it, and did: **six deliberately broken documents
+   passed 14/0**, including a classification table with every Signal and Route
+   cell left empty, a branch stating the opposite of its own table row, and
+   Boundaries "covered" by the substring `unmanagedness`. The holes were
+   structural — the expected state set was derived from the document under test,
+   branch checks tested heading presence rather than meaning, Boundaries used
+   unrestricted substring matching, and the contradiction check keyed on two
+   exact phrases that could simply be deleted.
+
+   The suite reproduced the very failure it was built to fix: it tested presence
+   one layer up. So the state machine was removed rather than guarded, and the
+   suite removed with it. A document that classifies nothing cannot classify
+   inconsistently — which is a stronger property than any assertion could have
+   established about the classification.
 
 ### Why the rationale for the removals lives here now
 

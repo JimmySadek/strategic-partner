@@ -212,10 +212,12 @@ Which command depends on how it was installed:
 | Plugin | `/strategic-partner-plugin:strategic-partner` |
 | Standalone skill | `/strategic-partner` |
 
-Resume from a previous session by passing a handoff file path:
+Resume from a previous session by passing a handoff file path — using whichever
+command from the table above matches your install:
 
 ```
 /strategic-partner .handoffs/onboarding-flow-0304-1430.md
+/strategic-partner-plugin:strategic-partner .handoffs/onboarding-flow-0304-1430.md
 ```
 
 ### Aliases
