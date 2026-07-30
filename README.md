@@ -44,7 +44,7 @@ The strategic partner fixes this by enforcing a separation: persistent advisory 
 +---------------------------------+     +---------------------------------+
 |  SESSION 1: ADVISOR (persistent) |     |  SESSION 2: EXECUTOR (ephemeral) |
 |                                  |     |                                  |
-|  /strategic-partner              |     |  /feature-dev                    |
+|  Strategic Partner               |     |  /feature-dev                    |
 |                                  |     |  (or whatever skill SP chose)    |
 |  - Thinks with you               |     |  - Builds what SP specified      |
 |  - Challenges your assumptions   |     |  - Follows the prompt exactly    |
@@ -83,8 +83,14 @@ Your team needs to build a **user onboarding flow** for a SaaS product. Here's w
 You open Claude Code and type:
 
 ```
-/strategic-partner
+/strategic-partner-plugin:strategic-partner
 ```
+
+> **Command names, once:** that is the plugin install, which this page
+> recommends. The standalone install drops `-plugin` — `/strategic-partner`.
+> Commands below are written in plugin form; swap the prefix if you installed
+> the standalone skill. Two commands exist on only one install, and the
+> subcommand table marks them.
 
 Then say: *"We need to build an onboarding flow"*
 
@@ -116,24 +122,13 @@ Each prompt includes: files to read first, constraints from CLAUDE.md, verificat
 
 You paste each phase into a fresh session and report back; the SP reviews what landed and hands you the next one (the loop from "How it works" above), until the feature ships.
 
-### The key difference
-
-| Aspect | Normal session | With the SP |
-|--------|---------------|-------------|
-| **Planning** | Discovered mid-build | Surfaced before any work starts |
-| **Assumptions** | Unchallenged | Premise-checked, alternatives explored |
-| **Big tasks** | One session, degrades at scale | Phased prompts, each with full context |
-| **Knowledge** | Dies with the session | Persists via saved project notes and handoff files (saved snapshots a fresh session resumes from) |
-| **Tool selection** | You pick | SP picks dynamically from your installed tools |
-| **Confidence** | Implicit | [✅ SAFE]/[⚠️ RISK] labels on recommendations |
-
 ---
 
 ## Quick start
 
 ### Install
 
-**As a Claude Code plugin (recommended — Claude Code keeps it updated):**
+**As a Claude Code plugin (recommended — Claude Code manages the install):**
 
 ```
 /plugin marketplace add JimmySadek/strategic-partner
@@ -141,22 +136,18 @@ You paste each phase into a fresh session and report back; the SP reviews what l
 /reload-plugins
 ```
 
-Claude Code then handles updates itself. It can do so in the background shortly
-after a session starts, but only once background updating is switched on — it is
-**off by default** for listings that do not come from Anthropic. To update on
-demand, two commands in order — the first refreshes the listing, the second moves
-the install:
+To update later, run these two in order — the first refreshes the listing, the
+second moves the install — then restart Claude Code:
 
 ```
 /plugin marketplace update strategic-partner
 /plugin update strategic-partner-plugin@strategic-partner
 ```
 
-Then restart Claude Code to pick up the new version. Background updating is
-**off by default** for listings that do not come from Anthropic — switch it on
-under `/plugin` → **Marketplaces** → `strategic-partner` → **Enable auto-update**
-if you want it hands-free. Commands are namespaced `/strategic-partner-plugin:`
-in this install.
+Claude Code can also update in the background shortly after a session starts,
+but that is **off by default** for listings that do not come from Anthropic.
+Switch it on under `/plugin` → **Marketplaces** → `strategic-partner` →
+**Enable auto-update** if you want it hands-free.
 
 **As a standalone skill:**
 
@@ -171,18 +162,20 @@ for the advisor to appear, but not enough for the supporting commands, hooks,
 references, setup script, and voice style. Use the git clone path above for a
 complete standalone install until the public skills CLI bundle shape changes.
 
+Run `/strategic-partner:update` on a standalone install to check for a newer
+release and update in place; it reruns setup for you. Restart Claude Code
+afterwards.
+
 ### Setup
 
 > ⏭️ **Plugin install? Skip this section.** A plugin ships no `setup` script and
 > needs none — Claude Code reads the commands, hooks, and voice style straight
-> out of the plugin. Setup below is for the standalone skill install only. Note
-> too that plugin commands are namespaced `/strategic-partner-plugin:` rather
-> than `/strategic-partner:`.
+> out of the plugin. Setup below is for the standalone skill install only.
 
 After install completes, change into the install directory and run setup:
 
 ```bash
-cd /path/to/strategic-partner    # the directory created by git clone or repair
+cd /path/to/strategic-partner    # the directory created by git clone
 ./setup
 ```
 
@@ -190,44 +183,23 @@ Registers subcommands with Claude Code and installs the voice style (the formatt
 
 > **Tip:** You can also skip this terminal step. When you invoke `/strategic-partner` in Claude Code for the first time, the advisor detects the missing setup and offers to run it for you with a single yes/no prompt. The manual `./setup` invocation above remains the bootstrap-safe path — still the right choice for headless installs or scripted setup.
 
-If an older `npx skills` install contains only `SKILL.md`, repair it from the
-latest GitHub Release before running setup. Set `skill_dir` to the Strategic
-Partner install directory only; the sync step replaces that directory's
-contents from the release bundle.
-
-```bash
-skill_dir="<your-skills-dir>/strategic-partner"
-tag="<latest-release-tag>"
-tmp="$(mktemp -d)"
-git clone --depth 1 --branch "$tag" https://github.com/JimmySadek/strategic-partner.git "$tmp/strategic-partner"
-rsync -a --delete --exclude='.git' "$tmp/strategic-partner/" "$skill_dir/"
-bash "$skill_dir/setup"
-rm -rf "$tmp"
-```
-
 ### Run
 
-Which command depends on how it was installed:
+```
+/strategic-partner-plugin:strategic-partner
+```
 
-| Install | Start it with |
-|---|---|
-| Plugin | `/strategic-partner-plugin:strategic-partner` |
-| Standalone skill | `/strategic-partner` |
-
-Resume from a previous session by passing a handoff file path — using whichever
-command from the table above matches your install:
+Resume from a previous session by adding a handoff file path:
 
 ```
-/strategic-partner .handoffs/onboarding-flow-0304-1430.md
 /strategic-partner-plugin:strategic-partner .handoffs/onboarding-flow-0304-1430.md
 ```
 
 ### Aliases
 
 On the standalone skill install, `/strategic-partner`, `/advisor` and `/sp` all
-invoke the same skill. The plugin install has no aliases — the plugin format
-provides no alias mechanism — so its commands are always namespaced
-`/strategic-partner-plugin:`. Natural-language activation works on both.
+invoke the same skill. The plugin format provides no alias mechanism, so the
+plugin has none. Natural-language activation works on both.
 
 ---
 
@@ -236,25 +208,15 @@ provides no alias mechanism — so its commands are always namespaced
 The advisor operates through a lean core (SKILL.md) that loads reference material on demand:
 
 - **Strategic advisory and prompt crafting** — the core loop: discover, challenge premises, present alternatives, route, craft, review. Prompts adapt to the target model and ship with hallucination-prevention and scope-discipline blocks built in.
-- **Pre-build decision discipline** — every request is premise-checked, non-trivial tasks get three distinct approaches (minimal / recommended / lateral) before any routing, and recommendations carry [✅ SAFE] or [⚠️ RISK] confidence labels.
+- **Pre-build decision discipline** — every request is premise-checked, non-trivial tasks get more than one approach to choose from (minimal / recommended / lateral) before any routing, and recommendations carry [✅ SAFE] or [⚠️ RISK] confidence labels.
 - **Plain-English partnership voice** — replies a non-technical reader can follow: decisions surfaced as structured choices, visual aids where they help, and anti-sycophancy rules that ban both empty agreement and performative pushback. The voice rules live in the skill core itself; the installable style file is a derived mirror kept in lockstep by a release-time check.
 - **Skill and tool picking** — the advisor matches each task to the best of your installed tools and names its pick before anything runs, so a wrong choice gets caught early.
 - **Cross-model adversarial review** — for high-stakes decisions, the advisor can send a curated brief to OpenAI's Codex CLI for an independent second opinion and synthesize the three-way view. A project can also make this a standing rule (`review-policy: cross-model-go-no-go`), so the reviewer is always a different model than the builder. Optional — requires Codex CLI installed.
-- **Rules-file drift detection** — `/strategic-partner:context-file-scan` checks your project's rules file (`CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`) for bloat, misplaced detail, SP-flavored framing, and high-confidence session-journey dumps; its proposal preflight catches destructive replacement attempts before writes.
+- **Rules-file drift detection** — `/strategic-partner-plugin:context-file-scan` checks your project's rules file (`CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`) for bloat, misplaced detail, SP-flavored framing, and high-confidence session-journey dumps; its proposal preflight catches destructive replacement attempts before writes.
 - **Cross-session memory and handoffs** — decisions, findings, and parked work survive across sessions, and when context fills, a handoff file lets a fresh session pick up exactly where the last one stopped. Backlog review flags work that already shipped and asks before closing it.
 - **Hands-off execution options** — small reversible tasks can be dispatched to a background agent with a desktop notification on completion; and when a bigger task fits a hands-off run, the advisor offers a ready-made `/goal` autonomous-run suggestion in chat — never written into the prompt or any saved file.
 
 Mechanism detail lives in [ARCHITECTURE.md](ARCHITECTURE.md).
-
-### Under the hood
-
-- **Implementation boundary** — a safety guard in Claude Code blocks accidental source edits in advisor sessions, paired with three behavioral gates (pre-build decision checklist, return-to-planning after execution)
-- **Memory architecture** — stewards four persistence layers (`CLAUDE.md`, `.claude/rules/`, auto-memory, Serena memory) so decisions survive across sessions
-- **Visible prompt quality checklist** — every crafted prompt renders a pass/fail table of 14 quality checks (skill routing, verification commands, and more) before the prompt body, so dispatches can be audited without trusting hidden reasoning
-- **Startup status check** — at session start and on each subcommand, a hook (a small script Claude Code runs automatically at those moments) injects a one-line snapshot of project state into the advisor's context — conventions, memory, backlog, git status, version and setup health
-- **1M-context session advisory** — on 1M-context sessions (such as Opus 4.8's 1M mode), the advisor surfaces a one-time orientation note: known Anthropic issues cause erratic behavior above ~256K tokens; consider wrapping up or triggering a handoff around 250K for reliable retrieval
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism detail.
 
 ---
 
@@ -262,16 +224,17 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism de
 
 | Command | What it does |
 |---------|-------------|
-| `/strategic-partner:help` | List all subcommands |
-| `/strategic-partner:try-plugin` | Switch this install from the skill to the plugin (same behavior, leaner voice, faster startup) |
-| `/strategic-partner:copy-prompt` | Copy a recently emitted prompt to the OS clipboard |
-| `/strategic-partner:handoff` | Trigger a context handoff with split writes |
-| `/strategic-partner:status` | Where we stand, what's done, what's next |
-| `/strategic-partner:update` | Check for updates and self-update to latest version |
-| `/strategic-partner:serena` | Check, install, repair, verify, or roll back Serena with a preview first |
-| `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI |
-| `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files (18 patterns) |
-| `/strategic-partner:backlog` | Triage the project backlog (items grouped by lifecycle state, with an action menu) — including a scan that flags backlog work which has already shipped and asks before closing it |
+| `/strategic-partner-plugin:help` | List all subcommands |
+| `/strategic-partner-plugin:copy-prompt` | Copy a recently emitted prompt to the OS clipboard |
+| `/strategic-partner-plugin:handoff` | Trigger a context handoff with split writes |
+| `/strategic-partner-plugin:status` | Where we stand, what's done, what's next |
+| `/strategic-partner-plugin:update` | Report your version and whether a newer release exists, then point to where updating happens (the standalone command also updates in place) |
+| `/strategic-partner-plugin:serena` | Check, install, repair, verify, or roll back Serena with a preview first |
+| `/strategic-partner-plugin:codex-feedback` | Cross-model adversarial review via Codex CLI |
+| `/strategic-partner-plugin:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` rules files |
+| `/strategic-partner-plugin:backlog` | Triage the project backlog (items grouped by lifecycle state, with an action menu) — including a scan that flags backlog work which has already shipped and asks before closing it |
+| `/strategic-partner-plugin:switch-to-skill` | **Plugin only.** Switch this install back to the standalone skill |
+| `/strategic-partner:try-plugin` | **Standalone only.** Switch this install from the skill to the plugin (leaner voice, faster startup) |
 
 ---
 
@@ -283,7 +246,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full file layout and mechanism de
 - **Context7 MCP** (optional) — for library documentation lookup
 - **Codex CLI** (optional) — for cross-model adversarial review
 
-The skill works without Serena, but loses cross-session memory and semantic code navigation. Run `/strategic-partner:serena` for a read-only check and a plain-language repair offer. SP-managed Serena uses the exact current repository or worktree, starts without opening a browser tab, preserves existing `.serena` memories, and never changes the setup without approval. `jq` is strongly recommended — the rules-file scanner and verified background-agent dispatch require it, and the startup snapshot is reduced without it.
+The skill works without Serena. What goes missing is Serena's own decision log and its semantic code search — the other places SP keeps things (your project rules file, auto-memory, and handoff files) carry on unchanged. Run `/strategic-partner-plugin:serena` for a read-only check and a plain-language repair offer. SP-managed Serena uses the exact current repository or worktree, starts without opening a browser tab, preserves existing `.serena` memories, and never changes the setup without approval. `jq` is strongly recommended — the rules-file scanner and verified background-agent dispatch require it, and the startup snapshot is reduced without it.
 
 ### Supported platforms
 
@@ -296,28 +259,13 @@ The skill works without Serena, but loses cross-session memory and semantic code
 
 ---
 
-## Staying updated
-
-Every SP session checks for updates in the background and surfaces a one-line notice when a newer version is available. Run `/strategic-partner:update` to fetch the latest version. The updater now checks the actual installed files before choosing what to do:
-
-| Install state | What the updater does |
-|---|---|
-| Complete skills-managed install | Updates through the skills CLI, then reruns setup |
-| Git clone | Pulls from GitHub, then reruns setup |
-| Copied/manual install | Repairs from the latest release with a safe clone and sync, then reruns setup |
-| Skills-managed but incomplete | Repairs from the latest release because SP needs more than `SKILL.md` |
-
-After setup runs, restart your Claude Code session so the CLI picks up refreshed command registrations and the shipped voice style.
-
----
-
 ## Troubleshooting
 
 | Scenario | What happens | What to do |
 |---|---|---|
-| **Serena missing or unreliable** | Cross-session memory and semantic navigation are reduced | Run `/strategic-partner:serena`. SP diagnoses locally, previews the smallest safe fix, and keeps working with repository-native search if you decline. |
-| **Serena opens a browser tab** | The launcher still uses Serena's noisy default | Run `/strategic-partner:serena`; the supported repair keeps the dashboard available but disables automatic opening. |
-| **Two Serena servers appear** | A legacy plugin and user server are both active | Run `/strategic-partner:serena`. SP fails closed and offers a reversible one-server migration. |
+| **Serena missing or unreliable** | Cross-session memory and semantic navigation are reduced | Run `/strategic-partner-plugin:serena`. SP diagnoses locally, previews the smallest safe fix, and keeps working with repository-native search if you decline. |
+| **Serena opens a browser tab** | The launcher still uses Serena's noisy default | Run `/strategic-partner-plugin:serena`; the supported repair keeps the dashboard available but disables automatic opening. |
+| **Two Serena servers appear** | A legacy plugin and user server are both active | Run `/strategic-partner-plugin:serena`. SP fails closed and offers a reversible one-server migration. |
 | **Skills missing** | The installed-tool picker can't match a task to an installed skill | SP routes to built-in Agent types (always available) or suggests installing the skill. |
 | **No automatic warning before context fills up** | SP relies on self-assessed thresholds and periodic checks | A user-owned hook (Claude Code's pre-fill warning event — the signal Claude Code fires just before it compacts a full context) can serve as an extra backstop if you choose to configure one. |
 | **Sub-agents hit permission walls** | Background agents can't prompt for approval | Specify `mode` on every agent spawn. Pre-approve `WebFetch(*)` and `WebSearch(*)` in `~/.claude/settings.json` for research agents. Run `./setup --audit-permissions` to check for gaps. |

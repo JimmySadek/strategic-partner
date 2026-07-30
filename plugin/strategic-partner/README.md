@@ -14,12 +14,12 @@ too; use the switch commands when you want to move between install shapes.
 
 | Component | Path | Notes |
 |---|---|---|
-| Skill | `skills/strategic-partner/SKILL.md` | Full standalone-skill behavior, minus the 260-line inlined hook block (now `hooks/hooks.json`), plus the Presence revisions (see below) |
+| Skill | `skills/strategic-partner/SKILL.md` | Full standalone-skill behavior, minus the inlined hook block (now `hooks/hooks.json`), plus the Presence revisions (see below) |
 | Commands | `commands/*.md` | The shared subcommands under `/strategic-partner-plugin:<name>`, plus `/strategic-partner-plugin:switch-to-skill` for returning to the standalone skill |
 | Hooks | `hooks/hooks.json` + `hooks/entry.sh` | UserPromptExpansion for typed commands, PreToolUse for model-invoked Skill activation and the source guard, SessionStart for the resident advisor, UserPromptSubmit compatibility/relay, startup-quality tracking, and the one-shot closure check |
 | Guard chain | `hooks/guard-impl.sh`, `hooks/context-file-guard.sh`, `.scripts/context-file-scan/` | Same source-file-blocking logic as the standalone skill, including writes to `/tmp`, `/private/tmp`, and `$TMPDIR` for scratchpad file tools |
 | Reference bundle | `skills/strategic-partner/references/`, `…/assets/templates/`, `…/.scripts/migrate-backlog.sh` | Shared advisory policy stays aligned with the standalone skill; startup mechanics and continuation commands intentionally use plugin paths and names |
-| Voice | `output-styles/strategic-partner-voice.md` | Native plugin component (no copy-install, no staleness); style v7-plugin |
+| Voice | `output-styles/strategic-partner-voice.md` | Native plugin component (no copy-install, no staleness) |
 | Resident advisor | `agents/sp-advisor.md` + `settings.json.example` | Opt-in only — see below |
 
 ## The session gate (why this plugin is safe to enable globally)
@@ -66,12 +66,12 @@ revises the advisory behavior:
   live project state, not a generic menu.
 - **Questions rebalanced** — `AskUserQuestion` remains the only way to ask, but
   analysis no longer *owes* a question: when the analysis points one way, SP
-  states the position and stops. The four protocol-mandated question points are
+  states the position and stops. The protocol-mandated question points are
   unchanged.
-- **Voice v7-plugin** — the output style keeps plain-English discipline,
+- **Voice** — the output style keeps plain-English discipline,
   deliberate visuals, and the anti-sycophancy rules, and drops per-turn ceremony
-  (mandatory per-section emoji, five response templates, the 18-item pre-send
-  checklist) in favor of five checks, plus a visible-first startup/status shape
+  (mandatory per-section emoji, a template per response shape, the long pre-send
+  checklist) in favor of a shorter set of checks, plus a visible-first startup/status shape
   so the useful recenter appears before the question widget.
 - **Floor fields adapted** — install-mechanics checks that plugins make
   obsolete (command symlinks, output-style copy staleness) now report
@@ -81,9 +81,22 @@ Everything else — the advisory/source boundary, the context-file stewardship
 gate, fence emission, closure ledger, delivery protocols, backlog stewardship —
 is carried over unchanged.
 
-## Install (skills-dir route, no marketplace)
+## Install
 
-Copy or symlink this directory into Claude Code's skills directory:
+**Through Claude Code (the managed route):**
+
+```
+/plugin marketplace add JimmySadek/strategic-partner
+/plugin install strategic-partner-plugin@strategic-partner
+/reload-plugins
+```
+
+Claude Code keeps this copy separate from your working tree — if you already
+have a manual copy in the skills directory, retire it before reloading or both
+will load.
+
+**By hand (copy or symlink):** copy this directory into Claude Code's skills
+directory.
 
 ```bash
 cp -R plugin/strategic-partner ~/.claude/skills/strategic-partner-plugin
@@ -109,7 +122,7 @@ executor sessions — into advisory mode.
 To opt in for one project, add to that project's `.claude/settings.json`:
 
 ```json
-{ "agent": "strategic-partner:sp-advisor" }
+{ "agent": "sp-advisor" }
 ```
 
 The session gate detects this at SessionStart, runs the startup floor once at

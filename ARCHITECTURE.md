@@ -320,3 +320,41 @@ The release process is documented in `claudedocs/release-process.md` (with a poi
 ## Provisional Guards
 
 Bug-driven rules with named incidents, expiration dates, and review cadence. Each guard names the pattern, the past incident that motivated it, and a review date. Lives in `claudedocs/provisional-guards.md` (with a pointer stub in `CLAUDE.md` § "Provisional Guards"). Incident archaeology in `claudedocs/INCIDENTS.md`.
+
+---
+
+## Standalone install maintenance
+
+Relocated from `README.md` so the quick start stays a first-run path. Applies to
+the standalone skill install only; plugin installs are managed by Claude Code.
+
+### What `/strategic-partner:update` does
+
+The updater inspects the actual installed files before choosing an action:
+
+| Install state | What the updater does |
+|---|---|
+| Complete skills-managed install | Updates through the skills CLI, then reruns setup |
+| Git clone | Pulls from GitHub, then reruns setup |
+| Copied/manual install | Repairs from the latest release with a safe clone and sync, then reruns setup |
+| Skills-managed but incomplete | Repairs from the latest release because SP needs more than `SKILL.md` |
+
+After setup runs, restart the Claude Code session so the CLI picks up refreshed
+command registrations and the shipped voice style.
+
+### Repairing a `SKILL.md`-only legacy install
+
+If an older `npx skills` install contains only `SKILL.md`, repair it from the
+latest GitHub Release before running setup. Set `skill_dir` to the Strategic
+Partner install directory only; the sync step replaces that directory's
+contents from the release bundle.
+
+```bash
+skill_dir="<your-skills-dir>/strategic-partner"
+tag="<latest-release-tag>"
+tmp="$(mktemp -d)"
+git clone --depth 1 --branch "$tag" https://github.com/JimmySadek/strategic-partner.git "$tmp/strategic-partner"
+rsync -a --delete --exclude='.git' "$tmp/strategic-partner/" "$skill_dir/"
+bash "$skill_dir/setup"
+rm -rf "$tmp"
+```
