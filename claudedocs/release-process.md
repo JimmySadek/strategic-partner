@@ -280,7 +280,7 @@ Before modifying any files, show:
 - List of commits being pushed
 - Proposed version: `current → new` with rationale
 - Draft CHANGELOG entry (summary of changes)
-- Files that will be modified: `SKILL.md`, plugin `SKILL.md`, plugin manifest, `README.md`, `CHANGELOG.md` (and any voice style file whose content changed this release — bump its `style-version`)
+- Files that will be modified: `SKILL.md`, plugin `SKILL.md`, plugin manifest, `.claude-plugin/marketplace.json` (the catalog Claude Code reads to discover updates), `README.md`, `CHANGELOG.md` (and any voice style file whose content changed this release — bump its `style-version`)
 
 **Wait for explicit user confirmation before proceeding.**
 
@@ -386,17 +386,37 @@ Update release metadata together:
 | `output-styles/strategic-partner-voice.md` | Frontmatter `style-version:` field | Bump `style-version` **only if the voice style content changed this release** (the floor compares this stamp to the installed copy to flag staleness; an unchanged release leaves it as-is) |
 | `plugin/strategic-partner/skills/strategic-partner/SKILL.md` | Line 11, `version:` field | `version: X.Y.Z` — bump every release, no exceptions. If this release changed root `SKILL.md` content (not just the version line), diff the two files' behavioral sections before shipping — this file silently fell two versions behind root before the gap was caught on 2026-07-07 |
 | `plugin/strategic-partner/.claude-plugin/plugin.json` | Top-level `version` field | `"version": "X.Y.Z"` — bump every release so the plugin manifest matches the shipped skill |
+| `.claude-plugin/marketplace.json` | `version` field inside the `plugins` array entry | `"version": "X.Y.Z"` — bump every release, because this is the catalog Claude Code reads to discover an update, so leaving it stale means users are never offered the new version |
 | `plugin/strategic-partner/output-styles/strategic-partner-voice.md` | Frontmatter `style-version:` field | Bump `style-version` **only if the plugin-native voice style content changed this release** |
 
 ### 6. Commit, Tag, Push
 
 ```
-git add SKILL.md README.md CHANGELOG.md plugin/strategic-partner/skills/strategic-partner/SKILL.md plugin/strategic-partner/.claude-plugin/plugin.json
+git add SKILL.md README.md CHANGELOG.md plugin/strategic-partner/skills/strategic-partner/SKILL.md plugin/strategic-partner/.claude-plugin/plugin.json .claude-plugin/marketplace.json
 # Also stage any voice style file IF its content changed this release
 # (its bumped style-version is what the floor/plugin loader uses to flag
 # or avoid stale installed copies):
 # git add output-styles/strategic-partner-voice.md
 # git add plugin/strategic-partner/output-styles/strategic-partner-voice.md
+
+# Version-agreement check — every version-carrying file must already read X.Y.Z.
+# A mismatch means a file was missed in Step 5; stop before committing.
+expected="X.Y.Z"
+actual=$(printf '%s\n' \
+  "$(grep -m1 '^version:' SKILL.md | awk '{print $2}')" \
+  "$(grep -m1 '^version:' plugin/strategic-partner/skills/strategic-partner/SKILL.md | awk '{print $2}')" \
+  "$(grep -m1 '"version"' plugin/strategic-partner/.claude-plugin/plugin.json | tr -dc '0-9.')" \
+  "$(grep -m1 '"version"' .claude-plugin/marketplace.json | tr -dc '0-9.')" \
+  "$(grep -m1 -o 'version-[0-9.]*-blue' README.md | sed 's/version-//;s/-blue//')" \
+  | sort -u)
+if [ "$actual" = "$expected" ]; then
+  echo "version agreement OK: $expected"
+else
+  echo "VERSION MISMATCH — a file was missed in Step 5. Distinct values:"
+  printf '%s\n' "$actual"
+  exit 1
+fi
+
 git commit -m "release: vX.Y.Z — [one-line summary]"
 git tag vX.Y.Z
 git push origin main --tags
