@@ -540,6 +540,23 @@ if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
   exit 2
 fi
 
+# --- Executor escape: a genuine harness-dispatched subagent runs outside the
+# broad source guard. Placed AFTER Guard 0, so every Agent/Task dispatch —
+# including a nested one — still requires exact confirmation.
+#
+# agent_id is read STRICTLY from the top level via jq. A model can author
+# tool_input.agent_id but cannot create a top-level JSON member, so this is
+# not forgeable through tool input. The regex fallback in json_field()
+# searches the whole payload and WOULD match a nested field, so it is
+# deliberately not used here. No jq means no escape — fail closed.
+if command -v jq >/dev/null 2>&1 && printf '{}' | jq -e type >/dev/null 2>&1; then
+  PAYLOAD_AGENT_ID=$(printf '%s' "$INPUT" | jq -r '.agent_id // ""' 2>/dev/null)
+  if [ -n "$PAYLOAD_AGENT_ID" ]; then
+    debug_log "decision=allow reason='harness-dispatched executor' agent_id=$PAYLOAD_AGENT_ID"
+    exit 0
+  fi
+fi
+
 # --- Guard 1: Block Edit/Write/MultiEdit on disallowed paths ---
 if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "MultiEdit" ] || [ "$TOOL_NAME" = "NotebookEdit" ]; then
   # Tolerate arbitrary whitespace around the colon, e.g. '"file_path" : "..."'.
