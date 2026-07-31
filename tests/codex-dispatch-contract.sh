@@ -269,13 +269,13 @@ assert_both_contain "the limits of the stall evidence are stated (phrase presenc
 # mode-dependent value written as a constant silently deletes the mode
 # distinction, so these assertions require the placeholder AND both exact lines.
 assert_both_contain "the launch leaves the sandbox mode to be filled in (phrase presence)" \
-  'nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> "<project-dir>"'
+  'SP_RUN_DIR="$run_dir" SP_SANDBOX=<sandbox-mode> SP_PROJECT="<project-dir>"'
 assert_both_contain "the sandbox mode is stated to have no default (phrase presence)" \
   "There is no default, and the two"
 assert_both_contain "Mode A's exact launch line names read-only (phrase presence)" \
-  '"$run_dir/run.sh" "$run_dir" read-only "<project-dir>"'
+  'SP_SANDBOX=read-only SP_PROJECT="<project-dir>"'
 assert_both_contain "Mode B's exact launch line names workspace-write (phrase presence)" \
-  '"$run_dir/run.sh" "$run_dir" workspace-write "<project-dir>"'
+  'SP_SANDBOX=workspace-write SP_PROJECT="<project-dir>"'
 
 # Shape check, not phrase presence. Every copyable launch block must carry the
 # placeholder; only the two mode-table rows may name a concrete mode. A block
@@ -284,7 +284,7 @@ assert_no_hardcoded_launch_mode() {
   label="$1"
   body="$2"
   offenders=$(printf '%s\n' "$body" \
-    | grep -E '^\s*(#\s*)?nohup sh "\$run_dir/run\.sh"' \
+    | grep -E '^\s*(#\s*)?SP_RUN_DIR="\$run_dir" SP_SANDBOX=' \
     | grep -vF '<sandbox-mode>')
   if [ -n "$offenders" ]; then
     record_fail "$label (launch block hard-codes a mode: $(printf '%s' "$offenders" | head -1))"
@@ -293,15 +293,15 @@ assert_no_hardcoded_launch_mode() {
   fi
 }
 
-# A path containing spaces splits when unquoted, and the wrapper reads only $3 —
-# so Codex silently gets a truncated working directory. Plausible under WSL,
-# where Windows profile paths routinely contain a space.
+# A path containing spaces splits when unquoted, and only its first piece ever
+# reaches the wrapper — so Codex silently gets a truncated working directory.
+# Plausible under WSL, where Windows profile paths routinely contain a space.
 assert_launch_quotes_project_dir() {
   label="$1"
   body="$2"
   offenders=$(printf '%s\n' "$body" \
-    | grep -E 'nohup sh "\$run_dir/run\.sh"' \
-    | grep -vF '"<project-dir>"')
+    | grep -E 'SP_PROJECT=' \
+    | grep -vF 'SP_PROJECT="<project-dir>"')
   if [ -n "$offenders" ]; then
     record_fail "$label (unquoted project path: $(printf '%s' "$offenders" | head -1))"
   else
@@ -310,9 +310,9 @@ assert_launch_quotes_project_dir() {
 }
 
 # The transcript-audit launch passes a SECOND path. Quoting the project path and
-# leaving its neighbour bare splits on the same spaces; the wrapper quoting "$4"
-# is too late, the split already happened. A tilde is used nowhere here because
-# a tilde inside quotes is not expanded.
+# leaving its neighbour bare splits on the same spaces; the wrapper quoting
+# "$SP_EXTRA" is too late, the split already happened. A tilde is used nowhere
+# here because a tilde inside quotes is not expanded.
 assert_launch_quotes_extra_dir() {
   label="$1"
   body="$2"
@@ -464,6 +464,69 @@ assert_neither_contains "stale advice to proceed without the review is gone" \
   "Review timed out. Proceeding with SP recommendation."
 assert_neither_contains "stale 300-second timeout row label is gone" \
   "Timeout >300s"
+
+# --- No command file carries a command-argument placeholder -----------------
+# WHAT THIS LOCKS OUT. Claude Code replaces `$0`-`$9` and `$ARGUMENTS[N]` in a
+# command's content with the words typed after the command name, and it does so
+# before the model receives the content. A shell snippet written with positional
+# parameters therefore arrives already rewritten. This launcher's wrapper once
+# read `run_dir="$1"; sandbox="$2"; project="$3"` and a real invocation
+# delivered it as `run_dir="B"; sandbox="evidence"; project="audit."` — three
+# words lifted out of the arguments. Following that verbatim dispatches
+# `--sandbox evidence -C audit.`, which is neither a sandbox mode nor a
+# directory. Recorded at .handoffs/guard-scoping-verdict-0729-2030.md.
+#
+# The substitution routine was read out of the shipped Claude Code 2.1.220
+# binary rather than inferred. Three lines of it matter here:
+#
+#   if (t === void 0 || t === null) return e;                      // (1)
+#   c = e.replace(new RegExp(`(?<!\\\\)\\\\\\$(?=${l})`,"g"), Ifo) // (2)
+#   e = e.replace(/\$(\d+)(?!\w)/g, ...)                           // (3)
+#
+# (3) is the defect. (2) is the documented backslash escape, which consumes the
+# backslash and restores a bare `$` afterwards.
+#
+# WHY THE ESCAPED FORM IS BANNED TOO, NOT JUST THE BARE ONE. Line (1) returns
+# before (2) ever runs when a command is invoked with no arguments — which is
+# how this command is normally invoked. The backslash then survives into the
+# wrapper, and `run_dir="\$1"` assigns the two-character string `$1`, so the
+# review writes its verdict into a directory of that name and the watcher waits
+# on a sentinel that will never appear. The bare form fails loudly on the
+# with-arguments path; the escaped form fails silently on the without-arguments
+# path. A grep for `$N` catches both, because `\$1` contains `$1`.
+#
+# The replacement is a distinctly-named environment variable. `$SP_RUN_DIR` and
+# its siblings match none of the passes above, so they render identically
+# whether or not arguments were typed.
+#
+# Both command trees are scanned in full, not just this file: the hazard belongs
+# to the rendering mechanism, so any command file that grows a shell block
+# inherits it.
+assert_no_argument_placeholders() {
+  label="$1"
+  reldir="$2"
+  hits=$(cd "$ROOT" && grep -nE '\$[0-9]|\$ARGUMENTS\[' "$reldir"/*.md 2>/dev/null)
+  if [ -n "$hits" ]; then
+    record_fail "$label
+$(printf '%s\n' "$hits" | sed 's/^/    /')"
+  else
+    record_pass "$label"
+  fi
+}
+
+assert_no_argument_placeholders \
+  "no root command file carries a command-argument placeholder" \
+  "commands"
+assert_no_argument_placeholders \
+  "no plugin command file carries a command-argument placeholder" \
+  "plugin/strategic-partner/commands"
+
+# The absence check above is satisfied by deleting the wrapper as surely as by
+# fixing it, so pin the replacement mechanism by name in both copies.
+assert_both_contain "the wrapper reads its parameters from named environment variables" \
+  'run_dir="$SP_RUN_DIR"; sandbox="$SP_SANDBOX"; project="$SP_PROJECT"'
+assert_both_contain "the launch line puts those variables into the wrapper's environment" \
+  'SP_RUN_DIR="$run_dir"'
 
 # --- Whole-file parity between the two copies ------------------------------
 # Stronger than the per-phrase parity above, and the reason a phrase cannot be

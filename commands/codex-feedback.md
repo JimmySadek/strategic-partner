@@ -253,7 +253,7 @@ SP_BRIEF
 # then signals completion. Codex writes nothing.
 cat > "$run_dir/run.sh" <<'SP_WRAPPER'
 #!/bin/sh
-run_dir="$1"; sandbox="$2"; project="$3"
+run_dir="$SP_RUN_DIR"; sandbox="$SP_SANDBOX"; project="$SP_PROJECT"
 codex exec --sandbox "$sandbox" \
   -c 'mcp_servers={}' -c 'skills={}' \
   -C "$project" \
@@ -265,9 +265,11 @@ mv "$run_dir/verdict.done.tmp" "$run_dir/verdict.done"
 SP_WRAPPER
 
 # Detach the WRAPPER, not the caller. This returns in milliseconds.
+# The three values reach the wrapper as named environment variables, never as
+# positional parameters — see the note below the mode table.
 # <sandbox-mode> has NO default. Fill it from the table below before running.
-nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> "<project-dir>" \
-  >/dev/null 2>&1 &
+SP_RUN_DIR="$run_dir" SP_SANDBOX=<sandbox-mode> SP_PROJECT="<project-dir>" \
+  nohup sh "$run_dir/run.sh" >/dev/null 2>&1 &
 printf '%s\n' "$!" > "$run_dir/wrapper.pid"
 disown
 printf 'launched — run directory: %s\n' "$run_dir"
@@ -275,14 +277,14 @@ printf 'launched — run directory: %s\n' "$run_dir"
 
 🚨 **Fill `<sandbox-mode>` from the review mode. There is no default, and the two
 modes are not interchangeable.** Keep the quotes around `"<project-dir>"` — an
-unquoted path splits on spaces and the wrapper reads only the first piece, so a
-project under a path like `/mnt/c/Users/Jane Doe/repo` would silently hand Codex
-the wrong working directory. The exact line for each:
+unquoted path splits on spaces and only the first piece ever reaches the wrapper,
+so a project under a path like `/mnt/c/Users/Jane Doe/repo` would silently hand
+Codex the wrong working directory. The exact line for each:
 
 | Review mode | The launch line, in full |
 |---|---|
-| **Mode A** — Decision Review | `nohup sh "$run_dir/run.sh" "$run_dir" read-only "<project-dir>" \` |
-| **Mode B** — Evidence Audit | `nohup sh "$run_dir/run.sh" "$run_dir" workspace-write "<project-dir>" \` |
+| **Mode A** — Decision Review | `SP_RUN_DIR="$run_dir" SP_SANDBOX=read-only SP_PROJECT="<project-dir>" \` |
+| **Mode B** — Evidence Audit | `SP_RUN_DIR="$run_dir" SP_SANDBOX=workspace-write SP_PROJECT="<project-dir>" \` |
 
 ⚠️ **Why this is spelled out rather than left to the reader.** An earlier version
 of this block hard-coded `workspace-write` while the prose above claimed the
@@ -292,6 +294,22 @@ else. So a user selecting the *stricter* review copied a launcher that granted
 project-write access anyway, and the release notes said the opposite. A
 mode-dependent value written as a constant is not a typo — it silently deletes the
 difference between the two modes.
+
+🚨 **Why the wrapper reads named environment variables rather than positional
+parameters.** Claude Code replaces a dollar sign followed by a digit — the shell's
+syntax for "the first word after the command name", "the second", and so on — with
+the words the user actually typed after the command name, and it does this before
+the model ever sees this file. The wrapper used to take its three values that way,
+and one real invocation delivered the line as
+`run_dir="B"; sandbox="evidence"; project="audit."` — three words lifted straight
+out of the arguments, which would have dispatched a sandbox mode that does not
+exist and a working directory that is not a directory. Putting a backslash in
+front is a documented way to ask for the literal text, and it does work — but only
+when arguments were actually typed. Invoked bare, which is how this command
+normally runs, the substitution step is skipped entirely, the backslash survives
+into the wrapper, and the wrapper assigns a two-character string where a path
+belongs. Names like `SP_RUN_DIR` are left alone on both paths, which is the whole
+reason they are used here. Do not convert them back.
 
 `nohup ... &` plus `disown` is what detaches: the wrapper ignores the hangup signal
 that arrives when the launching shell exits, and leaves that shell's job table so
@@ -529,14 +547,14 @@ the verdict that it was added.
 
 Example for transcript audits — the wrapper is unchanged apart from the extra flag.
 Quote the extra directory too: it is the same splitting hazard as the project
-path, and the wrapper quoting `"$4"` cannot help because the split has already
-happened by then. Written as `"$HOME/..."` rather than `~/...`, because a tilde
-inside quotes is not expanded.
+path, and the wrapper quoting `"$SP_EXTRA"` cannot help because the split has
+already happened by then. Written as `"$HOME/..."` rather than `~/...`, because a
+tilde inside quotes is not expanded.
 
 ```
 cat > "$run_dir/run.sh" <<'SP_WRAPPER'
 #!/bin/sh
-run_dir="$1"; sandbox="$2"; project="$3"; extra="$4"
+run_dir="$SP_RUN_DIR"; sandbox="$SP_SANDBOX"; project="$SP_PROJECT"; extra="$SP_EXTRA"
 codex exec --sandbox "$sandbox" \
   -c 'mcp_servers={}' -c 'skills={}' \
   -C "$project" \
@@ -549,9 +567,9 @@ mv "$run_dir/verdict.done.tmp" "$run_dir/verdict.done"
 SP_WRAPPER
 
 # <sandbox-mode> has NO default here either — fill it from the mode table in Part 1.
-nohup sh "$run_dir/run.sh" "$run_dir" <sandbox-mode> "<project-dir>" \
-  "$HOME/.claude/projects/<encoded-project-dir>" \
-  >/dev/null 2>&1 &
+SP_RUN_DIR="$run_dir" SP_SANDBOX=<sandbox-mode> SP_PROJECT="<project-dir>" \
+  SP_EXTRA="$HOME/.claude/projects/<encoded-project-dir>" \
+  nohup sh "$run_dir/run.sh" >/dev/null 2>&1 &
 printf '%s\n' "$!" > "$run_dir/wrapper.pid"
 disown
 ```
