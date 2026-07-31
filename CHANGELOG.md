@@ -63,18 +63,21 @@
   worth knowing: background updating is switched **off** by default for listings
   that do not come from Anthropic, so turn it on under `/plugin` →
   **Marketplaces** if you want it hands-free.
-- **The update command now shows you where updating happens instead of guessing
-  which route is yours** — it reports your version, whether a newer release
-  exists, and what is missing from the bundle, then lists the places updating can
-  happen and lets you pick the one matching how you installed it. It no longer
-  inspects your machine to work that out. The inspecting version kept getting it
-  wrong — badly enough that it could tell someone running their own copy to
-  update a different copy entirely — so the guessing was removed rather than
-  corrected again. Every version and bundle fact it reported before is still
+- **The plugin's update command now shows you where updating happens instead of
+  guessing which route is yours** — it reports your version, whether a newer
+  release exists, and what is missing from the bundle, then lists the places
+  updating can happen and lets you pick the one matching how you installed it. It
+  no longer inspects your machine to work that out. The inspecting version kept
+  getting it wrong — badly enough that it could tell someone running their own
+  copy to update a different copy entirely — so the guessing was removed rather
+  than corrected again. Every version and bundle fact it reported before is still
   reported; only the install-shape inspection and the choosing are gone,
-  and a list cannot pick the wrong route for you. The command performs no update
-  and changes nothing on your disk, and runs no git command at all. It does still
-  read your disk to check the bundle and, on request, the Serena setup.
+  and a list cannot pick the wrong route for you. The plugin's command performs
+  no update and changes nothing on your disk, and runs no git command at all. It
+  does still read your disk to check the bundle and, on request, the Serena
+  setup. All of that describes the plugin only — if you installed Strategic
+  Partner as a skill rather than a plugin, its own update command is unchanged in
+  this release and still updates in place.
 - **One thing plugin users lose, stated plainly** — v7.6.0's update offered to
   run the update for you. On a plugin installed through Claude Code that offer
   never worked: it looked for the plugin in a tool that does not manage plugins,
@@ -86,21 +89,22 @@
   the same machinery that made it work for you could not reliably tell your copy
   apart from another one, and updating the wrong copy is worse than updating
   none. Updating a repository you maintain is now yours to run.
-- **The update command no longer replaces the plugin folder itself — it points
-  you at the route that fits your install** — v7.6.0 updated by running the
+- **The plugin's update command no longer replaces the plugin folder itself — it
+  lists the routes and lets you pick** — v7.6.0 updated by running the
   install tool or a repository pull on your behalf, and earlier work in this
   release replaced that with an automatic folder swap. Both are gone. The swap
   proved to be the wrong shape: three rounds of independent review each found a
   new way for its recovery to go wrong, the last being a printed recovery command
   that tucked your previous copy *inside* the broken one under a message saying
   your previous version was back. Rather than write a safer version of the same
-  surgery, the surgery was dropped in favour of the listing above — the same
-  approach the non-plugin install has always used, where updating is handed to
-  the tool that installed it. The check still does everything else it did:
-  compares versions both ways, refuses to talk you into replacing a newer local
-  build with an older published one, looks for missing files, and works out which
-  install shape you have. Nothing on your disk is moved, replaced, or deleted by
-  this command any more.
+  surgery, the surgery was dropped in favour of the listing above — updating an
+  installed plugin is Claude Code's job, and the listing hands it back to Claude
+  Code. The skill install is not a precedent for that: its own command inspects
+  the install, picks a method, and runs the update itself. The check still does
+  everything else it did: compares versions both ways, refuses to talk you into
+  replacing a newer local build with an older published one, and looks for
+  missing files. Nothing on your disk is moved, replaced, or deleted by this
+  command any more.
 - **A cross-model review that needs longer than ten minutes now runs to
   completion, and a review left to finish always has its result captured** —
   these reviews ask a second AI
