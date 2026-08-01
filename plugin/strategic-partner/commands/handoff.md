@@ -103,7 +103,7 @@ State logic:
     attach a duplicate server.
   - **(c) Fallback dispatch**: if the exact current project is not registered
     (or onboarding has not been done), surface DECISION via AUQ:
-    - [Run Serena onboarding now] — dispatch background Opus 4.8
+    - [Run Serena onboarding now] — dispatch background Opus 5
       agent to onboard this project
     - [Defer to next session with explicit acknowledgment] — note
       the gap in handoff body's Deferred Floor Signals section
@@ -157,7 +157,7 @@ just check freshness.
 
 ```
 # Verification (executed by SP — runs the rediscovery in a focused
-# background dispatch: Opus 4.8, run_in_background=true):
+# background dispatch: Opus 5, run_in_background=true):
 # 1. Serena read_memory skill_routing_matrix
 #    → cached state (skill count, agent count, MCP server count, build_timestamp)
 # 2. Read system-reminder skill list → current skill inventory
@@ -173,7 +173,7 @@ State logic:
   one-line note in handoff body ("routing matrix current: N skills,
   M agents, K MCPs")
 - Cached matrix exists BUT diff detected → RESOLVED-AUTO; dispatch
-  background Opus 4.8 rebuild (matrix construction is hygiene per
+  background Opus 5 rebuild (matrix construction is hygiene per
   the `feedback_opus_max_for_substantive_work` Serena memory feedback);
   summarize diff in handoff body ("routing matrix updated: +X skills,
   -Y skills, agent changes")

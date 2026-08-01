@@ -14,17 +14,17 @@ Model Selection → Parallelization Decision → Spawn Pattern (A/B/C/D/E) → S
 | Model | Use For | Avoid For |
 |-------|---------|-----------|
 | Opus | Architecture, complex debugging, research, coordination, multi-expert analysis, synthesis of parallel results | Simple implementation, routine tasks, parallel worker agents |
-| Sonnet 4.6 | Implementation, code review, testing, exploration, standard work, parallel worker agents | Critical architecture decisions, complex reasoning chains |
+| Sonnet 5 | Implementation, code review, testing, exploration, standard work, parallel worker agents | Critical architecture decisions, complex reasoning chains |
 
 ### Decision Rule
 
 ```
 Is this task architectural, complex debugging, deep research, or coordination?
 ├─ Yes → Opus
-└─ No  → Sonnet 4.6
+└─ No  → Sonnet 5
 
 Is this a parallel worker agent (one of N doing independent work)?
-├─ Yes → Sonnet 4.6 (always — Opus is wasted on constrained subtasks)
+├─ Yes → Sonnet 5 (always — Opus is wasted on constrained subtasks)
 └─ No  → Apply the rule above
 
 Is this a synthesis step (combining outputs from parallel agents)?
@@ -210,9 +210,9 @@ Task: "Add logging to auth, payments, and notifications modules"
 ```
 <orchestration>
   Spawn 3 agents in parallel:
-    Agent 1 (Sonnet 4.6): Add structured logging to auth/middleware.py
-    Agent 2 (Sonnet 4.6): Add structured logging to payments/processor.py
-    Agent 3 (Sonnet 4.6): Add structured logging to notifications/sender.py
+    Agent 1 (Sonnet 5): Add structured logging to auth/middleware.py
+    Agent 2 (Sonnet 5): Add structured logging to payments/processor.py
+    Agent 3 (Sonnet 5): Add structured logging to notifications/sender.py
 </orchestration>
 ```
 Why: Each module is independent. No shared state. Changes don't conflict.
@@ -222,9 +222,9 @@ Task: "Evaluate 3 auth libraries and implement the best one"
 ```
 <orchestration>
   Phase 1 (parallel research):
-    Agent 1 (Sonnet 4.6): Evaluate passport.js — API, maintenance, bundle size
-    Agent 2 (Sonnet 4.6): Evaluate lucia-auth — API, maintenance, bundle size
-    Agent 3 (Sonnet 4.6): Evaluate next-auth — API, maintenance, bundle size
+    Agent 1 (Sonnet 5): Evaluate passport.js — API, maintenance, bundle size
+    Agent 2 (Sonnet 5): Evaluate lucia-auth — API, maintenance, bundle size
+    Agent 3 (Sonnet 5): Evaluate next-auth — API, maintenance, bundle size
   Phase 2 (sequential):
     Agent 4 (Opus): Compare findings, select library, implement
 </orchestration>
@@ -236,9 +236,9 @@ Task: "Add CLI wizard, MCP tool, and API endpoint for team listing"
 ```
 <orchestration>
   Spawn 3 agents in parallel:
-    Agent 1 (Sonnet 4.6): CLI wizard (cli/teams.py + cli/__init__.py)
-    Agent 2 (Sonnet 4.6): MCP tool (mcp/cmrad_mcp.py)
-    Agent 3 (Sonnet 4.6): API endpoint (api/routes/teams.py + api/routes/__init__.py)
+    Agent 1 (Sonnet 5): CLI wizard (cli/teams.py + cli/__init__.py)
+    Agent 2 (Sonnet 5): MCP tool (mcp/cmrad_mcp.py)
+    Agent 3 (Sonnet 5): API endpoint (api/routes/teams.py + api/routes/__init__.py)
 </orchestration>
 ```
 Why: Three distinct interfaces to the same data. No code-level dependencies between them.
@@ -334,9 +334,9 @@ When 3+ files need independent changes:
 
 ```
 Spawn N agents in parallel:
-  Agent 1 (Sonnet 4.6, mode: "acceptEdits"): [file A — task + expected output]
-  Agent 2 (Sonnet 4.6, mode: "acceptEdits"): [file B — task + expected output]
-  Agent 3 (Sonnet 4.6, mode: "acceptEdits"): [file C — task + expected output]
+  Agent 1 (Sonnet 5, mode: "acceptEdits"): [file A — task + expected output]
+  Agent 2 (Sonnet 5, mode: "acceptEdits"): [file B — task + expected output]
+  Agent 3 (Sonnet 5, mode: "acceptEdits"): [file C — task + expected output]
 ```
 
 ---
@@ -347,8 +347,8 @@ When gathering information from multiple sources before deciding:
 
 ```
 Phase 1 (parallel):
-  Agent 1 (Sonnet 4.6, mode: "auto"): Research [topic A] — produce findings summary
-  Agent 2 (Sonnet 4.6, mode: "auto"): Research [topic B] — produce findings summary
+  Agent 1 (Sonnet 5, mode: "auto"): Research [topic A] — produce findings summary
+  Agent 2 (Sonnet 5, mode: "auto"): Research [topic B] — produce findings summary
 
 Phase 2 (sequential):
   Agent 3 (Opus, mode: "acceptEdits"): Synthesize Agent 1+2 outputs → produce recommendation
@@ -362,7 +362,7 @@ Standard feature development chain. **Resolve each step from the routing matrix*
 the skill names below are placeholders, not defaults.
 
 ```
-Step 1: Agent (Sonnet 4.6, mode: "auto", subagent_type=Explore) → understand existing code
+Step 1: Agent (Sonnet 5, mode: "auto", subagent_type=Explore) → understand existing code
 Step 2: Agent (Opus, mode: "acceptEdits", subagent_type=[architect-agent]) → design approach
 Step 3: /[best implementation skill from routing matrix] → implement
 Step 4: /[best review skill from routing matrix] → validate
@@ -449,7 +449,7 @@ prompt crafting — not in implementation prompts.
 Spawn after Serena's current configuration and exact project path are verified. Both agents are read-only —
 use `mode: "auto"` for background compatibility.
 
-**Agent 1 — Onboarding/Staleness Check (Sonnet 4.6, mode: "auto"):**
+**Agent 1 — Onboarding/Staleness Check (Sonnet 5, mode: "auto"):**
 ```
 You are checking codebase freshness for an advisor session.
 
@@ -468,7 +468,7 @@ IF the project HAS been onboarded:
     Summary: [1 sentence on codebase health]
 ```
 
-**Agent 2 — Architecture Scan (Sonnet 4.6, mode: "auto"):**
+**Agent 2 — Architecture Scan (Sonnet 5, mode: "auto"):**
 ```
 You are scanning project documentation for an advisor session.
 
@@ -552,7 +552,7 @@ presenting to the user.
 **Agent dispatch:**
 - Split files into logical groups (core files, reference groups, templates/docs)
 - Each agent gets a specific file list and audit categories
-- All agents: Sonnet 4.6, `mode: "auto"`, `run_in_background: true`
+- All agents: Sonnet 5, `mode: "auto"`, `run_in_background: true`
 
 ```
 You are auditing a file group for a project diagnostic.
@@ -668,8 +668,8 @@ Add to the `<orchestration>` section or as a top-level directive:
   isolation: worktree
 
   Phase 1 (parallel, each in isolated worktree):
-    Agent 1 (Sonnet 4.6): Refactor auth middleware
-    Agent 2 (Sonnet 4.6): Refactor session management
+    Agent 1 (Sonnet 5): Refactor auth middleware
+    Agent 2 (Sonnet 5): Refactor session management
   Phase 2:
     Review worktree diffs before merging to main working directory
 </orchestration>

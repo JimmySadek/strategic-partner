@@ -95,12 +95,12 @@ CLAIMED INVARIANTS: [The specific claims being audited]
 Instruction to Codex: "Read the files. Cite file:line for every claim. Find what does
 not match. Be specific."
 
-> **Coverage-first framing (Opus 4.8):** On Opus 4.8, conservative review
+> **Coverage-first framing (Opus 5):** On Opus 5, conservative review
 > instructions suppress real findings — ask for coverage with severity,
 > filter separately. Phrase every review/audit brief to ask the reviewer to
 > report ALL findings with a confidence level and severity; a separate step
 > filters. Never instruct "be conservative," "only high-severity," or "don't
-> nitpick" — Opus 4.8 follows that bar so faithfully it finds real issues and
+> nitpick" — Opus 5 follows that bar so faithfully it finds real issues and
 > then withholds them below the stated threshold.
 
 #### Release-Review Brief Template (`claudedocs/release-process.md` Step 2b)

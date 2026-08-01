@@ -238,9 +238,10 @@ into user shells — changing it globally would cause surprise compaction in
 long sessions users want to keep running. That is a footgun the SP
 deliberately avoids.
 
-**What the SP does instead**: On 1M-context sessions (Opus 4.8 or Opus 4.7,
-or any model run with `SP_CONTEXT_WINDOW=1M` exported — opusplan's plan phase
-stays 200K), the SP surfaces an informational
+**What the SP does instead**: On 1M-context sessions — those whose runtime
+model declaration carries a `1m` marker (as in `claude-opus-5[1m]` or the
+`opus[1m]` alias), or any model run with `SP_CONTEXT_WINDOW=1M` exported;
+opusplan's plan phase stays 200K — the SP surfaces an informational
 note in orientation: retrieval reliability degrades above ~256K tokens
 (known Anthropic autocompact issues #34332, #42375, #43989 make the
 default ~95% threshold behave inconsistently above that point), so the user
@@ -250,6 +251,15 @@ detection and handoff protocol (SKILL.md § Continuity Stewardship) remain
 the mechanism that translates awareness into action. See
 `startup-checklist.md` Step 5 and `context-handoff.md` § Environment
 Baseline for the exact copy and trigger conditions.
+
+**What the marker check misses**: Two cases run a 1M window with no marker at
+all, so the SP does not detect them — **Sonnet 5**, which always uses the 1M
+window on the Anthropic API (there is no 200K variant and no `[1m]` suffix to
+select), and **Opus on Max, Team, and Enterprise plans**, which is
+automatically upgraded to 1M with no additional configuration. In those
+sessions the advisory does not fire. Detection is marker-based and therefore
+incomplete by design; closing the gap would require inferring the window from
+plan and provider, which the SP does not attempt.
 
 ---
 

@@ -38,9 +38,17 @@ programmatically.
 
 What the SP **does** do:
 
-- Detect the active model and its context window at startup (Opus 4.8 or
-  Opus 4.7 → 1M; opusplan's plan phase stays 200K; other current models →
-  200K by default)
+- Detect the active model and its context window at startup — SP treats the
+  session as 1M-context when the runtime model declaration carries a `1m`
+  marker (as in `claude-opus-5[1m]` or the `opus[1m]` alias), or when
+  `SP_CONTEXT_WINDOW=1M` is set; opusplan's plan phase stays 200K; everything
+  else → 200K by default
+- Know what that detection misses. Two cases run a 1M window with no marker
+  at all, so SP does **not** detect them: **Sonnet 5**, which always uses the
+  1M window on the Anthropic API, and **Opus on Max, Team, and Enterprise
+  plans**, which is auto-upgraded to 1M with no configuration. In those
+  sessions the advisory below simply does not fire — detection is deliberately
+  incomplete, not exhaustive
 - On 1M-context sessions, surface an informational advisory in orientation
   noting the ~256K retrieval reliability cliff — see Step 5 "Context advisory"
   bullet for the exact copy and trigger rules
@@ -94,18 +102,21 @@ prompt crafting. Default assumption: the executor running SP's crafted prompts
 will be on the same model unless the user specifies otherwise.
 
 Detection — match any of the following in the runtime declaration (case-insensitive):
-- Friendly names: "Opus 4.8", "Opus 4.7", "Sonnet 4.6", "Haiku 4.5", "Fable 5"
+- Friendly names: "Opus 5", "Opus 4.8", "Opus 4.7", "Sonnet 5", "Sonnet 4.6", "Haiku 4.5", "Fable 5"
 - Exact model IDs:
+  - `claude-opus-5` (Opus 5; the 1M-context build reports as `claude-opus-5[1m]`)
   - `claude-opus-4-8` (Opus 4.8; the 1M-context build reports as `claude-opus-4-8[1m]`)
   - `claude-opus-4-7` (Opus 4.7)
+  - `claude-sonnet-5` (Sonnet 5 — always 1M on the Anthropic API; no `[1m]`
+    variant exists)
   - `claude-sonnet-4-6` (Sonnet 4.6)
   - `claude-haiku-4-5-20251001` (Haiku 4.5)
   - `claude-fable-5` (Fable 5)
   - `claude-fable-5[1m]` (Fable 5, 1M-context build)
-- If detected: store the normalized family (Opus 4.8 / Opus 4.7 / Sonnet 4.6 / Haiku 4.5 / Fable 5) as session-active target model
-- If multiple models mentioned or unclear (including Fable 5 mixed with others): default to Opus 4.8 (current GA) with a note
+- If detected: store the normalized family (Opus 5 / Opus 4.8 / Opus 4.7 / Sonnet 5 / Sonnet 4.6 / Haiku 4.5 / Fable 5) as session-active target model
+- If multiple models mentioned or unclear (including Fable 5 mixed with others): default to Opus 5 (current GA) with a note
 
-Report in orientation ONLY if target model differs from Opus 4.8 default OR
+Report in orientation ONLY if target model differs from Opus 5 default OR
 user explicitly asked:
 "📌 Target model for crafted prompts: [detected model]. Override per prompt if
 executor will run on a different model."
@@ -115,17 +126,28 @@ the SP uses this to decide which reusable blocks to embed in crafted prompts.
 
 **`/effort` guidance by model** (used when the SP recommends runtime flags,
 not by hook):
-- **Opus 4.8**: Claude Code defaults to `high`, not `xhigh`. Set
-  `/effort xhigh` explicitly for coding/agentic work — it is the
-  recommended starting point, not the silent default.
+- **Opus 5**: start at `/effort high` — including for work that ran at
+  `xhigh` on Opus 4.8. Move up to `/effort xhigh` only for demanding coding
+  and agentic work, and to `/effort max` only when correctness outweighs
+  cost. Then sweep downward and measure: `low` and `medium` are unusually
+  strong on Opus 5 and often hold quality at a fraction of the tokens, so an
+  effort level carried over from Opus 4.8 is usually the wrong setting rather
+  than a safe default. At `xhigh` or `max`, give the executor a large output
+  budget so thinking and tool calls both fit.
 - **Opus 4.7**: `xhigh` is the Claude Code default for all plans — no action
   needed. `/effort high` only makes sense as a deliberate downgrade for
   latency-sensitive sessions.
 - **Opus 4.6**: `/effort high` remains a reasonable upgrade for advisory
   sessions if the user wants maximum reasoning.
-- **Sonnet 4.6**: defaults to `high` at the API level; no explicit
+- **Sonnet 5**: defaults to `high` at the API level; no explicit
   recommendation needed.
 - **Haiku 4.5**: `low`-to-`medium` depending on task complexity.
+- **Fable 5**: `/effort high` for most tasks, `/effort xhigh` for the most
+  capability-sensitive work, `/effort medium` or `/effort low` for routine
+  work — lower settings still perform very well and are worth testing. Do
+  NOT infer these from Opus 5: the two differ in delegation behavior (see
+  `prompt-crafting-guide.md` § Model-Aware Block Selection), so Fable 5's
+  own guidance is the source.
 
 Do NOT surface these as startup-time prompts. They are reference for when
 the user asks "what effort should I use?" or when SP crafts a prompt that
@@ -600,9 +622,9 @@ Any real choice, such as Serena onboarding, appears after this useful table.
   silent. If another value appears, treat it as a plugin load problem, not a
   reason to run standalone setup.
 - ⚡ Update available (from the floor version check): one line with the version diff and the user's plugin update route
-- 🔧 **Context advisory** (1M-context sessions only): If the detected model
-  has a 1M context window (Opus 4.8 or Opus 4.7, or any model running with
-  `SP_CONTEXT_WINDOW=1M`), display this informational note in orientation:
+- 🔧 **Context advisory** (1M-context sessions only): If the session is
+  detected as 1M-context (see Step 1 for the marker rule and the two cases it
+  misses), display this informational note in orientation:
   "📌 **1M context advisory:** Autocompact defaults to ~95% of your window
   (~950K tokens), and known Anthropic issues (#34332, #42375, #43989)
   cause erratic behavior above ~256K. For reliable retrieval and

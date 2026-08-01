@@ -445,8 +445,8 @@ Expected commit: "fix(auth): retry token validation on HTTP 500 with backoff"
 
 <orchestration>
   Spawn 2 agents in parallel:
-    Agent 1 (Sonnet 4.6, mode: "acceptEdits"): Write docker/cli/teams.py + update __init__.py
-    Agent 2 (Sonnet 4.6, mode: "acceptEdits"): Add list_teams tool to cmrad_mcp.py
+    Agent 1 (Sonnet 5, mode: "acceptEdits"): Write docker/cli/teams.py + update __init__.py
+    Agent 2 (Sonnet 5, mode: "acceptEdits"): Add list_teams tool to cmrad_mcp.py
 </orchestration>
 
 <verification>
@@ -505,16 +505,16 @@ When a task requires multiple implementation sessions (a skill chain):
 Example (resolve each skill from the routing matrix — see `references/skill-routing-matrix.md`):
 ```
 Prompt chain (run in order):
-  1. Explore — Agent(Sonnet 4.6, [explorer-agent]) → produces architecture notes
+  1. Explore — Agent(Sonnet 5, [explorer-agent]) → produces architecture notes
   2. Design — Agent(Opus, [architect-agent]) → produces component spec
   3. Build — /[implementation skill] → implements from spec
   4. Review — /[review skill] → validates before merge
 ```
 
-> **Coverage-first review/audit briefs (Opus 4.8):** When the chain includes a
+> **Coverage-first review/audit briefs (Opus 5):** When the chain includes a
 > review or audit step, phrase that brief to ask for coverage — report every
 > finding with a confidence level and severity; a separate step filters. On
-> Opus 4.8, conservative review instructions suppress real findings: "be
+> Opus 5, conservative review instructions suppress real findings: "be
 > conservative," "only high-severity," or "don't nitpick" make the model find
 > real issues and then withhold them below the stated bar. Ask for the full
 > set with severity tags; filter afterward.
@@ -899,7 +899,8 @@ advisory session rather than launching an implementation:
 ## Reusable Prompt Blocks
 
 Blocks are copy-paste XML snippets that encode Anthropic-published prompting
-patterns for Claude 4.x executors. The SP includes relevant blocks in a crafted
+patterns for current Claude executor models — the Opus, Sonnet, Haiku, and
+Fable lines SP targets today. The SP includes relevant blocks in a crafted
 prompt based on task shape and target model. Each block has a **Trigger** (when
 to include it) and a **Models** note (which models benefit most).
 
@@ -912,7 +913,7 @@ Never speculate about code you have not opened. If the user references a specifi
 </investigate_before_answering>
 ```
 **Trigger**: Any prompt where the executor will make claims about existing code (investigation, review, refactoring, implementation touching existing files).
-**Models**: Universal — applies to Opus 4.8, Sonnet 4.6, Haiku 4.5. Particularly valuable for hallucination-prone workloads.
+**Models**: Universal — applies to Opus 5, Sonnet 5, Haiku 4.5. Particularly valuable for hallucination-prone workloads.
 **Source**: Anthropic official Opus 4.8 prompting guidance.
 
 ### Block 2: `<avoid_over_engineering>`
@@ -929,7 +930,7 @@ Only make changes that are directly requested or clearly necessary. Keep solutio
 </avoid_over_engineering>
 ```
 **Trigger**: Any implementation prompt (bug fix, feature add, refactor). Especially important on Opus 4.5+ which has an overengineering tendency.
-**Models**: Universal, most relevant across the Opus 4.5+ family (4.5/4.6/4.7/4.8).
+**Models**: Universal, most relevant across the Opus 4.5+ family (4.5/4.6/4.7/4.8/5).
 **Source**: Anthropic official guide "Overeagerness" section.
 
 ### Block 3: `<subagent_usage>`
@@ -940,12 +941,13 @@ Only make changes that are directly requested or clearly necessary. Keep solutio
 Use subagents when tasks can run in parallel, require isolated context, or involve independent workstreams that don't need to share state. For simple tasks, sequential operations, single-file edits, or tasks where you need to maintain context across steps, work directly rather than delegating.
 
 Do not spawn a subagent for work you can complete directly in a single response (e.g., refactoring a function you can already see).
-Spawn multiple subagents in the same turn when fanning out across items or reading multiple files.
+Do not delegate review or verification of your own work — that belongs in your main loop.
+When fanning out across genuinely independent items, spawn them in the same turn rather than one after another — but keep the count low. Each subagent re-establishes context you already hold, and you pay to read its report back.
 </subagent_usage>
 ```
 **Trigger**: Any prompt where the executor may spawn agents. Multi-file refactors, research tasks, fan-out work.
-**Models**: Most valuable on Opus 4.8 — favoring fewer subagents by default is a stable Opus-family trait (carried forward through 4.8), so explicit guidance is what tells the model when fan-out IS warranted. Also useful on Opus 4.6 (the opposite prior-gen tendency: overuses subagents — needs restraint).
-**Source**: Anthropic official Opus 4.8 prompting guidance, Subagent orchestration section.
+**Models**: Critical on Opus 5, where this block's job is **restraint** — Opus 5 delegates more readily than its predecessor. Treat "favors fewer subagents" as an Opus 4.7/4.8 trait rather than a family constant: the tendency reversed at Opus 5, so guidance written to encourage fan-out now pushes the model further in the direction it already leans.
+**Source**: Anthropic Claude Opus 5 migration guidance, subagent-spawning section (supersedes the Opus 4.8 guidance this block was first written from).
 
 ### Block 4: `<use_parallel_tool_calls>`
 
@@ -956,7 +958,7 @@ If you intend to call multiple tools and there are no dependencies between the t
 </use_parallel_tool_calls>
 ```
 **Trigger**: Any tool-heavy prompt (investigation, multi-file reads, research).
-**Models**: Universal; boosts parallel call rate to ~100% across all 4.x models.
+**Models**: Universal; boosts parallel call rate to ~100% across current Claude models.
 **Source**: Anthropic official guide, "Optimize parallel tool calling" section.
 
 ### Block 5: `<conservative_actions>`
@@ -986,8 +988,8 @@ When encountering obstacles, do not use destructive actions as a shortcut. Do no
 Apply [DIRECTIVE] to [SCOPE]. [COUNTER-EXAMPLE if useful: "not just the first section" / "every file matching this pattern" / etc.].
 </scope_explicit>
 ```
-**Trigger**: Pattern-application prompts where scope could be ambiguous ("format all headings", "update every example in this file"). Required on Opus 4.8 because literal instruction following — a stable Opus-family trait — means the model won't generalize silently.
-**Models**: Critical on Opus 4.8 (literal interpretation, a carried-forward family trait). Helpful on all 4.x models.
+**Trigger**: Pattern-application prompts where scope could be ambiguous ("format all headings", "update every example in this file"). Required on Opus 5 because literal instruction following — a stable Opus-family trait — means the model won't generalize silently.
+**Models**: Critical on Opus 5 (literal interpretation, a carried-forward family trait). Helpful across current Claude models.
 **Source**: Anthropic official guide, "More literal instruction following" section.
 
 ### Block 7: `<context_awareness>`
@@ -999,14 +1001,26 @@ Your context window will be automatically compacted as it approaches its limit, 
 </context_awareness>
 ```
 **Trigger**: Long-horizon agentic tasks that may span multiple context windows. Implementation plans with 5+ deliverables, multi-day refactors, large migrations.
-**Models**: Opus 4.8, Sonnet 4.6, Haiku 4.5 (all context-aware). NOT for single-task prompts that fit comfortably in one context.
+**Models**: Opus 5, Sonnet 5, Haiku 4.5 (all context-aware). NOT for single-task prompts that fit comfortably in one context.
 **Source**: Anthropic official guide, "Context awareness and multi-window workflows" section.
+
+### Block 8: `<deliverable_length>`
+
+**XML snippet**:
+```xml
+<deliverable_length>
+Match the length of written deliverables — reports, Markdown files, summaries, documentation — to what the task actually needs. Cover the substance, then stop. Do not pad with filler sections, restated summaries, or boilerplate. If a section would not change what the reader does next, leave it out.
+</deliverable_length>
+```
+**Trigger**: Any prompt whose output includes a written file rather than only code or a chat answer.
+**Models**: Opus 5, which writes longer files by default than Opus 4.8. Lowering effort does NOT reliably shorten written output — this block is the lever.
+**Source**: Anthropic Claude Opus 5 migration guidance, response-length section.
 
 ### How to use this library
 
 - Blocks are optional scaffolding; not every prompt needs every block
 - Include blocks that match the task shape (see each block's **Trigger**)
-- Blocks with model-specific value (Block 3, Block 6) are more important when that model is the target
+- Blocks with model-specific value (Block 3, Block 6, Block 8) are more important when that model is the target
 - Multiple blocks stack — they're independent and don't conflict
 - Blocks go between `<context>` and `<instructions>` (see `assets/templates/prompt-template.md` for default placement), adjacent to the task directives they constrain
 - Place blocks BEFORE the `<instructions>` declaration so they act as constraints on task interpretation
@@ -1017,21 +1031,31 @@ When crafting a prompt, consider which blocks the TARGET model benefits from mos
 
 | Target Model | Essential Blocks | Useful Blocks | Skip |
 |---|---|---|---|
-| Opus 4.8 | avoid_over_engineering, subagent_usage, scope_explicit (the overengineering, fewer-subagents, and literal-instruction tendencies these address are stable Opus-family traits, carried forward to 4.8) | investigate_before_answering (still a useful hallucination guard, though 4.8 calls needed tools more reliably than 4.7), use_parallel_tool_calls, conservative_actions, context_awareness | — |
-| Sonnet 4.6 | investigate_before_answering, avoid_over_engineering, use_parallel_tool_calls | conservative_actions, context_awareness | subagent_usage (less critical — Sonnet orchestrates well) |
+| Opus 5 | avoid_over_engineering, subagent_usage, scope_explicit, deliverable_length (the overengineering and literal-instruction tendencies these address are stable Opus-family traits; subagent_usage is essential for the opposite reason on Opus 5 — it caps fan-out rather than encouraging it) | investigate_before_answering (a hallucination guard — forces a read before any claim about code not yet opened), use_parallel_tool_calls, conservative_actions, context_awareness | — |
+| Sonnet 5 | investigate_before_answering, avoid_over_engineering, use_parallel_tool_calls | conservative_actions, context_awareness | subagent_usage (less critical — Sonnet orchestrates well) |
 | Haiku 4.5 | investigate_before_answering | avoid_over_engineering | subagent_usage, context_awareness (Haiku is for narrow tasks) |
-| Fable 5 | (as Opus 4.8) — treat Fable 5 as Opus 4.8-equivalent for block selection and effort guidance until model-specific guidance exists [⚠️ RISK — assumed equivalence; revisit when Anthropic publishes Fable prompting guidance] | (as Opus 4.8) | — |
+| Fable 5 | investigate_before_answering, avoid_over_engineering, scope_explicit, deliverable_length | use_parallel_tool_calls, conservative_actions, context_awareness | subagent_usage — Fable 5's published guidance favors delegating often, and favors helper agents that keep working while the main agent carries on over helpers the main agent has to stop and wait for. That is the opposite of the Opus 5 posture, so this block's limit on how many helpers to spawn would work against the model rather than with it. |
 
 Effort recommendations also differ. The full Claude Code effort ladder
 (how hard the model reasons per turn), lowest to highest, is `low` /
 `medium` / `high` / `xhigh` / `max` / `ultracode` — where `ultracode` =
 `xhigh` plus automatic dynamic-workflow orchestration, a Claude-Code-only
 setting (NOT an API effort value, so do not put it in API-targeted briefs):
-- **Opus 4.8**: Claude Code defaults to `high`, not `xhigh`. Set `xhigh`
-  explicitly for coding/agentic work — it is the recommended starting point,
-  not the silent default. `high` is the floor for intelligence-sensitive work.
-- **Sonnet 4.6**: high (API default); medium for latency-sensitive
+- **Opus 5**: start at `high` — including for work that ran at `xhigh` on
+  Opus 4.8. Move up to `xhigh` only for demanding coding and agentic work,
+  and to `max` only when correctness outweighs cost. Then sweep downward and
+  measure: `low` and `medium` are unusually strong on Opus 5 and often hold
+  quality at a fraction of the tokens, so an effort level carried over from
+  Opus 4.8 is usually the wrong setting rather than a safe default. At
+  `xhigh` or `max`, give the executor a large output budget so thinking and
+  tool calls both fit.
+- **Sonnet 5**: high (API default); medium for latency-sensitive
 - **Haiku 4.5**: low to medium depending on task
+- **Fable 5**: `high` for most tasks, `xhigh` for the most
+  capability-sensitive work, `medium` or `low` for routine work — lower
+  settings still perform very well and are worth testing. Do NOT infer
+  Opus 5's ladder: Fable 5 differs from Opus 5 in the delegation behavior
+  above, so its own guidance is the source.
 
-If target model is unknown or mixed, default to Opus 4.8's essential blocks —
-they work on all 4.x models.
+If target model is unknown or mixed, default to Opus 5's essential blocks —
+they work across current Claude models.
