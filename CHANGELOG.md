@@ -1,5 +1,51 @@
 # Changelog
 
+## [7.8.0] - 2026-08-03
+
+### Added
+
+- **A release check that the dispatch wording in the docs matches what the tool
+  actually accepts** — when Strategic Partner asks you to confirm handing work
+  to a specialist, the wording of those choices has to match exactly. Two
+  documents had drifted, so anyone following them hit a refusal every time. A
+  new pre-release check reads the required wording from the enforcing code and
+  fails the release if any document disagrees.
+
+### Changed
+
+- **Prompts now target Claude Opus 5 and Sonnet 5**, with reworked guidance on
+  how hard to make the model think — start moderate and tune down, rather than
+  starting high.
+- **Crafted prompts now hold back from splitting work across many helper agents**
+  rather than encouraging it. Earlier models under-delegated; the current ones
+  over-delegate, so the guidance reversed.
+- **New guidance on how long written deliverables should be** — cover the
+  substance and stop, rather than padding a document to look thorough.
+
+### Fixed
+
+- **Borderline-scored tasks no longer fail their first dispatch confirmation** —
+  the documented wording for those carried an extra word the enforcing code
+  rejects.
+- **When a rule check reports a problem, the file it points you to now exists** —
+  the report named a path that was renamed away a fraction of a second earlier,
+  so it was never openable.
+- **That file now tells you what actually happened** — it previously held only
+  the rule's name, repeating the summary you had already read. It now carries an
+  excerpt of the turn involved.
+- **Rule-check history survives a restart** — these records lived in a temporary
+  folder the system clears. They now live alongside your other settings, are
+  readable only by you, and clear themselves after about a month.
+- **The documentation about very large context windows was backwards** — it
+  claimed one model runs a million-token window and everything else runs a
+  smaller one. On the underlying service, nearly every current model runs the
+  large window. The docs now say so, and separate that from the question of what
+  a Claude Code session presents, which is noted as unverified.
+- **The check watching for a skipped delivery choice stops crying wolf** — it
+  fired on the ordinary two-step flow, which is the common path, so its records
+  were noise. It now looks back a short way and stays quiet when the choice
+  already happened.
+
 ## [7.7.0] - 2026-07-31
 
 ### Fixed
