@@ -117,7 +117,7 @@ Claude's `<verification>` but named to emphasize the iterative check pattern.
 
 ## Key Differences from Claude
 
-| Aspect | Claude 4.x | GPT-5.5 |
+| Aspect | Claude (current lineup) | GPT-5.5 |
 |---|---|---|
 | Critical rules placement | Inside `<instructions>` | Dedicated `<critical_rules>` tag, placed FIRST |
 | List style | Nested bullets OK | Flat lists only — split into sections instead |

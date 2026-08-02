@@ -43,8 +43,8 @@ to Claude and provide the most reliable structure for complex prompts.
    (c) latency-hiding is the primary goal. Skip otherwise — modern Claude
    models plan straightforward parallelism on their own.]
   Phase 1 (parallel):
-    Agent A (Sonnet 4.6, mode: "auto"): [task + expected output]
-    Agent B (Sonnet 4.6, mode: "auto"): [task + expected output]
+    Agent A (Sonnet 5, mode: "auto"): [task + expected output]
+    Agent B (Sonnet 5, mode: "auto"): [task + expected output]
   Phase 2 (sequential):
     Agent C (Opus, mode: "acceptEdits"): [synthesis task]
 </orchestration>
@@ -100,7 +100,7 @@ own; an unnecessary `<orchestration>` block adds noise without value. When
 included, structure as phases:
 - **Parallel phases**: agents that can run simultaneously
 - **Sequential phases**: agents that depend on prior phase output
-- Each agent spawn requires explicit **model** (Sonnet 4.6, Opus) and **mode** parameter
+- Each agent spawn requires explicit **model** (Sonnet 5, Opus) and **mode** parameter
 
 ### `<verification>`
 
@@ -136,10 +136,10 @@ prompts should be structured:
 | Orchestration | `<orchestration>` for multi-agent coordination — only when subtasks are genuinely independent, user requested decomposition, or latency-hiding matters |
 | Tag parsing | Native XML understanding — tags provide reliable structure |
 
-### Opus 4.8 Specific Patterns
+### Opus 5 Specific Patterns
 
-Opus 4.8 (released 2026-05-28, the current GA Opus) carries forward the
-stable Opus-family behaviors that benefit from specific prompt patterns.
+Opus 5 (the current GA Opus) carries forward the stable Opus-family
+behaviors that benefit from specific prompt patterns.
 These patterns are codified as reusable blocks — see
 `references/prompt-crafting-guide.md` § Reusable Prompt Blocks for the full
 library with verbatim XML.
@@ -147,9 +147,9 @@ library with verbatim XML.
 | Behavior | Recommended block(s) | Why |
 |---|---|---|
 | Literal instruction following (stable family trait) | `<scope_explicit>` | Model won't infer generalization |
-| Favors fewer subagents by default (stable family trait) | `<subagent_usage>` | Explicit guidance when fan-out IS warranted |
+| Delegates to subagents more readily than Opus 4.8 | `<subagent_usage>` | Caps fan-out — the block restrains delegation rather than encouraging it |
 | Overengineering tendency (stable Opus 4.5+ trait) | `<avoid_over_engineering>` | Constrain scope expansion |
-| Claims about unopened code | `<investigate_before_answering>` | Hallucination guard — useful even though 4.8 calls needed tools more reliably than 4.7 |
+| Claims about unopened code | `<investigate_before_answering>` | Hallucination guard — forces a read before any claim about code not yet opened |
 | Shared-state operations | `<conservative_actions>` | Reversibility gate |
 | Long, multi-window tasks | `<context_awareness>` | Enable compaction continuity |
 
@@ -238,13 +238,14 @@ Expected commit: "fix(auth): retry token validation on HTTP 500 with backoff"
 Use subagents when tasks can run in parallel, require isolated context, or involve independent workstreams that don't need to share state. For simple tasks, sequential operations, single-file edits, or tasks where you need to maintain context across steps, work directly rather than delegating.
 
 Do not spawn a subagent for work you can complete directly in a single response (e.g., refactoring a function you can already see).
-Spawn multiple subagents in the same turn when fanning out across items or reading multiple files.
+Do not delegate review or verification of your own work — that belongs in your main loop.
+When fanning out across genuinely independent items, spawn them in the same turn rather than one after another — but keep the count low. Each subagent re-establishes context you already hold, and you pay to read its report back.
 </subagent_usage>
 
 <orchestration>
   Spawn 2 agents in parallel:
-    Agent 1 (Sonnet 4.6, mode: "acceptEdits"): Write docker/cli/teams.py + update __init__.py
-    Agent 2 (Sonnet 4.6, mode: "acceptEdits"): Add list_teams tool to cmrad_mcp.py
+    Agent 1 (Sonnet 5, mode: "acceptEdits"): Write docker/cli/teams.py + update __init__.py
+    Agent 2 (Sonnet 5, mode: "acceptEdits"): Add list_teams tool to cmrad_mcp.py
 </orchestration>
 
 <verification>

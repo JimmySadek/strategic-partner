@@ -11,7 +11,7 @@ grant authority. Read-only requests never dispatch routing maintenance or
 write routing state.
 
 When a later task genuinely needs write-capable remediation and the user gives
-the exact confirmation, the default is **Opus 4.8 (current GA)** with
+the exact confirmation, the default is **Opus 5 (current GA)** with
 `run_in_background: true` and `mode: "acceptEdits"`.
 
 ---

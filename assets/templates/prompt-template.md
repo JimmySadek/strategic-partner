@@ -46,8 +46,8 @@ Read and execute the implementation prompt below.
   2. [relevant Serena memory gotchas]
 </context>
 
-<!-- Default blocks: universal patterns for any Claude 4.x executor. -->
-<!-- Additional optional blocks (subagent_usage, use_parallel_tool_calls, conservative_actions, scope_explicit, context_awareness) can be added based on task shape. See prompt-crafting-guide.md "Reusable Prompt Blocks" section. -->
+<!-- Default blocks: universal patterns for any current Claude executor model. -->
+<!-- Additional optional blocks (subagent_usage, use_parallel_tool_calls, conservative_actions, scope_explicit, context_awareness, deliverable_length) can be added based on task shape. See prompt-crafting-guide.md "Reusable Prompt Blocks" section. -->
 <investigate_before_answering>
 Never speculate about code you have not opened. If the user references a specific file, you MUST read the file before answering. Make sure to investigate and read relevant files BEFORE answering questions about the codebase. Never make any claims about code before investigating unless you are certain of the correct answer — give grounded and hallucination-free answers.
 </investigate_before_answering>
@@ -89,8 +89,8 @@ Only make changes that are directly requested or clearly necessary. Keep solutio
      models plan straightforward parallelism on their own. -->
 <orchestration>
   Phase 1 (parallel):
-    Agent A (Sonnet 4.6): [task + expected output]
-    Agent B (Sonnet 4.6): [task + expected output]
+    Agent A (Sonnet 5): [task + expected output]
+    Agent B (Sonnet 5): [task + expected output]
   Phase 2 (sequential):
     Agent C (Opus): [synthesis task]
 </orchestration>

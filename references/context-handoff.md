@@ -39,15 +39,29 @@ The SP does NOT set or recommend changes to this value. Changing it globally
 would cause surprise compaction in long sessions users want to keep running.
 The SP's role regarding autocompact is purely informational:
 
-- **Detect** the active model and context window at startup (Opus 4.8 or
-  Opus 4.7 → 1M; opusplan's plan phase stays 200K; other current models →
-  200K by default)
+- **Detect** the active model and context window at startup — SP treats the
+  session as 1M-context when the runtime model declaration carries a `1m`
+  marker (as in `claude-opus-5[1m]` or the `opus[1m]` alias), or when
+  `SP_CONTEXT_WINDOW=1M` is set; opusplan's plan phase stays 200K; everything
+  else → 200K by default
 - **Surface** a session-start advisory on 1M-context sessions noting that
   retrieval reliability degrades above ~256K tokens — known Anthropic
   autocompact bugs on 1M make the default ~95% threshold behave
   inconsistently above that point
 - **Defer** the decision to the user — whether to wrap up a session earlier,
   to trigger a handoff sooner, or to accept the risk on a given run
+
+⚠️ **Detection has a known blind spot.** Two cases run a 1M window with no
+marker at all, so SP does not detect them:
+
+| Undetected case | Why there is no marker |
+|---|---|
+| **Sonnet 5** | Always runs with the 1M window on the Anthropic API. There is no 200K variant and no `[1m]` suffix to select. |
+| **Opus on Max, Team, and Enterprise plans** | Automatically upgraded to 1M context with no additional configuration. |
+
+In those sessions the advisory above does not fire and the user gets no
+1M-context note. That is a limit of the detection, not a judgment that the
+advisory is unnecessary there.
 
 The SP's session-end detection and handoff protocol (see SKILL.md §
 Continuity Stewardship) are the mechanisms that translate this awareness

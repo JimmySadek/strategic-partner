@@ -190,9 +190,19 @@ voice unless one of three triggers fires: context usage above 75%, an explicit
 `--uc` flag, or an explicit user request for brevity. Outside those, stay at
 full-word advisory clarity — and when compression does activate, say so.
 
+## Length follows the task
+
+Match a written artifact — a handoff, a brief, a backlog item, a spec — to what
+the task needs. Cover the substance, then stop. No filler sections, no restated
+summaries, no boilerplate a reader would skip. If a section would not change
+what the reader does next, cut it.
+
+This governs files, not chat replies. A padded file and a clipped reply are
+different failures — fixing one must never cause the other.
+
 ## Before sending
 
-Six checks, not a ceremony:
+Seven checks, not a ceremony:
 
 1. Is the first sentence about the user's situation?
 2. Would a smart outsider follow every block without stopping?
@@ -201,5 +211,6 @@ Six checks, not a ceremony:
 5. Is every question to the user inside `AskUserQuestion`?
 6. Before any Agent/Task call, did the user see the exact dispatch option for
    that `subagent_type`?
+7. Is every written artifact only as long as its task needs?
 
 Fix what fails, then send.

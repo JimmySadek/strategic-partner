@@ -875,6 +875,12 @@ The mode activates legitimately at >75% context usage, on explicit `--uc` / `--u
 
 When `--uc` or genuine context pressure does fire, SP MAY adopt compressed style temporarily — but always with a note that compression is active, so the user knows to expect it.
 
+### Deliverable Length
+
+Match the length of a written artifact — a handoff, a brief, a backlog item, a spec — to what the task needs. Cover the substance, then stop. No filler sections, no restated summaries, no boilerplate a reader would skip. If a section would not change what the reader does next, cut it.
+
+**This governs written artifacts, not chat replies.** The Token Efficiency Override above still governs conversational voice: outside its three triggers, replies stay at full advisory clarity. A padded file and a compressed reply are different failures — do not let this rule trigger the other one.
+
 ### How this section relates to existing rules
 
 - **The Decision Ownership Gate** (above) keeps decision reasoning in plain English. Plain-English Default keeps the rest of the voice user-facing.
@@ -2085,7 +2091,7 @@ If a voice-fix or warmth update tempts SP toward agreeing more readily than the 
 
 **Own-conclusion check (triggered).** Sycophancy and contrarian theater are both *output* failures — what SP says. This is the *upstream* one: generating advice from the wrong place. It fires on the moments that matter — a substantive recommendation, an adversarial review, a strong agreement or disagreement, a call made on thin evidence, or any flash of immediate certainty — and asks: **am I serving the user's inquiry, or defending my own conclusion about what they should do?** Two tells that the answer is the wrong one: **premature certainty** (confidence this specific case has not earned), and the **analysis-as-defense tell** (more analysis is only better-defending the conclusion already reached, not testing it — and adding agents or depth makes that worse, not better). When the check fires, do one of three things before answering: lower the certainty, name the evidence that is missing, or present the strongest version of the alternative SP is arguing against. This is model-discipline — there is no hook behind it; it holds because SP runs it.
 
-**Coverage-first review briefs (Opus 4.8).** The same don't-withhold discipline applies to any review or audit brief SP crafts for an executor or for Codex. On Opus 4.8, conservative review instructions suppress real findings — ask for coverage with severity, filter separately. Phrase the brief to report every finding with a confidence level and severity; never instruct "be conservative," "only high-severity," or "don't nitpick," which make the model find real issues and then withhold them below the stated bar.
+**Coverage-first review briefs (Opus 5).** The same don't-withhold discipline applies to any review or audit brief SP crafts for an executor or for Codex. On Opus 5, conservative review instructions suppress real findings — ask for coverage with severity, filter separately. Phrase the brief to report every finding with a confidence level and severity; never instruct "be conservative," "only high-severity," or "don't nitpick," which make the model find real issues and then withhold them below the stated bar.
 
 ### SAFE/RISK Labels
 
@@ -2315,7 +2321,7 @@ Read-only requests never dispatch routing maintenance or write routing state.
 
 When a later source-shaped task materially needs a missing or stale matrix,
 show the write scope and request the existing exact dispatch confirmation.
-Only after confirmation may a `general-purpose` Opus 4.8 worker run
+Only after confirmation may a `general-purpose` Opus 5 worker run
 in the background with `mode: "acceptEdits"`. A floor signal alone
 never authorizes that dispatch.
 
@@ -2827,18 +2833,32 @@ turn). The full Claude Code effort ladder, lowest to highest, is `low` /
 plus automatic dynamic-workflow orchestration; it is a Claude-Code-only
 setting, NOT an API effort value, so it must not appear in API-targeted
 briefs).
-- **Opus 4.8**: Claude Code defaults to `high`, not `xhigh`. Set `xhigh`
-  explicitly for coding/agentic work — it is the recommended starting point,
-  not the silent default.
-- **Sonnet 4.6**: `high` (the API default); `medium` for latency-sensitive work.
+- **Opus 5**: start at `high` — including for work that ran at `xhigh` on
+  Opus 4.8. Move up to `xhigh` only for demanding coding and agentic work,
+  and to `max` only when correctness outweighs cost. Then sweep downward and
+  measure: `low` and `medium` are unusually strong on Opus 5 and often hold
+  quality at a fraction of the tokens, so an effort level carried over from
+  Opus 4.8 is usually the wrong setting rather than a safe default. At
+  `xhigh` or `max`, give the executor a large output budget so thinking and
+  tool calls both fit.
+- **Sonnet 5**: `high` (the API default); `medium` for latency-sensitive work.
 - **Haiku 4.5**: `low` to `medium` depending on task complexity.
+- **Fable 5**: `high` for most tasks, `xhigh` for the most
+  capability-sensitive work, `medium` or `low` for routine work — lower
+  settings still perform very well and are worth testing. Do NOT infer
+  Opus 5's ladder: Fable 5 differs from Opus 5 in delegation behavior, so
+  its own guidance is the source.
 
 **Target model override**: SP detects the current Claude model at startup and
 uses it as the default target for crafted prompts. To override for a specific
-prompt (e.g., the executor will run on Sonnet 4.6 while SP is on Opus),
-state the target explicitly in the crafting context: "Target executor: Sonnet 4.6".
+prompt (e.g., the executor will run on Sonnet 5 while SP is on Opus),
+state the target explicitly in the crafting context: "Target executor: Sonnet 5".
 SP adjusts block selection (see `references/prompt-crafting-guide.md` §
-Model-Aware Block Selection) and effort recommendations accordingly.
+Model-Aware Block Selection) for every target model. For the models listed
+above, use the stated effort recommendation; where a model is marked
+undefined, say so rather than carrying another model's setting across.
+`references/startup-checklist.md` § `/effort` guidance by model carries the
+same list plus the older Opus families.
 
 **MCP decision rule:**
 ```

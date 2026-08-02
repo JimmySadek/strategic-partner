@@ -283,7 +283,11 @@ Provider guides live in `references/provider-guides/`.
 
 ## 1M context advisory
 
-On 1M-context models (Opus 4.8), the advisor surfaces a one-time orientation note: autocompact defaults to ~95% (~950K), known Anthropic issues cause erratic behavior above ~256K tokens, and users can consider wrapping up or triggering handoff around 250K for reliable retrieval. Pure advisory; no settings changed.
+On 1M-context sessions, the advisor surfaces a one-time orientation note: autocompact defaults to ~95% (~950K), known Anthropic issues cause erratic behavior above ~256K tokens, and users can consider wrapping up or triggering handoff around 250K for reliable retrieval. Pure advisory; no settings changed.
+
+**Detection.** SP treats a session as 1M-context when the runtime model declaration carries a `1m` marker (as in `claude-opus-5[1m]` or the `opus[1m]` alias), or when `SP_CONTEXT_WINDOW=1M` is set.
+
+**Blind spot.** Two cases run a 1M window with no marker at all and are therefore not detected: **Sonnet 5**, which always uses the 1M window on the Anthropic API (no 200K variant, no `[1m]` suffix to select), and **Opus on Max, Team, and Enterprise plans**, which is automatically upgraded to 1M with no additional configuration. In those sessions the advisory does not fire. Detection is marker-based and incomplete by design.
 
 ---
 
