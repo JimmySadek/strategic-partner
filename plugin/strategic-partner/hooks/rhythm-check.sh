@@ -302,10 +302,13 @@ fi
 # auq_payload_text) means the Delivery Choice Checkpoint was skipped.
 # Reuses Rule 8's real_fence8 discriminator and launcher_line. LOG-ONLY:
 # never returns or exits nonzero; the final exit 0 below is unchanged.
-# Known limitation (accepted, LOG-ONLY): detection is single-turn, so a
-# fence emitted in a follow-up turn after the checkpoint already ran one
-# turn earlier (user picked "Give me the prompt") can log a benign false
-# positive. By design per the brief — no cross-turn lookback.
+# Why the cross-turn lookback below exists: single-turn detection did not
+# false-positive on a rare edge case, it false-positived on the MODAL
+# delivery path. The standard flow spans two turns — turn N shows the
+# **Simplicity:** marker and the dispatch AUQ, the user picks "Give me the
+# prompt", turn N+1 emits the fence carrying neither — so every ordinary
+# prompt delivery logged a violation and the log was unusable as a
+# measurement. The lookback suppresses exactly that case.
 if [ "${real_fence8:-}" = "yes" ]; then
   dc_skip=no
   case "$launcher_line" in
@@ -313,6 +316,20 @@ if [ "${real_fence8:-}" = "yes" ]; then
   esac
   printf '%s' "$turn_text" | grep -qF '**Simplicity:**' && dc_skip=yes
   printf '%s' "$auq_payload_text" | grep -qF 'Dispatch now' && dc_skip=yes
+  # Cross-turn lookback. Bounded to the last 8 assistant messages that do NOT
+  # belong to the request now being judged — assistant entries are written one
+  # per message, not one per turn, so a naive "previous two elements" slice
+  # lands inside the current turn and never reaches turn N. Grouping by
+  # requestId is what makes the exclusion reliable. Suppress-only: it can set
+  # dc_skip to yes and never back to no, so it cannot cause a violation to be
+  # logged that would not have been logged before. A missing, empty or
+  # unreadable transcript leaves dc_recent empty, which suppresses nothing and
+  # degrades to exactly today's behavior.
+  if [ "$dc_skip" = no ] && [ -n "$transcript_path" ]; then
+    dc_recent=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "assistant")] as $a | ($a | last | .requestId // "") as $cur | [$a[] | select((.requestId // "") != $cur)] | .[-8:] | tostring' 2>/dev/null)
+    printf '%s' "$dc_recent" | grep -qF 'Simplicity:' && dc_skip=yes
+    printf '%s' "$dc_recent" | grep -qF 'Dispatch now' && dc_skip=yes
+  fi
   if [ "$dc_skip" = no ]; then
     log_violation "delivery-choice-missing: implementation prompt emitted without a Simplicity marker or a dispatch offer — the Delivery Choice Checkpoint was skipped"
   fi

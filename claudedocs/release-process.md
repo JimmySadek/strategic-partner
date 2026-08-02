@@ -273,6 +273,39 @@ live under `tests/fixtures/voice-mirror/` — one failing fixture per check (mis
 missing declaration, one-file-only anchor) plus a passing pair; run the lint with
 `--root <fixture-dir>` to exercise them.
 
+### 2f. Dispatch-Label Contract Lint (Mandatory for non-docs-only pushes)
+
+The dispatch-label lint at `tests/lint-dispatch-labels.sh` is a release-time backstop
+for the rule that the dispatch-confirmation labels written in the docs must match the
+strings `hooks/guard-impl.sh` actually enforces. The guard compares the selected
+`AskUserQuestion` option label by exact string equality, so a doc that states the label
+even slightly differently — an extra suffix, a shortened wording — describes a dispatch
+that blocks every time someone follows it. The guard is the source of truth: the lint
+reads the expected labels out of the guard rather than keeping its own copy, so a
+deliberate change to the guard retargets the lint automatically. It fails closed if:
+
+1. either guard copy's label strings cannot be located,
+2. the two guard copies state different labels,
+3. any bracketed `[Dispatch now …]` / `[Hold …]` / `[Wrong agent …]` statement in the
+   scanned Markdown disagrees with the guard, or
+4. zero files or zero label statements were scanned.
+
+```
+bash tests/lint-dispatch-labels.sh
+```
+
+Exit 0 = clean, with a one-line count of the files and label statements checked. Exit 1 =
+a mismatch; correct the documentation to match the guard — never the reverse, because the
+guard's strictness is the consent property.
+
+This is its OWN mandatory step, run on every non-docs-only push — it is deliberately NOT
+folded under Step 2a, which fires only when hooks change, because a documentation-only
+edit is exactly how this contract drifts: the two live drifts it was written for
+(`references/fast-lane.md` and `references/prompt-crafting-guide.md`) were both introduced
+without touching a hook. `.backlog/`, `.handoffs/`, `.prompts/` and `CHANGELOG.md` are out
+of scope — working notes and executor briefs quote broken labels on purpose while
+describing a fix, and the changelog is append-only history.
+
 ### 3. Present to User (Mandatory Confirmation)
 
 Before modifying any files, show:

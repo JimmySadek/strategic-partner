@@ -54,8 +54,11 @@ tasks that don't qualify:
 
 - Score ≤2/5 → dispatch option **MUST NOT** appear. Only offer:
   `[Give me the prompt]` `[This is bigger than it looks]`
-- Score 3/5 → dispatch appears but labeled "(borderline)":
-  `[Dispatch now — <subagent_type> (borderline)]` `[Hold — let me review the brief first]` `[Wrong agent — let me pick]`
+- Score 3/5 → dispatch appears with the same exact labels as 4-5/5; the
+  borderline status goes in the option DESCRIPTION, never the label (the
+  dispatch guard compares labels by exact string equality, so any suffix
+  blocks the dispatch):
+  `[Dispatch now — <subagent_type>]` `[Hold — let me review the brief first]` `[Wrong agent — let me pick]`
 - Score 4-5/5 → dispatch appears as the primary exact-confirmation option:
   `[Dispatch now — <subagent_type>]` `[Hold — let me review the brief first]` `[Wrong agent — let me pick]`
 

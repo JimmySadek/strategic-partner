@@ -129,7 +129,8 @@ How should this task be delivered?
 │
 ├── Score 5/5 or 4/5 NO?
 │   └── Fast Lane — present exact dispatch confirmation via AskUserQuestion
-│         [Dispatch now — <agent>] [Hold — review brief first] [Wrong agent]
+│         [Dispatch now — <subagent_type>] [Hold — let me review the brief first]
+│         [Wrong agent — let me pick]
 │         (4/5: mention the one concern to user)
 ├── Score 3/5 NO?
 │   └── Borderline — present dispatch as an option alongside full prompt

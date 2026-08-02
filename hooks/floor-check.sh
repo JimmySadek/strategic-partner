@@ -79,7 +79,7 @@ if [ -f "$VIOLATIONS_LOG" ]; then
   fi
 fi
 
-find "$SP_VIOL_DIR" -maxdepth 1 -name '*.consumed-*' -mtime +30 -delete 2>/dev/null
+[ "$SP_VIOL_DIR" != /tmp ] && find "$SP_VIOL_DIR" -maxdepth 1 -name '*.consumed-*' -mtime +30 -delete 2>/dev/null
 
 [ -f "$MARKER" ] && exit 0
 
