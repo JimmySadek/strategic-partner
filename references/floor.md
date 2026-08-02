@@ -293,7 +293,9 @@ The hook uses two stable identifiers:
   context-injection mechanism. That cycle renames the log to
   `<log>.consumed-<timestamp>` before printing, so the path it cites is
   the archive that still exists rather than the original name it just
-  retired; archives older than 30 days are pruned. This decouples the
+  retired. Both the archives and any live log left behind by a session that
+  never reached another prompt are pruned once they pass 30 complete 24-hour
+  periods — so the practical cutoff is 31 days, about a month. This decouples the
   floor from the rhythm enforcer — they share session identity but
   schema-version their key independently so a schema bump on one does
   not invalidate the other's cache.

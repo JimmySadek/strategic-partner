@@ -280,13 +280,19 @@ for the rule that the dispatch-confirmation labels written in the docs must matc
 strings `hooks/guard-impl.sh` actually enforces. The guard compares the selected
 `AskUserQuestion` option label by exact string equality, so a doc that states the label
 even slightly differently — an extra suffix, a shortened wording — describes a dispatch
-that blocks every time someone follows it. The guard is the source of truth: the lint
-reads the expected labels out of the guard rather than keeping its own copy, so a
-deliberate change to the guard retargets the lint automatically. It fails closed if:
+that blocks every time someone follows it. The guard is the source of truth for the
+label **strings**: the lint reads all three out of the guard rather than keeping its own
+copy, and works out which keyword to match each bracketed statement by from those same
+strings. Reword a label in the guard and the lint follows on its own. **Finding** them is
+a different matter — the extraction depends on the guard's current structure, so renaming
+those call sites or building the labels a different way makes extraction fail. It fails
+closed rather than passing on a contract it can no longer read, but the repair is a hand
+edit to the lint: a structural rename of the guard requires updating it. It fails closed
+if:
 
 1. either guard copy's label strings cannot be located,
 2. the two guard copies state different labels,
-3. any bracketed `[Dispatch now …]` / `[Hold …]` / `[Wrong agent …]` statement in the
+3. any bracketed `[Dispatch now …]` / `[Hold …]` / `[Wrong agent …]` statement in the <!-- dispatch-label-lint: example -->
    scanned Markdown disagrees with the guard, or
 4. zero files or zero label statements were scanned.
 
@@ -294,7 +300,9 @@ deliberate change to the guard retargets the lint automatically. It fails closed
 bash tests/lint-dispatch-labels.sh
 ```
 
-Exit 0 = clean, with a one-line count of the files and label statements checked. Exit 1 =
+Exit 0 = clean, with a one-line count of the files and label statements checked, plus a
+count of the example-text mentions deliberately skipped. Add `--verbose` to list those
+skips with file and line, and which of the three context signals excused each. Exit 1 =
 a mismatch; correct the documentation to match the guard — never the reverse, because the
 guard's strictness is the consent property.
 

@@ -50,7 +50,8 @@ RELAY_KEY=$(printf '%s|%s|%s|%s|%s' \
     | shasum -a 256 2>/dev/null | cut -d' ' -f1 | head -c 16)
 
 SP_VIOL_DIR="${HOME}/.claude/.sp-rule-violations"
-if mkdir -p "$SP_VIOL_DIR" 2>/dev/null; then
+if (umask 077; mkdir -p "$SP_VIOL_DIR" 2>/dev/null) && [ -w "$SP_VIOL_DIR" ]; then
+  chmod 700 "$SP_VIOL_DIR" 2>/dev/null
   VIOLATIONS_LOG="${SP_VIOL_DIR}/${RELAY_KEY}.log"
 else
   SP_VIOL_DIR=/tmp
@@ -73,10 +74,16 @@ auq_payload_text=$(printf '%s' "$last_turn" | jq -r '[ .. | objects | select(.ty
 violation_count=0
 log_violation() {
   if [ "$violation_count" = 0 ]; then
+    # The excerpts below quote the assistant's own words, so the log is
+    # owner-only from its first byte. Process-level on purpose: this hook
+    # writes no other file, and a subshell would lose the increment below.
+    umask 077
     printf '=== Turn check %s RELAY_KEY=%s ===\n' "$(date -u +%FT%TZ)" "$RELAY_KEY" >> "$VIOLATIONS_LOG"
     printf 'has_auq=%s\n' "${has_auq:-unknown}" >> "$VIOLATIONS_LOG"
     printf 'turn_head: %s\n' "$(printf '%s' "$turn_text" | tr '\n\r\t' '   ' | cut -c1-400)" >> "$VIOLATIONS_LOG"
-    printf 'turn_tail: %s\n' "$(printf '%s' "$turn_text" | tr '\n\r\t' '   ' | tail -c 401)" >> "$VIOLATIONS_LOG"
+    # Characters, matching the head's `cut -c` units. The earlier `tail -c 401`
+    # counted bytes and could cut a multi-byte character in half.
+    printf 'turn_tail: %s\n' "$(printf '%s' "$turn_text" | tr '\n\r\t' '   ' | perl -CS -e 'undef $/; my $t = <STDIN>; $t = "" unless defined $t; print length($t) > 400 ? substr($t, -400) : $t;' 2>/dev/null)" >> "$VIOLATIONS_LOG"
   fi
   printf -- '- %s\n' "$1" >> "$VIOLATIONS_LOG"
   violation_count=$((violation_count + 1))
@@ -316,17 +323,21 @@ if [ "${real_fence8:-}" = "yes" ]; then
   esac
   printf '%s' "$turn_text" | grep -qF '**Simplicity:**' && dc_skip=yes
   printf '%s' "$auq_payload_text" | grep -qF 'Dispatch now' && dc_skip=yes
-  # Cross-turn lookback. Bounded to the last 8 assistant messages that do NOT
-  # belong to the request now being judged — assistant entries are written one
-  # per message, not one per turn, so a naive "previous two elements" slice
-  # lands inside the current turn and never reaches turn N. Grouping by
-  # requestId is what makes the exclusion reliable. Suppress-only: it can set
+  # Cross-turn lookback, bounded to the last TWO DISTINCT PRIOR requestId
+  # groups — the two most recent requests other than the one being judged.
+  # Assistant entries are written one per message, not one per request, so the
+  # earlier flat 8-message slice spanned an unpredictable 2 to 6 prior requests
+  # (measured across 45 real fence emissions), letting a stale marker from an
+  # unrelated earlier task suppress a genuine violation. Two groups is a stated
+  # quantity rather than a byproduct of message counts, and it kept 6 of the 7
+  # real suppressions the message slice produced. Suppress-only: it can set
   # dc_skip to yes and never back to no, so it cannot cause a violation to be
   # logged that would not have been logged before. A missing, empty or
   # unreadable transcript leaves dc_recent empty, which suppresses nothing and
-  # degrades to exactly today's behavior.
+  # degrades to exactly the single-turn behavior. Entries carrying no requestId
+  # (4 of 5646 measured) share one group, which can only widen, never narrow.
   if [ "$dc_skip" = no ] && [ -n "$transcript_path" ]; then
-    dc_recent=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "assistant")] as $a | ($a | last | .requestId // "") as $cur | [$a[] | select((.requestId // "") != $cur)] | .[-8:] | tostring' 2>/dev/null)
+    dc_recent=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "assistant")] as $a | ($a | last | .requestId // "") as $cur | [$a[] | select((.requestId // "") != $cur)] as $p | ([$p[] | .requestId // ""] | reduce .[] as $x ([]; if (index($x) != null) then . else . + [$x] end) | .[-2:]) as $k | [$p[] | select((.requestId // "") as $r | ($k | index($r)) != null)] | tostring' 2>/dev/null)
     printf '%s' "$dc_recent" | grep -qF 'Simplicity:' && dc_skip=yes
     printf '%s' "$dc_recent" | grep -qF 'Dispatch now' && dc_skip=yes
   fi

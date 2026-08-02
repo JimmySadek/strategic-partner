@@ -42,8 +42,7 @@ The SP's role regarding autocompact is purely informational:
 - **Detect** the active model and context window at startup — SP treats the
   session as 1M-context when the runtime model declaration carries a `1m`
   marker (as in `claude-opus-5[1m]` or the `opus[1m]` alias), or when
-  `SP_CONTEXT_WINDOW=1M` is set; opusplan's plan phase stays 200K; everything
-  else → 200K by default
+  `SP_CONTEXT_WINDOW=1M` is set; opusplan's plan phase stays 200K
 - **Surface** a session-start advisory on 1M-context sessions noting that
   retrieval reliability degrades above ~256K tokens — known Anthropic
   autocompact bugs on 1M make the default ~95% threshold behave
@@ -51,17 +50,23 @@ The SP's role regarding autocompact is purely informational:
 - **Defer** the decision to the user — whether to wrap up a session earlier,
   to trigger a handoff sooner, or to accept the risk on a given run
 
-⚠️ **Detection has a known blind spot.** Two cases run a 1M window with no
-marker at all, so SP does not detect them:
+⚠️ **Detection has a blind spot, and its size has not been measured.**
 
-| Undetected case | Why there is no marker |
+Two different questions get mixed up here. Keeping them apart is what keeps
+this section honest:
+
+| Question | What is established |
 |---|---|
-| **Sonnet 5** | Always runs with the 1M window on the Anthropic API. There is no 200K variant and no `[1m]` suffix to select. |
-| **Opus on Max, Team, and Enterprise plans** | Automatically upgraded to 1M context with no additional configuration. |
+| What context window does a model support **on the Anthropic API**? | Every current model except Haiku 4.5 runs a 1M window by default — no beta header, no plan tier, no extra configuration. Haiku 4.5 is 200K. |
+| What context window does **this Claude Code session** actually run? | Unverified. Nobody has checked what Claude Code presents per model, and that is the number this advisory turns on. |
 
-In those sessions the advisory above does not fire and the user gets no
-1M-context note. That is a limit of the detection, not a judgment that the
-advisory is unnecessary there.
+SP only ever answers the second question, and only through the `1m` marker in
+the runtime model declaration. So a session that runs a 1M window without
+carrying that marker gets no advisory. Which sessions those are has not been
+established — it is filed as
+`.backlog/verify-claude-code-context-window-per-model.md` and needs a real
+check rather than inference from the API catalog. The gap is a limit of the
+detection, not a judgment that the advisory is unnecessary there.
 
 The SP's session-end detection and handoff protocol (see SKILL.md §
 Continuity Stewardship) are the mechanisms that translate this awareness

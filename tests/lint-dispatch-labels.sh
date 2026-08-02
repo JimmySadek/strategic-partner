@@ -29,30 +29,71 @@
 # Read a pass as "the documented labels match the enforcer's strings", never as
 # "dispatch confirmation works".
 #
-# THE GUARD IS THE SOURCE OF TRUTH. The expected labels are extracted FROM
-# hooks/guard-impl.sh at run time rather than hardcoded here, so a deliberate
-# change to the guard's strings retargets this lint automatically instead of
-# turning it into a second, drifting copy of the contract.
+# HOW MUCH THIS RETARGETS ON ITS OWN — stated precisely, because an earlier
+# version of this comment overstated it as automatic.
 #
-# TWO DELIBERATE CARVE-OUTS, both narrow, both counted and reported on success
-# so they stay auditable rather than silent.
+# The guard is the source of truth for the label STRINGS: all three are read out
+# of hooks/guard-impl.sh at run time, and the keyword each bracketed statement is
+# matched by is derived from those same strings rather than written out a second
+# time here. Change a label's wording in the guard and this lint follows.
 #
-#   1. An ellipsis form — "[Dispatch now …]", "[Hold …]", "[Wrong agent …]" —
-#      is a reference to the SHAPE of a label with its content explicitly
-#      elided, not an assertion about what the label says. Prose describing
-#      what this lint scans for is written that way, including in
-#      claudedocs/release-process.md.
-#   2. A bare "[Dispatch now]" with no separator and no agent slot. Every
-#      occurrence is a counterexample — prose citing the generic form as the
-#      WRONG label, or asserting that no dispatch option appears at all.
+# What does NOT follow is LOCATING them. The extraction below depends on the
+# guard's current structure — the dispatch prefix is found by its concatenation
+# onto $subject, and the other two by their block("missing_hold_label") /
+# block("missing_wrong_agent_label") call sites. Rename those call sites, or
+# build the labels a different way, and extraction fails. It fails CLOSED (the
+# lint exits 1 rather than passing on a contract it can no longer read), but the
+# fix is a hand edit here. A structural rename of the guard requires updating
+# this lint.
 #
-# Nothing else is excused. In particular the Hold and Wrong-agent labels carry
-# no variable slot, so outside the ellipsis form any statement of them must
-# match the guard exactly.
+# THREE CARVE-OUTS FOR EXAMPLE TEXT, justified by CONTEXT rather than spelling.
+#
+# Two label shapes are not assertions about what a label says:
+#
+#   * an explicit elision — "[Dispatch now …]", "[Hold …]", "[Wrong agent …]" —
+#     which references the SHAPE of a label with its content elided;
+#   * the bare form with no separator and no agent slot — "[Dispatch now]" —
+#     which is normally cited as the WRONG label.
+#
+# Excusing either on spelling alone was the defect: a real normative statement
+# written in either shape was skipped silently. So the shape is now necessary but
+# not sufficient. One of these three CONTEXT signals must also hold, each of them
+# mechanical and none inferrable from prose wording:
+#
+#   1. The bracket sits inside a fenced (```) code block — illustrative text.
+#   2. The same line also carries a guard-CONFORMANT label of the same keyword,
+#      so the line shows the right answer next to the shape it is contrasting.
+#   3. The line carrying the bracket, or the line immediately above it, carries
+#      the annotation  <!-- dispatch-label-lint: example -->  — a deliberate,
+#      greppable declaration by the author.
+#
+# A bare or elided label with none of the three is treated as a normative
+# statement and checked against the guard, which it fails. Context is read from
+# the line the bracket OPENS on; a statement that wraps is judged by its first
+# line. Nothing else is excused: outside these shapes the Hold and Wrong-agent
+# labels carry no variable slot, so any statement of them must match exactly.
+#
+# Every carve-out is counted in the PASS summary, and `--verbose` lists each one
+# with file:line and which signal excused it, so a reviewer can audit the set.
 #
 # FAILS CLOSED. Zero files scanned, or zero label statements found, exits 1. A
 # lint that silently scans nothing and reports success is worse than no lint —
 # the same hardening tests/lint-voice.sh already carries.
+#
+# Usage:
+#   bash tests/lint-dispatch-labels.sh                  # lint the repo
+#   bash tests/lint-dispatch-labels.sh --verbose        # …and list the carve-outs
+#   bash tests/lint-dispatch-labels.sh --root <dir>     # lint a fixture tree
+#
+# Self-test fixtures (see tests/fixtures/dispatch-labels/README.md):
+#   bash tests/lint-dispatch-labels.sh --root tests/fixtures/dispatch-labels/hidden-drift
+#       -> MUST exit 1: normative statements in the bare and elided shapes with
+#          no example context, i.e. exactly the drift the old carve-outs hid.
+#   bash tests/lint-dispatch-labels.sh --root tests/fixtures/dispatch-labels/honored-carveouts
+#       -> MUST exit 0: the same shapes, each carrying one of the three signals.
+#
+# That fixture directory is excluded from the default repo scan, because it
+# exists to hold text this lint is supposed to reject.
 #
 # WHY THIS FILE IS FORCE-TRACKED DESPITE `tests/` BEING IGNORED.
 # `.gitignore` excludes `tests/`, so an untracked lint would be absent from a
@@ -64,14 +105,30 @@
 
 set -u
 
-ROOT=$(cd "$(dirname "$0")/.." && pwd)
-ROOT_GUARD="$ROOT/hooks/guard-impl.sh"
-PLUGIN_GUARD="$ROOT/plugin/strategic-partner/hooks/guard-impl.sh"
+REPO=$(cd "$(dirname "$0")/.." && pwd)
+ROOT_GUARD="$REPO/hooks/guard-impl.sh"
+PLUGIN_GUARD="$REPO/plugin/strategic-partner/hooks/guard-impl.sh"
+
+SCAN_ROOT="$REPO"
+VERBOSE=0
 
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
   exit 1
 }
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --verbose|-v) VERBOSE=1; shift ;;
+    --root) [ "$#" -ge 2 ] || fail "--root needs a directory"; SCAN_ROOT="$2"; shift 2 ;;
+    --root=*) SCAN_ROOT="${1#--root=}"; shift ;;
+    -h|--help) sed -n '2,104p' "$0" | sed 's/^# \?//'; exit 0 ;;
+    *) fail "unknown argument: $1" ;;
+  esac
+done
+
+[ -d "$SCAN_ROOT" ] || fail "scan root not found: $SCAN_ROOT"
+SCAN_ROOT=$(cd "$SCAN_ROOT" && pwd)
 
 # --- Normalizer, mirroring the guard's own jq `norm`: em/en dash to ASCII
 # hyphen, whitespace runs collapsed, ends trimmed. The ellipsis character is
@@ -148,22 +205,42 @@ fi
 EXP_DISPATCH=$(printf '%s\n' "$ROOT_LABELS" | sed -n '1p')
 EXP_HOLD=$(printf '%s\n' "$ROOT_LABELS" | sed -n '2p')
 EXP_WRONG=$(printf '%s\n' "$ROOT_LABELS" | sed -n '3p')
-export EXP_DISPATCH EXP_HOLD EXP_WRONG ROOT
+
+# --- Derive the scanner's keywords FROM the extracted labels. --------------
+# One source, not two. A label's keyword is everything before its " - "
+# separator; the dispatch prefix is nothing but keyword plus separator, so the
+# same rule covers all three. A label with no separator contributes whole.
+lead_word() {
+  printf '%s' "${1%% - *}" | sed 's/[[:space:]]*$//'
+}
+LEAD_DISPATCH=$(lead_word "$EXP_DISPATCH")
+LEAD_HOLD=$(lead_word "$EXP_HOLD")
+LEAD_WRONG=$(lead_word "$EXP_WRONG")
+
+[ -n "$LEAD_DISPATCH" ] || fail "could not derive a keyword from the dispatch label \"$EXP_DISPATCH\""
+[ -n "$LEAD_HOLD" ]     || fail "could not derive a keyword from the hold label \"$EXP_HOLD\""
+[ -n "$LEAD_WRONG" ]    || fail "could not derive a keyword from the wrong-agent label \"$EXP_WRONG\""
+
+export EXP_DISPATCH EXP_HOLD EXP_WRONG LEAD_DISPATCH LEAD_HOLD LEAD_WRONG SCAN_ROOT
 
 # --- Build the scan set. --------------------------------------------------
 # .backlog/ and .handoffs/ hold working notes, .prompts/ holds executor briefs
-# that quote broken labels on purpose while describing a fix, and CHANGELOG.md
-# is an append-only history whose past entries must stay as written.
-FILE_LIST=$(find "$ROOT" -name '*.md' -type f \
-  ! -path "$ROOT/.git/*" \
-  ! -path "$ROOT/.backlog/*" \
-  ! -path "$ROOT/.handoffs/*" \
-  ! -path "$ROOT/.prompts/*" \
-  ! -path "$ROOT/CHANGELOG.md" \
+# that quote broken labels on purpose while describing a fix, CHANGELOG.md is an
+# append-only history whose past entries must stay as written, and
+# tests/fixtures/dispatch-labels/ holds this lint's own self-test material —
+# text it is supposed to reject. When --root points INSIDE the fixture tree the
+# exclusion below matches nothing, which is what makes the self-test possible.
+FILE_LIST=$(find "$SCAN_ROOT" -name '*.md' -type f \
+  ! -path "$SCAN_ROOT/.git/*" \
+  ! -path "$SCAN_ROOT/.backlog/*" \
+  ! -path "$SCAN_ROOT/.handoffs/*" \
+  ! -path "$SCAN_ROOT/.prompts/*" \
+  ! -path "$SCAN_ROOT/tests/fixtures/dispatch-labels/*" \
+  ! -path "$SCAN_ROOT/CHANGELOG.md" \
   | sort)
 
 if [ -z "$FILE_LIST" ]; then
-  fail "scanned zero Markdown files under $ROOT — the repo layout moved or the glob broke"
+  fail "scanned zero Markdown files under $SCAN_ROOT — the repo layout moved or the glob broke"
 fi
 
 # --- Scan. ----------------------------------------------------------------
@@ -174,7 +251,12 @@ REPORT=$(printf '%s\n' "$FILE_LIST" | perl -e '
   my $exp_dispatch = $ENV{EXP_DISPATCH};
   my $exp_hold     = $ENV{EXP_HOLD};
   my $exp_wrong    = $ENV{EXP_WRONG};
-  my $root         = $ENV{ROOT};
+  my $root         = $ENV{SCAN_ROOT};
+  my %lead = (
+    dispatch => $ENV{LEAD_DISPATCH},
+    hold     => $ENV{LEAD_HOLD},
+    wrong    => $ENV{LEAD_WRONG},
+  );
   my ($files, $checked, $generic, $violations) = (0, 0, 0, 0);
 
   sub norm {
@@ -185,6 +267,38 @@ REPORT=$(printf '%s\n' "$FILE_LIST" | perl -e '
     return $s;
   }
 
+  # Does this normalized label conform to the guard for its kind?
+  sub conformant {
+    my ($label, $kind) = @_;
+    if ($kind eq "dispatch") {
+      return 0 unless index($label, $exp_dispatch) == 0;
+      my $slot = substr($label, length($exp_dispatch));
+      return 1 if $slot eq "<subagent_type>";
+      return 1 if $slot =~ /^[A-Za-z0-9][A-Za-z0-9_.:-]*$/;
+      return 0;
+    }
+    return $label eq $exp_hold  if $kind eq "hold";
+    return $label eq $exp_wrong if $kind eq "wrong";
+    return 0;
+  }
+
+  # Signal 2: does this line carry a conformant label of the same kind?
+  sub line_has_conformant {
+    my ($line, $kind) = @_;
+    return 0 unless defined $line;
+    while ($line =~ /\[([^\]]*)\]/g) {
+      return 1 if conformant(norm($1), $kind);
+    }
+    return 0;
+  }
+
+  my $ANNOTATION = qr/<!--\s*dispatch-label-lint:\s*example\s*-->/;
+
+  # Keyword alternation, built from the guard-derived keywords rather than
+  # written out again. Longest first so no keyword shadows another.
+  my @kinds = sort { length($lead{$b}) <=> length($lead{$a}) } keys %lead;
+  my $alt = join("|", map { quotemeta($lead{$_}) } @kinds);
+
   while (my $path = <STDIN>) {
     chomp $path;
     next unless length $path;
@@ -194,26 +308,51 @@ REPORT=$(printf '%s\n' "$FILE_LIST" | perl -e '
     $files++;
     my $rel = $path; $rel =~ s/^\Q$root\E\///;
 
-    while ($body =~ /\[((?:Dispatch now|Hold|Wrong agent)[^\]]*)\]/g) {
+    my @lines = split /\n/, $body, -1;
+
+    # Signal 1 precomputed: which line numbers sit inside a ``` fence.
+    my %in_fence;
+    my $open = 0;
+    for my $i (0 .. $#lines) {
+      if ($lines[$i] =~ /^\s*```/) { $open = !$open; next; }
+      $in_fence{$i + 1} = 1 if $open;
+    }
+
+    while ($body =~ /\[((?:$alt)[^\]]*)\]/g) {
       my $raw   = $1;
       my $start = $-[0];
       my $line  = 1 + (() = (substr($body, 0, $start) =~ /\n/g));
       my $label = norm($raw);
 
-      # Carve-out 1: an explicit elision marker means the text references the
-      # shape of a label, not its content. Applies to all three keywords.
-      if ($label =~ /^(?:Dispatch now|Hold|Wrong agent) \.\.\.$/) {
-        $generic++;
-        next;
+      my $kind;
+      for my $k (@kinds) {
+        if ($label eq $lead{$k} || index($label, $lead{$k} . " ") == 0) { $kind = $k; last; }
       }
+      next unless defined $kind;
+      my $lw = $lead{$kind};
 
-      if ($label =~ /^Dispatch now\b/) {
-        # Carve-out 2: the bare generic form, cited only as a counterexample.
-        if ($label eq "Dispatch now") {
+      # Shapes that MAY be excused: the bare keyword, or the keyword with an
+      # explicit elision. Shape alone is not enough — context must justify it.
+      if ($label eq $lw || $label eq "$lw ...") {
+        my $why;
+        if ($in_fence{$line}) {
+          $why = "inside a fenced code block";
+        } elsif (($lines[$line - 1] // "") =~ $ANNOTATION
+              || ($line >= 2 && (($lines[$line - 2] // "") =~ $ANNOTATION))) {
+          $why = "explicit dispatch-label-lint: example annotation";
+        } elsif (line_has_conformant($lines[$line - 1], $kind)) {
+          $why = "contrasting guard-conformant label on the same line";
+        }
+        if (defined $why) {
           $generic++;
+          print "SKIPPED\t$rel:$line\t[$label]\t$why\n";
           next;
         }
-        $checked++;
+        # No context signal: fall through and judge it as a real statement.
+      }
+
+      $checked++;
+      if ($kind eq "dispatch") {
         if (index($label, $exp_dispatch) != 0) {
           $violations++;
           print "VIOLATION\t$rel:$line\t[$label]\tdoes not begin with the guard prefix \"$exp_dispatch\"\n";
@@ -224,13 +363,11 @@ REPORT=$(printf '%s\n' "$FILE_LIST" | perl -e '
         next if $slot =~ /^[A-Za-z0-9][A-Za-z0-9_.:-]*$/;
         $violations++;
         print "VIOLATION\t$rel:$line\t[$label]\tunexpected content in the agent slot: \"$slot\"\n";
-      } elsif ($label =~ /^Hold\b/) {
-        $checked++;
+      } elsif ($kind eq "hold") {
         next if $label eq $exp_hold;
         $violations++;
         print "VIOLATION\t$rel:$line\t[$label]\tdoes not match the guard label \"$exp_hold\"\n";
-      } elsif ($label =~ /^Wrong agent\b/) {
-        $checked++;
+      } else {
         next if $label eq $exp_wrong;
         $violations++;
         print "VIOLATION\t$rel:$line\t[$label]\tdoes not match the guard label \"$exp_wrong\"\n";
@@ -270,6 +407,13 @@ if [ "$VIOLATIONS" -ne 0 ] 2>/dev/null; then
   exit 1
 fi
 
-printf 'PASS: %s label statement(s) across %s Markdown file(s) match hooks/guard-impl.sh (%s generic-form mention(s) skipped).\n' \
-  "$LABELS_CHECKED" "$FILES_SCANNED" "$GENERIC_SKIPPED"
+if [ "$VERBOSE" -eq 1 ] && [ "$GENERIC_SKIPPED" -ne 0 ] 2>/dev/null; then
+  printf 'Example-text carve-outs skipped (%s):\n' "$GENERIC_SKIPPED"
+  printf '%s\n' "$REPORT" | grep '^SKIPPED	' \
+    | awk -F'\t' '{ printf "  %s  %s\n    excused by: %s\n", $2, $3, $4 }'
+fi
+
+printf 'PASS: %s label statement(s) across %s Markdown file(s) match hooks/guard-impl.sh (%s example-text carve-out(s) skipped%s).\n' \
+  "$LABELS_CHECKED" "$FILES_SCANNED" "$GENERIC_SKIPPED" \
+  "$([ "$VERBOSE" -eq 1 ] || printf '%s' '; --verbose lists them')"
 exit 0

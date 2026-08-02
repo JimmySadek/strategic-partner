@@ -51,7 +51,8 @@ MARKER="/tmp/sp-floor-${KEY}.flag"
 RESULTS="/tmp/sp-floor-${KEY}.txt"
 LOCK="/tmp/sp-floor-${KEY}.lock"
 SP_VIOL_DIR="${HOME}/.claude/.sp-rule-violations"
-if mkdir -p "$SP_VIOL_DIR" 2>/dev/null; then
+if (umask 077; mkdir -p "$SP_VIOL_DIR" 2>/dev/null) && [ -w "$SP_VIOL_DIR" ]; then
+  chmod 700 "$SP_VIOL_DIR" 2>/dev/null
   VIOLATIONS_LOG="${SP_VIOL_DIR}/${RELAY_KEY}.log"
 else
   SP_VIOL_DIR=/tmp
@@ -69,17 +70,29 @@ if [ -f "$VIOLATIONS_LOG" ]; then
   if [ "$VIOL_COUNT" -gt 0 ] 2>/dev/null; then
     VIOL_RULES=$(grep '^- ' "$VIOLATIONS_LOG" 2>/dev/null | head -3 | awk -F': ' '{print $1}' | sed 's/^- //' | paste -sd, -)
     CONSUMED="${VIOLATIONS_LOG}.consumed-$(date +%s)"
+    CITED=""
     if mv "$VIOLATIONS_LOG" "$CONSUMED" 2>/dev/null; then
       CITED="$CONSUMED"
-    else
+    elif [ -f "$VIOLATIONS_LOG" ]; then
+      # The rename lost a race with a concurrent reader. Cite the original only
+      # after confirming it is still there — a path printed without this recheck
+      # is the dead pointer this release exists to remove.
       CITED="$VIOLATIONS_LOG"
     fi
-    printf 'SP-RULE-CHECK: %s violation(s) from previous turn: %s. Details: %s\n' \
-      "$VIOL_COUNT" "$VIOL_RULES" "$CITED"
+    if [ -n "$CITED" ]; then
+      printf 'SP-RULE-CHECK: %s violation(s) from previous turn: %s. Details: %s\n' \
+        "$VIOL_COUNT" "$VIOL_RULES" "$CITED"
+    else
+      printf 'SP-RULE-CHECK: %s violation(s) from previous turn: %s. Another reader consumed the evidence log, so there is no path to cite.\n' \
+        "$VIOL_COUNT" "$VIOL_RULES"
+    fi
   fi
 fi
 
-[ "$SP_VIOL_DIR" != /tmp ] && find "$SP_VIOL_DIR" -maxdepth 1 -name '*.consumed-*' -mtime +30 -delete 2>/dev/null
+# Retention: both the consumed archives and any live log left behind by a session
+# that never reached another prompt. `-mtime +30` prunes past 30 complete 24-hour
+# periods, so the practical cutoff is 31 days — about a month.
+[ "$SP_VIOL_DIR" != /tmp ] && find "$SP_VIOL_DIR" -maxdepth 1 \( -name '*.consumed-*' -o -name '*.log' \) -mtime +30 -delete 2>/dev/null
 
 if [ -f "$MARKER" ] && expose_floor_ready; then
   exit 0

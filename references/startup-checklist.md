@@ -40,14 +40,16 @@ What the SP **does** do:
 - Detect the active model and its context window at startup — SP treats the
   session as 1M-context when the runtime model declaration carries a `1m`
   marker (as in `claude-opus-5[1m]` or the `opus[1m]` alias), or when
-  `SP_CONTEXT_WINDOW=1M` is set; opusplan's plan phase stays 200K; everything
-  else → 200K by default
-- Know what that detection misses. Two cases run a 1M window with no marker
-  at all, so SP does **not** detect them: **Sonnet 5**, which always uses the
-  1M window on the Anthropic API, and **Opus on Max, Team, and Enterprise
-  plans**, which is auto-upgraded to 1M with no configuration. In those
-  sessions the advisory below simply does not fire — detection is deliberately
-  incomplete, not exhaustive
+  `SP_CONTEXT_WINDOW=1M` is set; opusplan's plan phase stays 200K
+- Know what that detection misses — and that nobody has measured it. Two
+  questions get mixed up here. On the **Anthropic API**, every current model
+  except Haiku 4.5 runs a 1M context window by default, with no beta header
+  and no plan tier. What a **Claude Code session** presents for a given model
+  is a different question, and it is the one the advisory turns on; it is
+  unverified. So the honest position is the narrow one: detection is
+  marker-based, a session running 1M without a marker gets no advisory, and
+  the set of such sessions is unknown rather than enumerated. Filed as
+  `.backlog/verify-claude-code-context-window-per-model.md`
 - On 1M-context sessions, surface an informational advisory in orientation
   noting the ~256K retrieval reliability cliff — see Step 5 "Context advisory"
   bullet for the exact copy and trigger rules
@@ -128,8 +130,8 @@ Detection — match any of the following in the runtime declaration (case-insens
     variant exists)
   - `claude-sonnet-4-6` (Sonnet 4.6)
   - `claude-haiku-4-5-20251001` (Haiku 4.5)
-  - `claude-fable-5` (Fable 5)
-  - `claude-fable-5[1m]` (Fable 5, 1M-context build)
+  - `claude-fable-5` (Fable 5 — always 1M on the Anthropic API; no `[1m]`
+    variant exists)
 - If detected: store the normalized family (Opus 5 / Opus 4.8 / Opus 4.7 / Sonnet 5 / Sonnet 4.6 / Haiku 4.5 / Fable 5) as session-active target model
 - If multiple models mentioned or unclear (including Fable 5 mixed with others): default to Opus 5 (current GA) with a note
 
@@ -672,8 +674,8 @@ Any real choice, such as Serena onboarding, appears after this useful table.
   one-liner pointing to `/strategic-partner:try-plugin`. Render nothing for
   `g6.plugin=installed` or `g6.plugin=shown`.
 - 🔧 **Context advisory** (1M-context sessions only): If the session is
-  detected as 1M-context (see Step 1 for the marker rule and the two cases it
-  misses), display this informational note in orientation:
+  detected as 1M-context (see Step 1 for the marker rule and for what the
+  marker cannot see), display this informational note in orientation:
   "📌 **1M context advisory:** Autocompact defaults to ~95% of your window
   (~950K tokens), and known Anthropic issues (#34332, #42375, #43989)
   cause erratic behavior above ~256K. For reliable retrieval and

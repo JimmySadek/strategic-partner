@@ -228,14 +228,19 @@ the mechanism that translates awareness into action. See
 `startup-checklist.md` Step 5 and `context-handoff.md` § Environment
 Baseline for the exact copy and trigger conditions.
 
-**What the marker check misses**: Two cases run a 1M window with no marker at
-all, so the SP does not detect them — **Sonnet 5**, which always uses the 1M
-window on the Anthropic API (there is no 200K variant and no `[1m]` suffix to
-select), and **Opus on Max, Team, and Enterprise plans**, which is
-automatically upgraded to 1M with no additional configuration. In those
-sessions the advisory does not fire. Detection is marker-based and therefore
-incomplete by design; closing the gap would require inferring the window from
-plan and provider, which the SP does not attempt.
+**What the marker check misses**: unknown, and that is the accurate answer
+rather than a placeholder. Two questions get mixed up here. On the **Anthropic
+API**, every current model except Haiku 4.5 runs a 1M context window by default
+— no beta header, no plan tier, no extra configuration. What a **Claude Code
+session** presents for a given model is a different question, and it is the one
+the advisory turns on; nobody has verified it. What can be said without
+guessing: detection is marker-based, so a session running a 1M window without
+that marker gets no advisory, and the set of sessions in that position has not
+been established. It is filed as
+`.backlog/verify-claude-code-context-window-per-model.md`. Closing the gap
+needs a real measurement of what the runtime declares, not an inference from
+the API catalog — which is exactly the inference that produced the wrong list
+this paragraph used to carry.
 
 ---
 
