@@ -55,18 +55,31 @@ RELAY_KEY=$(printf '%s|%s|%s|%s|%s' \
 MARKER="/tmp/sp-floor-${KEY}.flag"
 RESULTS="/tmp/sp-floor-${KEY}.txt"
 LOCK="/tmp/sp-floor-${KEY}.lock"
-VIOLATIONS_LOG="/tmp/sp-rule-violations-${RELAY_KEY}.log"
+SP_VIOL_DIR="${HOME}/.claude/.sp-rule-violations"
+if mkdir -p "$SP_VIOL_DIR" 2>/dev/null; then
+  VIOLATIONS_LOG="${SP_VIOL_DIR}/${RELAY_KEY}.log"
+else
+  SP_VIOL_DIR=/tmp
+  VIOLATIONS_LOG="/tmp/sp-rule-violations-${RELAY_KEY}.log"
+fi
 
 if [ -f "$VIOLATIONS_LOG" ]; then
   VIOL_COUNT=$(grep -c '^- ' "$VIOLATIONS_LOG" 2>/dev/null | tr -d ' \n')
   [ -z "$VIOL_COUNT" ] && VIOL_COUNT=0
   if [ "$VIOL_COUNT" -gt 0 ] 2>/dev/null; then
     VIOL_RULES=$(grep '^- ' "$VIOLATIONS_LOG" 2>/dev/null | head -3 | awk -F': ' '{print $1}' | sed 's/^- //' | paste -sd, -)
+    CONSUMED="${VIOLATIONS_LOG}.consumed-$(date +%s)"
+    if mv "$VIOLATIONS_LOG" "$CONSUMED" 2>/dev/null; then
+      CITED="$CONSUMED"
+    else
+      CITED="$VIOLATIONS_LOG"
+    fi
     printf 'SP-RULE-CHECK: %s violation(s) from previous turn: %s. Details: %s\n' \
-      "$VIOL_COUNT" "$VIOL_RULES" "$VIOLATIONS_LOG"
-    mv "$VIOLATIONS_LOG" "${VIOLATIONS_LOG}.consumed-$(date +%s)" 2>/dev/null
+      "$VIOL_COUNT" "$VIOL_RULES" "$CITED"
   fi
 fi
+
+find "$SP_VIOL_DIR" -maxdepth 1 -name '*.consumed-*' -mtime +30 -delete 2>/dev/null
 
 [ -f "$MARKER" ] && exit 0
 

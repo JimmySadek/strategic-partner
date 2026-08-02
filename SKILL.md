@@ -99,7 +99,13 @@ hooks:
                   "$skill_version" "$rule_schema_version" \
                 | shasum -a 256 2>/dev/null | cut -d' ' -f1 | head -c 16)
 
-            VIOLATIONS_LOG="/tmp/sp-rule-violations-${RELAY_KEY}.log"
+            SP_VIOL_DIR="${HOME}/.claude/.sp-rule-violations"
+            if mkdir -p "$SP_VIOL_DIR" 2>/dev/null; then
+              VIOLATIONS_LOG="${SP_VIOL_DIR}/${RELAY_KEY}.log"
+            else
+              SP_VIOL_DIR=/tmp
+              VIOLATIONS_LOG="/tmp/sp-rule-violations-${RELAY_KEY}.log"
+            fi
 
             last_turn=$(${TIMEOUT:+$TIMEOUT 1} tail -200 "$transcript_path" 2>/dev/null | jq -s 'map(select((.message.role // .role) == "assistant")) | last' 2>/dev/null)
             [ -z "$last_turn" ] && exit 0
@@ -118,6 +124,9 @@ hooks:
             log_violation() {
               if [ "$violation_count" = 0 ]; then
                 printf '=== Turn check %s RELAY_KEY=%s ===\n' "$(date -u +%FT%TZ)" "$RELAY_KEY" >> "$VIOLATIONS_LOG"
+                printf 'has_auq=%s\n' "${has_auq:-unknown}" >> "$VIOLATIONS_LOG"
+                printf 'turn_head: %s\n' "$(printf '%s' "$turn_text" | tr '\n\r\t' '   ' | cut -c1-400)" >> "$VIOLATIONS_LOG"
+                printf 'turn_tail: %s\n' "$(printf '%s' "$turn_text" | tr '\n\r\t' '   ' | tail -c 401)" >> "$VIOLATIONS_LOG"
               fi
               printf -- '- %s\n' "$1" >> "$VIOLATIONS_LOG"
               violation_count=$((violation_count + 1))

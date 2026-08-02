@@ -286,10 +286,15 @@ The hook uses two stable identifiers:
 
 - **`RELAY_KEY`** — first 16 chars of `sha256(session_id|cwd_hash|tp_hash|skill_version|rule_schema_version)`.
   This is the rhythm enforcer's relay channel. The Stop hook writes
-  violations to `/tmp/sp-rule-violations-${RELAY_KEY}.log`, and the next
-  UserPromptSubmit cycle reads that log and surfaces the count to the
-  SP via the same context-injection mechanism. This decouples the floor
-  from the rhythm enforcer — they share session identity but
+  violations to `${HOME}/.claude/.sp-rule-violations/${RELAY_KEY}.log`,
+  falling back to `/tmp/sp-rule-violations-${RELAY_KEY}.log` when the
+  home directory cannot be written. The next UserPromptSubmit cycle
+  reads that log and surfaces the count to the SP via the same
+  context-injection mechanism. That cycle renames the log to
+  `<log>.consumed-<timestamp>` before printing, so the path it cites is
+  the archive that still exists rather than the original name it just
+  retired; archives older than 30 days are pruned. This decouples the
+  floor from the rhythm enforcer — they share session identity but
   schema-version their key independently so a schema bump on one does
   not invalidate the other's cache.
 
