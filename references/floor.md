@@ -300,6 +300,22 @@ The hook uses two stable identifiers:
   schema-version their key independently so a schema bump on one does
   not invalidate the other's cache.
 
+**⚠️ Two accepted limits of the durable log path.** Neither is fixed, and
+neither should be read as guaranteed:
+
+- **Permissions only bind where the filesystem honors them.** The hook creates
+  the directory under a restrictive `umask` and sets mode 700, but both are
+  meaningful only on a filesystem that implements POSIX modes. On a network or
+  non-POSIX home the mode may be ignored outright. The writability probe
+  (`[ -w ]`) likewise reports what the filesystem says right now, and cannot
+  prove a later append will succeed — a quota that fills, or a stale network
+  mount, still fails after the probe passed.
+- **The cited path can go missing between the check and the print.** The
+  prompt cycle confirms the archive exists and then prints its path, so a
+  concurrent reader that removes the file in that gap leaves a dead path in the
+  summary line. The window is small, and the failure is a stale path in one log
+  line rather than lost data.
+
 Both keys are deterministic for a given session — the same prompt
 shape in the same session always produces the same KEY/RELAY_KEY pair.
 

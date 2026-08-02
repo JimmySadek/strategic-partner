@@ -50,7 +50,7 @@ RELAY_KEY=$(printf '%s|%s|%s|%s|%s' \
     | shasum -a 256 2>/dev/null | cut -d' ' -f1 | head -c 16)
 
 SP_VIOL_DIR="${HOME}/.claude/.sp-rule-violations"
-if (umask 077; mkdir -p "$SP_VIOL_DIR" 2>/dev/null) && [ -w "$SP_VIOL_DIR" ]; then
+if [ ! -L "$SP_VIOL_DIR" ] && (umask 077; mkdir -p "$SP_VIOL_DIR" 2>/dev/null) && [ -w "$SP_VIOL_DIR" ]; then
   chmod 700 "$SP_VIOL_DIR" 2>/dev/null
   VIOLATIONS_LOG="${SP_VIOL_DIR}/${RELAY_KEY}.log"
 else
@@ -335,9 +335,15 @@ if [ "${real_fence8:-}" = "yes" ]; then
   # logged that would not have been logged before. A missing, empty or
   # unreadable transcript leaves dc_recent empty, which suppresses nothing and
   # degrades to exactly the single-turn behavior. Entries carrying no requestId
-  # (4 of 5646 measured) share one group, which can only widen, never narrow.
+  # (4 of 5646 measured) are excluded from the grouping outright, so an orphan
+  # entry can never consume one of the two slots and push a real prior request
+  # out of the window. And if the CURRENT entry is itself missing an id, the
+  # lookback is skipped entirely: the current turn cannot be identified, so its
+  # own content would otherwise be read as prior-turn content and suppress a
+  # genuine violation. Logging a known-tolerable false positive is the safe
+  # side of that trade — a wrong suppression destroys the measurement silently.
   if [ "$dc_skip" = no ] && [ -n "$transcript_path" ]; then
-    dc_recent=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "assistant")] as $a | ($a | last | .requestId // "") as $cur | [$a[] | select((.requestId // "") != $cur)] as $p | ([$p[] | .requestId // ""] | reduce .[] as $x ([]; if (index($x) != null) then . else . + [$x] end) | .[-2:]) as $k | [$p[] | select((.requestId // "") as $r | ($k | index($r)) != null)] | tostring' 2>/dev/null)
+    dc_recent=$(${TIMEOUT:+$TIMEOUT 1} tail -400 "$transcript_path" 2>/dev/null | jq -s '[.[] | select((.message.role // .role) == "assistant")] as $a | ($a | last | .requestId // "") as $cur | if $cur == "" then empty else [$a[] | select((.requestId // "") != "" and .requestId != $cur)] as $p | ([$p[] | .requestId] | reduce .[] as $x ([]; if (index($x) != null) then . else . + [$x] end) | .[-2:]) as $k | [$p[] | select(.requestId as $r | ($k | index($r)) != null)] | tostring end' 2>/dev/null)
     printf '%s' "$dc_recent" | grep -qF 'Simplicity:' && dc_skip=yes
     printf '%s' "$dc_recent" | grep -qF 'Dispatch now' && dc_skip=yes
   fi

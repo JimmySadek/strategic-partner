@@ -282,7 +282,7 @@ strings `hooks/guard-impl.sh` actually enforces. The guard compares the selected
 even slightly differently — an extra suffix, a shortened wording — describes a dispatch
 that blocks every time someone follows it. The guard is the source of truth for the
 label **strings**: the lint reads all three out of the guard rather than keeping its own
-copy, and works out which keyword to match each bracketed statement by from those same
+copy, and the keyword it uses to recognize each bracketed statement comes from those same
 strings. Reword a label in the guard and the lint follows on its own. **Finding** them is
 a different matter — the extraction depends on the guard's current structure, so renaming
 those call sites or building the labels a different way makes extraction fail. It fails

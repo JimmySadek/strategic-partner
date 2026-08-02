@@ -287,7 +287,7 @@ On 1M-context sessions, the advisor surfaces a one-time orientation note: autoco
 
 **Detection.** SP treats a session as 1M-context when the runtime model declaration carries a `1m` marker (as in `claude-opus-5[1m]` or the `opus[1m]` alias), or when `SP_CONTEXT_WINDOW=1M` is set.
 
-**Blind spot — and the frame confusion behind it.** Two different questions get mixed here, and keeping them apart is the point. On the **Anthropic API**, every current model except Haiku 4.5 runs a 1M context window by default — no beta header, no plan tier, no extra configuration. What a **Claude Code session** presents for a given model is a separate question, and it is the one this advisory turns on. Nobody has verified it. So the honest statement is the narrow one: detection is marker-based, a session running 1M without a marker gets no advisory, and the set of sessions in that position is unknown rather than enumerated. Tracked in `.backlog/verify-claude-code-context-window-per-model.md`.
+**Blind spot — and the frame confusion behind it.** Two different questions get mixed here, and keeping them apart is the point. On the **Anthropic API**, every current model except Haiku 4.5 runs a 1M context window by default — no beta header, no plan tier, no extra configuration. What a **Claude Code session** presents for a given model is a separate question, and it is the one this advisory turns on. Nobody has verified it. So the honest statement is the narrow one: detection is marker-based, a session running 1M without a marker gets no advisory, and the set of sessions in that position is unknown rather than enumerated. Settling it needs a real measurement of what a Claude Code session declares, not an inference from the API catalog.
 
 ---
 

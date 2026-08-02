@@ -63,10 +63,9 @@ this section honest:
 SP only ever answers the second question, and only through the `1m` marker in
 the runtime model declaration. So a session that runs a 1M window without
 carrying that marker gets no advisory. Which sessions those are has not been
-established — it is filed as
-`.backlog/verify-claude-code-context-window-per-model.md` and needs a real
-check rather than inference from the API catalog. The gap is a limit of the
-detection, not a judgment that the advisory is unnecessary there.
+established, and settling it needs a real check of what a Claude Code session
+declares rather than an inference from the API catalog. The gap is a limit of
+the detection, not a judgment that the advisory is unnecessary there.
 
 The SP's session-end detection and handoff protocol (see SKILL.md §
 Continuity Stewardship) are the mechanisms that translate this awareness

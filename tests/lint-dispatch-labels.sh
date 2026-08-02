@@ -46,7 +46,7 @@
 # fix is a hand edit here. A structural rename of the guard requires updating
 # this lint.
 #
-# THREE CARVE-OUTS FOR EXAMPLE TEXT, justified by CONTEXT rather than spelling.
+# THE CARVE-OUT RULE FOR EXAMPLE TEXT — shape PLUS context, never spelling.
 #
 # Two label shapes are not assertions about what a label says:
 #
@@ -55,45 +55,88 @@
 #   * the bare form with no separator and no agent slot — "[Dispatch now]" —
 #     which is normally cited as the WRONG label.
 #
-# Excusing either on spelling alone was the defect: a real normative statement
-# written in either shape was skipped silently. So the shape is now necessary but
-# not sufficient. One of these three CONTEXT signals must also hold, each of them
-# mechanical and none inferrable from prose wording:
+# Excusing either on SPELLING alone was the first defect: a real normative
+# statement written in either shape was skipped silently. Excusing either on
+# STRUCTURE alone — sitting inside a fenced block, or sharing a line with a
+# correct label — was the second: a fence is an indentation convention, and a
+# correct label beside an incorrect one is exactly how a normative "either form
+# works" list reads too. Neither is evidence that the author meant an example.
 #
-#   1. The bracket sits inside a fenced (```) code block — illustrative text.
-#   2. The same line also carries a guard-CONFORMANT label of the same keyword,
-#      so the line shows the right answer next to the shape it is contrasting.
-#   3. The line carrying the bracket, or the line immediately above it, carries
-#      the annotation  <!-- dispatch-label-lint: example -->  — a deliberate,
-#      greppable declaration by the author.
+# So a carve-out now needs one of these two justifications:
 #
-# A bare or elided label with none of the three is treated as a normative
-# statement and checked against the guard, which it fails. Context is read from
-# the line the bracket OPENS on; a statement that wraps is judged by its first
-# line. Nothing else is excused: outside these shapes the Hold and Wrong-agent
-# labels carry no variable slot, so any statement of them must match exactly.
+#   A. AUTHOR DECLARATION. The line carrying the bracket, or the line
+#      immediately above it, carries  <!-- dispatch-label-lint: example -->  —
+#      a deliberate, greppable statement by the author. Stands on its own.
+#
+#   B. STRUCTURE **AND** AN EXAMPLE MARKER. Both halves must hold:
+#
+#        structure — the bracket sits inside a fenced (```) code block, OR the
+#                    same line also carries a guard-CONFORMANT label of the
+#                    same keyword;
+#        marker    — a line inside the window below carries an example marker.
+#
+# The MARKER SET, matched case-insensitively:
+#
+#     bad · wrong (but not "wrong agent") · incorrect · counterexample ·
+#     instead of · do not · dont · never · example · e.g. · illustrat…
+#
+# Every line is stripped of its [...] spans before the match, so the text of a
+# [Wrong agent …] label can never justify itself. "wrong" additionally excludes
+# a following "agent" for the same reason — "Wrong agent" is a label keyword,
+# not a verdict on the label beside it.
+#
+# The MARKER WINDOW, stated exactly, because a window is only as good as its
+# edges:
+#
+#     bracket NOT in a fence  →  the bracket line, plus the 3 lines above it
+#     bracket IN a fence      →  the bracket line, the fence's OPENING line,
+#                                plus the 3 lines above that opening line
+#
+# The fence case looks above the opener rather than above the bracket because
+# prose cannot be written inside a fence — the introducing sentence is the only
+# place a marker can go. Context is read from the line the bracket OPENS on; a
+# statement that wraps is judged by its first line.
+#
+# A bare or elided label with neither justification is treated as a normative
+# statement and checked against the guard, which it fails. Nothing else is
+# excused: outside these shapes the Hold and Wrong-agent labels carry no
+# variable slot, so any statement of them must match exactly.
 #
 # Every carve-out is counted in the PASS summary, and `--verbose` lists each one
-# with file:line and which signal excused it, so a reviewer can audit the set.
+# with file:line, which justification excused it, and the line the marker was
+# found on — so a reviewer can audit the whole set by eye.
 #
 # FAILS CLOSED. Zero files scanned, or zero label statements found, exits 1. A
 # lint that silently scans nothing and reports success is worse than no lint —
 # the same hardening tests/lint-voice.sh already carries.
+#
+# KNOWN LIMITATION — a single unreadable file is skipped quietly. If the scanner
+# cannot open a Markdown file it moves to the next one without recording a
+# failure, and the run still passes as long as at least one other file opened.
+# So a pass means "every file that could be read agrees with the guard", not
+# "every Markdown file in the tree was checked". The zero-files and zero-labels
+# gates above catch the total-failure case; they do not catch one bad file.
 #
 # Usage:
 #   bash tests/lint-dispatch-labels.sh                  # lint the repo
 #   bash tests/lint-dispatch-labels.sh --verbose        # …and list the carve-outs
 #   bash tests/lint-dispatch-labels.sh --root <dir>     # lint a fixture tree
 #
-# Self-test fixtures (see tests/fixtures/dispatch-labels/README.md):
-#   bash tests/lint-dispatch-labels.sh --root tests/fixtures/dispatch-labels/hidden-drift
-#       -> MUST exit 1: normative statements in the bare and elided shapes with
-#          no example context, i.e. exactly the drift the old carve-outs hid.
-#   bash tests/lint-dispatch-labels.sh --root tests/fixtures/dispatch-labels/honored-carveouts
-#       -> MUST exit 0: the same shapes, each carrying one of the three signals.
+# Self-test fixtures (see tests/fixtures/dispatch-labels/README.md), run as
+#   bash tests/lint-dispatch-labels.sh --root tests/fixtures/dispatch-labels/<tree>
 #
-# That fixture directory is excluded from the default repo scan, because it
-# exists to hold text this lint is supposed to reject.
+#   hidden-drift/       -> MUST exit 1: normative statements in the bare and
+#                          elided shapes carrying no example context at all.
+#   fence-drift/        -> MUST exit 1: a normative bare label inside a fence
+#                          that no marker introduces.
+#   sameline-drift/     -> MUST exit 1: an incorrect label sharing a line with a
+#                          correct one, with no marker anywhere near it.
+#   marked-fence/       -> MUST exit 0: a genuine counterexample inside a fence
+#                          the prose above it marks as one.
+#   honored-carveouts/  -> MUST exit 0: each accepted justification, once each.
+#
+# That fixture directory is excluded from the default repo scan, because half of
+# it exists to hold text this lint is supposed to reject.
 #
 # WHY THIS FILE IS FORCE-TRACKED DESPITE `tests/` BEING IGNORED.
 # `.gitignore` excludes `tests/`, so an untracked lint would be absent from a
@@ -122,7 +165,7 @@ while [ "$#" -gt 0 ]; do
     --verbose|-v) VERBOSE=1; shift ;;
     --root) [ "$#" -ge 2 ] || fail "--root needs a directory"; SCAN_ROOT="$2"; shift 2 ;;
     --root=*) SCAN_ROOT="${1#--root=}"; shift ;;
-    -h|--help) sed -n '2,104p' "$0" | sed 's/^# \?//'; exit 0 ;;
+    -h|--help) sed -n '2,147p' "$0" | sed 's/^# \?//'; exit 0 ;;
     *) fail "unknown argument: $1" ;;
   esac
 done
@@ -259,6 +302,28 @@ REPORT=$(printf '%s\n' "$FILE_LIST" | perl -e '
   );
   my ($files, $checked, $generic, $violations) = (0, 0, 0, 0);
 
+  # An example marker: a word or phrase in the surrounding prose saying the
+  # nearby label is being SHOWN rather than prescribed. Matched against a line
+  # whose [...] spans have been removed, so a label never justifies itself.
+  # "wrong" excludes a following "agent" because that is a label keyword.
+  my $MARKER = qr/\bbad\b|\bwrong\b(?!\s+agent)|\bincorrect\b|\bcounter-?examples?\b|\binstead\s+of\b|\bdo\s+not\b|\bdon\x27t\b|\bnever\b|\bexamples?\b|\be\.g\.|\billustrat/i;
+
+  # Returns the line number carrying a marker, or undef. Window: the bracket
+  # line plus the 3 lines above it; when the bracket sits inside a fence, the
+  # 3 lines above the fence OPENER instead, since prose cannot go in a fence.
+  sub marker_line {
+    my ($lines, $line, $fence_start) = @_;
+    my $anchor = defined $fence_start ? $fence_start : $line;
+    for my $n ($line, $anchor, $anchor - 1, $anchor - 2, $anchor - 3) {
+      next if $n < 1 || $n > scalar(@$lines);
+      my $t = $lines->[$n - 1];
+      next unless defined $t;
+      $t =~ s/\[[^\]]*\]//g;
+      return $n if $t =~ $MARKER;
+    }
+    return undef;
+  }
+
   sub norm {
     my $s = shift;
     $s =~ s/\xe2\x80\x94|\xe2\x80\x93/-/g;
@@ -310,12 +375,18 @@ REPORT=$(printf '%s\n' "$FILE_LIST" | perl -e '
 
     my @lines = split /\n/, $body, -1;
 
-    # Signal 1 precomputed: which line numbers sit inside a ``` fence.
-    my %in_fence;
+    # Fence structure precomputed: for every line inside a ``` fence, the line
+    # number of that fence OPENER. The opener is where the marker window is
+    # anchored, so it has to be carried, not just a yes/no flag.
+    my %fence_start;
     my $open = 0;
+    my $opener = 0;
     for my $i (0 .. $#lines) {
-      if ($lines[$i] =~ /^\s*```/) { $open = !$open; next; }
-      $in_fence{$i + 1} = 1 if $open;
+      if ($lines[$i] =~ /^\s*```/) {
+        if ($open) { $open = 0; } else { $open = 1; $opener = $i + 1; }
+        next;
+      }
+      $fence_start{$i + 1} = $opener if $open;
     }
 
     while ($body =~ /\[((?:$alt)[^\]]*)\]/g) {
@@ -332,16 +403,25 @@ REPORT=$(printf '%s\n' "$FILE_LIST" | perl -e '
       my $lw = $lead{$kind};
 
       # Shapes that MAY be excused: the bare keyword, or the keyword with an
-      # explicit elision. Shape alone is not enough — context must justify it.
+      # explicit elision. Shape alone is not enough, and neither is structure
+      # alone — an author declaration, or structure PLUS a marker, justifies it.
       if ($label eq $lw || $label eq "$lw ...") {
         my $why;
-        if ($in_fence{$line}) {
-          $why = "inside a fenced code block";
-        } elsif (($lines[$line - 1] // "") =~ $ANNOTATION
+        if (($lines[$line - 1] // "") =~ $ANNOTATION
               || ($line >= 2 && (($lines[$line - 2] // "") =~ $ANNOTATION))) {
           $why = "explicit dispatch-label-lint: example annotation";
-        } elsif (line_has_conformant($lines[$line - 1], $kind)) {
-          $why = "contrasting guard-conformant label on the same line";
+        } else {
+          my $fs = $fence_start{$line};
+          my $structure;
+          if (defined $fs) {
+            $structure = "inside the fenced block opened on line $fs";
+          } elsif (line_has_conformant($lines[$line - 1], $kind)) {
+            $structure = "contrasting guard-conformant label on the same line";
+          }
+          if (defined $structure) {
+            my $mk = marker_line(\@lines, $line, $fs);
+            $why = "$structure, marked as an example on line $mk" if defined $mk;
+          }
         }
         if (defined $why) {
           $generic++;

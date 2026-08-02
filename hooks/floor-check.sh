@@ -56,7 +56,7 @@ MARKER="/tmp/sp-floor-${KEY}.flag"
 RESULTS="/tmp/sp-floor-${KEY}.txt"
 LOCK="/tmp/sp-floor-${KEY}.lock"
 SP_VIOL_DIR="${HOME}/.claude/.sp-rule-violations"
-if (umask 077; mkdir -p "$SP_VIOL_DIR" 2>/dev/null) && [ -w "$SP_VIOL_DIR" ]; then
+if [ ! -L "$SP_VIOL_DIR" ] && (umask 077; mkdir -p "$SP_VIOL_DIR" 2>/dev/null) && [ -w "$SP_VIOL_DIR" ]; then
   chmod 700 "$SP_VIOL_DIR" 2>/dev/null
   VIOLATIONS_LOG="${SP_VIOL_DIR}/${RELAY_KEY}.log"
 else

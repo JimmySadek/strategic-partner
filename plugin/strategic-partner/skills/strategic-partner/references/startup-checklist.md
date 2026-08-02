@@ -49,8 +49,8 @@ What the SP **does** do:
   is a different question, and it is the one the advisory turns on; it is
   unverified. So the honest position is the narrow one: detection is
   marker-based, a session running 1M without a marker gets no advisory, and
-  the set of such sessions is unknown rather than enumerated. Filed as
-  `.backlog/verify-claude-code-context-window-per-model.md`
+  the set of such sessions is unknown rather than enumerated — settling it
+  needs a real measurement, not an inference from the API catalog
 - On 1M-context sessions, surface an informational advisory in orientation
   noting the ~256K retrieval reliability cliff — see Step 5 "Context advisory"
   bullet for the exact copy and trigger rules

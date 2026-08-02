@@ -1,10 +1,13 @@
-# Fixture — the three context signals that legitimately excuse example text
+# Fixture — the justifications that legitimately excuse example text
 
-Each section below uses a bare or elided label shape, and each carries exactly
-one of the three accepted context signals. The lint must skip all of them and
+Each section below uses a bare or elided label shape, and each carries one of
+the accepted justifications: the author annotation standing on its own, or a
+structural signal together with a marker. The lint must skip all of them and
 still exit 0.
 
-## Signal 1 — inside a fenced code block
+## A fenced block, with the marker in the prose that introduces it
+
+Bad: never write the bare or elided spellings below. The guard rejects them.
 
 ```
 [Dispatch now]
@@ -12,15 +15,15 @@ still exit 0.
 [Wrong agent ...]
 ```
 
-## Signal 2 — a conformant label of the same keyword on the same line
+## A conformant label on the same line, with the marker on that line
 
 Write `[Dispatch now - frontend-architect]`, never the generic `[Dispatch now]`.
 
-## Signal 3 — an explicit annotation on the bracket's own line
+## An explicit annotation on the bracket's own line
 
 The lint scans for any `[Dispatch now ...]` statement in the docs. <!-- dispatch-label-lint: example -->
 
-## Signal 3 again — the annotation on the line above
+## The same annotation, on the line above
 
 <!-- dispatch-label-lint: example -->
 A turn that offers no `[Hold ...]` option has skipped the confirmation entirely.

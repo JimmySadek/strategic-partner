@@ -260,11 +260,9 @@ session** presents for a given model is a different question, and it is the one
 the advisory turns on; nobody has verified it. What can be said without
 guessing: detection is marker-based, so a session running a 1M window without
 that marker gets no advisory, and the set of sessions in that position has not
-been established. It is filed as
-`.backlog/verify-claude-code-context-window-per-model.md`. Closing the gap
-needs a real measurement of what the runtime declares, not an inference from
-the API catalog — which is exactly the inference that produced the wrong list
-this paragraph used to carry.
+been established. Closing the gap needs a real measurement of what the runtime
+declares, not an inference from the API catalog — which is exactly the
+inference that produced the wrong list this paragraph used to carry.
 
 ---
 
