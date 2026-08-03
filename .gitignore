@@ -32,6 +32,13 @@ tests/*
 # whose script lives only in a working tree cannot be re-derived by a reviewer,
 # so this one ships with the repo the way .scripts/release-publish.sh does.
 !tests/startup-latency-probe.sh
+# Tracked exception: the source-edit guard regression suite. Three release gates
+# lean on it — Step 2a hook verification in claudedocs/release-process.md checks
+# the same guard logic this suite automates, and the v8 plan names the suite by
+# command in both its Phase 2 testing strategy and its Validation checklist. A
+# gate whose suite exists only in one working tree cannot be run from a fresh
+# clone.
+!tests/guard-regression.sh
 .lint-allowlist
 .scanner-exceptions.json
 hooks/lib/

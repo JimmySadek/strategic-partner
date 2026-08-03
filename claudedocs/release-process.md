@@ -425,7 +425,7 @@ Update release metadata together:
 | `README.md` | Line 5, badge URL | `version-X.Y.Z-blue` |
 | `CHANGELOG.md` | Top of file, new section | `## [X.Y.Z] - YYYY-MM-DD` with categorized entries |
 | `output-styles/strategic-partner-voice.md` | Frontmatter `style-version:` field | Bump `style-version` **only if the voice style content changed this release** (the floor compares this stamp to the installed copy to flag staleness; an unchanged release leaves it as-is) |
-| `plugin/strategic-partner/skills/strategic-partner/SKILL.md` | Line 11, `version:` field | `version: X.Y.Z` — bump every release, no exceptions. If this release changed root `SKILL.md` content (not just the version line), diff the two files' behavioral sections before shipping — this file silently fell two versions behind root before the gap was caught on 2026-07-07 |
+| `plugin/strategic-partner/skills/strategic-partner/SKILL.md` | Line 12, `version:` field | `version: X.Y.Z` — bump every release, no exceptions. If this release changed root `SKILL.md` content (not just the version line), diff the two files' behavioral sections before shipping — this file silently fell two versions behind root before the gap was caught on 2026-07-07 |
 | `plugin/strategic-partner/.claude-plugin/plugin.json` | Top-level `version` field | `"version": "X.Y.Z"` — bump every release so the plugin manifest matches the shipped skill |
 | `.claude-plugin/marketplace.json` | `version` field inside the `plugins` array entry | `"version": "X.Y.Z"` — bump every release, because this is the catalog Claude Code reads to discover an update, so leaving it stale means users are never offered the new version |
 | `plugin/strategic-partner/output-styles/strategic-partner-voice.md` | Frontmatter `style-version:` field | Bump `style-version` **only if the plugin-native voice style content changed this release** |
@@ -446,9 +446,10 @@ expected="X.Y.Z"
 actual=$(printf '%s\n' \
   "$(grep -m1 '^version:' SKILL.md | awk '{print $2}')" \
   "$(grep -m1 '^version:' plugin/strategic-partner/skills/strategic-partner/SKILL.md | awk '{print $2}')" \
-  "$(grep -m1 '"version"' plugin/strategic-partner/.claude-plugin/plugin.json | tr -dc '0-9.')" \
-  "$(grep -m1 '"version"' .claude-plugin/marketplace.json | tr -dc '0-9.')" \
+  "$(jq -r .version plugin/strategic-partner/.claude-plugin/plugin.json)" \
+  "$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)" \
   "$(grep -m1 -o 'version-[0-9.]*-blue' README.md | sed 's/version-//;s/-blue//')" \
+  "$(sed -n '/^## \[/{s/^## \[\([^]]*\)\].*/\1/p;q;}' CHANGELOG.md)" \
   | sort -u)
 if [ "$actual" = "$expected" ]; then
   echo "version agreement OK: $expected"
