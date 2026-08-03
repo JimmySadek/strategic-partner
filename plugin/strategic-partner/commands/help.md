@@ -52,6 +52,7 @@ Key behaviors:
 /strategic-partner-plugin:codex-feedback                 → Trigger Codex review of a decision, claim, or cross-model build
 /strategic-partner-plugin:context-file-scan              → Scan CLAUDE.md / AGENTS.md / GEMINI.md for drift
 /strategic-partner-plugin:backlog                        → Surface and review parked backlog items
+/strategic-partner-plugin:switch-to-skill                → Switch back to the skill install
 ```
 
 ## Notes
