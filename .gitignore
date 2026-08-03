@@ -27,7 +27,11 @@ __pycache__/
 # These remain in the local working tree (untrack ≠ delete) but are not
 # part of what users get on `npx skills add` or `git clone`. See v6.0.0
 # CHANGELOG entry "Smaller install footprint" for rationale.
-tests/
+tests/*
+# Tracked exception: the v8.0 startup-latency baseline instrument. A measurement
+# whose script lives only in a working tree cannot be re-derived by a reviewer,
+# so this one ships with the repo the way .scripts/release-publish.sh does.
+!tests/startup-latency-probe.sh
 .lint-allowlist
 .scanner-exceptions.json
 hooks/lib/
