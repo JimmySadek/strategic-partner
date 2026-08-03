@@ -12,14 +12,29 @@
 #   * the size of the opening message
 #   * whether a short "signal line" preceded the silent run
 #
-# The span ends at the first USER-ACTIONABLE output, whichever comes first:
-#   (a) an assistant text block that is a structured briefing rather than a
-#       one-sentence progress note, or
-#   (b) an AskUserQuestion / ExitPlanMode menu — SP's opening menu is an
-#       AskUserQuestion, and it hands control back to the user just as a
-#       briefing does.
-# One-line progress narration ("Starting the session by loading...") does NOT
-# end the span; it is recorded separately as a signal line.
+# TWO endpoints are measured per opening, because they answer different
+# questions and a menu satisfies only one of them:
+#
+#   time_to_first_actionable_control — when the user could act again. Ends at
+#     the first structured briefing OR at an AskUserQuestion / ExitPlanMode
+#     menu, whichever comes first. SP's opening menu is an AskUserQuestion and
+#     it hands control back just as a briefing does.
+#
+#   time_to_briefing — when the user was actually told anything. Ends ONLY at a
+#     substantive text block. A menu does not end it. An opening that hands the
+#     user a menu with no briefing in front of it records briefing = ABSENT,
+#     not a number. That absence is the render-before-ask defect, and it is
+#     invisible if the two endpoints are collapsed into one.
+#
+# One-line progress narration ("Starting the session by loading...") ends
+# neither; it is recorded separately as a signal line.
+#
+# Openings are deduplicated by the USER-EVENT UUID of the command turn. Forked
+# transcripts replay the same opening event into more than one file; counting
+# those as separate waits inflates n and distorts the tail. When one UUID
+# appears in several transcripts, the copy whose transcript continues furthest
+# past the opening is kept — the fork that stops right after the opening is a
+# truncated replay, not a user who never answered.
 #
 # Every opening is classified (floor green / non-clean, fresh / continuation,
 # plugin / standalone skill, SP's own repo vs other projects, empty folder,
@@ -27,10 +42,35 @@
 # max) is printed per category, followed by one machine-comparable summary line
 # so an after-measurement can be diffed against this run.
 #
+# A floor classification carries forward within a transcript: the floor hook
+# stays silent when it has already run for the scope, so a second opening in
+# the same session inherits the most recent SP-FLOOR-COMPLETE line rather than
+# falling into the unclassified bucket.
+#
+# Sub-agent dispatch calls (the tool is named "Agent" in this corpus, "Task" in
+# other Claude Code versions — both are recognised, by exact name) are counted
+# separately from the tool total. One such call can hide arbitrary work, so a
+# tool-count target that cannot see sub-agent usage can be met by moving work
+# into sub-agents rather than removing it.
+#
 # The corpus is READ-ONLY. This script never writes inside it.
 #
 # Usage:
 #   tests/startup-latency-probe.sh [--corpus DIR] [--records FILE] [--manifest FILE]
+#                                  [--since ISO-DATE] [--exclude-manifest FILE]
+#
+# --since and --exclude-manifest define the AFTER cohort. The corpus grows, so
+# an after-run over the whole of it would blend post-change openings with the
+# baseline ones and dilute the result. Either flag works alone or together:
+#
+#   --since 2026-08-04            keep only openings on or after that date
+#   --exclude-manifest base.tsv   drop every opening listed in that manifest
+#
+# A manifest is `slug <tab> session <tab> date <tab> opening-uuid`. Exclusion
+# matches on the UUID when the manifest carries one, and on slug/session/date
+# otherwise, so manifests written before the UUID column existed still work.
+# An empty cohort is reported as an empty cohort and exits 0; only a corpus
+# that yields no openings at all is treated as a broken run (exit 4).
 #
 # Environment overrides: SUBSTANTIVE_MIN_LINES, SUBSTANTIVE_MIN_CHARS,
 #                        SP_DEV_SLUG, SP_HARNESS_RE, CORPUS_ROOT
@@ -63,16 +103,38 @@ SP_HARNESS_RE=${SP_HARNESS_RE:-'(SP-Serena-Validation|sp-ceremony-smoke)'}
 CORPUS_ROOT=${CORPUS_ROOT:-"$HOME/.claude/projects"}
 RECORDS_OUT=""
 MANIFEST_OUT=""
+SINCE=""
+EXCLUDE_MANIFEST=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --corpus)   CORPUS_ROOT=$2; shift 2 ;;
     --records)  RECORDS_OUT=$2; shift 2 ;;
     --manifest) MANIFEST_OUT=$2; shift 2 ;;
-    -h|--help)  sed -n '2,44p' "$0"; exit 0 ;;
+    --since)    SINCE=$2; shift 2 ;;
+    --exclude-manifest) EXCLUDE_MANIFEST=$2; shift 2 ;;
+    -h|--help)  sed -n '2,81p' "$0"; exit 0 ;;
     *) printf 'startup-latency-probe: unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
 done
+
+SINCE_BAD=0
+case "$SINCE" in
+  '') ;;
+  [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9])
+    # Shape alone would accept 2026-13-99, which silently empties the cohort.
+    # Strip the leading zero before comparing: bash reads 08 as bad octal.
+    since_m=${SINCE:5:2}; since_m=${since_m#0}
+    since_d=${SINCE:8:2}; since_d=${since_d#0}
+    if [ "$since_m" -lt 1 ] || [ "$since_m" -gt 12 ] ||
+       [ "$since_d" -lt 1 ] || [ "$since_d" -gt 31 ]; then SINCE_BAD=1; fi
+    ;;
+  *) SINCE_BAD=1 ;;
+esac
+if [ "$SINCE_BAD" -eq 1 ]; then
+  printf 'startup-latency-probe: --since expects a real ISO date (YYYY-MM-DD), got: %s\n' "$SINCE" >&2
+  exit 2
+fi
 
 # ---------------------------------------------------------------------------
 # Preconditions — fail loudly, never produce silent zeros
@@ -97,12 +159,22 @@ if [ ! -d "$CORPUS_ROOT" ]; then
   exit 3
 fi
 
+if [ -n "$EXCLUDE_MANIFEST" ] && [ ! -f "$EXCLUDE_MANIFEST" ]; then
+  printf 'startup-latency-probe: FATAL — --exclude-manifest file not found: %s\n' "$EXCLUDE_MANIFEST" >&2
+  exit 3
+fi
+
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/sp-latency-probe.XXXXXX") || exit 3
 trap 'rm -rf "$WORK"' EXIT
 
 BLOCKS="$WORK/blocks.tsv"
+RAW="$WORK/raw.tsv"
+DEDUPED="$WORK/deduped.tsv"
 RECORDS="$WORK/records.tsv"
+MANIFEST="$WORK/manifest.tsv"
 FILELIST="$WORK/files.txt"
+JQERR="$WORK/jq-stderr.txt"
+JQERRLOG="$WORK/jq-errors.txt"
 
 # ---------------------------------------------------------------------------
 # 1. Enumerate transcripts (LC_ALL=C sort => deterministic order)
@@ -127,7 +199,7 @@ fi
 # Emits an ordered event stream, one per line:
 #   FILE   <slug> <session-id>              file boundary
 #   FLOOR  <ts> <SP-FLOOR-COMPLETE line>    hook status line injected at entry
-#   UCMD   <ts> <command-name> <args>       a slash command the user typed
+#   UCMD   <ts> <command-name> <args> <uuid>  a slash command the user typed
 #   UTEXT  <ts> <chars> <first 80 chars>    free text the user typed
 #   UTRES  <ts> <chars> <first 80 chars>    a tool result returning to the model
 #   ATOOL  <ts> <tool name>                 a tool call
@@ -159,7 +231,8 @@ elif .type == "user" then
       if ($mc | test("<command-name>")) then
         ["UCMD", (.timestamp // ""),
          ($mc | cap("<command-name>([^<]*)</command-name>") | clean),
-         ($mc | cap("<command-args>([^<]*)</command-args>") | clean)]
+         ($mc | cap("<command-args>([^<]*)</command-args>") | clean),
+         ((.uuid // "") | tostring)]
       elif ($mc | test("^<(local-command|command-message|command-contents|command-stdout|task-notification)")) then empty
       else ["UTEXT", (.timestamp // ""), (($mc | length) | tostring), ($mc | clean | .[0:80])]
       end
@@ -192,17 +265,27 @@ else empty end
 '
 
 : > "$BLOCKS"
+: > "$JQERRLOG"
+JQ_BAD_FILES=0
 while IFS= read -r f; do
   slug=$(basename "$(dirname "$f")")
   sid=$(basename "$f" .jsonl)
-  {
-    printf 'FILE\t%s\t%s\t\n' "$slug" "$sid"
-    jq -r "$JQ_BLOCKS" "$f" 2>/dev/null
-  } >> "$BLOCKS"
+  printf 'FILE\t%s\t%s\t\n' "$slug" "$sid" >> "$BLOCKS"
+  jq -r "$JQ_BLOCKS" "$f" 2>"$JQERR" >> "$BLOCKS"
+  jq_rc=$?
+  # A parse failure loses events silently unless it is counted. Report it.
+  if [ "$jq_rc" -ne 0 ] || [ -s "$JQERR" ]; then
+    JQ_BAD_FILES=$((JQ_BAD_FILES + 1))
+    printf '%s (jq exit %s): %s\n' "$f" "$jq_rc" "$(head -1 "$JQERR")" >> "$JQERRLOG"
+  fi
 done < "$FILELIST"
 
 # ---------------------------------------------------------------------------
 # 3. Span state machine -> one record per SP opening
+#
+# Read twice. Pass 1 counts the events in each transcript so pass 2 can record
+# how far a transcript runs on past each opening — the tie-break that decides
+# which copy of a forked opening event survives deduplication.
 # ---------------------------------------------------------------------------
 
 awk -F'\t' -v OFS='\t' \
@@ -248,8 +331,13 @@ function form_of(n)    { return (n ~ /:status$/) ? "status" : "main" }
 function install_of(n) { return (n ~ /^\/(strategic-partner|advisor|sp)(:|$)/) ? "skill" : "plugin" }
 # A menu hands control back to the user exactly as a briefing does.
 function is_menu(t)    { return (t == "AskUserQuestion" || t == "ExitPlanMode") }
+# Sub-agent dispatch. Claude Code names this tool "Agent" in the transcripts in
+# this corpus and "Task" in other versions, so both are recognised. Matched on
+# exact equality: TaskCreate and TaskUpdate are todo-list tools, not sub-agent
+# dispatch, and a prefix match would silently fold them in.
+function is_subagent(t) { return (t == "Agent" || t == "Task") }
 
-function emit(   reasons, green, empt, repo, rt, s_any, s_txt, s_sub) {
+function emit(   reasons, green, empt, repo, rt, s_any, s_txt, s_sub, s_brf) {
   if (!open_active) return
   if (after_state == "pending") after_state = "none"
 
@@ -282,6 +370,7 @@ function emit(   reasons, green, empt, repo, rt, s_any, s_txt, s_sub) {
   s_any = (t_first_block > 0 && t0 > 0) ? t_first_block - t0 : -1
   s_txt = (t_first_text  > 0 && t0 > 0) ? t_first_text  - t0 : -1
   s_sub = (t_sub         > 0 && t0 > 0) ? t_sub         - t0 : -1
+  s_brf = (t_brief       > 0 && t0 > 0) ? t_brief       - t0 : -1
 
   print slug, sid, substr(open_ts, 1, 10), form_of(open_cmd), install_of(open_cmd), \
         (open_args ~ /\.handoffs\// ? "continuation" : "fresh"), repo, green, reasons, empt, \
@@ -290,23 +379,39 @@ function emit(   reasons, green, empt, repo, rt, s_any, s_txt, s_sub) {
         sub_chars, sub_lines, (signal_seen ? "yes" : "no"), signal_chars, \
         (found_sub ? "ok" : "no-opening"), after_state, open_cmd, \
         ordinal, entry_kind, floor_source, end_reason, \
-        sprintf("%.3f", (t_after > 0 && t_sub > 0) ? t_after - t_sub : -1)
+        sprintf("%.3f", (t_after > 0 && t_sub > 0) ? t_after - t_sub : -1), \
+        open_uuid, (nev[fidx] - open_idx), ++seq, \
+        (found_sub ? tasks_sub : -1), (found_sub ? tools_sub - tasks_sub : -1), \
+        sprintf("%.3f", s_brf), \
+        (found_brief ? tools_brief : -1), \
+        (found_brief ? brief_chars : -1), (found_brief ? brief_lines : -1)
   open_active = 0
 }
 
+# Pass 1: how many events does each transcript hold?
+NR == FNR {
+  if ($1 == "FILE") nfile++; else nev[nfile]++
+  next
+}
+
+# Pass 2. Event position within the transcript, used to measure how far the
+# transcript runs on past an opening.
+{ if ($1 != "FILE") ev++ }
+
 $1 == "FILE" {
   if (open_active) emit()
-  slug = $2; sid = $3
+  slug = $2; sid = $3; fidx++; ev = 0
   open_active = 0; ordinal = 0; user_events = 0; floor_line = ""; prev_floor = ""
   next
 }
 
-# Track the most recent floor line even outside a span: when the floor hook has
-# already run for this scope it stays silent, and the prior line still describes
-# the same session and cwd.
+# Track the most recent floor line, in-span or not. The floor hook stays silent
+# once it has run for a scope, so the line captured during a first opening is
+# still the live classification for a second opening in the same session. Not
+# carrying it forward drops that second opening into the unclassified bucket.
 $1 == "FLOOR" {
   if (open_active && floor_source != "in-span") { floor_line = $3; floor_source = "in-span" }
-  else if (!open_active) prev_floor = $3
+  prev_floor = $3
   next
 }
 
@@ -320,13 +425,16 @@ $1 == "UCMD" {
   user_events++
   if (is_open($3)) {
     open_active = 1; ordinal++
-    open_ts = $2; open_cmd = $3; open_args = $4
+    open_ts = $2; open_cmd = $3; open_args = $4; open_uuid = $5; open_idx = ev
     entry_kind = (user_events == 1) ? "session-start" : "mid-session"
     t0 = ts2ep($2)
-    tools = 0; tools_any = -1; tools_sub = -1
+    tools = 0; tasks = 0; tools_any = -1; tools_sub = -1; tasks_sub = -1
+    tools_all = 0
     t_first_block = -1; t_first_text = -1; t_sub = -1
     found_sub = 0; signal_seen = 0; signal_chars = 0
     sub_chars = 0; sub_lines = 0
+    found_brief = 0; brief_closed = 0; t_brief = -1; tools_brief = -1
+    brief_chars = -1; brief_lines = -1
     after_state = "none"; end_reason = "-"; t_after = -1
     floor_line = prev_floor
     floor_source = (prev_floor == "") ? "none" : "prior"
@@ -354,6 +462,9 @@ $1 == "UTRES" {
   if (open_active && found_sub && end_reason == "menu" && after_state == "pending") {
     after_state = ($4 ~ /\[Request interrupted|interrupted by user/) ? "interrupt" : "menu-answered"
     t_after = ts2ep($2)
+    # The user has now acted. Anything the model writes next answers the menu;
+    # it is no longer a candidate for the opening briefing.
+    brief_closed = 1
   }
   next
 }
@@ -366,14 +477,15 @@ $1 == "ATHINK" {
 $1 == "ATOOL" {
   if (!open_active) next
   if (t_first_block < 0) t_first_block = ts2ep($2)
-  if (!found_sub) {
-    if (is_menu($3)) {
-      # The menu IS the opening deliverable, so it is not part of the silent run.
-      t_sub = ts2ep($2); tools_sub = tools; found_sub = 1
-      sub_chars = 0; sub_lines = 0; end_reason = "menu"; after_state = "pending"
-    } else {
-      tools++
-    }
+  if (!is_menu($3)) {
+    # tools_all keeps running past the control endpoint, because the briefing
+    # can land later than the menu that returned control.
+    tools_all++
+    if (!found_sub) { tools++; if (is_subagent($3)) tasks++ }
+  } else if (!found_sub) {
+    # The menu IS the returned control, so it is not part of the silent run.
+    t_sub = ts2ep($2); tools_sub = tools; tasks_sub = tasks; found_sub = 1
+    sub_chars = 0; sub_lines = 0; end_reason = "menu"; after_state = "pending"
   }
   next
 }
@@ -382,9 +494,15 @@ $1 == "ATEXT" {
   if (!open_active) next
   if (t_first_block < 0) t_first_block = ts2ep($2)
   if (t_first_text < 0 && ($3 + 0) > 0) { t_first_text = ts2ep($2); tools_any = tools }
+  # The briefing endpoint. Only substantive text ends it — a menu never does.
+  if (!found_brief && !brief_closed &&
+      (($4 + 0) >= MINL || (($4 + 0) >= 2 && ($3 + 0) >= MINC))) {
+    t_brief = ts2ep($2); tools_brief = tools_all
+    brief_chars = $3 + 0; brief_lines = $4 + 0; found_brief = 1
+  }
   if (!found_sub) {
     if (($4 + 0) >= MINL || (($4 + 0) >= 2 && ($3 + 0) >= MINC)) {
-      t_sub = ts2ep($2); tools_sub = tools; found_sub = 1
+      t_sub = ts2ep($2); tools_sub = tools; tasks_sub = tasks; found_sub = 1
       sub_chars = $3 + 0; sub_lines = $4 + 0
       end_reason = "text"; after_state = "pending"
     } else if (($3 + 0) > 0) {
@@ -396,7 +514,66 @@ $1 == "ATEXT" {
 }
 
 END { if (open_active) emit() }
-' "$BLOCKS" > "$RECORDS"
+' "$BLOCKS" "$BLOCKS" > "$RAW"
+
+RAW_OPENINGS=$(wc -l < "$RAW" | tr -d ' ')
+if [ "$RAW_OPENINGS" -eq 0 ]; then
+  printf 'startup-latency-probe: FATAL — scanned %s transcripts and found zero SP openings.\n' "$TOTAL_FILES" >&2
+  printf 'Either the corpus holds no SP sessions or extraction broke. Not reporting zeros as a result.\n' >&2
+  exit 4
+fi
+
+# ---------------------------------------------------------------------------
+# 3b. Deduplicate by the opening's user-event UUID
+#
+# A forked transcript replays the same opening event — same command timestamp,
+# same UUID — into a second file. Those are one wait, not two. Keep the copy
+# whose transcript runs furthest past the opening (column 29): the fork that
+# stops right after it is a truncated replay, and scoring it as "user never
+# responded" is an artefact of the fork, not an observation.
+# ---------------------------------------------------------------------------
+
+LC_ALL=C sort -t"$(printf '\t')" -k28,28 -k29,29nr -k2,2 "$RAW" \
+  | awk -F'\t' '$28 == "" || !seen[$28]++' \
+  | LC_ALL=C sort -t"$(printf '\t')" -k30,30n > "$DEDUPED"
+
+DEDUP_KEPT=$(wc -l < "$DEDUPED" | tr -d ' ')
+DEDUP_REMOVED=$((RAW_OPENINGS - DEDUP_KEPT))
+
+# ---------------------------------------------------------------------------
+# 3c. Cohort boundary — --since and --exclude-manifest
+#
+# Without this an after-run rescans the whole growing corpus and dilutes the
+# post-change result with the baseline openings.
+# ---------------------------------------------------------------------------
+
+cp "$DEDUPED" "$RECORDS"
+
+EXCLUDED_SINCE=0
+if [ -n "$SINCE" ]; then
+  awk -F'\t' -v S="$SINCE" '($3 "") >= (S "")' "$RECORDS" > "$WORK/since.tsv"
+  EXCLUDED_SINCE=$(( $(wc -l < "$RECORDS" | tr -d ' ') - $(wc -l < "$WORK/since.tsv" | tr -d ' ') ))
+  mv "$WORK/since.tsv" "$RECORDS"
+fi
+
+EXCLUDED_MANIFEST=0
+if [ -n "$EXCLUDE_MANIFEST" ]; then
+  awk -F'\t' -v EXF="$EXCLUDE_MANIFEST" '
+    BEGIN {
+      while ((getline line < EXF) > 0) {
+        if (line == "") continue
+        n = split(line, a, "\t")
+        if (n >= 4 && a[4] != "") ex["U" SUBSEP a[4]] = 1
+        if (n >= 3) ex["S" SUBSEP a[1] SUBSEP a[2] SUBSEP a[3]] = 1
+      }
+    }
+    { if (("U" SUBSEP $28) in ex) next
+      if (("S" SUBSEP $1 SUBSEP $2 SUBSEP $3) in ex) next
+      print }
+  ' "$RECORDS" > "$WORK/excl.tsv"
+  EXCLUDED_MANIFEST=$(( $(wc -l < "$RECORDS" | tr -d ' ') - $(wc -l < "$WORK/excl.tsv" | tr -d ' ') ))
+  mv "$WORK/excl.tsv" "$RECORDS"
+fi
 
 # ---------------------------------------------------------------------------
 # 4. Reporting
@@ -405,9 +582,15 @@ END { if (open_active) emit() }
 #   1 slug   2 session   3 date   4 form   5 install   6 routing   7 repo
 #   8 floor  9 nonclean_reasons  10 emptyfolder  11 tools_before_opening
 #  12 tools_before_first_text  13 secs_to_first_output  14 secs_to_first_text
-#  15 secs_to_opening  16 opening_chars  17 opening_lines  18 signal
+#  15 secs_to_control  16 opening_chars  17 opening_lines  18 signal
 #  19 signal_chars  20 outcome  21 after  22 command  23 ordinal  24 entry
 #  25 floor_source  26 end_reason  27 secs_from_opening_to_that_action
+#  28 opening_uuid  29 transcript_events_after_opening  30 corpus_seq
+#  31 task_calls  32 tools_excluding_task  33 secs_to_briefing
+#  34 tools_before_briefing  35 briefing_chars  36 briefing_lines
+#
+# Column 15 is time_to_first_actionable_control (a menu ends it); column 33 is
+# time_to_briefing (only substantive text ends it, -1 = ABSENT).
 # ---------------------------------------------------------------------------
 
 statline() {   # $1=column  $2=awk filter  $3=printf fmt
@@ -427,13 +610,42 @@ count() { awk -F'\t' "$1 { c++ } END { print c + 0 }" "$RECORDS"; }
 trow() { printf '%-36s %s' "$1" "$(statline 11 "$2" '%8d')"; }
 srow() { printf '%-36s %s' "$1" "$(statline "$3" "$2" '%8.1f')"; }
 
+# Paired per-opening difference between two columns. Subtracting one column's
+# median from another's is not a gap any user experienced; this is.
+gaprow() {   # $1=label  $2=awk filter  $3=later column  $4=earlier column
+  awk -F'\t' -v a="$3" -v b="$4" "$2 { if (\$a + 0 >= 0 && \$b + 0 >= 0) print \$a - \$b }" "$RECORDS" \
+  | LC_ALL=C sort -n \
+  | awk -v lbl="$1" '
+      function rank(p, n,   i) { i = int((p * n + 99) / 100); if (i < 1) i = 1; if (i > n) i = n; return i }
+      { v[NR] = $1 }
+      END {
+        if (NR == 0) { printf "%-36s %5s %8s %8s %8s %8s\n", lbl, "0", "-", "-", "-", "-"; exit }
+        printf "%-36s %5d %8.1f %8.1f %8.1f %8.1f\n", lbl, NR, v[1], v[rank(50,NR)], v[rank(90,NR)], v[NR]
+      }'
+}
+
 hr() { printf -- '-------------------------------------------------------------------------------\n'; }
 
 TOTAL_OPENINGS=$(wc -l < "$RECORDS" | tr -d ' ')
 if [ "$TOTAL_OPENINGS" -eq 0 ]; then
-  printf 'startup-latency-probe: FATAL — scanned %s transcripts and found zero SP openings.\n' "$TOTAL_FILES" >&2
-  printf 'Either the corpus holds no SP sessions or extraction broke. Not reporting zeros as a result.\n' >&2
-  exit 4
+  # Not a broken run: the corpus yielded openings, the cohort boundary removed
+  # them all. That is the expected result of excluding a cohort from itself.
+  echo
+  echo "STRATEGIC PARTNER — SESSION-OPENING LATENCY PROBE"
+  hr
+  printf 'corpus root         : %s\n' "$CORPUS_ROOT"
+  printf 'transcripts scanned : %s\n' "$TOTAL_FILES"
+  printf 'openings found      : %s raw, %s after UUID deduplication\n' "$RAW_OPENINGS" "$DEDUP_KEPT"
+  printf 'cohort is EMPTY     : every opening was excluded by the cohort boundary\n'
+  hr
+  printf 'excluded by --since %s          : %s\n' "${SINCE:-(unset)}" "$EXCLUDED_SINCE"
+  printf 'excluded by --exclude-manifest  : %s\n' "$EXCLUDED_MANIFEST"
+  hr
+  printf 'SP-STARTUP-COHORT-EMPTY corpus_files=%s raw_openings=%s deduped=%s excluded_since=%s excluded_manifest=%s remaining=0\n' \
+    "$TOTAL_FILES" "$RAW_OPENINGS" "$DEDUP_KEPT" "$EXCLUDED_SINCE" "$EXCLUDED_MANIFEST"
+  if [ -n "$RECORDS_OUT" ];  then cp "$RECORDS" "$RECORDS_OUT"; fi
+  if [ -n "$MANIFEST_OUT" ]; then : > "$MANIFEST_OUT"; fi
+  exit 0
 fi
 DATE_MIN=$(cut -f3 "$RECORDS" | LC_ALL=C sort | head -1)
 DATE_MAX=$(cut -f3 "$RECORDS" | LC_ALL=C sort | tail -1)
@@ -444,11 +656,20 @@ echo "STRATEGIC PARTNER — SESSION-OPENING LATENCY PROBE"
 hr
 printf 'corpus root         : %s\n' "$CORPUS_ROOT"
 printf 'transcripts scanned : %s (sub-agent transcripts excluded)\n' "$TOTAL_FILES"
-printf 'SP openings measured: %s across %s distinct sessions\n' "$TOTAL_OPENINGS" "$SESSIONS"
+printf 'raw opening events  : %s\n' "$RAW_OPENINGS"
+printf 'duplicate forks     : %s removed by opening-UUID deduplication\n' "$DEDUP_REMOVED"
+if [ -n "$SINCE" ] || [ -n "$EXCLUDE_MANIFEST" ]; then
+printf 'cohort boundary     : --since %s removed %s, --exclude-manifest removed %s\n' \
+  "${SINCE:-(unset)}" "$EXCLUDED_SINCE" "$EXCLUDED_MANIFEST"
+fi
+printf 'SP openings measured: %s across %s distinct session histories\n' "$TOTAL_OPENINGS" "$SESSIONS"
 printf 'opening date range  : %s .. %s\n' "$DATE_MIN" "$DATE_MAX"
-printf 'opening ends at     : menu (AskUserQuestion/ExitPlanMode) OR text with\n'
+printf 'control returns at  : menu (AskUserQuestion/ExitPlanMode) OR text with\n'
 printf '                      >= %s non-blank lines, OR >= 2 lines and >= %s chars\n' "$SUBSTANTIVE_MIN_LINES" "$SUBSTANTIVE_MIN_CHARS"
-printf 'percentile method   : nearest-rank (ceil), deterministic\n'
+printf 'briefing ends at    : that text rule ONLY — a menu is never a briefing\n'
+printf 'percentile method   : nearest-rank (ceil), deterministic. At n=2 the p50\n'
+printf '                      IS the minimum; read small-n cells as raw pairs.\n'
+printf 'transcripts unparsed: %s (jq errors)\n' "$JQ_BAD_FILES"
 hr
 
 echo
@@ -462,6 +683,8 @@ trow "  first opening in the session"     '$23==1'; echo
 trow "  opening was the 1st user prompt"  '$24=="session-start"'; echo
 hr
 trow "NON-SP PROJECTS (user-facing)"      '$7=="other"'; echo
+trow "  main command"                     '$7=="other" && $4=="main"'; echo
+trow "  :status recenter"                 '$7=="other" && $4=="status"'; echo
 trow "  green floor, fresh"               '$7=="other" && $8=="green" && $6=="fresh"'; echo
 trow "  green floor, fresh, main cmd"     '$7=="other" && $8=="green" && $6=="fresh" && $4=="main"'; echo
 trow "  green floor, fresh, :status"      '$7=="other" && $8=="green" && $6=="fresh" && $4=="status"'; echo
@@ -481,7 +704,26 @@ trow "UNCLASSIFIED FLOOR (no floor line)" '$8=="nofloor"'; echo
 hr
 
 echo
-echo "B. WALL-CLOCK SECONDS UNTIL THE OPENING ARRIVES"
+echo "A2. SUB-AGENT (Agent / Task) CALLS INSIDE THAT COUNT"
+echo "    One sub-agent call counts as one tool call however much work it hides,"
+echo "    so the total alone can be met by moving work into sub-agents rather"
+echo "    than removing it. Both the sub-agent count and the total minus"
+echo "    sub-agents are reported so that cannot happen unnoticed."
+printf '%-36s %5s %8s %8s %8s %8s\n' "metric" "n" "min" "median" "p90" "max"
+hr
+printf '%-36s %s' "tool calls TOTAL (non-SP)"         "$(statline 11 '$7=="other"' '%8d')"; echo
+printf '%-36s %s' "  of which sub-agent (non-SP)"     "$(statline 31 '$7=="other"' '%8d')"; echo
+printf '%-36s %s' "  total EXCL. sub-agent (non-SP)"  "$(statline 32 '$7=="other"' '%8d')"; echo
+printf '%-36s %s' "tool calls TOTAL (all)"            "$(statline 11 '1' '%8d')"; echo
+printf '%-36s %s' "  of which sub-agent (all)"        "$(statline 31 '1' '%8d')"; echo
+printf '%-36s %s' "  total EXCL. sub-agent (all)"     "$(statline 32 '1' '%8d')"; echo
+hr
+printf '%-52s %5s\n' "openings that dispatched at least one sub-agent" "$(count '$31+0 > 0')"
+printf '%-52s %5s\n' "  ...of those, in non-SP projects"               "$(count '$31+0 > 0 && $7=="other"')"
+hr
+
+echo
+echo "B. WALL-CLOCK SECONDS UNTIL CONTROL RETURNS"
 printf '%-36s %5s %8s %8s %8s %8s\n' "category" "n" "min" "median" "p90" "max"
 hr
 srow "ALL openings"                       '1' 15; echo
@@ -513,6 +755,33 @@ hr
 printf '%-52s %5s\n' "openings that ended in a briefing (text)" "$(count '$26=="text"')"
 printf '%-52s %5s\n' "openings that ended in a menu (AskUserQuestion)" "$(count '$26=="menu"')"
 printf '%-52s %5s\n' "openings that never arrived" "$(count '$26=="-"')"
+hr
+
+echo
+echo "C2. CONTROL RETURNED vs USER ACTUALLY BRIEFED"
+echo "    A menu returns control without telling the user anything. Splitting"
+echo "    the two endpoints is what makes render-before-ask measurable."
+hr
+printf '%-52s %5s\n' "openings where the briefing WAS the endpoint"  "$(count '$26=="text"')"
+printf '%-52s %5s\n' "BRIEFING ABSENT — control returned, nothing said" "$(count '$20=="ok" && $33+0 < 0')"
+printf '%-52s %5s\n' "  ...of those, in non-SP projects"             "$(count '$20=="ok" && $33+0 < 0 && $7=="other"')"
+printf '%-52s %5s\n' "  ...of those, ended at a menu"                "$(count '$26=="menu" && $33+0 < 0')"
+printf '%-52s %5s\n' "briefing landed AFTER control returned"        "$(count '$26=="menu" && $33+0 >= 0')"
+hr
+printf '%-36s %5s %8s %8s %8s %8s\n' "seconds from the command" "n" "min" "median" "p90" "max"
+hr
+srow "control returned (all)"              '1' 15; echo
+srow "briefing rendered (all)"             '1' 33; echo
+srow "control returned (non-SP)"           '$7=="other"' 15; echo
+srow "briefing rendered (non-SP)"          '$7=="other"' 33; echo
+hr
+echo "   paired per-opening gaps (NOT a subtraction of two medians):"
+printf '%-36s %5s %8s %8s %8s %8s\n' "gap" "n" "min" "median" "p90" "max"
+hr
+gaprow "first text -> briefing (all)"      '1' 33 14
+gaprow "first text -> briefing (non-SP)"   '$7=="other"' 33 14
+gaprow "first text -> control (all)"       '1' 15 14
+gaprow "first text -> control (non-SP)"    '$7=="other"' 15 14
 hr
 
 echo
@@ -567,7 +836,25 @@ printf '%-52s %5s\n' "openings with no floor line (unclassified floor)" "$(count
 printf '%-52s %5s\n' "  floor taken from an earlier line in the session" "$(count '$25=="prior"')"
 printf '%-52s %5s\n' "openings with unusable timestamps"                "$(count '$15+0 < 0 && $20=="ok"')"
 printf '%-52s %5s\n' "openings with no opening (excluded from A/B/C)"   "$(count '$20!="ok"')"
+printf '%-52s %5s\n' "duplicate fork copies removed (same opening UUID)" "$DEDUP_REMOVED"
+printf '%-52s %5s\n' "transcripts jq could not fully parse"             "$JQ_BAD_FILES"
+if [ "$JQ_BAD_FILES" -gt 0 ]; then
+  echo "   unparsed transcripts (event loss is possible in these):"
+  sed 's/^/     /' "$JQERRLOG"
+fi
 hr
+
+if [ "$DEDUP_REMOVED" -gt 0 ]; then
+  echo
+  echo "G2. DUPLICATE OPENING EVENTS REMOVED"
+  echo "    Same opening UUID in more than one transcript — one wait, not two."
+  hr
+  printf '%-38s %-38s %6s %s\n' "opening uuid" "transcript kept / dropped" "events" "kept"
+  LC_ALL=C sort -t"$(printf '\t')" -k28,28 -k29,29nr -k2,2 "$RAW" \
+    | awk -F'\t' '{ c[$28]++; row[$28 "" NR] = $28 "\t" $2 "\t" $29 "\t" (++o[$28] == 1 ? "KEPT" : "dropped"); ord[NR] = $28 "" NR }
+        END { for (i = 1; i <= NR; i++) { k = ord[i]; split(row[k], f, "\t"); if (c[f[1]] > 1) printf "%-38s %-38s %6s %s\n", f[1], f[2], f[3], f[4] } }'
+  hr
+fi
 
 echo
 echo "H. NON-CLEAN FLOOR — WHICH SIGNALS FIRED (non-SP projects)"
@@ -577,41 +864,91 @@ awk -F'\t' '$7=="other" && $8=="nonclean" { n = split($9, a, ","); for (i = 1; i
 hr
 
 # --- machine-comparable summary line ---------------------------------------
-SUMMARY=$(awk -F'\t' '
-  function rank(p, n,   i) { i = int((p * n + 99) / 100); if (i < 1) i = 1; if (i > n) i = n; return i }
-  $7 == "other" && $8 == "green" && $6 == "fresh" && $20 == "ok" { t[++nt] = $11 + 0; s[nt] = $15 + 0 }
-  END {
-    n = nt
-    if (n == 0) { print "0 - - - - -"; exit }
-    for (i = 1; i <= n; i++) for (j = i + 1; j <= n; j++) {
-      if (t[j] < t[i]) { x = t[i]; t[i] = t[j]; t[j] = x }
-      if (s[j] < s[i]) { y = s[i]; s[i] = s[j]; s[j] = y }
-    }
-    printf "%d %d %d %d %.1f %.1f\n", n, t[rank(50,n)], t[rank(90,n)], t[n], s[rank(50,n)], s[rank(90,n)]
-  }' "$RECORDS")
+#
+# The after-run prints the same line over its own cohort; diff them field by
+# field. Every field the v8.0 contract is judged on has to be here, or it gets
+# argued about from prose instead.
 
-ALLNONSP=$(awk -F'\t' '
-  function rank(p, n,   i) { i = int((p * n + 99) / 100); if (i < 1) i = 1; if (i > n) i = n; return i }
-  $7 == "other" && $20 == "ok" { t[++nt] = $11 + 0; s[nt] = $15 + 0 }
-  END {
-    n = nt
-    if (n == 0) { print "0 - - -"; exit }
-    for (i = 1; i <= n; i++) for (j = i + 1; j <= n; j++) {
-      if (t[j] < t[i]) { x = t[i]; t[i] = t[j]; t[j] = x }
-      if (s[j] < s[i]) { y = s[i]; s[i] = s[j]; s[j] = y }
-    }
-    printf "%d %d %d %.1f\n", n, t[rank(50,n)], t[rank(90,n)], s[rank(50,n)]
-  }' "$RECORDS")
+# "n p50 p90 max" for one column under one filter.
+pct() {   # $1=column  $2=awk filter  $3=printf fmt
+  awk -F'\t' -v col="$1" "$2 { v = \$col + 0; if (v >= 0) print v }" "$RECORDS" \
+  | LC_ALL=C sort -n \
+  | awk -v fmt="$3" '
+      function rank(p, n,   i) { i = int((p * n + 99) / 100); if (i < 1) i = 1; if (i > n) i = n; return i }
+      { v[NR] = $1 }
+      END {
+        if (NR == 0) { print "0 - - -"; exit }
+        printf "%d " fmt " " fmt " " fmt "\n", NR, v[rank(50,NR)], v[rank(90,NR)], v[NR]
+      }'
+}
 
-set -- $SUMMARY $ALLNONSP
+# "n p50 p90" for a paired per-opening difference.
+gappct() {   # $1=later column  $2=earlier column  $3=awk filter
+  awk -F'\t' -v a="$1" -v b="$2" "$3 { if (\$a + 0 >= 0 && \$b + 0 >= 0) print \$a - \$b }" "$RECORDS" \
+  | LC_ALL=C sort -n \
+  | awk '
+      function rank(p, n,   i) { i = int((p * n + 99) / 100); if (i < 1) i = 1; if (i > n) i = n; return i }
+      { v[NR] = $1 }
+      END {
+        if (NR == 0) { print "0 - -"; exit }
+        printf "%d %.1f %.1f\n", NR, v[rank(50,NR)], v[rank(90,NR)]
+      }'
+}
+
+set -- $(pct 11 '$7=="other" && $8=="green" && $6=="fresh"' '%d')
+GF_N=$1; GF_TP50=$2; GF_TP90=$3; GF_TMAX=$4
+set -- $(pct 15 '$7=="other" && $8=="green" && $6=="fresh"' '%.1f')
+GF_SP50=$2; GF_SP90=$3
+
+set -- $(pct 11 '$7=="other"' '%d')
+NS_N=$1; NS_TP50=$2; NS_TP90=$3; NS_TMAX=$4
+set -- $(pct 15 '$7=="other"' '%.1f')
+NS_SP50=$2; NS_SP90=$3
+
+set -- $(pct 11 '$7=="other" && $4=="main"' '%d')
+NSM_N=$1; NSM_TP50=$2; NSM_TP90=$3
+set -- $(pct 11 '$7=="other" && $4=="status"' '%d')
+NSS_N=$1; NSS_TP50=$2; NSS_TP90=$3
+
+set -- $(pct 31 '$7=="other"' '%d')
+NS_TASK_P50=$2; NS_TASK_MAX=$4
+set -- $(pct 32 '$7=="other"' '%d')
+NS_NOTASK_P50=$2; NS_NOTASK_P90=$3
+
+set -- $(gappct 33 14 '1')
+GAP_ALL_N=$1; GAP_ALL_P50=$2; GAP_ALL_P90=$3
+set -- $(gappct 33 14 '$7=="other"')
+GAP_NS_N=$1; GAP_NS_P50=$2; GAP_NS_P90=$3
+
+BRIEF_ABSENT=$(count '$20=="ok" && $33+0 < 0')
+BRIEF_PRESENT=$(count '$33+0 >= 0')
+SIGNAL_YES=$(count '$18=="yes"')
+TEXT_FIRST=$(count '$12+0 == 0')
+
+awk -F'\t' '{ print $1 "\t" $2 "\t" $3 "\t" $28 }' "$RECORDS" | LC_ALL=C sort -u > "$MANIFEST"
+MANIFEST_SHA=$(shasum -a 256 "$MANIFEST" 2>/dev/null | cut -c1-16)
+MANIFEST_SHA=${MANIFEST_SHA:--}
+
 echo
-printf 'SP-STARTUP-BASELINE openings=%s sessions=%s corpus_files=%s range=%s..%s green_fresh_nonsp_n=%s tools_p50=%s tools_p90=%s tools_max=%s secs_p50=%s secs_p90=%s all_nonsp_n=%s all_nonsp_tools_p50=%s all_nonsp_tools_p90=%s all_nonsp_secs_p50=%s\n' \
-  "$TOTAL_OPENINGS" "$SESSIONS" "$TOTAL_FILES" "$DATE_MIN" "$DATE_MAX" \
-  "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}"
+printf 'SP-STARTUP-BASELINE openings=%s sessions=%s corpus_files=%s range=%s..%s dedup_removed=%s' \
+  "$TOTAL_OPENINGS" "$SESSIONS" "$TOTAL_FILES" "$DATE_MIN" "$DATE_MAX" "$DEDUP_REMOVED"
+printf ' green_fresh_nonsp_n=%s tools_p50=%s tools_p90=%s tools_max=%s secs_p50=%s secs_p90=%s' \
+  "$GF_N" "$GF_TP50" "$GF_TP90" "$GF_TMAX" "$GF_SP50" "$GF_SP90"
+printf ' all_nonsp_n=%s all_nonsp_tools_p50=%s all_nonsp_tools_p90=%s all_nonsp_tools_max=%s all_nonsp_secs_p50=%s all_nonsp_secs_p90=%s' \
+  "$NS_N" "$NS_TP50" "$NS_TP90" "$NS_TMAX" "$NS_SP50" "$NS_SP90"
+printf ' nonsp_main_n=%s nonsp_main_tools_p50=%s nonsp_main_tools_p90=%s nonsp_status_n=%s nonsp_status_tools_p50=%s nonsp_status_tools_p90=%s' \
+  "$NSM_N" "$NSM_TP50" "$NSM_TP90" "$NSS_N" "$NSS_TP50" "$NSS_TP90"
+printf ' nonsp_task_calls_p50=%s nonsp_task_calls_max=%s nonsp_tools_extask_p50=%s nonsp_tools_extask_p90=%s' \
+  "$NS_TASK_P50" "$NS_TASK_MAX" "$NS_NOTASK_P50" "$NS_NOTASK_P90"
+printf ' briefing_present=%s briefing_absent=%s signal_line=%s/%s text_before_any_tool=%s/%s' \
+  "$BRIEF_PRESENT" "$BRIEF_ABSENT" "$SIGNAL_YES" "$TOTAL_OPENINGS" "$TEXT_FIRST" "$TOTAL_OPENINGS"
+printf ' paired_text_to_brief_n=%s paired_text_to_brief_p50=%s paired_text_to_brief_p90=%s' \
+  "$GAP_ALL_N" "$GAP_ALL_P50" "$GAP_ALL_P90"
+printf ' paired_text_to_brief_nonsp_n=%s paired_text_to_brief_nonsp_p50=%s paired_text_to_brief_nonsp_p90=%s' \
+  "$GAP_NS_N" "$GAP_NS_P50" "$GAP_NS_P90"
+printf ' jq_unparsed=%s manifest_sha=%s\n' "$JQ_BAD_FILES" "$MANIFEST_SHA"
 
-if [ -n "$RECORDS_OUT" ]; then cp "$RECORDS" "$RECORDS_OUT"; fi
-if [ -n "$MANIFEST_OUT" ]; then
-  awk -F'\t' '{ print $1 "\t" $2 "\t" $3 }' "$RECORDS" | LC_ALL=C sort -u > "$MANIFEST_OUT"
-fi
+if [ -n "$RECORDS_OUT" ];  then cp "$RECORDS" "$RECORDS_OUT"; fi
+if [ -n "$MANIFEST_OUT" ]; then cp "$MANIFEST" "$MANIFEST_OUT"; fi
 
 exit 0
