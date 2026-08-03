@@ -269,16 +269,24 @@ export EXP_DISPATCH EXP_HOLD EXP_WRONG LEAD_DISPATCH LEAD_HOLD LEAD_WRONG SCAN_R
 # --- Build the scan set. --------------------------------------------------
 # .backlog/ and .handoffs/ hold working notes, .prompts/ holds executor briefs
 # that quote broken labels on purpose while describing a fix, CHANGELOG.md is an
-# append-only history whose past entries must stay as written, and
+# append-only history whose past entries must stay as written,
 # tests/fixtures/dispatch-labels/ holds this lint's own self-test material —
-# text it is supposed to reject. When --root points INSIDE the fixture tree the
-# exclusion below matches nothing, which is what makes the self-test possible.
+# text it is supposed to reject — and .claude/worktrees/ holds full nested
+# repo checkouts (agent worktrees). The REASONS for every exclusion above apply
+# again inside each nested checkout, but the patterns themselves do not: they
+# are anchored at $SCAN_ROOT and do not re-base onto a worktree root. So a
+# nested copy re-presents the SAME self-test material the top-level exclusion
+# already carves out, and it lands as a false positive rather than real doc
+# drift. Excluding the worktree root is what makes the anchored patterns cover
+# those copies too. When --root points INSIDE the fixture tree the exclusions
+# below match nothing, which is what makes the self-test possible.
 FILE_LIST=$(find "$SCAN_ROOT" -name '*.md' -type f \
   ! -path "$SCAN_ROOT/.git/*" \
   ! -path "$SCAN_ROOT/.backlog/*" \
   ! -path "$SCAN_ROOT/.handoffs/*" \
   ! -path "$SCAN_ROOT/.prompts/*" \
   ! -path "$SCAN_ROOT/tests/fixtures/dispatch-labels/*" \
+  ! -path "$SCAN_ROOT/.claude/worktrees/*" \
   ! -path "$SCAN_ROOT/CHANGELOG.md" \
   | sort)
 

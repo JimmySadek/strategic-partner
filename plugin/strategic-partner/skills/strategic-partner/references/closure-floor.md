@@ -716,14 +716,14 @@ blocks until resolved.
 
 > "Source files have uncommitted edits that the SP doesn't commit
 > directly: `src/main.py` (12 lines changed), `src/utils.py`
-> (4 lines changed). Dispatch an executor to commit these with a
-> proposed message, defer to next session (handoff captures the
-> diff state), or revert and lose the changes?"
+> (4 lines changed). These can go to a specialist to commit with a
+> proposed message, wait for next session (the handoff captures the
+> diff state), or be reverted and lost. Which one?"
 >
 > Proposed commit message: `fix(utils): handle empty input edge case`
 >
 > Options:
-> - [Dispatch executor to commit now]
+> - [Have a specialist commit these now]
 > - [Defer to next session — diff captured in handoff]
 > - [Revert all source-file changes]
 

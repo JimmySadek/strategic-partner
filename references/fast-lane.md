@@ -93,6 +93,52 @@ This dispatch routing line supplements — it does not replace — the per-templ
 `[skill]` named there and the `<subagent_type>` named here are the same specialist for
 the task, written in each block's existing style.
 
+### 🧾 Confirmation menu (shared by both consent paths)
+
+Both consent paths below end in the same dispatch-confirmation `AskUserQuestion`. Only
+one part of it is fixed.
+
+**Frozen — the three option labels.** `hooks/guard-impl.sh` compares them character for
+character, so a reworded label blocks the very dispatch it was meant to authorize:
+
+- `[Dispatch now — <subagent_type>]`
+- `[Hold — let me review the brief first]`
+- `[Wrong agent — let me pick]`
+
+**Written fresh for the task — everything else:**
+
+- **One to three plain-English sentences ABOVE the menu**, naming what the specialist
+  will actually do and which files or areas it will touch. The user decides from these
+  sentences, not from the labels.
+- **The question text.** Nothing in this repo mandates it.
+- **The three option descriptions.** The guard does not read them — a description can
+  never authorize a dispatch — so they are free to say what happens to *this* task under
+  *this* option.
+
+Copying the descriptions from an example, or from the last time SP ran this menu, is
+exactly what made the menu arrive identical every time. Write them for the task in
+front of you.
+
+**How much each part actually varies — stated honestly, because overstating it produces
+ceremony.** The context sentences, the question text, and the dispatch description carry
+nearly all the per-task content; they are different every time and are the ones that go
+stale when copied. The hold and wrong-agent descriptions vary less, because those two
+options do structurally the same thing on every task. The rule for them is not
+"be different" — it is "say something true about THIS task": name this brief, name this
+task's alternative route. A description that would fit any task ever written is the
+template creeping back in.
+
+*Illustration only — not required strings, and not to be reused.* For a Tailwind
+spacing fix routed to `frontend-architect`, the description under the first option might
+read "changes the card padding in the two list components and commits it," and the
+second "shows you the two-component padding brief before anything runs." Note what the
+second one does: it still describes holding, which is what that option always does, but
+it names *this* brief rather than gesturing at "the brief".
+
+The "Wrong agent" option is the user's escape hatch if the route does not match their
+intent. If the fix itself is wrong, SP reopens alternatives before returning to the
+confirmation menu.
+
 ### Solution Ambiguity Gate
 
 The simplicity questions Q1-Q3 determine whether the SOLUTION is clear, not just
@@ -111,32 +157,30 @@ ANY of Q1/Q2/Q3 = YES? (design judgment, multiple implementations, uncertain req
 
 > **🎯 Routing**: `[skill]` — [why this skill fits]
 > **⚡ Fast Lane**: 5/5 — solution unambiguous (Q1/Q2/Q3 all NO)
-> **Position:** [specific fix] because [reason]
 
-`AskUserQuestion`:
-- `[Dispatch now — <subagent_type>]` — SP spawns this exact agent with this prompt and reviews the result inline
-- `[Hold — let me review the brief first]` — SP shows the prompt/fence path before any agent runs
-- `[Wrong agent — let me pick]` — SP reopens agent selection before dispatch
+A consent turn usually carries a `**Position:**` line as well, because SP is genuinely
+recommending one specific fix — but it carries one under the rule in SKILL.md
+§ Position First, not because this template holds a slot for it.
 
-The "Wrong agent" option is the user's escape hatch if the route does not match their
-intent. If the fix itself is wrong, SP reopens alternatives before returning to
-dispatch confirmation.
+`AskUserQuestion`: the shared **Confirmation menu** above — frozen labels, task-specific
+context sentences, question text, and descriptions.
 
 ### Two-Step Consent (ANY of Q1/Q2/Q3 = YES — solution ambiguous)
 
 > **🎯 Routing**: `[skill]` — [why this skill fits]
 > **⚡ Fast Lane**: 4/5 — solution has open questions (Q[N] = YES)
-> **Position:** "Solution [X] because [reason]" (mandatory, before options)
+
+The same Position rule applies here as in One-Step Consent above: SP states a
+`**Position:**` line when it is recommending one of the solutions, under SKILL.md
+§ Position First — never as a slot this template requires filling.
 
 **Step 1** — `AskUserQuestion` (solution):
 - `[Solution A — description]`
 - `[Solution B — description (Recommended)]`
 - `[Suggest something else]`
 
-**Step 2** — `AskUserQuestion` (delivery):
-- `[Dispatch now — <subagent_type>]` — SP spawns this exact agent with this prompt and reviews the result inline
-- `[Hold — let me review the brief first]` — SP shows the prompt/fence path before any agent runs
-- `[Wrong agent — let me pick]` — SP reopens agent selection before dispatch
+**Step 2** — `AskUserQuestion` (delivery): the shared **Confirmation menu** above —
+frozen labels, task-specific context sentences, question text, and descriptions.
 
 ---
 
@@ -221,34 +265,25 @@ every time — a summary is not evidence.
 - An agent failure does NOT mean "try the same thing in the user's session" —
   investigate why it failed before deciding the delivery mechanism
 
-**If the agent succeeded but the result has a small, correctable gap —
-only when `agent_teams_available` is true:**
+**If the agent succeeded but the result has a small, correctable gap:**
 
 The agent did the work and committed, but review found a minor miss: wrong
-commit convention, a skipped constraint, formatting drift. The original
-agent still holds warm context. When the experimental Agent Teams switch
-was detected at startup (see `references/startup-checklist.md` § Agent
-Teams Flag Detection), present:
+commit convention, a skipped constraint, formatting drift. SP does NOT open a
+second menu here. The whole accept / adjust / re-run decision belongs to the
+Acceptance Gate (SKILL.md § Acceptance Gate), whose
+`[Result needs adjustment — retry]` option carries both the same-agent
+correction path and the fresh-dispatch path, including the
+`agent_teams_available` conditional.
 
-`AskUserQuestion`:
-- `[Send correction to same agent]` — one-line fix to the warm agent; no context re-upload
-- `[Dispatch fresh]` — a new agent with an updated brief
-- `[Accept as-is]` — the gap is not worth correcting
-
-Before offering this, use the small-delta-vs-fresh routing table in
-§ SendMessage Correction Path to decide whether the gap actually counts as
-"small". Large delta or broken state → do not offer same-agent; route to
-fresh dispatch.
-
-**When `agent_teams_available` is false, this branch does not exist.**
-Post-dispatch review stays binary — accept the result or dispatch fresh,
-exactly as it works today — and nothing about SendMessage is mentioned to
-the user.
+Use the small-delta-vs-fresh routing table in § SendMessage Correction Path to
+decide whether the gap actually counts as "small". Large delta or broken state
+routes to a fresh brief regardless of whether the Agent Teams switch is on.
 
 **Anti-pattern:** Dispatching an agent and immediately moving on without reviewing.
 
-→ After review, return to the SKILL.md **Post-Dispatch Identity Recovery** protocol.
-  Say: "Dispatch complete. I am back in strategic-partner mode."
+→ After review, return to the SKILL.md **Post-Dispatch Identity Recovery** protocol,
+  which has SP say in plain English that the specialist has handed its work back and
+  that SP is advising again.
 
 ---
 
@@ -303,7 +338,8 @@ The rule: small delta → same agent; large delta or broken state → fresh.
 
 ### Wiring the correction
 
-On `[Send correction to same agent]`:
+On the same-agent route — the Acceptance Gate's `[Result needs adjustment — retry]`
+option when the gap is small and `agent_teams_available` is true:
 
 1. SP calls `SendMessage(to: storedAgentId, message: "Correction: <specific
    fix>")` — `storedAgentId` is the `agentId` captured at dispatch (see
