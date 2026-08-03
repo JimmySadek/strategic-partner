@@ -298,4 +298,4 @@ never be committed.
 |---|---|
 | `hooks-integration.md` | Hooks that feed data to this script |
 | `context-handoff.md` | Threshold strategy this script supports |
-| `startup-checklist.md` | Step 3 env var that sets the PreCompact trigger |
+| `startup-checklist.md` | Reference A, the autocompact env var this script supports |

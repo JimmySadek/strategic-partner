@@ -440,7 +440,7 @@ the file format and proactive triggers during normal advisory flow.
 
 | Reference | Relationship |
 |---|---|
-| `startup-checklist.md` | Step 5 context advisory on 1M-window sessions |
+| `startup-checklist.md` | Step 3 context advisory on 1M-window sessions |
 | `floor.md` | Floor sentinel protocol (SP-FLOOR-COMPLETE emitted at session and subcommand entry) |
 | `floor-signal-handling.md` | Per-pattern remediation for non-clean floor signals |
 | `hooks-integration.md` | Hook delivery rules (PreToolUse shipped; SessionStart incompatible; PreCompact user-owned) |

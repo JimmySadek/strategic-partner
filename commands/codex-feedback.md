@@ -29,8 +29,9 @@ this subcommand does NOT independently analyze the project.
 
 ### Step 1 — Availability Check
 
-The SP checks Codex CLI availability at session startup (inline, Step 1.5 of the
-startup checklist) via `which codex`.
+The startup-floor sentinel checks Codex CLI availability before the model takes
+the turn and reports it as `g1.codex` in its results file (see the opening
+checklist, Reference B). The opening does not re-run `which codex`.
 
 1. **If detected**: Set internal flag `codex_available = true`. The SP may offer
    review at trigger points via `AskUserQuestion`. No mention in orientation output.

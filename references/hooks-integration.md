@@ -172,7 +172,7 @@ on 2026-04-30 (see the "Skill-frontmatter hook gotchas" section below). Cold-sta
 verification is recommended before locking either way on SessionStart. For now,
 the SP's contribution to context-handoff timing on large-window sessions remains
 a pure **advisory note** delivered in orientation — see `startup-checklist.md`
-Step 5 "Context advisory" bullet and `context-handoff.md` § Environment Baseline.
+Step 3 "Context advisory" bullet and `context-handoff.md` § Environment Baseline.
 
 **Why it may not fire (lifecycle scope — pending re-verification)**: Per Anthropic's
 hooks documentation (https://code.claude.com/docs/en/hooks), hooks declared in a
@@ -225,7 +225,7 @@ may want to plan handoff timing accordingly. No settings are changed, no
 commands are run. The note is situational awareness; the SP's session-end
 detection and handoff protocol (SKILL.md § Continuity Stewardship) remain
 the mechanism that translates awareness into action. See
-`startup-checklist.md` Step 5 and `context-handoff.md` § Environment
+`startup-checklist.md` Step 3 and `context-handoff.md` § Environment
 Baseline for the exact copy and trigger conditions.
 
 **What the marker check misses**: unknown, and that is the accurate answer
@@ -701,7 +701,7 @@ All other hook types discussed in this file are either:
 
 | Reference | Relationship |
 |---|---|
-| `startup-checklist.md` | Step 5 context advisory + identity commands |
+| `startup-checklist.md` | Step 3 context advisory + identity commands |
 | `context-handoff.md` | Advisory framing for autocompact threshold (user-owned) |
 | `companion-script-spec.md` | Historical spec — deprecated in v5.9.0, retained for reference |
 | `orchestration-playbook.md` | Agent patterns that SubagentStart/Stop tracks |

@@ -1,8 +1,9 @@
-# 🚀 Startup Checklist (Internal)
+# 🚀 Opening Checklist (Internal)
 
-Reference file for the strategic-partner advisor. Full startup sequence with
-identity setup, environment configuration, and fire-and-verify agents.
-Do not display to user.
+Reference file for the strategic-partner advisor. This file is the **opening
+path**: what the user sees at session entry, in what order, and how few tool
+calls it costs. Detection mechanics and deferred agents sit below it as
+reference material, not as steps. Do not display to user.
 
 > **Floor sentinel protocol** — see `references/floor.md`. The floor's
 > UserPromptSubmit hook fires on every user prompt; the floor walk itself
@@ -10,22 +11,527 @@ Do not display to user.
 > and is documented separately. This file covers the broader startup
 > orientation that runs on the first invocation of `/strategic-partner` only.
 
+---
+
+## 🧭 The Opening Sequence
+
+The order below is the prescription, and it is the same in every entry form —
+the main `/strategic-partner` command (or its `/sp` and `/advisor` aliases),
+`/strategic-partner:status`, and a continuation that names a handoff note.
+Steps 1 to 3 always run. Steps 4 and 5 run only when the live state earns them.
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  SP Startup Flow                                                          │
+│  SP Opening Sequence                                                      │
 │                                                                           │
-│  Step 1            Step 2             Step 3             Step 4       │
-│  Checks      →  Read exact state  →  Verify truth  →  📋 Orient       │
-│  Self-repair      $ARGUMENTS          Project path       + Context     │
-│  Version ✓        Serena              Live Serena        advisory      │
-│  Target model     CLAUDE.md           Floor agreement                  │
-│  (inline)                                                               │
+│   Step 1        Step 2         Step 3        Step 4        Step 5        │
+│   📣 Signal  →  📥 One      →  📋 Render  →  🔍 Verify  →  🙋 Ask        │
+│      line        batch of       the           on demand      only for    │
+│                  reads          briefing                     a real      │
+│                                                              choice      │
+│                                                                           │
+│   0 calls       2-3 calls      0 calls       0-4 calls      0 calls      │
+│                                                                           │
+│   ▲ text        ▲ read the     ▲ the user    ▲ only rows    ▲ carries    │
+│     before        floor's        is briefed    the floor      a compact  │
+│     any tool      results        HERE, not     says need      context    │
+│     call          file           at the end    action         echo       │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
+**Three rules that hold in every entry form:**
+
+| Rule | What it means |
+|---|---|
+| 📣 **Signal first** | One visible line of text lands before the first tool call. No exceptions, no "when convenient." |
+| 📋 **Render before ask** | The briefing is a finished block in normal chat before any `AskUserQuestion`. A question is never the first thing the user sees. |
+| 🚫 **Never re-derive the floor** | Version, git state, project-rules size, routing freshness, memory presence, output style, backlog and findings counts were all computed before the model took the turn. SP reads the results file; SP does not re-run the checks. |
+
+**Budget.** On a typical project — where the floor is *non-clean*, meaning at
+least one signal such as a dirty working tree or a missing routing matrix is
+firing — the opening spends **at most nine tool calls** before control returns
+to the user. A row that would cost more than that renders ⏳ checking… and its
+deeper read waits until the user has the wheel.
+
+**No sub-agents.** The opening dispatches none. Moving opening work into a
+background agent would lower the tool count while the user waits exactly as
+long — that is relocation, not removal, and it is not the goal.
+
 ---
 
-## 🔧 Step 1: Environment Configuration (SP does not manage autocompact)
+## 📣 Step 1: Signal Line — Before Any Tool Call
+
+The first thing SP emits in an opening turn is one visible line of text, in
+normal chat, **before any tool call**. It names the project and what SP is
+about to do. A thinking block does not satisfy this rule — the user cannot
+read it.
+
+**Shape:** one sentence, roughly under 100 characters, one functional emoji.
+
+```
+📋 Reading the startup snapshot for `bam-ui` — briefing in a moment.
+📋 Picking up `auth-service` from the newest handoff note.
+📋 Recentering on `strategic-partner` — pulling current state now.
+```
+
+**Why unconditionally.** Across 71 measured openings, only 46 (64.8 %) emitted
+any text before their first tool call. Roughly one opening in three left the
+user watching tool activity with nothing said. The signal line costs zero tool
+calls and removes that state entirely.
+
+**Known harness hazard.** On Fable-5 sessions Claude Code can drop text emitted
+immediately before a tool call (upstream issue #75034). The signal line is
+therefore short and standalone, and the Step 3 briefing is a complete rendered
+block rather than a trickle of sentences between calls — so a swallowed line
+costs readability, never decision safety. Step 5 carries the same protection
+into the closing question.
+
+---
+
+## 📥 Step 2: One Parallel Read Batch
+
+Everything the briefing needs, issued as **one parallel tool-call group**.
+Sequential single probes — `git status`, then `git log`, then a directory
+listing, then another — are the pattern that produced a median of twelve tool
+calls before the user heard anything.
+
+### What the floor already knows
+
+The floor sentinel — the startup hook documented in `references/floor.md` —
+ran before the model took the turn. Its `SP-FLOOR-COMPLETE` line ends with
+`Full results: /tmp/sp-floor-<KEY>.txt`, and that file carries the per-group
+detail, not just the one-line summary:
+
+| Briefing row | Field in the results file | SP re-checks it? |
+|---|---|---|
+| 📁 Project rules (`CLAUDE.md`) | `g2.claude_md=present lines=N chars=M band=BAND` | No |
+| 📂 Path-scoped rules | `g2.rules_dir=present count=N` | No |
+| 🌿 Git | `g5.branch`, `g5.status`, `g5.last_commit` | No |
+| 🧠 Memory | `g3.serena_memories`, `g3.project_overview`, `g3.decision_log` | Presence, no. Contents are a Step 4 read. |
+| 🗺️ Routing freshness | `g7.routing` | No |
+| ⚡ Version | `g6.local`, `g6.remote`, `g6.diff` | No |
+| 🎭 Output style | `g8.output_style`, `g8.output_style_state` | No |
+| 📋 Backlog | `g4.backlog_count`, one `g4.backlog_item` line per item | No |
+| 📝 Findings | `g4.findings` | Count, no. Contents are a Step 4 read. |
+| 📥 Old-schema items | `g4.oldschema` | No |
+| 🔀 Review policy | `g2.review_policy` | No |
+| 🔧 Install state | `g1.commands_registered`, `g1.self_repair` | No |
+| 🤖 Model and window | `g1.model`, `g1.context_window` | No |
+| 🧰 Codex on PATH | `g1.codex` | No |
+
+Reading that one file replaces the inline probes the opening used to run. If
+the floor line is absent — a carved-out subcommand, or a hook that did not
+fire — SP says so plainly in the briefing and falls back to the Reference
+sections below. SP never renders a checked-looking row for a check that did
+not happen.
+
+### The batch
+
+**Round 1 — issue these together, in a single response:**
+
+1. Read `/tmp/sp-floor-<KEY>.txt`, using the path printed at the end of the
+   `SP-FLOOR-COMPLETE` line.
+2. List `.handoffs/*` — one listing covers continuation notes, findings files,
+   and the migration defer flag together.
+
+**Round 2 — only when Round 1 found a note worth opening:**
+
+3. Read the newest `.handoffs/` note.
+
+Continuation mode already knows the path, so its note is read in Round 1 and
+Round 2 disappears. Nothing else belongs before the briefing.
+
+### Continuation input
+
+```
+┌─ Continuation Check ─────────────────────────────────┐
+│  Does $ARGUMENTS name a .handoffs/ path?              │
+│  ├─ YES → read that file in Round 1                   │
+│  └─ NO  → the newest note (if any) is briefing input  │
+│                                                       │
+│  Mode itself follows SKILL.md § Mode Detection —      │
+│  this step only decides which file Round 1 opens.     │
+└───────────────────────────────────────────────────────┘
+```
+
+**When git genuinely is needed later** — after the opening, for work the floor
+snapshot cannot answer — run each command as its own parallel Bash call. Never
+chain them with `echo "---"` separators; see SKILL.md § Startup Hygiene Rules
+for why that pattern gets the call cancelled.
+
+**Note**: Use the cached matrix when the floor reports
+`routing=fresh hash=<short>`. Missing or stale routing never blocks the
+briefing. Deferred routing maintenance runs only later, after the four
+conditions in Reference C are satisfied.
+
+---
+
+## 📋 Step 3: Render the Briefing
+
+The briefing renders **here** — before any deeper verification, and before any
+`AskUserQuestion`. Render-before-ask is absolute: a menu with no briefing in
+front of it is a defect, not a shortcut. Nine of 71 measured openings returned
+control to the user with a bare menu and nothing else; this step is the rule
+that removes them.
+
+Render it as one complete block. Do not trickle it out in fragments between
+tool calls — on Fable-5 sessions the harness can drop a fragment emitted just
+before a call (upstream issue #75034), and a block loses at most its last line
+where a trickle loses its middle.
+
+Compile the Step 2 batch into the briefing. Every row below is already in
+the floor results file — rendering it costs no further tool call.
+
+**🔄 Continuation mode**: Summarize restored state, highlight what changed since
+last session, present next steps from handoff file.
+
+**🆕 Initialization mode**: Present project overview, available capabilities,
+and ask what the user wants to work on.
+
+### 📋 Visual rendering contract
+
+Three or more visible status signals require the compact table below. This is
+the orientation briefing, not a ceremonial menu: keep it to the signals that
+help the user understand the current session, then follow with at most three
+sentences of context. One or two signals may use a small status block instead.
+
+| Area | Status | What it means |
+|---|---|---|
+| 📁 Project | ✅ Exact checkout | `{project}` at the verified current path |
+| 🌿 Git | ✅ Clean / ⚠️ Dirty | `{branch}` with the real working-tree state |
+| 🧠 Serena | ✅ Ready / ⚠️ Setup choice | Exact project binding and memory state |
+| 🎭 Voice | ✅ Active / ⚠️ Not active | Current output style from the floor/runtime evidence |
+| ⚡ Version | ℹ️ Update available | Include only when the installed build is behind |
+
+Adapt the values to live evidence, omit rows that do not apply, and keep the
+project, Git, Serena, and voice rows whenever those four signals were checked.
+Do not flatten a multi-signal orientation into prose or a loose bullet list.
+Any real choice, such as Serena onboarding, appears after this useful table.
+
+**Include in orientation:**
+- ⚠️ Any agent warnings from an earlier confirmed dispatch (Reference D)
+- ❌ Staleness check results (if FAIL)
+- 🌿 Current branch and git state
+- 🗺️ Environment summary: skill count, agent count (with any scan errors
+  noted), active MCP servers. Source depends on the floor's routing signal:
+  - `routing=fresh hash=<short>` → counts read from the cached matrix's
+    `counts:` footer (Agent D was skipped, so use the existing matrix).
+  - `routing=stale ...` or `routing=missing` → use visible capabilities and
+    omit unavailable counts. Orientation never waits for maintenance.
+- 📌 **Output Style status row** (always visible): read `g8.output_style`
+  from the floor signal and render the permanent status row per
+  `references/floor-signal-handling.md` § Pattern: output_style. The
+  row reads `📌 Output Style: ✅ active` when `strategic-partner-voice`
+  is active, or `📌 Output Style: ⚠️ not active (current: <name>)` plus
+  a two-line activation hint when a different style is active or none
+  is set. Compare against the runtime `# Output Style:` header in the
+  model's own system prompt; if they disagree, append a brief
+  settings/runtime mismatch line beneath the row. See the pattern doc
+  for full reconciliation rules. (Backwards-compat fallback: if the
+  floor signal does not carry `g8.output_style` — older sentinel during
+  the transition — orientation falls back to a direct settings-file
+  read using the same precedence order. Remove the fallback after 1-2
+  release cycles past v6.3.) The "two-line activation hint" above is
+  this exact text — render it verbatim, do not improvise or invent a
+  command; the canonical activation path is `/config`:
+
+  ```
+  Activate: /config → Output Style → Strategic Partner Voice
+  Or: set outputStyle: strategic-partner-voice in ~/.claude/settings.json
+  ```
+- 🟡 **Voice style freshness row** (only when not fresh): read
+  `g8.output_style_state` from the floor signal. When it is `stale` or
+  `missing`, render a row beneath the Output Style row —
+  `🟡 Voice style ⚠️ Stale` (installed voice file behind the shipped
+  one; re-run `setup` to refresh) or `🟡 Voice style ⚠️ Missing` (no
+  installed voice file; run `setup` to install). When `fresh`, render
+  nothing extra. Informational only — no `AskUserQuestion`, no
+  dispatch; the remedy is a user-run `setup`. Full handling in
+  `references/floor-signal-handling.md` § Pattern: output_style_state.
+- ⚡ Update available (`g6.diff=behind` in the floor results): one-liner with version diff and update command
+- 💡 Plugin available (`g6.plugin=available`, shown once — see
+  `references/floor-signal-handling.md` § Pattern: plugin=available):
+  one-liner pointing to `/strategic-partner:try-plugin`. Render nothing for
+  `g6.plugin=installed` or `g6.plugin=shown`.
+- 🔧 **Context advisory** (1M-context sessions only): If the session is
+  detected as 1M-context (`g1.context_window=1m` in the floor results; see
+  Reference A for the marker rule and for what the marker cannot see),
+  display this informational note in orientation:
+  "📌 **1M context advisory:** Autocompact defaults to ~95% of your window
+  (~950K tokens), and known Anthropic issues (#34332, #42375, #43989)
+  cause erratic behavior above ~256K. For reliable retrieval and
+  clean handoffs, consider wrapping up or triggering handoff around 250K
+  tokens. The SP will prompt for handoff on session-end signals regardless;
+  this note is just situational awareness. No settings are changed."
+
+  On 200K-context sessions, skip this bullet entirely — the default ~95%
+  threshold is reasonable at that window size. The floor's transcript-based
+  model fallback feeds this advisory too — sessions whose model becomes known
+  only via the transcript now correctly receive it.
+- 🔌 **Serena not detected**: If Serena MCP is unavailable, display this block:
+
+> **Serena MCP is not detected.** The Strategic Partner works without it but operates
+> in degraded mode — losing cross-session memory, semantic code navigation, codebase
+> structure awareness, and convention tracking. These capabilities make advisory sessions
+> significantly more effective across projects and sessions.
+>
+> **Setup**: https://github.com/serena-ai/serena
+>
+> Serena is an investment that pays off across every project the SP touches.
+
+This is a **firm, one-time recommendation** — not a nag. Display once in orientation,
+then proceed normally in degraded mode.
+
+- 📋 **Backlog surfacing**: read the `g4.backlog_item` lines already in the
+  floor results file — each carries the item's name, status, and title, so no
+  `.backlog/` scan is needed here. Check each item's trigger against the state
+  the same file reports (git, version, findings). Surface items with met
+  triggers as callouts:
+  "🔔 **[Title]** — trigger met: [reason]." If none actionable: one-liner count
+  ("N backlog items parked, none actionable"). If `.backlog/` doesn't exist: skip
+  silently — say nothing.
+
+- 📝 **Session findings surfacing**: `g4.findings=N` in the floor results gives
+  the count, and the Step 2 `.handoffs/*` listing gives the filenames. When
+  N is 0, skip silently. When N is above 0, the briefing states the count and
+  the row renders ⏳ checking… until Step 4 opens the newest file and counts
+  unresolved items (entries under `## Issues` not listed under `## Promoted`),
+  then replaces the row with: "N unresolved findings from [date]. Promote any
+  to backlog, or continue — they carry forward."
+
+---
+
+## 🔍 Step 4: Verify on Demand
+
+Deeper checks run **after** the briefing has rendered, and only for rows the
+live state actually implicates. Three verification classes govern which path a
+row takes:
+
+| Class | Meaning | Cost at the opening |
+|---|---|---|
+| **A — floor-verified** | The sentinel already ran the check. Version, git, output style, project-rules band, routing freshness, review policy, install state, backlog and findings counts. | 0 calls — render straight from the results file |
+| **B — floor signal plus a real decision** | `memory=missing` may justify an onboarding choice; `commands_registered=no` may justify setup consent. A floor signal is evidence, never authority. | 0 calls — the ask belongs in Step 5 |
+| **C — floor signal plus a model tool call** | `memory=ok` needs `list_memories` and the contents of `project_overview` and the newest `decision_log` entries. `findings=N>0` needs the newest findings file opened. | 1-4 calls, after the briefing |
+
+**Honesty constraint (unchanged).** A Class B or Class C row may render ⏳
+checking… while its verification is in flight, and ❓ not verified when SP
+chooses to skip the deeper check. It may **never** render ✅ next to an
+in-row admission that the check did not happen — see the Dryness Ban List's
+contradictory-row pattern.
+
+**Skip rule.** A Class C row whose contents cannot change the user's next
+move — an untouched backlog on a session about something else, findings from
+a closed thread — renders its Class A count and stops there. Reading it
+anyway spends the user's wait on nothing.
+
+### Serena memory (Class C)
+
+**Survey Serena memories, read on demand**: Call `list_memories()` at
+startup to see what is available — this is fast and populates your
+awareness of persistent project knowledge. Then read memories ON
+DEMAND, not eagerly: when a specific decision or advisory question
+requires their content, read the relevant memory at that moment.
+
+**Auto-activate first if no project is active.** If a Serena call returns
+"No active project," SP does not stop and recover by hand. SP compares the
+current working directory's basename against the projects already registered
+with Serena:
+- **Basename matches a registered project** → SP calls `activate_project`
+  for that project, then proceeds with the survey. No prompt needed — this
+  is the common case (returning to a project Serena already knows).
+- **No basename match** → SP falls back to current behavior: surface the
+  registered-project list (or the onboarding route) and ask the user which
+  to use. SP never auto-runs onboarding here; only `activate_project` is
+  automatic.
+
+**Always read at startup** (high-value orientation context):
+- `project_overview` (what the project is, current state)
+- Most recent `decision_log` entries (recent commitments, context
+  for current session direction)
+
+**Read on demand** (content depends on the specific task):
+- `codebase_structure` — read when exploring architecture or routing
+  tasks to files
+- `code_style_and_conventions` — read when making recommendations
+  that touch conventions
+- `partner_profile` (if exists) — read once per session to
+  calibrate communication depth
+- Task or session memories from prior sessions — read when the
+  current task relates to prior work
+
+This deferred-read pattern preserves token economy for long sessions
+and matches the behavior of healthy SP sessions in practice. If a
+memory is clearly relevant to the conversation's active thread, read
+it. If not, wait until it is.
+
+### Findings and backlog (Class C)
+
+`g4.findings` and `g4.backlog_count` are Class A counts and render immediately.
+Opening a findings file, or checking a backlog item's trigger against project
+state, is the Class C follow-up — one read, after the briefing, and only when
+the count is above zero and the contents bear on the session.
+
+### Project-rules drift scan (Class C, SP's own repository only)
+
+This scan never runs before the briefing. It costs one Bash call, it looks only
+at SP's own `CLAUDE.md`, and it is skipped entirely on continuation sessions.
+
+- 🔍 **Context-file drift scan** (quiet-mode, fresh-session only): Run
+  the scanner non-interactively against the SP project's own
+  `CLAUDE.md` and surface a one-line summary ONLY for findings that
+  exceed exception coverage. Per `references/context-file-stewardship.md`,
+  startup only surfaces actionable drift:
+
+  **Trigger conditions:**
+  - Fresh `/strategic-partner` invocation (NOT continuation —
+    `SP_HANDOFF=0`).
+  - The `--no-scan-startup` env var is unset (escape hatch for the user).
+  - The `CLAUDE.md` exists in the SP project root.
+  - Only scans the SP project's own `CLAUDE.md` — never the project the
+    user is calling SP about.
+
+  **`SP_HANDOFF` definition (Codex finding #13):** the variable is
+  set to `1` ONLY when `/strategic-partner` is invoked with a
+  continuation path argument (a `.handoffs/`-prefixed path resolving
+  to an existing handoff note). Otherwise `SP_HANDOFF=0`. Set this
+  at the top of the slash command body before the orientation block:
+  ```bash
+  SP_HANDOFF=0
+  case " $ARGUMENTS " in
+    *" .handoffs/"*|*"  .handoffs/"*) SP_HANDOFF=1 ;;
+  esac
+  export SP_HANDOFF
+  ```
+
+  **Dispatch (inline, fast — sub-200ms typical):**
+
+  Codex finding #13: use `--release-gate` so the scanner applies
+  exception-aware coverage. The previous `--report-only` invocation
+  surfaced every finding regardless of whether `.scanner-exceptions.json`
+  already covered it, producing 25+ noise lines per session.
+
+  ```bash
+  if [ "${SP_HANDOFF:-0}" != "1" ] && [ -z "${NO_SCAN_STARTUP:-}" ]; then
+    SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
+    [ -n "$SP_ANY_CMD" ] || return 0
+    SP_SKILL_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
+    [ -f "${SP_SKILL_DIR}/CLAUDE.md" ] || return 0
+    SCAN_JSON=$(bash "${SP_SKILL_DIR}/.scripts/context-file-scan/scan.sh" \
+      --file "${SP_SKILL_DIR}/CLAUDE.md" --release-gate \
+      --serena-available "${has_serena_tools:-false}" \
+      --context7-available "${has_context7_tools:-false}" 2>/dev/null) || SCAN_JSON=""
+
+    # Filter session-acked fingerprints (Codex finding #13).
+    SESSION_UUID="${CLAUDE_SESSION_ID:-${SP_SESSION_UUID:-}}"
+    ACKS_FILE=""
+    if [ -n "$SESSION_UUID" ]; then
+      ACKS_FILE="${SP_SKILL_DIR}/.handoffs/.scan-acks-${SESSION_UUID}"
+    fi
+    if [ -n "$SCAN_JSON" ] && [ -n "$ACKS_FILE" ] && [ -f "$ACKS_FILE" ]; then
+      SCAN_JSON=$(echo "$SCAN_JSON" | jq --slurpfile acks <(jq -R . "$ACKS_FILE") '
+        ($acks | map(.) | flatten) as $a |
+        .findings |= map(select(.fingerprint as $fp | ($a | index($fp)) | not))'
+      )
+    fi
+  fi
+  ```
+
+  **Output template (per spec § 6.3):**
+  ```
+  🔍 CLAUDE.md scan: {summary_phrase}. {action_phrase}.
+  ```
+
+  Substitution rules use the post-coverage uncovered count
+  (`release_gate.coverage.uncovered_count`), NOT the raw findings
+  total:
+  - `summary_phrase`:
+    - 0 uncovered findings → entire bullet OMITTED (no value in
+      saying "nothing to report")
+    - 1+ uncovered, max severity warn → `{M} lines / {N}K chars,
+      {N} drift patterns detected`
+    - 1+ uncovered with any surface-loudly → `{M} lines / {N}K chars,
+      **{N} surface-loudly findings** + {N} other`
+  - `action_phrase`:
+    - 0 uncovered → omit the entire bullet entirely
+    - 1+ uncovered → `Run \`/strategic-partner:context-file-scan\`
+      for details`
+
+  **Ack-file write path (Codex finding #13):** when the user picks
+  `[Acknowledge — ...]` on a finding inside the slash-command's
+  `AskUserQuestion` flow, append the finding's fingerprint to
+  `.handoffs/.scan-acks-${SESSION_UUID}`. The next quiet-mode scan
+  in the same session filters those fingerprints out per the
+  dispatch above.
+
+  **Suppression rules (per spec § 6.4):**
+  - Scan errored (`SCAN_JSON` empty or jq parse fails) → log silently,
+    omit the bullet.
+  - 0 uncovered findings (after exception + ack filter) → omit.
+  - `NO_SCAN_STARTUP` env var set → skip the dispatch entirely.
+  - `SP_HANDOFF=1` (continuation session) → skip the dispatch entirely.
+
+  **Examples:**
+  - *(0 uncovered findings)* — bullet omitted entirely; orientation
+    continues without mentioning the scan.
+  - `🔍 CLAUDE.md scan: 185 lines / 18K chars, 3 drift patterns detected. Run /strategic-partner:context-file-scan for details.`
+  - `🔍 CLAUDE.md scan: 410 lines / 41K chars, **1 surface-loudly finding** + 4 other. Run /strategic-partner:context-file-scan for details.`
+
+---
+
+## 🙋 Step 5: Close the Opening
+
+**Termination.** Finish after the useful briefing when no decision belongs to
+the user. Use `AskUserQuestion` only for a concrete choice the live state
+surfaced — onboarding, setup, repair consent, dispatch, or genuinely different
+next moves. Never manufacture a startup menu to end orientation.
+
+**Context echo (required whenever a question closes the opening).** The
+question and its option labels repeat a compact echo of the briefing: the
+branch or goal, the live risk, and the recommended path. Claude Code can drop
+text emitted immediately before a tool call on Fable-5 sessions (upstream issue
+#75034), so the echo is what keeps the choice decidable even if the block above
+it never reaches the screen. Draw option labels from the live briefing, never
+from a generic menu.
+
+**Session setup recommendation** (include in orientation via `AskUserQuestion`):
+
+Suggest the user rename the session for meaningful `/resume` retrieval.
+This is a **user-only slash command** — the SP cannot execute it programmatically.
+
+```
+┌─ Recommended Session Setup ──────────────────────────────────────┐
+│                                                                   │
+│  /rename sp-init-MMDD  ← meaningful session name for /resume     │
+│                                                                   │
+│  💡 Present as a suggestion, not a claim of execution.           │
+│  💡 The user must run it — skills cannot invoke slash commands.  │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+As the session topic crystallizes (after 2-3 exchanges), suggest the user
+refine the name: `/rename sp-[topic]-MMDD` (e.g., `sp-auth-refactor-0316`).
+
+**Provider selection** (ask when the session topic involves implementation prompts):
+
+If the session will involve crafting implementation prompts (most SP sessions do),
+ask the user which model provider executors will target:
+
+> "Which provider will run your implementation sessions?"
+> Options: [Claude/Anthropic (Recommended)] [OpenAI/Codex] [Google/Gemini]
+
+Store the answer for the session. When crafting prompts, load the matching
+guide from `references/provider-guides/`. If the user doesn't know or says
+"mixed", default to Claude format (most structured, degrades gracefully).
+
+This question is asked ONCE per session, not per prompt.
+
+**Cross-model carve-out:** if `review_policy` is set or suspected, do not ask this
+provider-selection question during orientation. Ask the build/review direction at the
+first build transition instead, after hiding unavailable directions.
+
+---
+
+## 🔧 Reference A: Environment Configuration (SP does not manage autocompact)
 
 Autocompact is **user-controlled**. The env var `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`
 (https://code.claude.com/docs/en/env-vars.md) is read from the launching shell
@@ -51,13 +557,13 @@ What the SP **does** do:
   the set of such sessions is unknown rather than enumerated — settling it
   needs a real measurement, not an inference from the API catalog
 - On 1M-context sessions, surface an informational advisory in orientation
-  noting the ~256K retrieval reliability cliff — see Step 5 "Context advisory"
+  noting the ~256K retrieval reliability cliff — see Step 3 "Context advisory"
   bullet for the exact copy and trigger rules
 - Let the user decide what to do with that awareness — wrap up earlier,
   trigger a handoff sooner, or accept the risk on a given run
 
-The remaining Step 1 work is inline environment checks (self-repair, version,
-target-model detection) — see Step 1.5 below.
+The remaining environment detections (install state, version, target model)
+are read from the floor results file — see Reference B below.
 
 📎 See `context-handoff.md` § Environment Baseline for the advisory framing
 📎 See `hooks-integration.md` § 🚀 SessionStart for the lifecycle-incompatibility
@@ -65,7 +571,28 @@ target-model detection) — see Step 1.5 below.
 
 ---
 
-## 🔧 Step 1.5: Self-Repair Check
+## 🔧 Reference B: Inline Detections (not opening-path work)
+
+**None of the detections below is a tool call on the opening path.** Each one
+has a field in the floor results file that Step 2 already read; the detail here
+explains what the field means and what SP does with it. Re-running one of these
+checks during an opening is the exact re-derivation Step 2 exists to prevent.
+
+| Detection | Read this field instead |
+|---|---|
+| Install / command registration | `g1.commands_registered`, `g1.self_repair` |
+| Project rules size | `g2.claude_md` (`lines`, `chars`, `band`) |
+| Path-scoped rules | `g2.rules_dir` |
+| Serena memory presence | `g3.serena_memories`, `g3.project_overview`, `g3.decision_log` |
+| Active model and context window | `g1.model`, `g1.context_window` |
+| Codex CLI available | `g1.codex` |
+| Review policy | `g2.review_policy` |
+| Output style and its freshness | `g8.output_style`, `g8.output_style_state` |
+| Version comparison | `g6.local`, `g6.remote`, `g6.diff` |
+
+Two detections have no floor field and stay model-side, at zero tool cost: the
+Agent Teams environment flag, and the runtime `# Output Style:` header that only
+the model can see in its own system prompt.
 
 Before spawning agents, verify command registration is intact. This is a count-based
 inline Bash check (not an agent) — it runs in ~15ms when everything is in sync.
@@ -102,7 +629,7 @@ Quick checks run inline during startup. No agents needed — these are observati
    re-check. If activation is hidden in the single-project Claude context,
    route to the Serena steward instead of attaching a second server. On
    no basename match, SP surfaces the project list / onboarding path and asks.
-   Details in the Step 3 Serena survey below.
+   Details in the Step 4 Serena survey above.
 
 2. **.claude/rules/**: Check if `.claude/rules/` directory exists in the project.
    If it exists, note in orientation: "{N} path-scoped rule files found."
@@ -177,7 +704,7 @@ explicitly calls for a different setting than the default.
 Known Anthropic-side autocompact bugs on 1M-context sessions remain open
 (anthropics/claude-code#34332, #42375, #43989). If autocompact is
 observed firing at unexpectedly low context usage, those issues are the first
-place to look. The SP does not ship a calibrator for this; the Step 5
+place to look. The SP does not ship a calibrator for this; the Step 3
 "Context advisory" bullet surfaces the relevant situational awareness on
 1M-window sessions so the user can plan handoff timing accordingly.
 
@@ -294,7 +821,7 @@ This replaces Agent E entirely. No WebFetch, no ToolSearch, no background agent.
 
 ---
 
-## 🤖 Step 2: Spawn Background Agents (Fire-and-Verify)
+## 🤖 Reference C: Deferred Agents (never on the opening path)
 
 Spawn these agents **in parallel**. All agents are read-only and use
 `mode: "auto"`. Background agents **cannot prompt the user for permissions**,
@@ -316,13 +843,13 @@ Quick scan for major structural changes since last session.
 ### Agent C: Removed
 
 **Command registration** is handled by the `setup` script at install/update time,
-not at runtime. See `setup` in the skill root. The self-repair check in Step 1.5
-ensures commands are registered even if setup was never run manually.
+not at runtime. See `setup` in the skill root. The install state reported by the
+floor's `g1.self_repair` field (Reference B) shows whether that ever ran.
 
 ### Agent E: Removed
 
-**Version check** is handled inline in Step 1.5 via a single curl command.
-See the "Version Check (inline, not an agent)" section above.
+**Version check** is handled by the floor sentinel. Reference B names the
+fields; the opening never issues its own version request.
 
 ### Agent D: 🗺️ Deferred Routing-Matrix Maintenance (mode: "acceptEdits", USER-CONFIRMED ONLY)
 
@@ -379,7 +906,7 @@ Never restore that behavior.
 └────────────────────────────────────────────────────────────────┘
 ```
 
-**Step 5 detail — `inventory_hash` and canonical persistence:**
+**Persistence detail — `inventory_hash` and canonical location:**
 
 After steps 1-4 complete, Agent D MUST emit an `inventory_hash` field in
 the matrix footer. The floor sentinel (Group 7) reads this hash on the
@@ -494,71 +1021,7 @@ No cached matrix exists anywhere
 
 ---
 
-## 📖 Step 3: Read State (Parallel with Agents)
-
-While agents are running, read session context in parallel:
-
-```
-┌─ Continuation Check ─────────────────────────────────┐
-│  Does $ARGUMENTS contain a .handoffs/ path?           │
-│  ├─ YES → read handoff file, enter continuation mode  │
-│  └─ NO  → fresh session, enter initialization mode    │
-└───────────────────────────────────────────────────────┘
-```
-
-1. **Check for continuation**: `$ARGUMENTS` → `.handoffs/` path?
-2. **Survey Serena memories, read on demand**: Call `list_memories()` at
-   startup to see what is available — this is fast and populates your
-   awareness of persistent project knowledge. Then read memories ON
-   DEMAND, not eagerly: when a specific decision or advisory question
-   requires their content, read the relevant memory at that moment.
-
-   **Auto-activate first if no project is active.** If a Serena call returns
-   "No active project," SP does not stop and recover by hand. SP compares the
-   current working directory's basename against the projects already registered
-   with Serena:
-   - **Basename matches a registered project** → SP calls `activate_project`
-     for that project, then proceeds with the survey. No prompt needed — this
-     is the common case (returning to a project Serena already knows).
-   - **No basename match** → SP falls back to current behavior: surface the
-     registered-project list (or the onboarding route) and ask the user which
-     to use. SP never auto-runs onboarding here; only `activate_project` is
-     automatic.
-
-   **Always read at startup** (high-value orientation context):
-   - `project_overview` (what the project is, current state)
-   - Most recent `decision_log` entries (recent commitments, context
-     for current session direction)
-
-   **Read on demand** (content depends on the specific task):
-   - `codebase_structure` — read when exploring architecture or routing
-     tasks to files
-   - `code_style_and_conventions` — read when making recommendations
-     that touch conventions
-   - `partner_profile` (if exists) — read once per session to
-     calibrate communication depth
-   - Task or session memories from prior sessions — read when the
-     current task relates to prior work
-
-   This deferred-read pattern preserves token economy for long sessions
-   and matches the behavior of healthy SP sessions in practice. If a
-   memory is clearly relevant to the conversation's active thread, read
-   it. If not, wait until it is.
-3. **Read CLAUDE.md**: Check for project-level rules, conventions, guardrails
-
-4. **Git state**: Run `git status`, `git branch --show-current`, and
-   `git log --oneline -5` as **separate parallel Bash calls**. Never chain
-   git commands with `echo "---"` separators — this triggers Claude Code's
-   "quoted characters in flag names" safety warning.
-
-**Note**: Use the cached matrix when the floor reports
-`routing=fresh hash=<short>`. Missing or stale routing never blocks these state
-reads or orientation. Agent D runs only later, after the four conditions in
-its deferred-maintenance contract are satisfied.
-
----
-
-## ✅ Step 4: Verify Agent Results (Gate)
+## ✅ Reference D: Agent-Result Verification (after a confirmed dispatch)
 
 Before presenting orientation, verify only agents already dispatched for other
 independent work. Orientation never waits for Agent D. Verify Agent D only after
@@ -575,7 +1038,7 @@ a later confirmed maintenance dispatch.
 
 | Result | Action |
 |---|---|
-| ✅ `routing_status: "built"` (no errors) | Persist matrix per Step 5 detail (Serena memory if active, else `.claude/skill-routing-matrix.md`). Report: "N skills available, M agents detected. Routing matrix built." |
+| ✅ `routing_status: "built"` (no errors) | Persist matrix per the persistence detail in Reference C (Serena memory if active, else `.claude/skill-routing-matrix.md`). Report: "N skills available, M agents detected. Routing matrix built." |
 | ✅ `routing_status: "built"` (with errors) | Persist matrix, note gaps. Report: "N skills available, M agents detected (scan had issues — count may be incomplete)." |
 | ⚠️ `routing_status: "cached"` | Using cached matrix from canonical location. Report: "Using cached routing matrix (environment scan failed). N skills in cache." |
 | ❌ `routing_status: "fallback"` | No cache available. Report: "Limited routing — no cache available. Routing from system context only." |
@@ -589,270 +1052,12 @@ a later confirmed maintenance dispatch.
 | 🏗️ Architecture scan results | Incorporate into orientation context |
 | ⚠️ Agent timed out / failed | Note limitation in orientation, proceed without that data |
 
-### ⚡ Version Check Integration (from Step 1.5 inline check)
+### ⚡ Version Check Integration (from the floor's `g6.diff` field)
 
 | Result | Action |
 |---|---|
 | UP_TO_DATE or check failed silently | No mention to user |
 | UPDATE_AVAILABLE:{version} | Show in orientation: "⚡ v{remote} available (you have v{local}). Run `/strategic-partner:update`" |
-
----
-
-## 📋 Step 5: Present Orientation
-
-Compile results from Steps 3-4 into the orientation briefing.
-
-**🔄 Continuation mode**: Summarize restored state, highlight what changed since
-last session, present next steps from handoff file.
-
-**🆕 Initialization mode**: Present project overview, available capabilities,
-and ask what the user wants to work on.
-
-### 📋 Visual rendering contract
-
-Three or more visible status signals require the compact table below. This is
-the orientation briefing, not a ceremonial menu: keep it to the signals that
-help the user understand the current session, then follow with at most three
-sentences of context. One or two signals may use a small status block instead.
-
-| Area | Status | What it means |
-|---|---|---|
-| 📁 Project | ✅ Exact checkout | `{project}` at the verified current path |
-| 🌿 Git | ✅ Clean / ⚠️ Dirty | `{branch}` with the real working-tree state |
-| 🧠 Serena | ✅ Ready / ⚠️ Setup choice | Exact project binding and memory state |
-| 🎭 Voice | ✅ Active / ⚠️ Not active | Current output style from the floor/runtime evidence |
-| ⚡ Version | ℹ️ Update available | Include only when the installed build is behind |
-
-Adapt the values to live evidence, omit rows that do not apply, and keep the
-project, Git, Serena, and voice rows whenever those four signals were checked.
-Do not flatten a multi-signal orientation into prose or a loose bullet list.
-Any real choice, such as Serena onboarding, appears after this useful table.
-
-**Include in orientation:**
-- ⚠️ Any agent warnings from Step 4
-- ❌ Staleness check results (if FAIL)
-- 🌿 Current branch and git state
-- 🗺️ Environment summary: skill count, agent count (with any scan errors
-  noted), active MCP servers. Source depends on the floor's routing signal:
-  - `routing=fresh hash=<short>` → counts read from the cached matrix's
-    `counts:` footer (Agent D was skipped, so use the existing matrix).
-  - `routing=stale ...` or `routing=missing` → use visible capabilities and
-    omit unavailable counts. Orientation never waits for maintenance.
-- 📌 **Output Style status row** (always visible): read `g8.output_style`
-  from the floor signal and render the permanent status row per
-  `references/floor-signal-handling.md` § Pattern: output_style. The
-  row reads `📌 Output Style: ✅ active` when `strategic-partner-voice`
-  is active, or `📌 Output Style: ⚠️ not active (current: <name>)` plus
-  a two-line activation hint when a different style is active or none
-  is set. Compare against the runtime `# Output Style:` header in the
-  model's own system prompt; if they disagree, append a brief
-  settings/runtime mismatch line beneath the row. See the pattern doc
-  for full reconciliation rules. (Backwards-compat fallback: if the
-  floor signal does not carry `g8.output_style` — older sentinel during
-  the transition — orientation falls back to a direct settings-file
-  read using the same precedence order. Remove the fallback after 1-2
-  release cycles past v6.3.) The "two-line activation hint" above is
-  this exact text — render it verbatim, do not improvise or invent a
-  command; the canonical activation path is `/config`:
-
-  ```
-  Activate: /config → Output Style → Strategic Partner Voice
-  Or: set outputStyle: strategic-partner-voice in ~/.claude/settings.json
-  ```
-- 🟡 **Voice style freshness row** (only when not fresh): read
-  `g8.output_style_state` from the floor signal. When it is `stale` or
-  `missing`, render a row beneath the Output Style row —
-  `🟡 Voice style ⚠️ Stale` (installed voice file behind the shipped
-  one; re-run `setup` to refresh) or `🟡 Voice style ⚠️ Missing` (no
-  installed voice file; run `setup` to install). When `fresh`, render
-  nothing extra. Informational only — no `AskUserQuestion`, no
-  dispatch; the remedy is a user-run `setup`. Full handling in
-  `references/floor-signal-handling.md` § Pattern: output_style_state.
-- ⚡ Update available (from inline version check in Step 1.5): one-liner with version diff and update command
-- 💡 Plugin available (`g6.plugin=available`, shown once — see
-  `references/floor-signal-handling.md` § Pattern: plugin=available):
-  one-liner pointing to `/strategic-partner:try-plugin`. Render nothing for
-  `g6.plugin=installed` or `g6.plugin=shown`.
-- 🔧 **Context advisory** (1M-context sessions only): If the session is
-  detected as 1M-context (see Step 1 for the marker rule and for what the
-  marker cannot see), display this informational note in orientation:
-  "📌 **1M context advisory:** Autocompact defaults to ~95% of your window
-  (~950K tokens), and known Anthropic issues (#34332, #42375, #43989)
-  cause erratic behavior above ~256K. For reliable retrieval and
-  clean handoffs, consider wrapping up or triggering handoff around 250K
-  tokens. The SP will prompt for handoff on session-end signals regardless;
-  this note is just situational awareness. No settings are changed."
-
-  On 200K-context sessions, skip this bullet entirely — the default ~95%
-  threshold is reasonable at that window size. The floor's transcript-based
-  model fallback feeds this advisory too — sessions whose model becomes known
-  only via the transcript now correctly receive it.
-- 🔌 **Serena not detected**: If Serena MCP is unavailable, display this block:
-
-> **Serena MCP is not detected.** The Strategic Partner works without it but operates
-> in degraded mode — losing cross-session memory, semantic code navigation, codebase
-> structure awareness, and convention tracking. These capabilities make advisory sessions
-> significantly more effective across projects and sessions.
->
-> **Setup**: https://github.com/serena-ai/serena
->
-> Serena is an investment that pays off across every project the SP touches.
-
-This is a **firm, one-time recommendation** — not a nag. Display once in orientation,
-then proceed normally in degraded mode.
-
-- 📋 **Backlog surfacing**: Scan `.backlog/*.md` (Glob). If files exist: read
-  frontmatter, check each item's `trigger` against current state (git log, file
-  existence, version numbers). Surface items with met triggers as callouts:
-  "🔔 **[Title]** — trigger met: [reason]." If none actionable: one-liner count
-  ("N backlog items parked, none actionable"). If `.backlog/` doesn't exist: skip
-  silently — say nothing.
-
-- 📝 **Session findings surfacing**: Scan `.handoffs/findings-*.md` (Glob). If
-  files exist from a previous session: count unresolved items (entries in `## Issues`
-  not listed under `## Promoted`). Surface as: "N unresolved findings from [date].
-  Promote any to backlog, or continue — they carry forward."
-  If no findings files exist: skip silently.
-
-- 🔍 **Context-file drift scan** (quiet-mode, fresh-session only): Run
-  the scanner non-interactively against the SP project's own
-  `CLAUDE.md` and surface a one-line summary ONLY for findings that
-  exceed exception coverage. Per `references/context-file-stewardship.md`,
-  startup only surfaces actionable drift:
-
-  **Trigger conditions:**
-  - Fresh `/strategic-partner` invocation (NOT continuation —
-    `SP_HANDOFF=0`).
-  - The `--no-scan-startup` env var is unset (escape hatch for the user).
-  - The `CLAUDE.md` exists in the SP project root.
-  - Only scans the SP project's own `CLAUDE.md` — never the project the
-    user is calling SP about.
-
-  **`SP_HANDOFF` definition (Codex finding #13):** the variable is
-  set to `1` ONLY when `/strategic-partner` is invoked with a
-  continuation path argument (a `.handoffs/`-prefixed path resolving
-  to an existing handoff note). Otherwise `SP_HANDOFF=0`. Set this
-  at the top of the slash command body before the orientation block:
-  ```bash
-  SP_HANDOFF=0
-  case " $ARGUMENTS " in
-    *" .handoffs/"*|*"  .handoffs/"*) SP_HANDOFF=1 ;;
-  esac
-  export SP_HANDOFF
-  ```
-
-  **Dispatch (inline, fast — sub-200ms typical):**
-
-  Codex finding #13: use `--release-gate` so the scanner applies
-  exception-aware coverage. The previous `--report-only` invocation
-  surfaced every finding regardless of whether `.scanner-exceptions.json`
-  already covered it, producing 25+ noise lines per session.
-
-  ```bash
-  if [ "${SP_HANDOFF:-0}" != "1" ] && [ -z "${NO_SCAN_STARTUP:-}" ]; then
-    SP_ANY_CMD=$(ls "${HOME}/.claude/commands/strategic-partner/"*.md 2>/dev/null | head -1)
-    [ -n "$SP_ANY_CMD" ] || return 0
-    SP_SKILL_DIR=$(dirname "$(dirname "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$SP_ANY_CMD" 2>/dev/null)")")
-    [ -f "${SP_SKILL_DIR}/CLAUDE.md" ] || return 0
-    SCAN_JSON=$(bash "${SP_SKILL_DIR}/.scripts/context-file-scan/scan.sh" \
-      --file "${SP_SKILL_DIR}/CLAUDE.md" --release-gate \
-      --serena-available "${has_serena_tools:-false}" \
-      --context7-available "${has_context7_tools:-false}" 2>/dev/null) || SCAN_JSON=""
-
-    # Filter session-acked fingerprints (Codex finding #13).
-    SESSION_UUID="${CLAUDE_SESSION_ID:-${SP_SESSION_UUID:-}}"
-    ACKS_FILE=""
-    if [ -n "$SESSION_UUID" ]; then
-      ACKS_FILE="${SP_SKILL_DIR}/.handoffs/.scan-acks-${SESSION_UUID}"
-    fi
-    if [ -n "$SCAN_JSON" ] && [ -n "$ACKS_FILE" ] && [ -f "$ACKS_FILE" ]; then
-      SCAN_JSON=$(echo "$SCAN_JSON" | jq --slurpfile acks <(jq -R . "$ACKS_FILE") '
-        ($acks | map(.) | flatten) as $a |
-        .findings |= map(select(.fingerprint as $fp | ($a | index($fp)) | not))'
-      )
-    fi
-  fi
-  ```
-
-  **Output template (per spec § 6.3):**
-  ```
-  🔍 CLAUDE.md scan: {summary_phrase}. {action_phrase}.
-  ```
-
-  Substitution rules use the post-coverage uncovered count
-  (`release_gate.coverage.uncovered_count`), NOT the raw findings
-  total:
-  - `summary_phrase`:
-    - 0 uncovered findings → entire bullet OMITTED (no value in
-      saying "nothing to report")
-    - 1+ uncovered, max severity warn → `{M} lines / {N}K chars,
-      {N} drift patterns detected`
-    - 1+ uncovered with any surface-loudly → `{M} lines / {N}K chars,
-      **{N} surface-loudly findings** + {N} other`
-  - `action_phrase`:
-    - 0 uncovered → omit the entire bullet entirely
-    - 1+ uncovered → `Run \`/strategic-partner:context-file-scan\`
-      for details`
-
-  **Ack-file write path (Codex finding #13):** when the user picks
-  `[Acknowledge — ...]` on a finding inside the slash-command's
-  `AskUserQuestion` flow, append the finding's fingerprint to
-  `.handoffs/.scan-acks-${SESSION_UUID}`. The next quiet-mode scan
-  in the same session filters those fingerprints out per the
-  dispatch above.
-
-  **Suppression rules (per spec § 6.4):**
-  - Scan errored (`SCAN_JSON` empty or jq parse fails) → log silently,
-    omit the bullet.
-  - 0 uncovered findings (after exception + ack filter) → omit.
-  - `NO_SCAN_STARTUP` env var set → skip the dispatch entirely.
-  - `SP_HANDOFF=1` (continuation session) → skip the dispatch entirely.
-
-  **Examples:**
-  - *(0 uncovered findings)* — bullet omitted entirely; orientation
-    continues without mentioning the scan.
-  - `🔍 CLAUDE.md scan: 185 lines / 18K chars, 3 drift patterns detected. Run /strategic-partner:context-file-scan for details.`
-  - `🔍 CLAUDE.md scan: 410 lines / 41K chars, **1 surface-loudly finding** + 4 other. Run /strategic-partner:context-file-scan for details.`
-
-**Session setup recommendation** (include in orientation via `AskUserQuestion`):
-
-Suggest the user rename the session for meaningful `/resume` retrieval.
-This is a **user-only slash command** — the SP cannot execute it programmatically.
-
-```
-┌─ Recommended Session Setup ──────────────────────────────────────┐
-│                                                                   │
-│  /rename sp-init-MMDD  ← meaningful session name for /resume     │
-│                                                                   │
-│  💡 Present as a suggestion, not a claim of execution.           │
-│  💡 The user must run it — skills cannot invoke slash commands.  │
-└───────────────────────────────────────────────────────────────────┘
-```
-
-As the session topic crystallizes (after 2-3 exchanges), suggest the user
-refine the name: `/rename sp-[topic]-MMDD` (e.g., `sp-auth-refactor-0316`).
-
-**Termination:** Finish after the useful orientation when no decision belongs
-to the user. Use `AskUserQuestion` only for a concrete choice surfaced by the
-live state; never manufacture a startup menu.
-
-**Provider selection** (ask when the session topic involves implementation prompts):
-
-If the session will involve crafting implementation prompts (most SP sessions do),
-ask the user which model provider executors will target:
-
-> "Which provider will run your implementation sessions?"
-> Options: [Claude/Anthropic (Recommended)] [OpenAI/Codex] [Google/Gemini]
-
-Store the answer for the session. When crafting prompts, load the matching
-guide from `references/provider-guides/`. If the user doesn't know or says
-"mixed", default to Claude format (most structured, degrades gracefully).
-
-This question is asked ONCE per session, not per prompt.
-
-**Cross-model carve-out:** if `review_policy` is set or suspected, do not ask this
-provider-selection question during orientation. Ask the build/review direction at the
-first build transition instead, after hiding unavailable directions.
 
 ---
 
