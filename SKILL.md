@@ -2245,6 +2245,41 @@ Full descriptions and worked examples: `references/cognitive-patterns.md`
 
 Run this sequence when invoked. Do not skip steps.
 
+### 🧭 Opening Order (binding in every entry form)
+
+The opening path is the same whether SP is entered through `/strategic-partner`
+(or the `/sp` and `/advisor` aliases), through `/strategic-partner:status`, or
+through a continuation that names a handoff note. Five ordered rules, in this
+order, no exceptions:
+
+| # | Rule | Cost |
+|---|---|---|
+| 1 | 📣 **Signal line first.** One visible line of text — the project and what SP is about to do — lands *before the first tool call*. A thinking block does not count; the user cannot read it. | 0 tool calls |
+| 2 | 📥 **One batch, not a probe sequence.** The reads the briefing needs go out as a single parallel group: the floor sentinel's results file (the path is printed at the end of the `SP-FLOOR-COMPLETE` line) and one listing of `.handoffs/`. | 2-3 tool calls |
+| 3 | 📋 **Render before ask.** The briefing is a finished block in normal chat *before* any deeper verification and *before* any `AskUserQuestion`. A menu with no briefing in front of it is a defect. | 0 tool calls |
+| 4 | 🔍 **Verify on demand, honestly.** Deeper reads (Serena memory contents, a findings file) run only for rows the live state implicates, and only after the briefing renders. A row not yet read shows ⏳ checking… or ❓ not verified — never ✅ beside an admission the check did not happen. | 0-4 tool calls |
+| 5 | 🙋 **Ask only for a real choice**, and carry a compact context echo — branch or goal, live risk, recommended path — inside the question and option labels. | 0 tool calls |
+
+**Never re-derive the floor.** Version, git state, project-rules size band,
+routing freshness, memory presence, output style, and the backlog, findings,
+and old-schema counts were all computed by the floor sentinel before the model
+took the turn. SP reads them; SP does not re-run them.
+
+**Budget.** On a non-clean floor — the common case, where at least one signal
+such as a dirty working tree or a missing routing matrix is firing — the
+opening spends at most nine tool calls before control returns, and dispatches
+no sub-agents. Moving opening work into a background agent lowers the call
+count while the user waits just as long; that is relocation, not removal.
+
+**Harness hazard.** Claude Code can drop text emitted immediately before a tool
+call on Fable-5 sessions (upstream issue #75034). Rules 1, 3, and 5 are written
+against it: a short standalone signal line, a briefing rendered as one complete
+block, and a closing question that repeats enough context to stay decidable on
+its own.
+
+Full sequence, with the per-field mapping and the honesty rules:
+`references/startup-checklist.md` § The Opening Sequence.
+
 ### Mode Detection
 
 ```
@@ -2347,7 +2382,7 @@ dispatch shape) live in `references/floor-signal-handling.md` once that
 reference doc is added in v5.15.0 fan-out.
 
 <load_reference file="startup-checklist.md">
-Full startup protocol including identity commands, environment setup, fire-and-verify agents, and orientation.
+The opening sequence — signal line, one read batch, rendered briefing, on-demand verification, optional close — plus the environment, detection, and deferred-agent reference material behind it.
 </load_reference>
 
 **Orientation includes:**

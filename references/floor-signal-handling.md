@@ -16,6 +16,53 @@ the exact confirmation, the default is **Opus 5 (current GA)** with
 
 ---
 
+## 🔍 Verification Classes — what each field costs at the opening
+
+The sentinel writes its full per-group results to `/tmp/sp-floor-<KEY>.txt`,
+and prints that path at the end of the `SP-FLOOR-COMPLETE` line. **One read of
+that file supplies every Class A row below**, so the opening never re-runs a
+check the sentinel already ran.
+
+Three classes govern which verification path an orientation row takes:
+
+- **Class A — floor-verified.** The sentinel ran the underlying check before
+  the model took the turn. The row reflects the result. No tool call.
+- **Class B — floor signal plus a real decision.** The signal is evidence, not
+  authority. The row surfaces the state; any ask belongs at the close of the
+  opening, never in front of the briefing.
+- **Class C — floor signal plus a model tool call.** The row needs content the
+  hook cannot read (Serena memory bodies, the inside of a findings file). It
+  runs after the briefing has rendered.
+
+| Field | Class | What the opening does |
+|---|---|---|
+| `version` (`g6.local` / `g6.remote` / `g6.diff`) | A | Render from the results file |
+| `git` (`g5.branch` / `g5.status` / `g5.last_commit`) | A | Render from the results file |
+| `conventions` and `claudemd_band` (`g2.claude_md`) | A | Render from the results file |
+| `routing` (`g7.routing`) | A | Render from the results file |
+| `output_style`, `output_style_state` (`g8.*`) | A | Render from the results file; the model still compares its own runtime `# Output Style:` header |
+| `review_policy` (`g2.review_policy`) | A | Render from the results file |
+| `backlog` count plus the `g4.backlog_item` lines | A | Render from the results file |
+| `findings` count (`g4.findings`) | A | Render the count from the results file |
+| `oldschema` (`g4.oldschema`) | A | Render from the results file |
+| `memory=missing` | B | Surface the gap; the onboarding ask waits for the close |
+| `commands_registered=no` | B | Surface the install row; the setup ask waits for the close |
+| `memory=ok` | C | After the briefing: `list_memories`, then `project_overview` and the newest `decision_log` entries |
+| `findings=N>0` contents | C | After the briefing: open the newest findings file and count unresolved items |
+
+**Honesty constraint.** A Class B or Class C row may render ⏳ checking… while
+its verification is in flight, or ❓ not verified when SP skips the deeper
+check. It may never render ✅ beside an in-row admission that the check did not
+happen. The same three classes and the same constraint appear in the
+Orientation response template of the `strategic-partner-voice` output style.
+
+**Class C is optional; Class A is not.** A Class C read whose contents cannot
+change the user's next move is skipped, and the row says so. Class A rows cost
+nothing — the check already ran — so there is never a reason to leave one
+blank or to re-derive it.
+
+---
+
 ## Pattern: routing=missing or routing=stale
 
 **Trigger:** Floor sentinel emits one of:
@@ -69,8 +116,9 @@ the contents of these reference files:
 - references/skill-routing-matrix.md (canonical task categories +
   inventory_hash protocol — Initialization Step 6 has the exact hash
   inputs and shell shape)
-- references/startup-checklist.md § Step 5 detail (canonical persistence
-  rules: Serena memory if active, .claude/skill-routing-matrix.md if not)
+- references/startup-checklist.md § Reference C, "Persistence detail"
+  (canonical persistence rules: Serena memory if active,
+  .claude/skill-routing-matrix.md if not)
 - .claude/agents/ (project-level custom agents — directory may not exist)
 - ~/.claude/agents/ (user-level custom agents — directory may not exist)
 

@@ -35,7 +35,7 @@ strategic-partner/
     context-file-scan.md                # Read-only context-file stewardship scanner
     backlog.md                          # Backlog review — parked items with trigger evaluation
   references/
-    startup-checklist.md                # Identity commands, env vars, fire-and-verify agents
+    startup-checklist.md                # Opening sequence, env vars, deferred agents
     floor.md                            # Startup-floor sentinel protocol (7 groups, summary line, carve-out rules)
     floor-signal-handling.md            # Per-pattern remediation for non-clean floor signals (worked examples)
     closure-floor.md                    # Closure-floor protocol (8 groups, state machine, anti-patterns)
