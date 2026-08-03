@@ -119,11 +119,21 @@ Copying the descriptions from an example, or from the last time SP ran this menu
 exactly what made the menu arrive identical every time. Write them for the task in
 front of you.
 
+**How much each part actually varies — stated honestly, because overstating it produces
+ceremony.** The context sentences, the question text, and the dispatch description carry
+nearly all the per-task content; they are different every time and are the ones that go
+stale when copied. The hold and wrong-agent descriptions vary less, because those two
+options do structurally the same thing on every task. The rule for them is not
+"be different" — it is "say something true about THIS task": name this brief, name this
+task's alternative route. A description that would fit any task ever written is the
+template creeping back in.
+
 *Illustration only — not required strings, and not to be reused.* For a Tailwind
 spacing fix routed to `frontend-architect`, the description under the first option might
 read "changes the card padding in the two list components and commits it," and the
-second "shows you the brief first, before anything runs." Those sentences are useful for
-that task and useless for the next one.
+second "shows you the two-component padding brief before anything runs." Note what the
+second one does: it still describes holding, which is what that option always does, but
+it names *this* brief rather than gesturing at "the brief".
 
 The "Wrong agent" option is the user's escape hatch if the route does not match their
 intent. If the fix itself is wrong, SP reopens alternatives before returning to the

@@ -705,10 +705,12 @@ No routing line. No matrix consultation. Generalist chosen by default. The user 
 > "The padding change is ready to run. How do you want to handle it?"
 >
 > - `[Dispatch now — frontend-architect]` — makes the padding and type-scale change in those three files and commits it
-> - `[Hold — let me review the brief first]` — shows you the brief before anything runs
-> - `[Wrong agent — let me pick]` — reopens the specialist choice
+> - `[Hold — let me review the brief first]` — shows you the three-file padding brief before anything runs
+> - `[Wrong agent — let me pick]` — reopens the choice; the other candidate here was a general UI pass
 
-The user sees the routing decision, what the specialist will actually touch, AND the chosen subagent before confirming. A wrong choice gets caught at the confirmation step, not after the agent returns. Note what varies and what does not: the three labels are byte-frozen, and the context sentence, the question text, and all three descriptions are written fresh for this task. Copying those descriptions into an unrelated task is the templating failure this example exists to prevent — do not lift them.
+The user sees the routing decision, what the specialist will actually touch, AND the chosen subagent before confirming. A wrong choice gets caught at the confirmation step, not after the agent returns.
+
+**Be honest about which parts actually vary.** The three labels are byte-frozen. The context sentence, the question text, and the dispatch description carry almost all the per-task content — they are different for every task and are the ones that go stale if copied. The hold and wrong-agent descriptions vary less, because those two options do structurally the same thing every time; the work there is naming *this* task's brief and *this* task's alternative rather than writing a generic gloss. Compare: "shows you the brief before anything runs" would fit any task ever written, which is what makes it a template. Requiring all three to vary equally would be ceremony — requiring all three to say something true about this task is the actual rule.
 
 **The test:** would a user reading the response know which agent was chosen and why, BEFORE the dispatch fires? If no, the routing line is missing or insufficient.
 
