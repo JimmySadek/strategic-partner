@@ -108,14 +108,21 @@ fi
 # repository's directory vocabulary. These shapes are unambiguous paths:
 #   1. dot-prefixed first segment        .claude/rules
 #   2. explicit relative prefix          ./src/utils   ../packages/core
-#   3. chain with 2+ slashes             packages/core/utils   src/api/
-#      — only when a segment contains a letter. All-numeric chains are
-#      dates (2026/09/01), not path evidence.
-#   4. slash chain ending in file.ext    hooks/guard-impl.sh
-#   5. lettered segment + trailing /     the src/ directory
+#   3. absolute prefix                   /etc/passwd
+#      (a leading slash before a two-segment chain; word/word idioms
+#       never carry one)
+#   4. home prefix                       ~/src/utils
+#   5. chain with 2+ slashes             packages/core/utils   src/api/
+#      — only when a segment contains a letter. All-numeric chains
+#      WITHOUT a trailing slash (2026/09/01, 2026/09/01/02) are dates,
+#      not path evidence, however many segments they carry.
+#   6. slash chain ending in file.ext    hooks/guard-impl.sh
+#   7. lettered segment + trailing /     the src/ directory
 #      (a slash followed by punctuation or end is path notation, not an
-#       English idiom; digit-only segments like 2026/09/ stay exempt)
-#   6. backslash-separated segments      src\components\Button.tsx
+#       English idiom)
+#   8. numeric chain + trailing /        123/456/
+#      (the trailing separator disqualifies the date reading)
+#   9. backslash-separated segments      src\components\Button.tsx
 #      (no English idiom uses backslash between words)
 # Deliberately NOT matched: a single slash between bare words (and/or,
 # client/server, src/utils alone) — ambiguous English, allowed by design;
@@ -123,9 +130,12 @@ fi
 path_shape_hit() {
   printf '%s' "$1" | grep -qE '(^|[^a-z0-9.])\.[a-z0-9_-][a-z0-9_.-]*/' && return 0
   printf '%s' "$1" | grep -qE '(^|[^a-z0-9])\.\.?/[a-z0-9_.-]' && return 0
+  printf '%s' "$1" | grep -qE '(^|[^a-z0-9])/[a-z0-9_.-]+/[a-z0-9_.-]' && return 0
+  printf '%s' "$1" | grep -qE '(^|[^a-z0-9])~/[a-z0-9_.-]' && return 0
   printf '%s' "$1" | grep -oE '(^|[^a-z0-9])([a-z0-9_.-]+/){2,}[a-z0-9_.-]*' | grep -q '[a-z]' && return 0
   printf '%s' "$1" | grep -qE '(^|[^a-z0-9])([a-z0-9_.-]+/)+[a-z0-9_-]+\.[a-z0-9]+' && return 0
   printf '%s' "$1" | grep -qE '(^|[^a-z0-9])[a-z0-9_.-]*[a-z][a-z0-9_.-]*/([^a-z0-9]|$)' && return 0
+  printf '%s' "$1" | grep -qE '(^|[^a-z0-9])[0-9]+(/[0-9]+)+/([^a-z0-9]|$)' && return 0
   printf '%s' "$1" | grep -qE '(^|[^a-z0-9])[a-z0-9_.-]+(\\[a-z0-9_.-]+)+' && return 0
   return 1
 }
