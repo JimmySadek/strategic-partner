@@ -135,18 +135,30 @@ numbers, test counts, command names, and relative in-plugin paths
 not the client. Stripping them would gut the report's evidence, so
 over-stripping is treated as a filter bug, not a safety margin.
 
+One residue is known and owned by the next two steps: a long secret made
+only of lowercase letters, with no digits, is indistinguishable from an
+ordinary long word or a relative path, so the filter leaves it alone.
+That shape is exactly what the semantic pass's secret hunt and the
+preview scan below exist to catch.
+
 ### Step 4 — Semantic scrub (the judgment pass)
 
 One pass over the script's output for what a regex cannot know: client
 names, person names, organisation names, and any project-identifying
 strings the filter had no way to recognise. Replace each with a neutral
-placeholder — `[client]`, `[person]`, `[project]`. This pass replaces
-names; it does not reword anything else.
+placeholder — `[client]`, `[person]`, `[project]`. The same pass hunts
+for secrets: anything that looks like a credential, token, or key the
+filters missed — an opaque string, an odd word that reads like a
+passphrase — becomes `[secret]`; when in doubt, placeholder it. This
+pass replaces names and secrets; it does not reword anything else.
 
 ### Step 5 — Mandatory preview
 
 Render the EXACT final body in chat — the bytes that would be posted, not
-a summary of them. Then ask via AskUserQuestion:
+a summary of them. Ask the user to scan it for secrets and identifying
+strings before confirming — two automated passes ran, but the user is the
+only one who knows what counts as identifying in their world. Then ask
+via AskUserQuestion:
 
 - **File it** — post to the tracker exactly as previewed
 - **Edit it first** — take the user's edits, then repeat the scrubs and
@@ -165,9 +177,17 @@ Only after the user confirms "file it":
 
 ```bash
 gh issue create --repo JimmySadek/strategic-partner \
-  --title "{the one-line summary}" \
+  --title "{the reduced one-line summary}" \
   --body-file {temp file holding the exact previewed body}
 ```
+
+Before interpolating the title, reduce it to a safe character set:
+letters, digits, spaces, and `. , : ( ) -` — drop every other character.
+The rationale is transport, not politeness: the title is built from
+evidence text, and evidence text is untrusted — quotes, backticks, and
+`$()` must never reach the shell. The body needs no reduction for the
+same reason in reverse: it travels via `--body-file`, so its bytes go to
+GitHub as file content and never pass through shell interpolation.
 
 Print the issue URL that `gh` returns.
 
@@ -175,9 +195,11 @@ Print the issue URL that `gh` returns.
 
 If `gh` is not installed or not authenticated (`gh auth status` fails),
 write the sanitised, confirmed report to
-`.handoffs/issue-report-YYYYMMDD-HHMM.md` in the current project (create
-`.handoffs/` if it does not exist), print that path, and say the report is
-ready for manual filing at
+`.handoffs/issue-report-YYYYMMDD-HHMMSS.md` in the current project
+(create `.handoffs/` if it does not exist). Never overwrite an earlier
+report: if that filename already exists, append `-2`, then `-3`, and so
+on until the name is free. Print the path actually written, and say the
+report is ready for manual filing at
 https://github.com/JimmySadek/strategic-partner/issues.
 
 ## Boundaries
