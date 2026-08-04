@@ -3017,6 +3017,7 @@ Delegation rules, model selection, and parallelization templates.
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI; Codex reviewer step for cross-model build/review |
 | `/strategic-partner:context-file-scan` | Read-only drift scanner for context files per the stewardship policy |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work, and future improvements |
+| `/strategic-partner:report-issue` | Report a plugin bug — sanitised draft, mandatory preview, filed to SP's own tracker |
 
 ---
 
