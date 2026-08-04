@@ -18,10 +18,16 @@
 #   - The file-first-route check accepted one matching message anywhere in
 #     the file. It now runs per hard-block site: every block message that
 #     declares finality must itself name the working route.
-# A negative self-test at the bottom keeps both fixes honest: a deliberately
-# broken guard fixture (multiline block offering an override) must be caught
-# by the hardened logic, and must be shown invisible to the old line-based
-# logic.
+# Hardened again after the correction round demonstrated two more:
+#   - Single-quoted calls (block 'msg') were invisible — the call-site
+#     pattern required a double quote. Both quoting forms are recognized.
+#   - Two block calls on one physical line shared one per-line verdict, so
+#     the second call inherited the first one's route. The lint now fails
+#     closed on any line carrying more than one block call.
+# A negative self-test at the bottom keeps the fixes honest: a deliberately
+# broken guard fixture (multiline, single-quoted, and dual-call block
+# shapes) must be caught by the hardened logic, and must be shown invisible
+# to the old double-quote-only line-based logic.
 
 FAIL=0
 TMP=$(mktemp -d)
@@ -29,10 +35,11 @@ trap 'rm -rf "$TMP"' EXIT
 
 GUARDS="hooks/context-file-guard.sh plugin/strategic-partner/hooks/context-file-guard.sh"
 
-# A `block` / `warn` invocation on a joined line: after whitespace or `||`.
-# Joined lines carry a "NNN: " prefix, so line-start calls sit after a space.
-BLOCK_RE='(^|[[:space:]]|\|\|[[:space:]]*)block[[:space:]]+"'
-WARN_RE='(^|[[:space:]]|\|\|[[:space:]]*)warn[[:space:]]+"'
+# A `block` / `warn` invocation on a joined line: after whitespace or `||`,
+# with the message in either quoting form. Joined lines carry a "NNN: "
+# prefix, so line-start calls sit after a space.
+BLOCK_RE='(^|[[:space:]]|\|\|[[:space:]]*)block[[:space:]]+['\''"]'
+WARN_RE='(^|[[:space:]]|\|\|[[:space:]]*)warn[[:space:]]+['\''"]'
 
 # An override *offer*: the labelled prompt ("Override:" / "Override option:")
 # or the acknowledgement token that never reaches the gate. Matching the bare
@@ -80,6 +87,20 @@ check_guard() {
   fi
   if [ "$warn_count" -lt 2 ]; then
     echo "FAIL  $guard has $warn_count warn call sites, expected at least 2"
+    rc=1
+  fi
+
+  # 1a. Exactly one block call per line. Every remaining check judges a
+  # joined line as one call site; a second call on the same line would
+  # inherit the first one's verdicts. Fail closed instead of guessing.
+  multi_call=$(printf '%s\n' "$block_lines" | while IFS= read -r jline; do
+    [ -n "$jline" ] || continue
+    n=$(printf '%s\n' "$jline" | grep -oE "$BLOCK_RE" | grep -c . )
+    [ "$n" -gt 1 ] && printf '%s\n' "$jline"
+  done)
+  if [ -n "$multi_call" ]; then
+    echo "FAIL  $guard has multiple block calls on one line — the lint checks per line; split them:"
+    printf '%s\n' "$multi_call" | sed 's/^/        /'
     rc=1
   fi
 
@@ -143,9 +164,11 @@ fi
 
 # 5. Negative self-test. A deliberately broken guard: one honest single-line
 # hard block (so the OLD line-based logic sees a block site and passes), plus
-# the reviewer's multiline shape — a `block \` continuation whose message
-# declares finality, offers an override, and omits the working route. The
-# hardened logic must flag it; the old logic must be shown blind to it.
+# every demonstrated bypass shape — the reviewer's `block \` continuation
+# whose message declares finality, offers an override, and omits the working
+# route; a single-quoted call offering an override; and two block calls on
+# one physical line. The hardened logic must flag all three; the old
+# double-quote-only line-based logic must be shown blind to all of them.
 FIXTURE="$TMP/broken-guard.sh"
 cat > "$FIXTURE" <<'EOF'
 warn "stewardship gate soft path. Override: acknowledge to proceed. Receipt: x"
@@ -153,6 +176,8 @@ warn "second soft path. Override: acknowledge to proceed. Receipt: x"
 block "stewardship gate hard stop. This block is final — there is no override on this path. To land the change anyway, write it to a script under .scripts/ and hand the user one line to run it. Receipt: x"
 block \
   "second hard stop. This block is final — there is no override on this path. Override: acknowledge and resubmit"
+block 'third hard stop. Override: unreachable-single'
+true && block "dual hard stop A. This block is final — there is no override on this path. To land the change anyway, write it to a script under .scripts/ and hand the user one line to run it." || block "dual hard stop B. This block is final — there is no override on this path."
 EOF
 
 fixture_out=$(check_guard "$FIXTURE" 2>&1)
@@ -164,13 +189,29 @@ else
   printf '%s\n' "$fixture_out" | sed 's/^/        /'
   FAIL=1
 fi
+if printf '%s' "$fixture_out" | grep -q 'unreachable-single'; then
+  echo "PASS  self-test: hardened lint catches the single-quoted override-on-block fixture"
+else
+  echo "FAIL  self-test: hardened lint did not catch the single-quoted override-on-block fixture"
+  FAIL=1
+fi
+if printf '%s' "$fixture_out" | grep -q 'multiple block calls on one line'; then
+  echo "PASS  self-test: hardened lint rejects two block calls on one line"
+else
+  echo "FAIL  self-test: hardened lint did not reject two block calls on one line"
+  FAIL=1
+fi
 if printf '%s' "$fixture_out" | grep -q 'do not name the file-first handoff route'; then
   echo "PASS  self-test: hardened lint catches the hard-block site missing the route"
 else
   echo "FAIL  self-test: hardened lint did not catch the hard-block site missing the route"
   FAIL=1
 fi
-old_logic_hits=$(grep -E "$BLOCK_RE" "$FIXTURE" | grep -E "$OFFER_RE")
+# The pre-hardening detector: physical lines only, double-quoted calls only,
+# one route match anywhere in the file. It must see no offense in the
+# fixture — that blindness is what this self-test documents.
+OLD_BLOCK_RE='(^|[[:space:]]|\|\|[[:space:]]*)block[[:space:]]+"'
+old_logic_hits=$(grep -E "$OLD_BLOCK_RE" "$FIXTURE" | grep -E "$OFFER_RE")
 if [ -z "$old_logic_hits" ]; then
   echo "PASS  self-test: the old line-based logic is blind to the fixture (bug reproduced)"
 else
