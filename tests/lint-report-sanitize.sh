@@ -51,6 +51,12 @@ STRIP_INPUT=(
   "password: correct horse battery staple"
   "b64 with slash QmFzZTY0/U2VjcmV0VG9rZW4xMjM0NTY3 inline"
   "digit-free blob AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEf appeared"
+  "enc1 https://github.com/JimmySadek/strategic-partner%2Dclient/private hidden"
+  "enc2 https://github.com/anthropics%2Eprivate/client hidden"
+  "pre clientgithub.com/JimmySadek/strategic-partner/private hidden"
+  "sub client.github.com/JimmySadek/strategic-partner/private hidden"
+  "PaSsWoRd: correct horse battery staple"
+  "shout ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF here"
 )
 STRIP_GONE=(
   "/Users/jane"
@@ -75,6 +81,12 @@ STRIP_GONE=(
   "staple"
   "U2VjcmV0"
   "AbCdEfGhIj"
+  "%2Dclient"
+  "%2Eprivate"
+  "clientgithub.com"
+  "client.github.com"
+  "battery staple"
+  "ABCDEFGHIJ"
 )
 STRIP_WANT=(
   "[path]"
@@ -97,6 +109,12 @@ STRIP_WANT=(
   "[url]"
   "[path]"
   "[secret]"
+  "[secret]"
+  "[secret]"
+  "[url]"
+  "[url]"
+  "[url]"
+  "[url]"
   "[secret]"
   "[secret]"
 )
