@@ -47,6 +47,13 @@ not re-teach it.
 2. **Alternatives** — the A/B/C paths, their trade-offs, and the skip conditions. Lives
    in SKILL.md § Advisory Readiness Gate, checkpoint ② (Alternatives check). Present and
    resolve the path choice BEFORE routing.
+3. **Locked designs are re-read, never summarized from.** When the brief derives from a
+   multi-iteration locked design, re-read the locked design files directly at
+   brief-author time — summary lists (a `decision_log` digest, a handoff recap) are
+   convenient but lossy and routinely drop load-bearing items. A v5.15.0 fan-out brief
+   missed an entire 8-group closure floor this way (`claudedocs/INCIDENTS.md`
+   § INC-2026-05-01-A). Small mechanical briefs (single-file fixes, quick patches) are
+   out of scope.
 
 **Quality gate:** if the goal or the definition of done is still unresolved when you
 reach routing below, STOP and go back — a well-routed prompt for the wrong goal is
@@ -354,6 +361,20 @@ Do NOT in scope:
 - Avoid breaking things
 - Only change what's needed
 ```
+
+### Verification the user must run by hand — enumerate three outcomes
+
+When a brief's verification requires user-keyboard work the executor cannot drive
+(a separate terminal, a fresh Claude Code session, a manual `/exit` lifecycle),
+binary pass/fail framing silently loses the third state. Enumerate all three:
+
+1. All gates pass → ship.
+2. Any gate fails → defer, with the failure mode documented.
+3. The test could not run within the executor's scope → defer, with the scope
+   limit documented explicitly — "untested here" is a result, not a pass.
+
+A closure-floor brief once used "any gate fails → don't ship" framing that elided
+outcome 3 entirely (`claudedocs/INCIDENTS.md` § INC-2026-05-01-D).
 
 ### How to identify exclusions
 

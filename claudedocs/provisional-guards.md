@@ -2,7 +2,8 @@
 
 Bug-driven rules. Each guard names the pattern, the past incident that
 motivated it, and a date to revisit. See `claudedocs/INCIDENTS.md` for the
-underlying archaeology.
+underlying archaeology, and `claudedocs/guard-review-batches.md` for the
+review-batch records that dispose of guards when their dates come due.
 
 ### Floor signals describe state; they never grant write or dispatch authority
 
@@ -48,21 +49,7 @@ Instead: pair `AskUserQuestion.id` with the matching
 - **Source**: `claudedocs/INCIDENTS.md` § INC-2026-07-10 — an exact agent confirmation was rejected because five metadata rows appeared between the question and its matching answer.
 - **Review**: 2026-10-10.
 
-### Don't use `${CLAUDE_*}` env vars in hook commands
 
-Instead: inline the values, use deterministic path resolution, or grep `CHANGELOG.md` for prior incidents with the variable name before relying on it.
-
-- **Scope**: Hook commands in `SKILL.md` frontmatter and `hooks/` files — including `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_TOOL_NAME}`, and any other unverified `CLAUDE_*` variable.
-- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-03-30 — v5.4.0 → v5.4.1 hook breakage from two phantom env vars plus a permissive matcher.
-- **Review**: 2026-07-28.
-
-### Brief authors must re-read locked design files at brief-author time, not derived summaries
-
-Instead: when scoping a brief that derives from a multi-iteration locked design, re-read the locked design files directly — summary lists are convenient but lossy and routinely drop load-bearing items.
-
-- **Scope**: SP-authored executor briefs in `.prompts/[milestone]/[descriptor].md` that aggregate multiple components from a substantial locked design; small mechanical briefs (single-file fixes, quick patches) are out of scope.
-- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-01-A — v5.15.0 fan-out brief missed the 8-group closure floor because the author worked from a `decision_log` summary instead of re-reading the locked design.
-- **Review**: 2026-07-30.
 
 ### Deferred work needs durable artifacts (backlog item or reference doc), not just commit messages
 
@@ -70,7 +57,8 @@ Instead: when a release defers a planned feature, document it in BOTH (a) the re
 
 - **Scope**: Any explicit deferral within a release — design principles naming a v5.X+1 follow-up, Component rewrites that move work out of scope, "deferred to next release" notes in commit messages or CHANGELOG entries.
 - **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-01-B — v5.15.0 closure-floor brief deferred Stop rule 6 to v5.16.0 with no surface artifact, so the deferral was findable only by reading the original commit message.
-- **Review**: 2026-07-30.
+- **Fire record**: none counted. Batch-1 review (2026-08-04) found practice follows the spirit — deferrals do get backlog items and ledger entries — but only 1 of 45 backlog items carries the `trigger:` field this guard's letter mandates. That letter-vs-practice gap is the open question for the next review: tighten practice, or relax the rule to match it.
+- **Review**: 2026-11-04 (extended by batch 1; see `claudedocs/guard-review-batches.md`).
 
 ### Brief verification commands and prose specs in the same brief must agree
 
@@ -78,31 +66,11 @@ Instead: when a brief includes prose describing a structural element AND verific
 
 - **Scope**: Executor briefs in `.prompts/[milestone]/[descriptor].md` whose verification commands reference structures described in prose deliverables.
 - **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-01-C — closure-floor brief's Component 1 prose said "Steps 1-8" while its verification grep `^### Group [1-8] —` required no "Step" prefix; two specs in the same brief disagreed.
-- **Review**: 2026-07-30.
+- **Fire record**: 2 fires, 2026-08-03/04, both in the v8 de-template executor brief (`.prompts/v8-de-template/executor-brief-2026-08-03.md`): verification command 7 expected a non-zero grep count where the deliverable's correct outcome was zero, and verification command 6's path list omitted `references/`, a directory its own deliverable 4 named. Neither blocked the work — the executor caught and reported both — but both are exactly this class: two specs in one brief disagreeing. First counted entries for any guard.
+- **Review**: 2026-11-04 (extended by batch 1; see `claudedocs/guard-review-batches.md`).
 
-### Briefs with user-keyboard verification must enumerate three outcomes
 
-Instead: when a brief's verification requires user-keyboard work (separate terminal, fresh CC session, manual `/exit` lifecycle), enumerate three outcomes — (a) all gates pass → ship; (b) any gate fails → defer with documented failure mode; (c) test couldn't run within executor scope → defer with explicit scope-limit documentation.
 
-- **Scope**: Executor briefs whose verification depends on multi-process orchestration the agent cannot drive (separate terminals, fresh Claude Code sessions, manual lifecycle events).
-- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-01-D — closure-floor brief's Component 5 used binary "any gate fails → don't ship" framing that elided the "untested in this scope" third state.
-- **Review**: 2026-07-30.
-
-### Cross-file template token names must agree across all files in the same authored set
-
-Instead: when authoring multiple template/specification files in sequence (template + renderer command + reference specification), use literally identical token names across all files.
-
-- **Scope**: Multi-file authoring sessions where 2+ files share a templated token vocabulary — typically a template file in `assets/templates/`, a renderer command in `commands/`, and a reference spec in `references/`.
-- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-03-A — handoff template `[STATUS_EMOJI]` vs `commands/handoff.md` initial-draft `[STATE_EMOJI]` mismatch; one-word divergence, same renderer slot.
-- **Review**: 2026-08-01.
-
-### Routing matrix freshness is content-based (inventory hash), not time-based
-
-Instead: compare an `inventory_hash` field in the matrix footer (sha256 of sorted `~/.claude/agents/*.md` basenames + count, truncated to 16 hex chars) against a recomputed hash; both the floor sentinel and Agent D must compute from the same filesystem source so the hashes agree. Never use file mtime + a fixed time threshold — the inventory only changes when agents change, not on a fixed cadence.
-
-- **Scope**: SKILL.md frontmatter UserPromptSubmit hook Group 7; `references/floor.md` § Group 7; Agent D protocol in `references/startup-checklist.md` and `references/skill-routing-matrix.md`.
-- **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-03-B — mtime + 1-hour staleness check + permanent rebuild loop in BAM-MVP, plus a Codex-caught hash-source bug in the first v5.16.0 dispatch.
-- **Review**: 2026-08-01.
 
 ### User project files don't get SP-flavored framing
 
@@ -111,3 +79,20 @@ Instead: when SP evaluates, drafts, or rates a user project's `CLAUDE.md` / `AGE
 - **Scope**: SP advisory turns evaluating, rating, drafting, or auditing a user's `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` — and the scanner rule S9 in `.scripts/context-file-scan/rules/structural.sh` that mechanically detects the same pattern.
 - **Source**: `claudedocs/INCIDENTS.md` § INC-2026-05-06 — v6.0.1 BAM-MVP rating session scored "Strategic Partner Mode — ALWAYS ACTIVE" framing 9/10 as a strength when it was a policy violation; codified in v6.1.0 as scanner rule S9 plus this guard.
 - **Review**: 2026-08-06.
+
+---
+
+## Graduated and retired guards
+
+Entries leave the provisional list only through a recorded review batch
+(`claudedocs/guard-review-batches.md`). Inbound pointers — including the
+comment in the plugin's `hooks/entry.sh` — stay valid: the rule's current
+home is listed here.
+
+| Former guard | Disposition (batch 1, 2026-08-04) | Rule now lives |
+|---|---|---|
+| Don't use `${CLAUDE_*}` env vars in hook commands | Graduated — permanent project law, no recurrence in 4 months | `CLAUDE.md` § Project Facts (macOS bash 3.2 / hooks item) and § Provisional Guards preamble; release-process Step 2a item 5 |
+| Brief authors re-read locked designs, not summaries | Graduated — moved to where brief authors actually read | `references/prompt-crafting-guide.md` § Pre-craft prerequisites |
+| Briefs with user-keyboard verification enumerate three outcomes | Graduated — same destination, same reason | `references/prompt-crafting-guide.md` § NOT-in-Scope Sections (verification-outcomes note) |
+| Cross-file template token names must agree | Retired — one fire ever (2026-05-03), none since; situation rare | Archaeology only: `claudedocs/INCIDENTS.md` § INC-2026-05-03-A |
+| Routing-matrix freshness is content-based, never time-based | Graduated — absorbed into shipped implementation | `hooks/floor-check.sh` (the `inventory_hash` mechanism) and `references/floor.md` § Group 7; rationale in `claudedocs/INCIDENTS.md` § INC-2026-05-03-B |
