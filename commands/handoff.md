@@ -103,8 +103,8 @@ State logic:
     a duplicate server.
   - **(c) Fallback dispatch**: if the exact current project is not registered
     (or onboarding has not been done), surface DECISION via AUQ:
-    - [Run Serena onboarding now] — dispatch background Opus 5
-      agent to onboard this project
+    - [Run Serena onboarding now] — runs a background Opus 5
+      onboarding pass for this project
     - [Defer to next session with explicit acknowledgment] — note
       the gap in handoff body's Deferred Floor Signals section
     - [Investigate the unavailability further] — pause closure to

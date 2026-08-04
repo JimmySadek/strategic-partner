@@ -712,7 +712,14 @@ blocks until resolved.
   executor dispatch (handoff blocks until resolved or user
   explicitly defers)
 
-**AUQ when DIRTY fires:**
+**AUQ when DIRTY fires — two steps, matching `references/fast-lane.md`
+§ Solution Ambiguity Gate's Two-Step Consent shape.** The three-way choice
+below (commit / defer / revert) is a different decision from dispatch
+confirmation, so Step 1 is not itself gated by the frozen three labels —
+but if the user picks the commit path, a real specialist dispatch follows,
+and that step is.
+
+**Step 1 — what to do with the uncommitted edits:**
 
 > "Source files have uncommitted edits that the SP doesn't commit
 > directly: `src/main.py` (12 lines changed), `src/utils.py`
@@ -726,6 +733,14 @@ blocks until resolved.
 > - [Have a specialist commit these now]
 > - [Defer to next session — diff captured in handoff]
 > - [Revert all source-file changes]
+
+**Step 2 — only on "Have a specialist commit these now":** SP routes to a
+specialist per the normal routing rules, states the `**Routing:**` line, and
+presents the confirmation menu from `references/fast-lane.md` § Confirmation
+menu — the three frozen labels, with context sentences and descriptions
+written for this commit task, never skipped. Picking Step 1's first option
+is a delivery choice, not dispatch confirmation; it does not by itself
+authorize the specialist run.
 
 **Ledger row updated:** 🔀 Git.
 
