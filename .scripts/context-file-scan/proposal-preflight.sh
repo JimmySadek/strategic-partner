@@ -113,6 +113,32 @@ has_extraction_pointer=0
 if printf '%s' "$snippet_lc" | grep -qE '(\.claude/rules/|references/[a-z0-9_./-]+\.md|claudedocs/[a-z0-9_./-]+\.md|docs/[a-z0-9_./-]+\.md|commands/[a-z0-9_./-]+\.md)'; then
   has_extraction_pointer=1
 fi
+
+# Path-shape evidence in lowercased content. Anchored on shape, never on this
+# repository's directory vocabulary. These shapes are unambiguous paths:
+#   1. dot-prefixed first segment        .claude/rules
+#   2. explicit relative prefix          ./src/utils   ../packages/core
+#   3. chain with 2+ slashes             packages/core/utils   src/api/
+#      — only when a segment contains a letter. All-numeric chains are
+#      dates (2026/09/01), not path evidence.
+#   4. slash chain ending in file.ext    hooks/guard-impl.sh
+#   5. lettered segment + trailing /     the src/ directory
+#      (a slash followed by punctuation or end is path notation, not an
+#       English idiom; digit-only segments like 2026/09/ stay exempt)
+#   6. backslash-separated segments      src\components\Button.tsx
+#      (no English idiom uses backslash between words)
+# Deliberately NOT matched: a single slash between bare words (and/or,
+# client/server, src/utils alone) — ambiguous English, allowed by design;
+# and bare extension-bearing words with no separator (README.md, Node.js).
+path_shape_hit() {
+  printf '%s' "$1" | grep -qE '(^|[^a-z0-9.])\.[a-z0-9_-][a-z0-9_.-]*/' && return 0
+  printf '%s' "$1" | grep -qE '(^|[^a-z0-9])\.\.?/[a-z0-9_.-]' && return 0
+  printf '%s' "$1" | grep -oE '(^|[^a-z0-9])([a-z0-9_.-]+/){2,}[a-z0-9_.-]*' | grep -q '[a-z]' && return 0
+  printf '%s' "$1" | grep -qE '(^|[^a-z0-9])([a-z0-9_.-]+/)+[a-z0-9_-]+\.[a-z0-9]+' && return 0
+  printf '%s' "$1" | grep -qE '(^|[^a-z0-9])[a-z0-9_.-]*[a-z][a-z0-9_.-]*/([^a-z0-9]|$)' && return 0
+  printf '%s' "$1" | grep -qE '(^|[^a-z0-9])[a-z0-9_.-]+(\\[a-z0-9_.-]+)+' && return 0
+  return 1
+}
 destination="$target_rel"
 reason="snippet looks like a concise project-wide instruction"
 verdict="allow"
@@ -125,7 +151,7 @@ elif [ "$target_kind" = "root" ] && [ "$MODE" = "replacement" ] && [ "$target_li
   verdict="reject"
   destination="restore original or extraction-shaped replacement"
   reason="replacement deletes most existing root context without durable pointers"
-elif [ "$target_kind" = "root" ] && printf '%s' "$added_lc" | grep -qE '(^|[^a-z0-9])([a-z0-9_.-]+/)+([a-z0-9_-]+\.[a-z0-9]+)?([^a-z0-9]|$)'; then
+elif [ "$target_kind" = "root" ] && path_shape_hit "$added_lc"; then
   verdict="needs-extraction"
   destination=".claude/rules/"
   reason="snippet appears path-scoped or file-specific"
