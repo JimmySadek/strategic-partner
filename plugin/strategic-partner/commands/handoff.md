@@ -574,6 +574,13 @@ must understand what to do. Write it as if briefing a new expert
 collaborator. See `references/context-handoff.md` Step 4 for the
 recommended structure.
 
+**Before Step 13 displays the fence**, write this continuation prompt to
+`.handoffs/last-prompts/` per the Fenced Prompt Emission Protocol (SKILL.md):
+wipe stale entries — `mkdir -p .handoffs/last-prompts && find .handoffs/last-prompts -maxdepth 1 -name '*.md' -delete`
+— then write the full continuation prompt to `.handoffs/last-prompts/1.md`.
+This is what lets `/strategic-partner-plugin:copy-prompt` retrieve the
+continuation prompt instead of a stale implementation brief.
+
 ### Step 13 — Display Results
 
 Present in this exact format:

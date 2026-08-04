@@ -1005,7 +1005,7 @@ To determine which gate applies when ══ fences are present:
 1. Read content inside the ══ START / END markers.
 2. If the first non-empty line is a backtick code fence opener (three or more backticks, optionally with a language tag), descend into the wrapper — the command line is the first non-empty line INSIDE the wrapper. Otherwise the command line is the first non-empty line directly inside the ══ markers.
 3. Classify:
-   - `/strategic-partner [path-to-.handoffs-file]` → **Handoff continuation** → require Closure evidence ledger preceding.
+   - `/strategic-partner [path-to-.handoffs-file]` → **Handoff continuation** → require Closure evidence ledger preceding, and a write to `.handoffs/last-prompts/[N].md` earlier in the same turn.
    - An advisor alias (`/strategic-partner` with NO `.handoffs/` path, `/advisor`, or `/sp`) followed by an implementation body → **Advisor-as-launcher** → **VIOLATION**. Pasting it launches another advisor, which the guard bars from implementing, so nothing gets built. Emit a real implementation skill command on line 1, or — for a bare prompt — omit the command line entirely.
    - `/<any-other-skill-name>` followed by prompt body content → **Implementation prompt** → require 14-row Post-Craft Verification table + routing blockquote preceding, and a write to `.handoffs/last-prompts/[N].md` earlier in the same turn.
    - Empty or unrecognized command line → **Documentation / example** — skip gate.
