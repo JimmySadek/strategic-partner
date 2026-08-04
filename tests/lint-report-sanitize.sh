@@ -44,6 +44,13 @@ STRIP_INPUT=(
   "an aws id AKIAIOSFODNN7EXAMPLE was present"
   "session hash 0123456789abcdef0123456789abcdef appeared twice"
   "bearer QmFzZTY0U2VjcmV0VG9rZW4xMjM0NTY3ODkw sent along"
+  "lookalike github.com/JimmySadek/strategic-partner-client/private slipped before"
+  "lookalike github.com/anthropics-client/private slipped before"
+  "lookalike github.com/anthropics.private/client slipped before"
+  "spaced /Users/Jane Doe/Client Alpha/private.yml leaked its tail"
+  "password: correct horse battery staple"
+  "b64 with slash QmFzZTY0/U2VjcmV0VG9rZW4xMjM0NTY3 inline"
+  "digit-free blob AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEf appeared"
 )
 STRIP_GONE=(
   "/Users/jane"
@@ -61,6 +68,13 @@ STRIP_GONE=(
   "AKIAIOSFODNN7EXAMPLE"
   "0123456789abcdef0123456789abcdef"
   "QmFzZTY0"
+  "strategic-partner-client"
+  "anthropics-client"
+  "anthropics.private"
+  "Doe"
+  "staple"
+  "U2VjcmV0"
+  "AbCdEfGhIj"
 )
 STRIP_WANT=(
   "[path]"
@@ -78,6 +92,13 @@ STRIP_WANT=(
   "[secret]"
   "[secret]"
   "[secret]"
+  "[url]"
+  "[url]"
+  "[url]"
+  "[path]"
+  "[secret]"
+  "[secret]"
+  "[secret]"
 )
 
 # --- PRESERVE cases: the whole line must pass through byte-for-byte unchanged.
@@ -92,6 +113,9 @@ PRESERVE_INPUT=(
   "tracker https://github.com/JimmySadek/strategic-partner/issues/2 has the design"
   "see github.com/anthropics/claude-code for the upstream issue"
   "the command /strategic-partner:report-issue ran twice"
+  "docs at github.com/JimmySadek/strategic-partner cover the flow"
+  "see github.com/anthropics for the vendor account"
+  "the_report_sanitize_truth_table_suite ran clean"
 )
 
 # Runs the full table against one script. Sets SUITE_FAILS; prints PASS/FAIL
