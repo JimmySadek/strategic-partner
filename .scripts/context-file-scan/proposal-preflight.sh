@@ -125,7 +125,7 @@ elif [ "$target_kind" = "root" ] && [ "$MODE" = "replacement" ] && [ "$target_li
   verdict="reject"
   destination="restore original or extraction-shaped replacement"
   reason="replacement deletes most existing root context without durable pointers"
-elif [ "$target_kind" = "root" ] && printf '%s' "$added_lc" | grep -qE '(^|[^a-z0-9])([a-z0-9_-]+/)+[a-z0-9_.-]+|\.(tsx|ts|js|jsx|css|py|sh|md)([^a-z0-9]|$)'; then
+elif [ "$target_kind" = "root" ] && printf '%s' "$added_lc" | grep -qE '(^|[^a-z0-9])([a-z0-9_.-]+/)+([a-z0-9_-]+\.[a-z0-9]+)?([^a-z0-9]|$)'; then
   verdict="needs-extraction"
   destination=".claude/rules/"
   reason="snippet appears path-scoped or file-specific"
