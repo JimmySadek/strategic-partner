@@ -8,7 +8,7 @@ mcp-servers: []
 
 # /strategic-partner-plugin:codex-feedback — Codex Reviewer Check
 
-> Dispatch a curated brief to OpenAI Codex CLI for reviewer-side adversarial
+> Send a curated brief to OpenAI Codex CLI for reviewer-side adversarial
 > checking of SP decisions, evidence claims, or a cross-model build. This command
 > does not enable the project policy; to turn on or check that standing rule, see
 > SKILL.md § Cross-Model Build/Review Policy.
