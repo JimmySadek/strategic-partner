@@ -131,6 +131,31 @@ STRIP_WANT=(
   "[url]"
 )
 
+# --- EXACT cases: the WHOLE output line must equal the expectation, character
+# for character. Substring checks cannot express "no residue" — a mangled
+# "[path][url]nf" still contains "[path]" and still lacks the original path, so
+# it passes a strip row while leaking a fragment. These rows exist because the
+# rules interact: an absolute path whose last segment ends in an extension that
+# starts like a top-level domain (.conf, .config, .co) was being half-eaten by
+# the hostname rule, and the path rule's space-joined segment handling could
+# swallow a following hostname. One placeholder per shape, nothing left over.
+EXACT_INPUT=(
+  "/var/www/acme/site.conf"
+  "/etc/acme/app.config"
+  "/srv/x/app.co"
+  "/home/pat/My Project.dev/notes.md"
+  "trailing /srv/Acme/x.yml and internal-client.tech/admin both"
+  "mixed /srv/x and api.acme-corp.io/v2 together"
+)
+EXACT_WANT=(
+  "[path]"
+  "[path]"
+  "[path]"
+  "[path] [url]"
+  "trailing [path] and [url] both"
+  "mixed [path] and [url] together"
+)
+
 # --- PRESERVE cases: the whole line must pass through byte-for-byte unchanged.
 PRESERVE_INPUT=(
   "guard receipt 216a6fedf72a04db stayed stable"
@@ -149,6 +174,8 @@ PRESERVE_INPUT=(
   "upstream github.com/anthropics/claude-code/issues/7 stayed linkable"
   "tracker github.com/JimmySadek/strategic-partner/issues/2 stayed linkable"
   "the guard hooks/lib/floor-sentinel.sh line 42 fired first"
+  "the file nginx.conf was edited by hand"
+  "app.config and site.conf are ordinary filenames"
 )
 
 # Runs the full table against one script. Sets SUITE_FAILS; prints PASS/FAIL
@@ -174,6 +201,20 @@ run_suite() {
       echo "PASS  [$label] strip $want: $input"
     else
       echo "FAIL  [$label] expected '$gone' replaced by $want: $input"
+      echo "        got: $out"
+      SUITE_FAILS=$(( SUITE_FAILS + 1 ))
+    fi
+    i=$(( i + 1 ))
+  done
+
+  i=0
+  while [ "$i" -lt "${#EXACT_INPUT[@]}" ]; do
+    input="${EXACT_INPUT[$i]}"; want="${EXACT_WANT[$i]}"
+    out=$(printf '%s\n' "$input" | bash "$script")
+    if [ "$out" = "$want" ]; then
+      echo "PASS  [$label] exact: $input"
+    else
+      echo "FAIL  [$label] expected exactly '$want': $input"
       echo "        got: $out"
       SUITE_FAILS=$(( SUITE_FAILS + 1 ))
     fi

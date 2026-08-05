@@ -34,7 +34,11 @@
 #     including a bare dotted hostname followed by a slash-path under
 #     ANY top-level domain ("internal-client.tech/admin"), not just the
 #     common-TLD list; the slash-path is required there, so an ordinary
-#     dotted filename such as "guard-regression.sh" is not a hostname
+#     dotted filename such as "guard-regression.sh" is not a hostname.
+#     A bare common-TLD domain must END at the TLD (end of line, or a
+#     character that cannot extend a hostname), so "nginx.conf" and
+#     "app.config" are left alone instead of being half-eaten as
+#     "nginx.co" + residue "nf"
 #     EXCEPT github.com/JimmySadek/strategic-partner (the plugin
 #     tracker) and github.com/anthropics references. The allowlist is
 #     exact-match only: the host must be exactly github.com (start of
@@ -56,6 +60,32 @@
 #       indistinguishable from a long word or relative path — that
 #       residue is owned by the semantic pass and the preview, per the
 #       command file
+#
+# RULE ORDER IS LOAD-BEARING, and the reason is not obvious:
+#   1. Full URLs go first, so a scheme swallows its own host and path.
+#   2. Hostname-WITH-slash-path goes next, BEFORE the path rules. The
+#      path rules consume single-space-joined directory words as long as
+#      a further /segment follows, and prose can supply that shape — in
+#      "/srv/Acme/x.yml and internal-client.tech/admin" the words " and"
+#      and " internal-client.tech" are followed by "/admin", so an
+#      unbracketed hostname gets swallowed into [path] along with the
+#      prose between them. Bracketing hostnames first breaks that chain.
+#   3. The path rules run next, so an absolute path is consumed WHOLE —
+#      extension included. This is what keeps "/var/www/acme/site.conf"
+#      from being read as the domain "site.co" plus residue "nf", and
+#      "/srv/x/app.co" from becoming two placeholders.
+#   4. Bare domains (no slash-path) run LAST of the reference rules,
+#      end-of-line variant before the mid-line variant so a trailing
+#      "host.io/v2" is taken whole rather than leaving "/v2" behind.
+# A change that reorders these re-opens a residue class. The EXACT rows
+# in tests/lint-report-sanitize.sh assert whole-line output for exactly
+# this reason — a substring check cannot see residue.
+#
+# KNOWN BEHAVIOR (fail-toward-privacy, accepted): a directory name that
+# both contains a space and ends in a common-TLD-shaped extension —
+# "/home/pat/My Project.dev/notes.md" — yields two placeholders
+# ("[path] [url]") rather than one. Nothing identifying survives, so
+# this is cosmetic, not a leak.
 #
 # KNOWN BEHAVIOR (fail-toward-privacy, accepted): ANY word ending in a
 # secret keyword followed by : or = loses its line tail — for example
@@ -100,11 +130,13 @@ sed -E \
   -e 's#https?://[^@[:space:]]+\.git#[remote]#g' \
   -e 's#[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z][A-Za-z]+#[email]#g' \
   -e 's#https?://[^@[:space:]]+#[url]#g' \
-  -e 's#([A-Za-z0-9-]+\.)+(com|net|org|io|ai|dev|app|co|edu|gov)(/[^[:space:]]*)?#[url]#g' \
   -e 's#(^|[^A-Za-z0-9@._/-])([A-Za-z0-9-]+\.)+[A-Za-z]{2,24}/[^[:space:]]*#\1[url]#g' \
   -e 's#(/Users|/home|/opt|/mnt|/srv|/var|/tmp|/etc)(/[A-Za-z0-9._+-]+)*(([ ][A-Za-z0-9._+-]+){1,2}(/[A-Za-z0-9._+-]+)+)*/?#[path]#g' \
   -e 's#~(/[A-Za-z0-9._+-]+)+(([ ][A-Za-z0-9._+-]+){1,2}(/[A-Za-z0-9._+-]+)+)*/?#[path]#g' \
   -e 's#(^|[^A-Za-z0-9])[A-Za-z]:(\\[A-Za-z0-9._+-]+)+(([ ][A-Za-z0-9._+-]+){1,2}(\\[A-Za-z0-9._+-]+)+)*\\?#\1[path]#g' \
+  -e 's#([A-Za-z0-9-]+\.)+(com|net|org|io|ai|dev|app|co|edu|gov)(/[^[:space:]]*)?$#[url]#' \
+  -e 's#([A-Za-z0-9-]+\.)+(com|net|org|io|ai|dev|app|co|edu|gov)(/[^[:space:]]*)?([^A-Za-z0-9-])#[url]\4#g' \
+  -e 's#([A-Za-z0-9-]+\.)+[A-Za-z]{2,24}/[^[:space:]]*#[url]#g' \
   -e 's#(AKIA|ASIA)[0-9A-Z]{16}#[secret]#g' \
   -e 's#(([Tt][Oo][Kk][Ee][Nn]|[Kk][Ee][Yy]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd])[[:space:]]*[:=][[:space:]]*).*$#\1[secret]#' \
   -e 's#[0-9a-fA-F]{32,}#[secret]#g' \
