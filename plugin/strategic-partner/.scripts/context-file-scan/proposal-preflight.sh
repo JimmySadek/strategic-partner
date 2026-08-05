@@ -99,6 +99,16 @@ s10_count=$(echo "$scan_json" | jq '[.findings[] | select(.rule_id == "S10")] | 
 exception_label=$(echo "$scan_json" | jq -r '[.findings[].exception_label | select(type == "string" and test("^\\[Acknowledge .+\\]$"))][0] // ""')
 
 snippet_lc=$(tr 'A-Z' 'a-z' < "$SNIP_FILE")
+# Lowercased view of the content this proposal ADDS — the input the path-shape
+# rule below judges. In append mode every snippet line is new, so this is the
+# whole snippet and append verdicts are unchanged. In replacement mode only the
+# lines absent from the current target are new, which is what the runtime guard
+# reacts to (hooks/context-file-guard.sh builds an added-snippet the same way).
+# A replacement that adds no new path-bearing line therefore stays "allow".
+added_lc="$snippet_lc"
+if [ "$MODE" = "replacement" ] && [ -r "$TARGET" ]; then
+  added_lc=$(comm -13 <(sort "$TARGET") <(sort "$SNIP_FILE") | tr 'A-Z' 'a-z')
+fi
 has_extraction_pointer=0
 if printf '%s' "$snippet_lc" | grep -qE '(\.claude/rules/|references/[a-z0-9_./-]+\.md|claudedocs/[a-z0-9_./-]+\.md|docs/[a-z0-9_./-]+\.md|commands/[a-z0-9_./-]+\.md)'; then
   has_extraction_pointer=1
@@ -151,7 +161,7 @@ elif [ "$target_kind" = "root" ] && [ "$MODE" = "replacement" ] && [ "$target_li
   verdict="reject"
   destination="restore original or extraction-shaped replacement"
   reason="replacement deletes most existing root context without durable pointers"
-elif [ "$target_kind" = "root" ] && [ "$MODE" = "append" ] && path_shape_hit "$snippet_lc"; then
+elif [ "$target_kind" = "root" ] && path_shape_hit "$added_lc"; then
   verdict="needs-extraction"
   destination=".claude/rules/"
   reason="snippet appears path-scoped or file-specific"
@@ -166,7 +176,7 @@ elif [ "$target_kind" = "root" ] && [ "$MODE" = "append" ] && { [ "$target_lines
   destination="replacement or .claude/rules/"
   reason="target is already over the preferred CLAUDE.md size; prefer replacement or extraction over net append"
   exception_label="[Acknowledge — append here despite the size]"
-elif [ "$target_kind" = "root" ] && [ "$MODE" = "replacement" ] && { [ "$projected_lines" -gt 200 ] || [ "$projected_chars" -ge 24576 ]; } && { [ "$delta_lines" -ge 0 ] || [ "$delta_chars" -ge 0 ]; }; then
+elif [ "$target_kind" = "root" ] && [ "$MODE" = "replacement" ] && { [ "$projected_lines" -gt 200 ] || [ "$projected_chars" -ge 24576 ]; }; then
   verdict="needs-extraction"
   destination="replacement or extraction"
   reason="replacement keeps or worsens an oversized root context file; shrink it or extract detail"
