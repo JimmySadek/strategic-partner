@@ -131,6 +131,25 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    reports `answer_not_found_in_window`. Do not replace this replay with a list
    of metadata row names; the stable join is the matching tool-use ID.
 
+10. **Context-path heuristic truth table (v7.9.0+)**: whenever the
+    context-file proposal preflight changes, run the truth table that keeps
+    its path-shape branch honest — it must still fire on a snippet naming a
+    real repo-relative path and stay quiet on prose that merely contains a
+    slash or a bare file extension:
+    ```
+    bash tests/lint-context-path-heuristic.sh
+    ```
+    Exit 0 = clean. Exit 1 = a case flipped; address before proceeding.
+
+11. **Guard override-honesty lint (v7.9.0+)**: whenever the context-file
+    guard's messages change, run the check that no `block` path advertises an
+    override it cannot honor, and that the `warn` paths keep theirs:
+    ```
+    bash tests/lint-guard-override-honesty.sh
+    ```
+    Exit 0 = clean. Exit 1 = a message promises a route the guard will refuse;
+    correct the message before proceeding.
+
 **Why**: Hook bugs are session-breaking — exit-code-2 blocks on every tool call. See the Provisional Guard *Don't use `${CLAUDE_*}` env vars in hook commands* in `claudedocs/provisional-guards.md`; `claudedocs/INCIDENTS.md` has the v5.4.0→v5.4.1 archaeology. Layer 1 (the PreToolUse source-edit guard, predates v5.14.0) and Layer 3 (the release-time transcript lint) are the only enforcement layers in play; Layer 2 (a runtime PostToolUse / Stop validator family that was prototyped during v5.14.0) was pulled before release after the hook surface proved fragile, so the transcript lint is the sole post-execution backstop for the AUQ, tool-availability, and fence-write-coupling rules.
 
 ### 2b. Codex Pre-Release Review (Mandatory for non-docs-only pushes)
@@ -313,6 +332,28 @@ edit is exactly how this contract drifts: the two live drifts it was written for
 without touching a hook. `.backlog/`, `.handoffs/`, `.prompts/` and `CHANGELOG.md` are out
 of scope — working notes and executor briefs quote broken labels on purpose while
 describing a fix, and the changelog is append-only history.
+
+### 2g. Report-Scrubber and Opening-Parity Contracts (Mandatory for non-docs-only pushes)
+
+Two shipped contracts run on every non-docs-only push, for the same reason as
+Steps 2d–2f: neither is tied to a hook change, so folding them under Step 2a
+would silently skip them on most releases.
+
+```
+bash tests/lint-report-sanitize.sh
+bash tests/opening-parity-contract.sh
+```
+
+- **Report scrubber** — the truth table for `/report-issue`'s deterministic
+  filter, in both directions: every shape that must be stripped comes out
+  replaced, every shape that must survive comes out byte-for-byte. Both the
+  root and plugin copies are checked, so a mirror that drifted fails here.
+- **Opening parity** — the contract that the session opening and the `status`
+  recenter still prescribe the same order and brief from the same facts,
+  across both packagings.
+
+Exit 0 = clean. Exit 1 = a contract broke; address before proceeding. Same
+fail-closed posture as Step 2c.
 
 ### 3. Present to User (Mandatory Confirmation)
 
