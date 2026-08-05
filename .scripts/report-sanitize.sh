@@ -11,14 +11,30 @@
 # fails toward stripping more.
 #
 # STRIPPED (stable placeholders):
-#   absolute filesystem paths (/Users/..., /home/..., /opt/...)  -> [path]
-#     including paths whose directory names contain spaces: after a
+#   absolute filesystem paths                                    -> [path]
+#     Covered roots: /Users, /home, /opt, /mnt, /srv, /var, /tmp,
+#     /etc. The last four were added because a client-identifying
+#     subpath is just as likely to sit under a mount point, a served
+#     tree, a web root, a scratch dir, or a config dir as under a home
+#     directory (/mnt/d/clients/Acme/..., /srv/Acme/..., /var/www/acme,
+#     /etc/acme/config). Losing a bare "/tmp" mention to [path] is the
+#     accepted cost; relative in-plugin paths are untouched because
+#     they carry no leading root.
+#     Paths whose directory names contain spaces strip whole: after a
 #     path root, single-space-joined words are consumed (up to two per
 #     hop) as long as a further /segment follows, so
 #     "/Users/Jane Doe/Client Alpha/private.yml" strips whole
 #   home-relative paths (~/...)                                  -> [path]
+#   Windows drive-letter paths (C:\..., any letter)              -> [path]
+#     Same space-joined behavior as above, so "C:\Program
+#     Files\Acme\private.yml" strips whole rather than leaving the
+#     client-named tail behind
 #   email addresses                                              -> [email]
 #   URLs and bare domains                                        -> [url]
+#     including a bare dotted hostname followed by a slash-path under
+#     ANY top-level domain ("internal-client.tech/admin"), not just the
+#     common-TLD list; the slash-path is required there, so an ordinary
+#     dotted filename such as "guard-regression.sh" is not a hostname
 #     EXCEPT github.com/JimmySadek/strategic-partner (the plugin
 #     tracker) and github.com/anthropics references. The allowlist is
 #     exact-match only: the host must be exactly github.com (start of
@@ -85,8 +101,10 @@ sed -E \
   -e 's#[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z][A-Za-z]+#[email]#g' \
   -e 's#https?://[^@[:space:]]+#[url]#g' \
   -e 's#([A-Za-z0-9-]+\.)+(com|net|org|io|ai|dev|app|co|edu|gov)(/[^[:space:]]*)?#[url]#g' \
-  -e 's#(/Users|/home|/opt)(/[A-Za-z0-9._+-]+)*(([ ][A-Za-z0-9._+-]+){1,2}(/[A-Za-z0-9._+-]+)+)*/?#[path]#g' \
+  -e 's#(^|[^A-Za-z0-9@._/-])([A-Za-z0-9-]+\.)+[A-Za-z]{2,24}/[^[:space:]]*#\1[url]#g' \
+  -e 's#(/Users|/home|/opt|/mnt|/srv|/var|/tmp|/etc)(/[A-Za-z0-9._+-]+)*(([ ][A-Za-z0-9._+-]+){1,2}(/[A-Za-z0-9._+-]+)+)*/?#[path]#g' \
   -e 's#~(/[A-Za-z0-9._+-]+)+(([ ][A-Za-z0-9._+-]+){1,2}(/[A-Za-z0-9._+-]+)+)*/?#[path]#g' \
+  -e 's#(^|[^A-Za-z0-9])[A-Za-z]:(\\[A-Za-z0-9._+-]+)+(([ ][A-Za-z0-9._+-]+){1,2}(\\[A-Za-z0-9._+-]+)+)*\\?#\1[path]#g' \
   -e 's#(AKIA|ASIA)[0-9A-Z]{16}#[secret]#g' \
   -e 's#(([Tt][Oo][Kk][Ee][Nn]|[Kk][Ee][Yy]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd])[[:space:]]*[:=][[:space:]]*).*$#\1[secret]#' \
   -e 's#[0-9a-fA-F]{32,}#[secret]#g' \

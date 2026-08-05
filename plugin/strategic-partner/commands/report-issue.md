@@ -122,11 +122,15 @@ stdout. It replaces mechanical shapes with stable placeholders:
 
 | Stripped | Becomes |
 |---|---|
-| Absolute and home-relative filesystem paths | `[path]` |
+| Absolute filesystem paths — `/Users`, `/home`, `/opt`, `/mnt`, `/srv`, `/var`, `/tmp`, `/etc` | `[path]` |
+| Home-relative paths (`~/...`) and Windows drive-letter paths (`C:\...`) | `[path]` |
 | Email addresses | `[email]` |
-| URLs and bare domains (except the SP tracker and github.com/anthropics references) | `[url]` |
+| URLs and bare domains, including a hostname with a slash-path under any top-level domain (except the SP tracker and github.com/anthropics references) | `[url]` |
 | Git remote URLs (ssh and https forms) | `[remote]` |
 | Key ids, token/key/secret/password values, long hex or base64 runs | `[secret]` |
+
+Paths strip whole even when a directory name contains spaces, so a
+client-named tail is never left behind on either platform.
 
 It deliberately preserves short content-derived hashes and receipts
 (7-16 hex characters, like git short SHAs and guard receipts), version

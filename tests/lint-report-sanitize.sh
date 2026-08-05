@@ -57,6 +57,10 @@ STRIP_INPUT=(
   "sub client.github.com/JimmySadek/strategic-partner/private hidden"
   "PaSsWoRd: correct horse battery staple"
   "shout ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF here"
+  "mount /mnt/d/clients/Acme/private.yml leaked"
+  "served /srv/Acme/private.yml leaked"
+  "windows C:\Clients\Acme\private.yml leaked"
+  "bare internal-client.tech/admin surfaced"
 )
 STRIP_GONE=(
   "/Users/jane"
@@ -87,6 +91,10 @@ STRIP_GONE=(
   "client.github.com"
   "battery staple"
   "ABCDEFGHIJ"
+  "/mnt/d"
+  "/srv/Acme"
+  "Clients"
+  "internal-client.tech"
 )
 STRIP_WANT=(
   "[path]"
@@ -117,6 +125,10 @@ STRIP_WANT=(
   "[url]"
   "[secret]"
   "[secret]"
+  "[path]"
+  "[path]"
+  "[path]"
+  "[url]"
 )
 
 # --- PRESERVE cases: the whole line must pass through byte-for-byte unchanged.
@@ -134,6 +146,9 @@ PRESERVE_INPUT=(
   "docs at github.com/JimmySadek/strategic-partner cover the flow"
   "see github.com/anthropics for the vendor account"
   "the_report_sanitize_truth_table_suite ran clean"
+  "upstream github.com/anthropics/claude-code/issues/7 stayed linkable"
+  "tracker github.com/JimmySadek/strategic-partner/issues/2 stayed linkable"
+  "the guard hooks/lib/floor-sentinel.sh line 42 fired first"
 )
 
 # Runs the full table against one script. Sets SUITE_FAILS; prints PASS/FAIL
