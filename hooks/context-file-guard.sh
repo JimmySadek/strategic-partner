@@ -241,10 +241,7 @@ run_preflight() {
   [ -z "$s10_count" ] && s10_count=0
   LAST_PREFLIGHT_VERDICT="$verdict"
   if [ "$mode" = "replacement" ] && [ "${SIBLING_FASTPASS_FIRED:-0}" = "1" ] && [ "$verdict" != "allow" ]; then
-    if [ -n "$exception_label" ]; then
-      block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. Override option: ${exception_label}. Receipt: ${receipt}"
-    fi
-    block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. Receipt: ${receipt}"
+    block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. This block is final — there is no override on this path. To land the change anyway, write it to a script under .scripts/ and hand the user one line to run it (SKILL.md Script Emission Protocol, denial-loop clause). Receipt: ${receipt}"
   fi
   if [ "$verdict" = "needs-extraction" ] && [ "$mode" = "replacement" ]; then
     warn "context-file stewardship gate returned needs-extraction (${reason}). Safer destination: ${destination}. Override: ${exception_label:-document why this belongs here}. Receipt: ${receipt}"
@@ -259,10 +256,7 @@ run_preflight() {
         return 0
       fi
     fi
-    if [ -n "$exception_label" ]; then
-      block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. Override option: ${exception_label}. Receipt: ${receipt}"
-    fi
-    block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. Receipt: ${receipt}"
+    block "context-file stewardship gate returned ${verdict} (${reason}). Safer destination: ${destination}. This block is final — there is no override on this path. To land the change anyway, write it to a script under .scripts/ and hand the user one line to run it (SKILL.md Script Emission Protocol, denial-loop clause). Receipt: ${receipt}"
   fi
 }
 
