@@ -1,5 +1,87 @@
 # Changelog
 
+## [7.9.0] - 2026-08-05
+
+### Added
+
+- **A built-in way to report Strategic Partner bugs** (`/report-issue`) — when
+  something misbehaves, one command drafts the report from what just happened
+  in your session, scrubs it of private details in two passes (a deterministic
+  scrub covering absolute paths on macOS, Linux, WSL, and Windows shapes, then
+  a semantic sweep for names and secrets), and shows you a mandatory preview
+  before anything leaves your machine. You approve every report; nothing is
+  ever filed automatically. Filing goes to the plugin's own tracker; if the
+  GitHub tool is missing, logged out, or the filing itself fails, the report
+  is saved locally instead. The scrubber is pinned by a 56-case test table
+  run against both shipped copies — including exact whole-line checks that
+  prove a scrubbed path leaves no fragment behind — and the design went
+  through multiple rounds of independent cross-model review that caught and
+  fixed platform path shapes and a fragment-leaving bug the first versions
+  missed, while proving ordinary filenames like nginx.conf in plain prose
+  survive untouched.
+- **Every check the release procedure invokes now ships with the repository
+  and is wired into that procedure** — twelve check-scripts total: several
+  lived only on the maintainer's machine, and four shipped ones weren't yet
+  named by the procedure that depends on them. A fresh copy of the project
+  can now run the complete release gate.
+
+### Changed
+
+- **Sessions now open with the briefing, not machinery** — the first thing you
+  see is one line saying what Strategic Partner is doing, then a rendered
+  where-things-stand brief, and only then any question. Deeper checks run
+  after the briefing renders, and rows not yet verified say so honestly
+  instead of showing a green check. The change is contract-tested and its
+  startup cost was measured before and after.
+- **Confirmation menus are written for your task, not from a template** — the
+  context sentences and option descriptions in hand-off confirmations are
+  composed fresh per task; only the option wording the enforcing code matches
+  stays frozen. A duplicate follow-up menu was collapsed, and the bolded
+  recommendation marker now appears only when a real recommendation is being
+  made, not whenever a reply is long enough.
+- **Plain-English discipline widened** — the rule against internal
+  process-vocabulary now covers every block a user reads, not just advisory
+  chat, with one narrow sanctioned exception for the frozen confirmation
+  wording.
+- **The first scheduled review of temporary safety rules completed** — seven
+  bug-driven guard rules had come due: four graduated into permanent
+  guidance or code, two were extended with new review dates, one was
+  retired. The rulebook now reflects deliberate decisions instead of
+  accumulating forever.
+
+### Fixed
+
+- **Hard blocks no longer advertise an escape hatch that doesn't exist** —
+  when the context-file guard refuses an edit outright, it used to name an
+  override option that nothing actually honors. It now points to the path
+  that works, and a new check keeps the message honest.
+- **The context-file guard stops flagging ordinary sentences as file paths** —
+  prose like "rotate builds before archiving" could trip the path detector.
+  Detection now matches nine anchored path shapes, pinned by a 46-check
+  truth table, so real paths still block and plain English passes.
+- **Six broken release checks were repaired or removed** — one watched a file
+  that never existed (deleted), one was untracked and invisible to a fresh
+  clone (now shipped), the pre-check for rules-file edits disagreed with the
+  guard that actually enforces them (now agrees, in both install trees), and
+  the version-agreement check now reads every file a release bump touches,
+  including the changelog heading it previously skipped.
+- **Copying a continuation prompt after a handoff always gets the fresh one** —
+  the handoff's continuation prompt is now written to the saved-prompts
+  folder at the moment it's shown, so the copy command can never hand back a
+  stale brief from an earlier response.
+- **The plugin's help now lists the switch-back command** — the command for
+  returning from the plugin install to the skill install was missing from
+  the help's usage examples.
+- **The README was reworked for first-time readers** — it now describes the
+  current release (it was two releases stale), lists the new report
+  command, explains technical terms on first use, corrects an overstated
+  claim about how strictly executors follow instructions, and got about
+  forty lines shorter by removing repeated explanations.
+- **Assorted wording fixes in user-facing surfaces** — the cross-model review
+  command's description, the session-close commit menu, and the guard's
+  block messages all dropped internal vocabulary that meant nothing outside
+  the project.
+
 ## [7.8.0] - 2026-08-03
 
 ### Added
