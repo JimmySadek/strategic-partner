@@ -35,6 +35,7 @@ Key behaviors:
 | `/strategic-partner:codex-feedback` | Cross-model adversarial review via Codex CLI; also the Codex reviewer step for cross-model build/review |
 | `/strategic-partner:context-file-scan` | Detect drift in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` (18 patterns, interactive or report mode) |
 | `/strategic-partner:backlog` | View project backlog — parked ideas, deferred work |
+| `/strategic-partner:report-issue` | Report a plugin bug — sanitised draft, mandatory preview, filed to SP's own tracker |
 | `/strategic-partner:try-plugin` | Switch to the plugin install (leaner voice, faster startup) |
 
 ## Usage
@@ -51,6 +52,7 @@ Key behaviors:
 /strategic-partner:codex-feedback           → Trigger Codex review of a decision, claim, or cross-model build
 /strategic-partner:context-file-scan         → Scan CLAUDE.md / AGENTS.md / GEMINI.md for drift
 /strategic-partner:backlog                  → Surface and review parked backlog items
+/strategic-partner:report-issue             → Report a plugin bug (sanitised, previewed, never auto-posted)
 /strategic-partner:try-plugin               → Switch your active install to the plugin
 ```
 
