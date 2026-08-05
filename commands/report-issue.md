@@ -195,10 +195,22 @@ GitHub as file content and never pass through shell interpolation.
 
 Print the issue URL that `gh` returns.
 
-### Step 7 — Fallback when gh is unavailable
+If `gh issue create` itself fails — a network error, an API error, or any
+non-zero exit even though `gh` is installed and authenticated — do not
+retry silently and do not discard the confirmed report. Fall through to
+Step 7: save it locally, and say what `gh` reported so the user knows
+filing failed rather than succeeded quietly.
 
-If `gh` is not installed or not authenticated (`gh auth status` fails),
-write the sanitised, confirmed report to
+### Step 7 — Fallback when the report cannot be filed
+
+Two triggers lead here, and both write the same file:
+
+| Trigger | When it fires |
+|---|---|
+| `gh` unavailable | `gh` is not installed, or not authenticated (`gh auth status` fails) — nothing was attempted |
+| Filing failed | `gh issue create` ran and exited non-zero — network error, API error, repository unreachable |
+
+In either case, write the sanitised, confirmed report to
 `.handoffs/issue-report-YYYYMMDD-HHMMSS.md` in the current project
 (create `.handoffs/` if it does not exist). Never overwrite an earlier
 report: if that filename already exists, append `-2`, then `-3`, and so
@@ -212,7 +224,7 @@ https://github.com/JimmySadek/strategic-partner/issues.
 - Draft from evidence already in the invoking session's context
 - Scrub twice — deterministic script, then one semantic pass — before showing anything
 - Show the exact final body and wait for explicit confirmation
-- File to the fixed SP tracker, or save locally when gh is unavailable
+- File to the fixed SP tracker, or save locally when filing is unavailable or fails
 
 **Will Not:**
 - Post anything without the preview confirmation — no flag or instruction skips it
