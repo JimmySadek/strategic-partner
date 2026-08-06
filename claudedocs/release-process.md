@@ -87,6 +87,12 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    ```
    bash tests/lint-transcripts.sh
    ```
+   Then run the checker's own self-test — a set of small sample transcripts
+   written to prove the checker still catches what it claims to catch and
+   still ignores what it should ignore:
+   ```
+   bash tests/lint-transcripts-selftest.sh
+   ```
    Exit 0 = clean. Exit 1 = violations found; address before proceeding.
    If the lint reports violations in historical transcripts that predate v5.14.0
    (before enforcement was added), document them as expected baseline and
