@@ -1,0 +1,1 @@
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Documentation example:\n```\nAUQ appears here as a code-block example.\n```\n\nAnd inside a prompt body:\n\n══ START 🟢 COPY ══\nRun this and reference ultracode internally, per Step 2b.\n══ END 🛑 COPY ══\n"}]}}

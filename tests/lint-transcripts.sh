@@ -15,6 +15,20 @@
 #     in strategic-partner mode" (mirrors SKILL.md Stop rule 2 as a
 #     release-time backstop; only applied to JSONL transcripts where prior
 #     turn structure is visible)
+#   - LEAK-TERM: SP-internal vocabulary (AUQ, bare step labels, "Mode A/B",
+#     ultracode, xhigh, "floor sentinel") appearing bare in assistant chat
+#     text. JSONL assistant messages only — never applied to .handoffs/*.md.
+#     See check_leak_terms below for the full exemption list.
+#
+# ROLE / isMeta FILTER (JSONL scan path, all checks above): a JSONL entry
+# only reaches these checks when its own record is type=="assistant" and
+# isMeta is not true. A user-typed message or a harness-reinjected slash-
+# command body is not SP's voice and must never be judged as if it were
+# (tests/lint-transcripts.sh backlog: fix-transcript-lint-role-filter). The
+# IDENTITY-RESET check is the one exception noted above — it still reads
+# prior-turn STRUCTURE (does the record before this one carry an Agent/Task
+# tool_result?) from non-assistant entries; only the content that gets
+# JUDGED is role/isMeta-gated.
 #
 # FENCE-CONDITIONAL CHECKS (only for responses containing ══ START 🟢 COPY ══):
 #   - Classify fence per Rev 3 three-step discriminator:
@@ -450,6 +464,147 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
+# Check: LEAK-TERM — SP-internal vocabulary leaking into assistant chat text
+#
+# check_leak_terms <text> <file_path> <display_line>
+#
+# Always-on check, scoped to JSONL assistant-message text only (never called
+# from lint_markdown_file — .handoffs/*.md files legitimately author this
+# vocabulary as source material, so the exemption is "don't call this
+# function there" rather than a content-shape carve-out). Flags six pieces of
+# SP-internal shorthand appearing bare in live assistant prose, word-boundary
+# matched, case-sensitive except where noted:
+#   1. AUQ
+#   2. bare step labels — "Step" + digit + lowercase letter (Step 1a, Step 2b)
+#   3. "Mode A" / "Mode B"
+#   4. ultracode (case-insensitive)
+#   5. xhigh (case-insensitive)
+#   6. "floor sentinel" (case-insensitive)
+#
+# Exemptions (does NOT flag):
+#   - backtick-wrapped inline code on the same line (stripped before matching)
+#   - fenced ``` code blocks
+#   - ══ START 🟢 COPY ══ / ══ END 🛑 COPY ══ fence bodies — prompt text
+#     handed to an executor, not chat prose read by the user
+#   - allowlisted files (handled upstream by collect_jsonl_files's
+#     filter_allowlist — this function never sees an allowlisted file)
+#
+# Args mirror validate_voice_patterns: text, file_path, display_line (JSONL
+# callers pass turn_start_line — within-turn line offsets don't map back to
+# JSONL file lines, same limitation the voice-pattern check documents).
+#
+# Returns: 0=clean, 1=one or more violations found (violations on stdout)
+# ---------------------------------------------------------------------------
+check_leak_terms() {
+  local text="$1"
+  local file_path="${2:-?}"
+  local display_line="${3:-}"
+  local in_code=0
+  local in_copy_fence=0
+  local lineno=0
+  local found_violation=0
+  local report_line
+  local stripped lower match
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    lineno=$(( lineno + 1 ))
+
+    case "$line" in
+      *"══ START 🟢 COPY ══"*) in_copy_fence=1; continue ;;
+      *"══ END 🛑 COPY ══"*)   in_copy_fence=0; continue ;;
+    esac
+    [ "$in_copy_fence" -eq 1 ] && continue
+
+    case "$line" in
+      '```'*) in_code=$(( 1 - in_code )); continue ;;
+    esac
+    [ "$in_code" -eq 1 ] && continue
+
+    if [ -n "$display_line" ]; then
+      report_line="$display_line"
+    else
+      report_line="$lineno"
+    fi
+
+    # Strip inline backtick spans before matching — a code-quoted mention of
+    # one of these terms is documentation, not a leak.
+    stripped=$(printf '%s' "$line" | sed 's/`[^`]*`//g')
+
+    # ---- Term 1: AUQ ----
+    if [[ "$stripped" =~ (^|[^A-Za-z])(AUQ)($|[^A-Za-z]) ]]; then
+      printf '%s:%s: LEAK-TERM: internal term "AUQ" appears bare in assistant chat text. Say what the question is for, or describe the tool call in plain English, instead of the internal shorthand.\n' \
+        "$file_path" "$report_line"
+      found_violation=1
+    fi
+
+    # ---- Term 2: bare step labels — Step<digit><lowercase letter> ----
+    if [[ "$stripped" =~ (^|[^A-Za-z])(Step[[:space:]]+[0-9][a-z])([^A-Za-z]|$) ]]; then
+      match="${BASH_REMATCH[2]}"
+      printf '%s:%s: LEAK-TERM: internal step label "%s" appears bare in assistant chat text. Describe the step in plain English instead of citing its internal label.\n' \
+        "$file_path" "$report_line" "$match"
+      found_violation=1
+    fi
+
+    # ---- Term 3: "Mode A" / "Mode B" ----
+    if [[ "$stripped" =~ (^|[^A-Za-z])(Mode[[:space:]]+[AB])($|[^A-Za-z]) ]]; then
+      match="${BASH_REMATCH[2]}"
+      printf '%s:%s: LEAK-TERM: internal mode label "%s" appears bare in assistant chat text. Describe what the mode does instead of citing its internal letter.\n' \
+        "$file_path" "$report_line" "$match"
+      found_violation=1
+    fi
+
+    # ---- Terms 4-6: case-insensitive ----
+    lower=$(printf '%s' "$stripped" | tr '[:upper:]' '[:lower:]')
+
+    if [[ "$lower" =~ (^|[^a-z])(ultracode)($|[^a-z]) ]]; then
+      printf '%s:%s: LEAK-TERM: internal term "ultracode" appears bare in assistant chat text. Describe the behavior in plain English instead of the internal name.\n' \
+        "$file_path" "$report_line"
+      found_violation=1
+    fi
+
+    if [[ "$lower" =~ (^|[^a-z])(xhigh)($|[^a-z]) ]]; then
+      printf '%s:%s: LEAK-TERM: internal term "xhigh" appears bare in assistant chat text. Name the setting in plain English instead of the internal shorthand.\n' \
+        "$file_path" "$report_line"
+      found_violation=1
+    fi
+
+    if [[ "$lower" =~ (^|[^a-z])(floor[[:space:]]+sentinel)($|[^a-z]) ]]; then
+      printf '%s:%s: LEAK-TERM: internal term "floor sentinel" appears bare in assistant chat text. Describe what it does in plain English instead of the internal name.\n' \
+        "$file_path" "$report_line"
+      found_violation=1
+    fi
+  done <<EOF
+$text
+EOF
+
+  [ "$found_violation" -eq 1 ] && return 1
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# Helper: filter a JSONL file down to assistant, non-isMeta lines (no-jq
+# fallback role/isMeta filter — see the call site in lint_jsonl_file for the
+# rationale). A named function, not an inline `while ... case ... esac ...
+# done` inside `$(...)` — bash 3.2 fails to parse `case` as the first
+# statement of a while loop that is the direct body of a command
+# substitution (reproduced independently of this file's content), so the
+# loop is wrapped in a function and the function itself is what gets called
+# inside `$(...)`, matching every other line-filtering helper in this file.
+# ---------------------------------------------------------------------------
+_filter_assistant_lines() {
+  local src_file="$1"
+  local jline
+  while IFS= read -r jline; do
+    case "$jline" in
+      *'"isMeta":true'*) continue ;;
+    esac
+    case "$jline" in
+      *'"type":"assistant"'*) printf '%s\n' "$jline" ;;
+    esac
+  done < "$src_file"
+}
+
+# ---------------------------------------------------------------------------
 # Parse arguments
 # ---------------------------------------------------------------------------
 SINCE_TAG=""
@@ -772,6 +927,12 @@ lint_jsonl_file() {
   local turn_auq_payload=""
   local has_auq="false"
   local turn_start_line=1
+  # turn_line_anchored: "false" until the current turn segment's first
+  # assistant/non-meta record has set turn_start_line (see the accumulation
+  # gate below). Reported violations must anchor to a real assistant, non-meta
+  # JSONL line — not to the user/isMeta boundary line that started the
+  # segment (tests/lint-transcripts.sh backlog: fix-transcript-lint-role-filter).
+  local turn_line_anchored="false"
   local lineno=0
   # IDENTITY-RESET tracking: set to "true" when a user-role tool_result record
   # carries an Agent/Task tool's output. Cleared when the assistant turn that
@@ -921,6 +1082,13 @@ EOF
             printf '%s\n' "$voice_msg_turn"
             violations="${violations}1"
           }
+          # Check: LEAK-TERM (always-on, JSONL assistant messages only — see
+          # check_leak_terms header; never called from lint_markdown_file).
+          local leak_msg_turn
+          leak_msg_turn=$(check_leak_terms "$turn_text" "$file" "$turn_start_line") || {
+            printf '%s\n' "$leak_msg_turn"
+            violations="${violations}1"
+          }
           # Check: Actor-ownership ambiguity (warn-only — see hooks/lib/
           # validators.sh). Covers both assistant prose and AskUserQuestion
           # option labels/descriptions, since the failure shape ("I'll clean
@@ -936,7 +1104,7 @@ EOF
         turn_tool_uses=""
         turn_auq_payload=""
         has_auq="false"
-        turn_start_line=$lineno
+        turn_line_anchored="false"
         continue
       fi
 
@@ -946,7 +1114,17 @@ EOF
       # re-injected, and any record flagged isMeta is harness-generated — neither
       # is SP voice, so neither may reach the validators. Turn segmentation above
       # still uses those records; this gate governs what gets judged.
+      #
+      # Line attribution: turn_start_line is anchored HERE, to this turn's
+      # first assistant/non-meta record, instead of to the preceding
+      # user-turn-boundary line. A reported violation's file:line must itself
+      # be an assistant, non-meta entry — not the isMeta/user line that
+      # happened to start the segment.
       if [ "$entry_type" = "assistant" ] && [ "$is_meta" != "true" ]; then
+        if [ "$turn_line_anchored" = "false" ]; then
+          turn_start_line=$lineno
+          turn_line_anchored="true"
+        fi
         block_text=$(printf '%s' "$line" | jq -r '(.message.content // .content // [])[] | select(.type=="text") | .text // empty' 2>/dev/null)
         if [ -n "$block_text" ]; then
           turn_text="${turn_text} ${block_text}"
@@ -1064,6 +1242,12 @@ EOF
         printf '%s\n' "$voice_msg_final"
         violations="${violations}1"
       }
+      # Check: LEAK-TERM (always-on, JSONL assistant messages only, final turn).
+      local leak_msg_final
+      leak_msg_final=$(check_leak_terms "$turn_text" "$file" "$turn_start_line") || {
+        printf '%s\n' "$leak_msg_final"
+        violations="${violations}1"
+      }
       # Check: Actor-ownership ambiguity (warn-only, final turn).
       local actor_msg_final
       actor_msg_final=$(validate_actor_ownership "${turn_text} ${turn_auq_payload}" "$file" "$turn_start_line") || {
@@ -1106,8 +1290,22 @@ EOF
     # anywhere in the assembled assistant text. This is conservative (may miss
     # violations where the substring appears for unrelated reasons) but matches
     # the pre-v5.14.0 fallback behaviour.
+    # Role/isMeta filter (no-jq fallback) — mirrors the jq path's assistant-
+    # only, isMeta-excluded gate. Each JSONL line is one complete JSON
+    # record, so a per-line substring test on the record's own compact
+    # "type":"..." / "isMeta":... fields is reliable for records Claude Code
+    # writes itself (verified compact, no inner whitespace, against the
+    # actual transcript format). It is NOT full JSON parsing, so it is
+    # deliberately default-exclude: a line is kept ONLY when it positively
+    # matches "type":"assistant" AND does not contain "isMeta":true. Without
+    # jq there is no way to tell whether a stray "type":"assistant" substring
+    # sits in the record's own top-level field or inside a user's quoted
+    # prose — default-exclude means that ambiguity resolves toward dropping
+    # the line, not toward flagging user-authored text.
+    local assistant_lines
+    assistant_lines=$(_filter_assistant_lines "$file")
     local full_text
-    full_text=$(grep '"type":"text"' "$file" 2>/dev/null | grep -o '"text":"[^"]*"' | cut -d'"' -f4 | tr '\n' ' ')
+    full_text=$(printf '%s\n' "$assistant_lines" | grep '"type":"text"' 2>/dev/null | grep -o '"text":"[^"]*"' | cut -d'"' -f4 | tr '\n' ' ')
     local has_auq_count
     has_auq_count=$(grep -c "AskUserQuestion" "$file" 2>/dev/null || echo "0")
     [ "$has_auq_count" -gt 0 ] && has_auq="true"
@@ -1197,6 +1395,13 @@ EOF
     local voice_msg_nojq
     voice_msg_nojq=$(validate_voice_patterns "$full_text" "$file" "?") || {
       printf '%s\n' "$voice_msg_nojq"
+      violations="${violations}1"
+    }
+    # Check: LEAK-TERM (always-on, JSONL assistant messages only, no-jq
+    # fallback). full_text above is already role/isMeta-filtered.
+    local leak_msg_nojq
+    leak_msg_nojq=$(check_leak_terms "$full_text" "$file" "?") || {
+      printf '%s\n' "$leak_msg_nojq"
       violations="${violations}1"
     }
   fi
