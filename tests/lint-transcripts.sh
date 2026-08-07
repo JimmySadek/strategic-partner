@@ -1306,9 +1306,15 @@ EOF
     assistant_lines=$(_filter_assistant_lines "$file")
     local full_text
     full_text=$(printf '%s\n' "$assistant_lines" | grep '"type":"text"' 2>/dev/null | grep -o '"text":"[^"]*"' | cut -d'"' -f4 | tr '\n' ' ')
+    # AUQ presence must come from the same filtered set as full_text. Reading
+    # the raw file here would let a user typing "AskUserQuestion" in their own
+    # message satisfy the AUQ-must-be-AUQ check and suppress a genuine
+    # assistant prose-question violation. head -n1 keeps the comparison
+    # numeric: grep -c prints "0" and exits non-zero on no match, so the
+    # `|| echo "0"` fallback can yield two lines (mirrors the jq path).
     local has_auq_count
-    has_auq_count=$(grep -c "AskUserQuestion" "$file" 2>/dev/null || echo "0")
-    [ "$has_auq_count" -gt 0 ] && has_auq="true"
+    has_auq_count=$(printf '%s\n' "$assistant_lines" | grep -c "AskUserQuestion" 2>/dev/null || echo "0")
+    [ "$(printf '%s' "$has_auq_count" | head -n1)" -gt 0 ] && has_auq="true"
 
     local msg
     # Always-on checks

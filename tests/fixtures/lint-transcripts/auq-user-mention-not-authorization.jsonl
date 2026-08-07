@@ -1,0 +1,2 @@
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Please explain when AskUserQuestion is the right tool."}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Which of those two directions would you like to take?"}]}}

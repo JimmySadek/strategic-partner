@@ -110,7 +110,10 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    conversation running the release, which keeps growing as the release
    proceeds — so a blocking version would flag work that has not finished
    happening yet. Read the warnings as a habit signal for the next cycle.
-   Every other rule in this checker keeps blocking exactly as before.
+   Every other *mechanical* rule in this checker keeps blocking exactly as
+   before. The one pre-existing exception is the actor-ownership check — the
+   rule asking whether a sentence makes clear who performs an action — which
+   already reported without failing the gate before this release.
 
 7. **Frontmatter-hook lint (v6.10.0+)**: run the fail-closed check that no
    literal triple-dash (three or more hyphens, `---`) appears anywhere inside
