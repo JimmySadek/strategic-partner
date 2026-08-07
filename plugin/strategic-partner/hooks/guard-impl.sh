@@ -510,13 +510,13 @@ if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
       echo "BLOCKED: Strategic Partner could not verify the dispatch confirmation because jq is unavailable. Use prompt delivery, or install jq and ask again." >&2
       ;;
     selected_option_label|question_mismatch)
-      echo "BLOCKED: Strategic Partner must confirm dispatch with a selected option label exactly matching: [Dispatch now — $SUBAGENT_TYPE]. Descriptions do not authorize dispatch; ask again with the exact labels." >&2
+      echo "BLOCKED: Strategic Partner must confirm dispatch with a selected option label exactly matching: \"Dispatch now — $SUBAGENT_TYPE\" (the quotes are not part of the label). Descriptions do not authorize dispatch; ask again with the exact labels." >&2
       ;;
     missing_hold_label)
-      echo "BLOCKED: The selected dispatch label was correct, but the required review option was missing or reworded. Ask again with this option present, character for character: [Hold — let me review the brief first]" >&2
+      echo "BLOCKED: The selected dispatch label was correct, but the required review option was missing or reworded. Ask again with this option present, character for character (the quotes are not part of the label): \"Hold — let me review the brief first\"" >&2
       ;;
     missing_wrong_agent_label)
-      echo "BLOCKED: The selected dispatch label was correct, but the required agent-reselection option was missing or reworded. Ask again with this option present, character for character: [Wrong agent — let me pick]" >&2
+      echo "BLOCKED: The selected dispatch label was correct, but the required agent-reselection option was missing or reworded. Ask again with this option present, character for character (the quotes are not part of the label): \"Wrong agent — let me pick\"" >&2
       ;;
     structured_answers_invalid|structured_display_disagree|display_answer_parse_error)
       echo "BLOCKED: Strategic Partner could not safely correlate the selected answer with the exact confirmation question. Ask again with a fresh structured confirmation before dispatching." >&2
@@ -534,7 +534,7 @@ if [ "$TOOL_NAME" = "Agent" ] || [ "$TOOL_NAME" = "Task" ]; then
       echo "BLOCKED: Strategic Partner found that this dispatch confirmation was already used by an earlier protected action. Please confirm once more before dispatching again." >&2
       ;;
     *)
-      echo "BLOCKED: Strategic Partner must confirm the exact agent before dispatch. Ask via AskUserQuestion with: [Dispatch now — $SUBAGENT_TYPE] [Hold — let me review the brief first] [Wrong agent — let me pick]." >&2
+      echo "BLOCKED: Strategic Partner must confirm the exact agent before dispatch. Ask via AskUserQuestion with these three option labels (the quotes are not part of the labels): \"Dispatch now — $SUBAGENT_TYPE\", \"Hold — let me review the brief first\", \"Wrong agent — let me pick\"." >&2
       ;;
   esac
   exit 2

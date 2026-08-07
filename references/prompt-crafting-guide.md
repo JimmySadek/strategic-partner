@@ -145,6 +145,10 @@ How should this task be delivered?
     └── Full prompt — ══ fences (inline or saved per size rules)
 ```
 
+The square brackets around the three confirmation labels above are display punctuation
+for this diagram — the label text itself is `Dispatch now — <subagent_type>`, with no
+brackets. The guard compares the unbracketed text.
+
 File count is a signal, not a gate. A 5-file mechanical rename scores 5/5.
 A 1-file algorithm redesign scores 2/5.
 

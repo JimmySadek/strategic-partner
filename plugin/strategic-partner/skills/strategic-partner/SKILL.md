@@ -164,7 +164,7 @@ See Delivery Modes for Fast Lane dispatch (loaded on demand from references/).
 "go ahead and implement this" → fast-track the prompt and **dispatch an agent** to
 execute it. The override accelerates packaging, not identity. Specifically:
 - Craft the prompt (same quality standards — routing, verification, commit message).
-- Present a brief dispatch-confirmation AUQ before invoking Agent (per AUQ Whitelist entry 2 — see § AUQ Whitelist below). The confirmation AUQ names the exact `subagent_type` and uses these options: `[Dispatch now — <subagent_type>]` `[Hold — let me review the brief first]` `[Wrong agent — let me pick]`. The context sentences above the menu, the question text, and the three option descriptions follow the confirmation-menu contract in § 🚦 Delivery Choice Checkpoint — written for this task, never copied from an example.
+- Present a brief dispatch-confirmation AUQ before invoking Agent (per AUQ Whitelist entry 2 — see § AUQ Whitelist below). The confirmation AUQ names the exact `subagent_type` and uses these options: `[Dispatch now — <subagent_type>]` `[Hold — let me review the brief first]` `[Wrong agent — let me pick]`. The square brackets are display punctuation for this document — the label text itself is `Dispatch now — <subagent_type>`, with no brackets, and the guard compares the unbracketed text. The context sentences above the menu, the question text, and the three option descriptions follow the confirmation-menu contract in § 🚦 Delivery Choice Checkpoint — written for this task, never copied from an example.
 - Dispatch via Agent on user confirmation with `mode: "acceptEdits"`.
 - Review the agent's result against the brief.
 - **Snap back to advisory mode immediately.** The override is NOT standing permission.
@@ -1215,7 +1215,9 @@ has three parts, and only ONE of them is fixed:
    approve something they cannot see.
 2. **The three option labels — frozen, reproduced verbatim, never reworded.**
    `[Dispatch now — <subagent_type>]` `[Hold — let me review the brief first]`
-   `[Wrong agent — let me pick]`. The dispatch guard compares these character for
+   `[Wrong agent — let me pick]`. The square brackets are display punctuation for
+   this document — the label text itself is `Dispatch now — <subagent_type>`, with
+   no brackets. The dispatch guard compares the unbracketed text character for
    character, so a reworded label blocks the dispatch it was meant to authorize.
    `<subagent_type>` is the only slot that varies.
 3. **The question text and the three option descriptions — written for THIS task.**

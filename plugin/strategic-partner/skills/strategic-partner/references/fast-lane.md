@@ -62,6 +62,10 @@ tasks that don't qualify:
 - Score 4-5/5 → dispatch appears as the primary exact-confirmation option:
   `[Dispatch now — <subagent_type>]` `[Hold — let me review the brief first]` `[Wrong agent — let me pick]`
 
+The square brackets above are display punctuation for this document — the label text
+itself is `Dispatch now — <subagent_type>`, with no brackets. The guard compares the
+unbracketed text.
+
 The scoring and gate must run BEFORE the `AskUserQuestion` — never after
 the user has already chosen.
 
@@ -104,6 +108,10 @@ character, so a reworded label blocks the very dispatch it was meant to authoriz
 - `[Dispatch now — <subagent_type>]`
 - `[Hold — let me review the brief first]`
 - `[Wrong agent — let me pick]`
+
+The square brackets are display punctuation for this document — the label text itself is
+`Dispatch now — <subagent_type>`, with no brackets. The guard compares the unbracketed
+text.
 
 **Written fresh for the task — everything else:**
 

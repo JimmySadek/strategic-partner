@@ -177,10 +177,12 @@ skipped.
 
 Every agent dispatch needs its own exact confirmation through `AskUserQuestion`
 before the Agent/Task tool runs: `[Dispatch now — <subagent_type>]`,
-`[Hold — let me review the brief first]`, `[Wrong agent — let me pick]`. A
-readiness answer, delivery-choice answer, "run it now" answer, prior override,
-or earlier dispatch does not count unless that exact agent-labeled option was
-shown.
+`[Hold — let me review the brief first]`, `[Wrong agent — let me pick]`. The
+square brackets are display punctuation for this document — the label text
+itself is `Dispatch now — <subagent_type>`, with no brackets, and the guard
+compares the unbracketed text. A readiness answer, delivery-choice answer,
+"run it now" answer, prior override, or earlier dispatch does not count unless
+that exact agent-labeled option was shown.
 
 ## Compression carve-out
 

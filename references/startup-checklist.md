@@ -862,7 +862,10 @@ visible capabilities or a conservative `bare: true` route.
 1. The floor reports `routing=stale ...` or `routing=missing`.
 2. A later source-shaped task materially needs precise routing now.
 3. The user's request permits project writes; read-only intent always wins.
-4. The user selected the exact `[Dispatch now — general-purpose]` confirmation.
+4. The user selected the exact `[Dispatch now — general-purpose]` confirmation. The
+   square brackets are display punctuation for this document — the label text itself is
+   `Dispatch now — general-purpose`, with no brackets. The guard compares the
+   unbracketed text.
 
 The floor signal is diagnostic evidence, never dispatch authority. When the
 floor reports `routing=fresh hash=<short>`, use the cached matrix. When it is
