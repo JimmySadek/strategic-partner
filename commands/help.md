@@ -23,6 +23,8 @@ Key behaviors:
 
 ## Subcommands
 
+> The standalone skill install is deprecated. `/strategic-partner:try-plugin` moves you to the plugin, which is where new work lands.
+
 | Command | Purpose |
 |---|---|
 | `/strategic-partner` | Full advisor persona with startup sequence (no colon) |

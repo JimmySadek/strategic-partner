@@ -7,8 +7,10 @@ deliberately plugin-native. The plugin also carries a revised voice and startup
 behavior aimed at making SP feel like a thinking partner rather than a protocol
 runner.
 
-Status: **supported plugin packaging**. The standalone skill remains supported
-too; use the switch commands when you want to move between install shapes.
+Status: **supported plugin packaging, and the successor to the standalone
+skill install.** The standalone skill is deprecated as of 2026-08-07 — it
+still works and still receives updates, and no removal is scheduled. Use the
+switch commands to move between shapes.
 
 ## What's inside
 

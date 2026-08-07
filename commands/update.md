@@ -175,6 +175,11 @@ Before running `rsync`, confirm all of these are true:
 After success:
    ```
    ✅ Updated to v{remote}.
+
+   The standalone skill install is deprecated — the plugin install is its
+   successor and gets all new work. Yours keeps working and keeps updating;
+   nothing is being removed today. When you're ready,
+   `/strategic-partner:try-plugin` switches you over in one step.
    ```
 
 ### Step 5 — Run Setup (after update or repair)

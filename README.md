@@ -98,6 +98,13 @@ voice style straight out of the plugin.
 
 ### Install as a standalone skill
 
+> ⚠️ **Deprecated as of 2026-08-07.** The plugin install above is this
+> install's successor and is where all new work lands. Nothing is being
+> removed: the standalone skill keeps working and keeps receiving updates.
+> Any future removal would land in a major version, and only after every
+> known user has migrated and every install path has been tested. To move
+> over in one step, run `/strategic-partner:try-plugin`.
+
 ```bash
 git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/strategic-partner
 cd <your-skills-dir>/strategic-partner
