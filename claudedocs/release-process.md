@@ -93,10 +93,24 @@ If the release modifies hook logic (frontmatter `hooks:` section or `hooks/` fil
    ```
    bash tests/lint-transcripts-selftest.sh
    ```
-   Exit 0 = clean. Exit 1 = violations found; address before proceeding.
+   For the lint: exit 0 = clean, exit 1 = violations found; address before
+   proceeding. For the self-test: exit 1 means the checker itself has
+   regressed — a check stopped firing or started firing wrongly — not that any
+   transcript is dirty; fix the checker before trusting the lint's result.
    If the lint reports violations in historical transcripts that predate v5.14.0
    (before enforcement was added), document them as expected baseline and
    verify new transcripts are clean.
+
+   **LEAK-TERM reports, it does not block (v7.9.1+).** The rule that flags
+   SP-internal vocabulary appearing bare in assistant chat emits warnings
+   rather than violations, so it never fails the gate. The reason is
+   structural: this check runs only at release time, which means it can
+   describe a habit after the fact but cannot prevent one while the chat is
+   being written. It also scans the release session itself — the very
+   conversation running the release, which keeps growing as the release
+   proceeds — so a blocking version would flag work that has not finished
+   happening yet. Read the warnings as a habit signal for the next cycle.
+   Every other rule in this checker keeps blocking exactly as before.
 
 7. **Frontmatter-hook lint (v6.10.0+)**: run the fail-closed check that no
    literal triple-dash (three or more hyphens, `---`) appears anywhere inside

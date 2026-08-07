@@ -532,7 +532,7 @@ check_leak_terms() {
 
     # ---- Term 1: AUQ ----
     if [[ "$stripped" =~ (^|[^A-Za-z])(AUQ)($|[^A-Za-z]) ]]; then
-      printf '%s:%s: LEAK-TERM: internal term "AUQ" appears bare in assistant chat text. Say what the question is for, or describe the tool call in plain English, instead of the internal shorthand.\n' \
+      printf '%s:%s: LEAK-TERM: WARN — internal term "AUQ" appears bare in assistant chat text. Say what the question is for, or describe the tool call in plain English, instead of the internal shorthand.\n' \
         "$file_path" "$report_line"
       found_violation=1
     fi
@@ -540,7 +540,7 @@ check_leak_terms() {
     # ---- Term 2: bare step labels — Step<digit><lowercase letter> ----
     if [[ "$stripped" =~ (^|[^A-Za-z])(Step[[:space:]]+[0-9][a-z])([^A-Za-z]|$) ]]; then
       match="${BASH_REMATCH[2]}"
-      printf '%s:%s: LEAK-TERM: internal step label "%s" appears bare in assistant chat text. Describe the step in plain English instead of citing its internal label.\n' \
+      printf '%s:%s: LEAK-TERM: WARN — internal step label "%s" appears bare in assistant chat text. Describe the step in plain English instead of citing its internal label.\n' \
         "$file_path" "$report_line" "$match"
       found_violation=1
     fi
@@ -548,7 +548,7 @@ check_leak_terms() {
     # ---- Term 3: "Mode A" / "Mode B" ----
     if [[ "$stripped" =~ (^|[^A-Za-z])(Mode[[:space:]]+[AB])($|[^A-Za-z]) ]]; then
       match="${BASH_REMATCH[2]}"
-      printf '%s:%s: LEAK-TERM: internal mode label "%s" appears bare in assistant chat text. Describe what the mode does instead of citing its internal letter.\n' \
+      printf '%s:%s: LEAK-TERM: WARN — internal mode label "%s" appears bare in assistant chat text. Describe what the mode does instead of citing its internal letter.\n' \
         "$file_path" "$report_line" "$match"
       found_violation=1
     fi
@@ -557,19 +557,19 @@ check_leak_terms() {
     lower=$(printf '%s' "$stripped" | tr '[:upper:]' '[:lower:]')
 
     if [[ "$lower" =~ (^|[^a-z])(ultracode)($|[^a-z]) ]]; then
-      printf '%s:%s: LEAK-TERM: internal term "ultracode" appears bare in assistant chat text. Describe the behavior in plain English instead of the internal name.\n' \
+      printf '%s:%s: LEAK-TERM: WARN — internal term "ultracode" appears bare in assistant chat text. Describe the behavior in plain English instead of the internal name.\n' \
         "$file_path" "$report_line"
       found_violation=1
     fi
 
     if [[ "$lower" =~ (^|[^a-z])(xhigh)($|[^a-z]) ]]; then
-      printf '%s:%s: LEAK-TERM: internal term "xhigh" appears bare in assistant chat text. Name the setting in plain English instead of the internal shorthand.\n' \
+      printf '%s:%s: LEAK-TERM: WARN — internal term "xhigh" appears bare in assistant chat text. Name the setting in plain English instead of the internal shorthand.\n' \
         "$file_path" "$report_line"
       found_violation=1
     fi
 
     if [[ "$lower" =~ (^|[^a-z])(floor[[:space:]]+sentinel)($|[^a-z]) ]]; then
-      printf '%s:%s: LEAK-TERM: internal term "floor sentinel" appears bare in assistant chat text. Describe what it does in plain English instead of the internal name.\n' \
+      printf '%s:%s: LEAK-TERM: WARN — internal term "floor sentinel" appears bare in assistant chat text. Describe what it does in plain English instead of the internal name.\n' \
         "$file_path" "$report_line"
       found_violation=1
     fi

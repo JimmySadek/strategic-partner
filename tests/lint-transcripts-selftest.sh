@@ -7,7 +7,10 @@
 #      is type=="assistant" and isMeta is not true.
 #   2. The LEAK-TERM rule — SP-internal vocabulary (AUQ, bare step labels,
 #      "Mode A/B", ultracode, xhigh, "floor sentinel") flagged when it
-#      appears bare in assistant chat text, JSONL only.
+#      appears bare in assistant chat text, JSONL only. LEAK-TERM findings
+#      are warn-only: they carry the shared ": WARN —" marker and report
+#      without failing the lint. This self-test checks that detection still
+#      fires, not that the lint exits non-zero.
 #
 # Each fixture is a single-record JSONL file under tests/fixtures/
 # lint-transcripts/. This script runs the lint directly against each one
@@ -22,9 +25,10 @@ FIXTURE_DIR="${SCRIPT_DIR}/fixtures/lint-transcripts"
 
 FAIL=0
 
-# expect_violation <fixture> <substring> — the lint output must contain the
-# given substring (a positive LEAK-TERM case).
-expect_violation() {
+# expect_finding <fixture> <substring> — the lint output must contain the
+# given substring (a positive LEAK-TERM case). LEAK-TERM reports as a
+# warning, so this asserts the finding is emitted, not that the lint fails.
+expect_finding() {
   local fixture="$1"
   local expect_substr="$2"
   local output
@@ -56,9 +60,9 @@ expect_clean() {
 }
 
 # ---- Case 1: positive — bare terms in assistant chat text must flag. ----
-expect_violation "leak-term-positive-auq.jsonl"       'LEAK-TERM: internal term "AUQ"'
-expect_violation "leak-term-positive-step.jsonl"      'LEAK-TERM: internal step label "Step 2b"'
-expect_violation "leak-term-positive-ultracode.jsonl" 'LEAK-TERM: internal term "ultracode"'
+expect_finding "leak-term-positive-auq.jsonl"       'LEAK-TERM: WARN — internal term "AUQ"'
+expect_finding "leak-term-positive-step.jsonl"      'LEAK-TERM: WARN — internal step label "Step 2b"'
+expect_finding "leak-term-positive-ultracode.jsonl" 'LEAK-TERM: WARN — internal term "ultracode"'
 
 # ---- Case 2: negative — same terms inside backticks. ----
 expect_clean "leak-term-negative-backtick.jsonl"
