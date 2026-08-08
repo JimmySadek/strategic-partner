@@ -1,5 +1,33 @@
 # Changelog
 
+## [7.9.3] - 2026-08-08
+
+### Fixed
+
+- **The release check no longer blocks on chat records nobody can edit** — One
+  of the checks run before every release reads the session transcripts and,
+  until now, treated a raw line reference in past chat as a blocking failure.
+  A transcript is a record of a conversation that already happened: there is
+  no edit that fixes it, so the gate could go red with no action that turns it
+  green — and during the last release, reporting the finding to the user
+  created a new finding in the very session doing the reporting. That check
+  now reports those findings as warnings to read at the next cycle. Everything
+  editable keeps its blocking check: the changelog, the readme, the command
+  descriptions, and working notes.
+
+### Changed
+
+- **A fresh copy of the project can now run every release check** — Most core
+  test scripts already travelled with the project, but the newer checking
+  scripts and the example files several checks rely on lived on one machine
+  only, with the ignore rules still claiming tests were not shipped at all.
+  The rule is now inverted: the live checking suite travels with the project,
+  and within the test folder only historical archives and one dormant suite
+  are excluded, each with its reason written in. Surfaced immediately by the
+  change itself: one check's own "should pass" example turns out to fail —
+  its wording drifted while nobody could run it — now tracked as a known
+  defect to fix.
+
 ## [7.9.2] - 2026-08-08
 
 ### Fixed

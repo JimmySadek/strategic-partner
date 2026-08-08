@@ -2,19 +2,19 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.9.2-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.9.3-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new — 7.9.2** — Two fixes to how Strategic Partner recognises the
-> end of a session. A report written back by a specialist is no longer mistaken
-> for you saying you are done, so the end-of-session routine stops firing in the
-> middle of a task. And ending a session by picking an option from the question
-> menu works again, after silently failing because real menu answers arrive in a
-> format the matcher discarded. The test harness covering that code now travels
-> with the project, so a fresh copy can run it.
+> **What's new — 7.9.3** — The pre-release check that reads past chat no longer
+> blocks a release on records nobody can edit: findings in session transcripts
+> become warnings to read at the next cycle, while everything editable — the
+> changelog, readme, command descriptions, and working notes — keeps its
+> blocking check. And a fresh copy of the project can now run every release
+> check: the live test suite ships with the repository instead of living on one
+> machine.
 > See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
