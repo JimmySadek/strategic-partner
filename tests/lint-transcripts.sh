@@ -1432,7 +1432,15 @@ lint_one_file() {
   local file="$1"
   local output
   case "$file" in
-    *.jsonl) output=$(lint_jsonl_file "$file") ;;
+    *.jsonl)
+      output=$(lint_jsonl_file "$file")
+      # RAW-LINE-REF demotion (.jsonl only — backlog:
+      # scope-raw-line-ref-to-shipped-artifacts): a session transcript is an
+      # immutable record, so a release-time check on it can describe a habit
+      # for next cycle, not prevent one that already shipped; every other
+      # mechanical rule in this path still blocks.
+      output=$(printf '%s\n' "$output" | sed 's|\(: RAW-LINE-REF: \)raw line reference \("[^"]*"\) appears in user-facing prose\. Line numbers belong in commit messages and PR descriptions, not in CHANGELOG/README/commands\.$|\1WARN — raw line reference \2 appears in assistant chat. A transcript cannot be edited; read this as a habit signal for the next cycle.|')
+      ;;
     *)       output=$(lint_markdown_file "$file") ;;
   esac
   total_files=$(( total_files + 1 ))

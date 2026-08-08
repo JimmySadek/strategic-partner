@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/lint-transcripts-selftest.sh — fixture-based self-test for three
+# tests/lint-transcripts-selftest.sh — fixture-based self-test for four
 # tests/lint-transcripts.sh changes:
 #
 #   1. The assistant-role/isMeta filter (.backlog/fix-transcript-lint-role-
@@ -16,6 +16,12 @@
 #      whether a turn contained an AskUserQuestion tool call must be derived
 #      from the same assistant-only filtered set as the message text. Text
 #      the user typed can never authorize an assistant prose question.
+#   4. RAW-LINE-REF demotion on .jsonl transcripts only (backlog:
+#      scope-raw-line-ref-to-shipped-artifacts) — a raw line reference in
+#      assistant chat text is reported with the shared ": WARN —" marker
+#      instead of blocking, because a session transcript is an immutable
+#      record. The same rule keeps blocking on .handoffs/*.md, which is
+#      editable, so this self-test checks both sides of that split.
 #
 # Each fixture is a short JSONL file under tests/fixtures/lint-transcripts/.
 # This script runs the lint directly against each one (bypassing
@@ -170,6 +176,29 @@ else
   expect_violation_nojq "auq-user-mention-not-authorization.jsonl" \
     'AUQ-must-be-AUQ violation: prose question detected without AskUserQuestion tool call'
 fi
+
+# ---- Case 7: RAW-LINE-REF is demoted to a warning on .jsonl transcripts —
+#      a raw line reference in assistant chat text must still be flagged for
+#      visibility, but must not fail the lint (the file is an immutable
+#      record). ----
+expect_finding "raw-line-ref-positive.jsonl" \
+  'RAW-LINE-REF: WARN — raw line reference "line 42"'
+
+# ---- Case 8: RAW-LINE-REF keeps blocking on .handoffs/*.md — only the
+#      .jsonl path is demoted; the same rule on an editable working file
+#      still fails the lint with no ": WARN —" marker. ----
+raw_line_ref_md_output=$(bash "$LINT" "${FIXTURE_DIR}/raw-line-ref-handoffs-blocks.md" 2>&1)
+raw_line_ref_md_status=$?
+if printf '%s' "$raw_line_ref_md_output" | grep -qF 'RAW-LINE-REF: raw line reference "line 42"' \
+   && ! printf '%s' "$raw_line_ref_md_output" | grep -q 'RAW-LINE-REF:.*WARN'; then
+  echo "PASS  raw-line-ref-handoffs-blocks.md flags RAW-LINE-REF as a mechanical violation"
+else
+  echo "FAIL  raw-line-ref-handoffs-blocks.md did not flag RAW-LINE-REF as a mechanical violation"
+  echo "  --- lint output ---"
+  printf '%s\n' "$raw_line_ref_md_output" | sed 's/^/  /'
+  FAIL=1
+fi
+expect_exit "raw-line-ref-handoffs-blocks.md" 1 "$raw_line_ref_md_status" "$raw_line_ref_md_output"
 
 if [ "$FAIL" -eq 0 ]; then
   echo "LEAK-TERM / role-filter self-test passed."
