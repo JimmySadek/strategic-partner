@@ -232,34 +232,32 @@ _sp_latest_closure_span() {
   records=$(jq -c -s '
     def role: (.message.role // .role // "");
     def content: (.message.content // .content // []);
-    def user_text:
-      if (content | type) == "string" then content
-      elif (content | type) == "array" then
-        [ content[]?
-          | if .type == "text" then (.text // "")
-            elif .type == "tool_result" then
-              if (.content | type) == "string" then .content
-              elif (.content | type) == "array" then [ .content[]? | .text? // empty ] | join(" ")
-              else "" end
-            else "" end
-        ] | map(select(length > 0)) | join(" ")
-      else "" end;
-    def direct_user_text:
-      if (content | type) == "string" then (content | length) > 0
-      elif (content | type) == "array" then any(content[]?; .type == "text" and ((.text // "") | length > 0))
-      else false end;
-    to_entries[]
+    (reduce (.[] | select(role == "assistant") | content[]? | select(.type? == "tool_use")) as $t ({}; .[$t.id] = $t.name)) as $names
+    | to_entries[]
     | select((.value | role) == "user")
-    | {index:.key,text:(.value | user_text),direct:(.value | direct_user_text)}
+    | {index: .key,
+       text: ((.value | content) as $c
+         | if ($c | type) == "string" then $c
+           elif ($c | type) == "array" then
+             [ $c[]?
+               | if .type == "text" then (.text // "")
+                 elif (.type == "tool_result" and ($names[.tool_use_id] == "AskUserQuestion")) then
+                   (if (.content | type) == "string" then .content
+                    elif (.content | type) == "array" then [ .content[]? | .text? // empty ] | join(" ")
+                    else "" end)
+                 else "" end ]
+             | map(select(length > 0)) | join(" ")
+           else "" end)}
   ' "$transcript_path" 2>/dev/null)
 
   while IFS= read -r record; do
     [ -n "$record" ] || continue
     text=$(printf '%s' "$record" | jq -r '.text // ""' 2>/dev/null)
+    [ -n "$text" ] || continue
     if sp_is_session_end_intent "$text"; then
       index=$(printf '%s' "$record" | jq -r '.index' 2>/dev/null)
       latest="$index"
-    elif [ "$(printf '%s' "$record" | jq -r '.direct // false' 2>/dev/null)" = "true" ]; then
+    else
       latest=""
     fi
   done <<EOF
