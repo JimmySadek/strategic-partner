@@ -1,5 +1,41 @@
 # Changelog
 
+## [7.9.2] - 2026-08-08
+
+### Fixed
+
+- **A specialist's report no longer looks like you ending the session** — When
+  Strategic Partner hands a task to a specialist, the specialist writes a report
+  back when it finishes. That report reaches Strategic Partner through the same
+  channel your own messages do, and the check deciding whether a session is
+  wrapping up was reading it as though you had typed it. A specialist writing
+  "Done." could set off the entire end-of-session routine in the middle of a
+  task. The check now recognises which tool produced each message and counts only
+  what you actually said. Anything it cannot identify is treated as not-you — the
+  original bug existed precisely because unrecognised input was trusted.
+
+- **Ending a session from the question menu works again** — Sessions can be ended
+  by picking an option from a question menu instead of typing, and across the
+  sessions we sampled that is the common way it happens. That path had silently
+  stopped working: real menu answers arrive wrapped in quotation marks, and the
+  matcher removed quoted text before looking for the answer, so it never found
+  one. Nobody noticed because the saved test examples were written in a format
+  the product no longer produces. Correcting one of those examples to the real
+  format is what exposed the bug, and three new checks now cover the real
+  wrapper.
+
+### Changed
+
+- **A fresh copy of the project can now run the session checks** — The test
+  harness covering that end-of-session code is the only test covering something
+  that runs on every turn, and it previously existed on one machine only. It now
+  travels with the project.
+
+- **A written design for a future explore mode is now in the repository** — A
+  mode for widening options before narrowing them, agreed and written down.
+  Deliberately not wired to anything yet: nothing loads it and no behavior
+  changes. Wiring it is a separate, later decision.
+
 ## [7.9.1] - 2026-08-08
 
 ### Deprecated
