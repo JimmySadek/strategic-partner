@@ -108,6 +108,10 @@ sp_is_session_end_intent() {
 
   candidate=$(printf '%s' "$text" | perl -e '
     undef $/; my $s = <STDIN>;
+    if ($s =~ /\A\s*(?:your questions have been answered|the user answered)\s*:/i) {
+      my @a = ($s =~ /="([^"]*)"/g);
+      $s = $a[-1] if @a;
+    }
     $s =~ s/```[\s\S]*?```//g;
     $s =~ s/`[^`]*`//g;
     $s =~ s/^\s*>.*$//mg;

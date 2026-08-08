@@ -311,6 +311,9 @@ run_classifier_tests() {
   assert_classifier_true "AUQ answer carrier is closure intent" sp_is_session_end_intent "User answered Claude's questions: What's next? -> Stop here for now"
   assert_classifier_false "keep-open override is not closure intent" sp_is_session_end_intent "Stop, don't close yet; keep the session open."
   assert_classifier_false "quoted stop example is not closure intent" sp_is_session_end_intent 'We discussed the phrase "stop here for now" as an example.'
+  assert_classifier_true "real menu answer carrier is closure intent" sp_is_session_end_intent 'Your questions have been answered: "What'"'"'s next?"="Stop here for now". You can now continue with these answers in mind.'
+  assert_classifier_true "alternate menu answer carrier is closure intent" sp_is_session_end_intent 'The user answered: "Where next?"="Done". Read the answers carefully.'
+  assert_classifier_false "menu answer to keep going is not closure intent" sp_is_session_end_intent 'Your questions have been answered: "What'"'"'s next?"="Keep going". You can now continue with these answers in mind.'
 
   last_text=$(last_assistant_text "$FIXTURES/startup-complete.jsonl")
   assert_classifier_true "complete startup evidence is accepted" sp_startup_evidence_complete "$FIXTURES/startup-complete.jsonl" "$last_text" "" "yes"
