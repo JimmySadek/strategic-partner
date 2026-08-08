@@ -39,6 +39,14 @@ tests/*
 # gate whose suite exists only in one working tree cannot be run from a fresh
 # clone.
 !tests/guard-regression.sh
+# Tracked exception: the session-ceremony hook harness and its fixtures. This is the
+# only test covering hooks/lib/session-ceremony.sh, which the Stop hook loads on every
+# turn, and four plan documents in specs/ name it by command as verification evidence.
+# A gate whose suite exists only in one working tree cannot be run from a fresh clone.
+!tests/session-ceremony-trigger.sh
+!tests/fixtures/
+tests/fixtures/*
+!tests/fixtures/session-ceremony/
 .lint-allowlist
 .scanner-exceptions.json
 hooks/lib/

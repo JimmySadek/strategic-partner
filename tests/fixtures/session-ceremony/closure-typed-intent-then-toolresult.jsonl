@@ -1,0 +1,3 @@
+{"message":{"role":"user","content":[{"type":"text","text":"ok let's stop here"}]}}
+{"message":{"role":"assistant","content":[{"type":"text","text":"Running the closure walk."},{"type":"tool_use","id":"toolu_status_check","name":"Bash","input":{"command":"git status --short"}}]}}
+{"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_status_check","content":"clean"}]}}

@@ -1,0 +1,3 @@
+{"message":{"role":"user","content":[{"type":"text","text":"dispatch the specialist to land the fix"}]}}
+{"message":{"role":"assistant","content":[{"type":"text","text":"Dispatching now."},{"type":"tool_use","id":"toolu_spec_dispatch","name":"Agent","input":{"subagent_type":"quality-engineer","description":"Land the fix"}}]}}
+{"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_spec_dispatch","content":[{"type":"text","text":"Done. All deliverables landed and the suite is green."}]}]}}

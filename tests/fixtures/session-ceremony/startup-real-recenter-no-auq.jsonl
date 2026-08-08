@@ -1,0 +1,2 @@
+{"message":{"role":"user","content":[{"type":"text","text":"/strategic-partner-plugin:strategic-partner"}]}}
+{"message":{"role":"assistant","content":[{"type":"text","text":"Status: smoke test clean. This is an empty repo on the master branch with zero commits and nothing tracked but .git. No project conventions, memory, or routing matrix exist yet."}]}}

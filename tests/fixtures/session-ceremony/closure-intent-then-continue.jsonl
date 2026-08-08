@@ -1,0 +1,4 @@
+{"message":{"role":"user","content":[{"type":"text","text":"Let's stop here for now."}]}}
+{"message":{"role":"assistant","content":[{"type":"text","text":"Good stopping point. Here is a quick recap, but no handoff was saved."}]}}
+{"message":{"role":"user","content":[{"type":"text","text":"Actually, keep going. Inspect the current hook manifest next."}]}}
+{"message":{"role":"assistant","content":[{"type":"text","text":"The current hook manifest registers SessionStart, UserPromptSubmit, PreToolUse, and Stop."}]}}
