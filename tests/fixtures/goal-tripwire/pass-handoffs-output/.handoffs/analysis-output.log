@@ -1,0 +1,6 @@
+# Analysis output — quotes the goal command but must NOT trip the lint
+
+The reviewer suggested the `/goal` command for the hands-off run — mid-line, exempt.
+> /goal discussed inside a blockquote is prose, not an executable line.
+`/goal backticked at line start` is a code-span mention, also exempt.
+Summary: the run referenced /goal usage several times; none is a bare line-start command.

@@ -23,30 +23,23 @@ claudedocs/
 .serena/
 __pycache__/
 
-# v6.0.0 — dev-only files excluded from public ship.
-# These remain in the local working tree (untrack ≠ delete) but are not
-# part of what users get on `npx skills add` or `git clone`. See v6.0.0
-# CHANGELOG entry "Smaller install footprint" for rationale.
-tests/*
-# Tracked exception: the v8.0 startup-latency baseline instrument. A measurement
-# whose script lives only in a working tree cannot be re-derived by a reviewer,
-# so this one ships with the repo the way .scripts/release-publish.sh does.
-!tests/startup-latency-probe.sh
-# Tracked exception: the source-edit guard regression suite. Three release gates
-# lean on it — Step 2a hook verification in claudedocs/release-process.md checks
-# the same guard logic this suite automates, and the v8 plan names the suite by
-# command in both its Phase 2 testing strategy and its Validation checklist. A
-# gate whose suite exists only in one working tree cannot be run from a fresh
-# clone.
-!tests/guard-regression.sh
-# Tracked exception: the session-ceremony hook harness and its fixtures. This is the
-# only test covering hooks/lib/session-ceremony.sh, which the Stop hook loads on every
-# turn, and four plan documents in specs/ name it by command as verification evidence.
-# A gate whose suite exists only in one working tree cannot be run from a fresh clone.
-!tests/session-ceremony-trigger.sh
-!tests/fixtures/
-tests/fixtures/*
-!tests/fixtures/session-ceremony/
+# Inverted 2026-08-08 (specs/invert-tests-ignore-rule.md): the live gate suite
+# ships by default so a fresh clone can run the release gates and their fixture
+# self-tests. Only the historical fixture archives below are excluded — they
+# are author-only reference, not something the gates need to run.
+tests/fixtures/v[0-9]*/
+tests/fixtures/phase5/
+tests/fixtures/rule11/
+# Dormant parallel suite no release gate runs; shipping it is a separate open question (.backlog/decide-scanner-suite-fate.md).
+tests/scanner/
+# The goal-tripwire fixtures intentionally contain nested .handoffs/ and .prompts/
+# directories (they simulate the artifacts that lint checks) — re-include them here
+# since the blanket .handoffs/ and .prompts/ excludes above would otherwise swallow
+# them too; a file under an excluded directory cannot be re-included on its own.
+!tests/fixtures/goal-tripwire/*/.handoffs/
+!tests/fixtures/goal-tripwire/*/.handoffs/**
+!tests/fixtures/goal-tripwire/*/.prompts/
+!tests/fixtures/goal-tripwire/*/.prompts/**
 .lint-allowlist
 .scanner-exceptions.json
 hooks/lib/

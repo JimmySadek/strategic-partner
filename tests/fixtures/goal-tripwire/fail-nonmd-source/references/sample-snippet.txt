@@ -1,0 +1,5 @@
+# Reference snippet in a non-.md source file (must FAIL via broadened source scan)
+
+══════════════════ START 🟢 COPY ══════════════════
+/goal all tests pass per `npm test` output — stop after 20 turns
+══════════════════= END 🛑 COPY ═══════════════════

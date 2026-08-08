@@ -1,0 +1,2 @@
+Read the saved brief below and execute every deliverable.
+/goal all deliverables shipped per git log — stop after 25 turns
