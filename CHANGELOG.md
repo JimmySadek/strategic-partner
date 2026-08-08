@@ -1,5 +1,58 @@
 # Changelog
 
+## [7.9.1] - 2026-08-08
+
+### Deprecated
+
+- **The standalone skill install is deprecated; the plugin install is its
+  successor** — Strategic Partner has shipped in two install shapes, and from
+  today new feature work lands in the plugin. Nothing is being removed: the
+  standalone skill keeps working and keeps receiving maintenance updates, and
+  any future removal would land in a major version, only after every known
+  user has moved across and every install path has been tested. If you are on
+  the skill install, `/strategic-partner:try-plugin` moves you over in one
+  step. The notice appears where you would actually meet the decision — the
+  install instructions, the update command's success message, the command
+  list, and the confirmation shown when switching back from the plugin.
+
+### Fixed
+
+- **The approval step for handing work to a specialist no longer teaches a
+  format that gets itself rejected** — before Strategic Partner hands a task
+  to a specialist, it asks you to approve with three fixed option labels, and
+  a safety check compares those labels exactly. Every document describing
+  them showed the labels wrapped in square brackets, while the check compares
+  them without. Following the written instruction therefore blocked the very
+  approval it was meant to authorize — and the check's own error message
+  repeated the bracketed form, so the retry failed identically. Found by
+  hitting it twice in a real session, not by looking for it. The wording is
+  corrected everywhere it is taught and in the error messages; the safety
+  check itself was already correct and was not changed.
+- **The check that reviews Strategic Partner's own chat no longer lets anyone
+  else's words speak for it** — it had been reading your messages, and even
+  dispatched helpers' reports, when deciding whether Strategic Partner asked
+  you a question properly. Both the text it scans and its detection of whether
+  a structured question was offered now come only from what Strategic Partner
+  itself said. A related crash was fixed in the same place: on machines
+  without the jq tool, the check errored on any conversation that contained
+  no structured question at all.
+
+### Added
+
+- **The chat-review check now notices in-house shorthand** — it points out
+  release-step numbers, effort-setting names, and similar internal vocabulary
+  appearing in messages you read. It reports these rather than failing the
+  release, because the check runs only at release time and so can describe a
+  habit but not prevent one; making it a hard gate would block every release
+  without improving anything. It also flags some mentions the surrounding
+  sentence already explained — narrowing that is tracked follow-up work.
+- **That checker now has a self-test, run as part of the release checks** — a
+  set of small sample conversations confirms it still catches what it claims
+  to catch, still ignores what it should, and exits the way the release gate
+  expects. One conversation recorded before the new rule existed is listed as
+  known baseline; conversations recorded after it are not, and the slips found
+  in them are recorded rather than hidden.
+
 ## [7.9.0] - 2026-08-05
 
 ### Added

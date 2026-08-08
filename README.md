@@ -2,18 +2,20 @@
   <img src="assets/images/banner.png" alt="Strategic Partner - Chief of Staff for Claude Code" width="100%">
 </p>
 
-[![Version](https://img.shields.io/badge/version-7.9.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-7.9.1-blue)](CHANGELOG.md)
 
 # strategic-partner
 
 A strategic advisory skill for Claude Code (an installable add-on that extends Claude Code's behavior) that separates thinking from building. It thinks with you in one session — asking the right questions, challenging assumptions, framing problems before jumping to solutions. Then it packages implementation for fresh sessions where the full context window is available. Decisions persist. Context stays clean.
 
-> **What's new — 7.9.0** — You can now report a Strategic Partner bug from
-> inside any project, including a client's, with `/report-issue`: the draft is
-> scrubbed twice, shown to you exactly as it would be posted, and filed only
-> after you approve it — or saved to a local file when filing is unavailable or
-> fails. Sessions also open with a short briefing instead of a checklist, and
-> confirmation menus name the actual task rather than offering generic choices.
+> **What's new — 7.9.1** — The standalone skill install is now deprecated in
+> favor of the plugin install: new feature work lands in the plugin, while the
+> skill install keeps working and keeps receiving maintenance updates —
+> nothing is removed, and removal would only ever come in a major version
+> after every user has migrated. Also fixed: the approval step for handing
+> work to a specialist no longer displays its option labels in a format the
+> safety check rejects, and the check that reviews Strategic Partner's own
+> chat now listens only to what Strategic Partner itself said.
 > See [CHANGELOG.md](CHANGELOG.md) for prior releases.
 
 ---
@@ -98,12 +100,13 @@ voice style straight out of the plugin.
 
 ### Install as a standalone skill
 
-> ⚠️ **Deprecated as of 2026-08-07.** The plugin install above is this
-> install's successor and is where all new work lands. Nothing is being
-> removed: the standalone skill keeps working and keeps receiving updates.
-> Any future removal would land in a major version, and only after every
-> known user has migrated and every install path has been tested. To move
-> over in one step, run `/strategic-partner:try-plugin`.
+> ⚠️ **Deprecated as of 2026-08-08.** The plugin install above is this
+> install's successor — new feature work lands there. Nothing is being
+> removed: the standalone skill keeps working and keeps receiving
+> maintenance updates. Any future removal would land in a major version,
+> and only after every known user has migrated and every install path
+> has been tested. To move over in one step, run
+> `/strategic-partner:try-plugin`.
 
 ```bash
 git clone https://github.com/JimmySadek/strategic-partner.git <your-skills-dir>/strategic-partner

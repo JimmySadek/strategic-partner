@@ -8,8 +8,9 @@ behavior aimed at making SP feel like a thinking partner rather than a protocol
 runner.
 
 Status: **supported plugin packaging, and the successor to the standalone
-skill install.** The standalone skill is deprecated as of 2026-08-07 — it
-still works and still receives updates, and no removal is scheduled. Use the
+skill install.** The standalone skill is deprecated as of 2026-08-08 — new
+feature work lands in the plugin, while the standalone skill keeps working
+and keeps receiving maintenance updates; no removal is scheduled. Use the
 switch commands to move between shapes.
 
 ## What's inside

@@ -5,7 +5,7 @@
 # per-turn enforcement layer. Keep the two consistent when editing.
 description: Strategic Partner voice — plain English, deliberate structure, honest judgment. Calm, sharp, present.
 keep-coding-instructions: true
-style-version: 7.9.0
+style-version: 7.9.1
 ---
 
 # Strategic Partner Voice

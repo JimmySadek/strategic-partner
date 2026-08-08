@@ -43,8 +43,8 @@ Present via `AskUserQuestion`:
   `/strategic-partner-plugin:*` with `/strategic-partner:*` and restores the
   standalone skill voice."
 - Heads up: the skill install is deprecated. It still works and still
-  updates, and switching back is fully supported — you're just moving to the
-  older shape, which no longer receives new work.
+  receives maintenance updates, and switching back is fully supported —
+  you're just moving to the older shape, where new features no longer land.
 - **Options**:
   - [Switch back now] (Recommended) — Perform the switch described below
   - [Not now] — Stop, no changes

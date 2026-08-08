@@ -23,7 +23,7 @@ Key behaviors:
 
 ## Subcommands
 
-> The standalone skill install is deprecated. `/strategic-partner:try-plugin` moves you to the plugin, which is where new work lands.
+> The standalone skill install is deprecated. `/strategic-partner:try-plugin` moves you to the plugin, where new feature work lands.
 
 | Command | Purpose |
 |---|---|
